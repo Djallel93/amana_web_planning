@@ -13,16 +13,18 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 /**
- * Contrôleur CRUD pour les personnes (membres officiels + bénévoles).
+ * Contrôleur CRUD pour les personnes.
+ * L'index n'affiche que les personnes ayant le rôle admin (id=1) ou membre (id=2).
  */
 class PersonnesController extends Controller
 {
     /**
-     * Liste toutes les personnes.
+     * Liste les personnes avec rôle admin ou membre uniquement.
      */
     public function index(): View
     {
-        $personnes = Personne::with('vehicule')
+        $personnes = Personne::with(['vehicule', 'roles'])
+            ->whereHas('roles', fn($q) => $q->whereIn('ref_roles.id', [1, 2]))
             ->orderBy('nom')
             ->orderBy('prenom')
             ->get();
@@ -90,7 +92,6 @@ class PersonnesController extends Controller
 
     /**
      * Supprime une personne.
-     * Les absences et restrictions sont supprimées en cascade (FK ON DELETE CASCADE).
      */
     public function destroy(int $id): RedirectResponse
     {

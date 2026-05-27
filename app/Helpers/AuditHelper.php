@@ -6,7 +6,7 @@ declare(strict_types=1);
 namespace App\Helpers;
 
 use App\Models\AuditLog;
-use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\FRequest;
 
 /**
  * Helper pour journaliser les actions sensibles.

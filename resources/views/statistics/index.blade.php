@@ -5,75 +5,109 @@
 
 @push('styles')
 <style>
-    .metric-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 16px;
+    .fairness-band {
+        background: linear-gradient(135deg, var(--ink) 0%, #2a2d3e 100%);
+        border-radius: var(--radius-xl);
+        padding: 28px 32px;
         margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
     }
-    .metric-card {
-        background: white;
-        border-radius: 10px;
-        padding: 20px 16px;
-        text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        border-top: 3px solid var(--primary);
+    .fairness-band::before {
+        content: '';
+        position: absolute;
+        top: -60px; right: -60px;
+        width: 240px; height: 240px;
+        background: radial-gradient(circle, rgba(79,70,229,0.3) 0%, transparent 65%);
+        pointer-events: none;
     }
-    .metric-card .value {
-        font-size: 32px;
-        font-weight: 800;
+    .fairness-band::after {
+        content: '';
+        position: absolute;
+        bottom: -40px; left: 60px;
+        width: 180px; height: 180px;
+        background: radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 65%);
+        pointer-events: none;
+    }
+    .fairness-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        position: relative; z-index: 1;
+    }
+    .fairness-score-wrap { text-align: right; }
+    .fairness-score {
+        font-size: 52px;
+        font-weight: 900;
+        color: white;
         line-height: 1;
-        margin-bottom: 6px;
+        letter-spacing: -2px;
     }
-    .metric-card .label {
+    .fairness-score-label {
         font-size: 12px;
-        color: #718096;
+        color: rgba(255,255,255,0.5);
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .metric-card .sub {
-        font-size: 11px;
-        color: #a0aec0;
+        letter-spacing: 0.8px;
         margin-top: 4px;
     }
-    .fairness-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 12px;
-        padding: 28px;
-        margin-bottom: 24px;
-    }
-    .fairness-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 14px;
-        margin-top: 16px;
-    }
-    .fairness-metric {
-        background: rgba(255,255,255,0.18);
-        border-radius: 8px;
-        padding: 14px;
-    }
-    .fairness-metric .f-value { font-size: 24px; font-weight: 800; }
-    .fairness-metric .f-label { font-size: 12px; opacity: 0.85; margin-bottom: 4px; }
-    .fairness-metric .f-sub   { font-size: 11px; opacity: 0.7; margin-top: 4px; }
+    .fairness-title { font-family:'DM Serif Display',serif; font-size:22px; color:white; margin-bottom:4px; }
+    .fairness-sub   { font-size:13px; color:rgba(255,255,255,0.55); }
+    .fairness-emoji { font-size:15px; margin-left:8px; }
 
-    .stats-table th { font-size: 11px; }
-    .stats-table td { font-size: 13px; }
-    .high-value { color: #c53030; font-weight: 700; }
-    .good-value { color: #276749; }
+    .fairness-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        position: relative; z-index: 1;
+    }
+    .f-metric {
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: var(--radius-lg);
+        padding: 14px 16px;
+        backdrop-filter: blur(4px);
+    }
+    .f-metric-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+    .f-metric-value { font-size: 22px; font-weight: 800; color: white; line-height: 1; }
+    .f-metric-sub   { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+
+    .score-bar-wrap { margin-top: 20px; position: relative; z-index: 1; }
+    .score-bar-bg   {
+        height: 6px;
+        background: rgba(255,255,255,0.12);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .score-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #6366f1, #a78bfa);
+        border-radius: 3px;
+        transition: width 1s ease;
+    }
+    .score-bar-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 6px;
+        font-size: 11px;
+        color: rgba(255,255,255,0.3);
+    }
+
+    .stats-table .col-num { text-align: right; }
+    .high-val { color: var(--rose); font-weight: 700; }
+    .good-val { color: var(--emerald); font-weight: 700; }
 </style>
 @endpush
 
 @section('content')
 <div class="page-header">
-    <div>
-        <div class="page-title">📊 Statistiques du planning</div>
+    <div class="page-header-left">
+        <div class="page-title">Statistiques</div>
         @if($stats['dateDebut'] && $stats['dateFin'])
             <div class="page-subtitle">
                 Du {{ \Carbon\Carbon::parse($stats['dateDebut'])->locale('fr')->isoFormat('D MMM YYYY') }}
                 au {{ \Carbon\Carbon::parse($stats['dateFin'])->locale('fr')->isoFormat('D MMM YYYY') }}
-                — {{ $stats['totalDays'] }} créneaux, {{ floor($stats['totalDays'] / 2) }} semaines
+                — {{ $stats['totalDays'] }} créneaux
             </div>
         @endif
     </div>
@@ -81,142 +115,167 @@
 </div>
 
 @if(empty($stats['personnes']))
-    <div class="card" style="text-align:center; padding:60px; color:#718096;">
-        <div style="font-size:40px; margin-bottom:16px;">📭</div>
-        Aucune donnée de planning disponible. Générez d'abord un planning.
+    <div class="card">
+        <div class="empty-state">
+            <div class="empty-icon">📊</div>
+            <div class="empty-title">Aucune donnée</div>
+            <div class="empty-desc">Générez d'abord un planning pour voir les statistiques.</div>
+            <a href="{{ route('planning.generate.form') }}" class="btn btn-primary">✨ Générer un planning</a>
+        </div>
     </div>
 @else
 
-    {{-- Métriques clés --}}
-    <div class="metric-grid">
-        <div class="metric-card">
-            <div class="value" style="color:#667eea;">{{ $stats['totalTasks'] }}</div>
-            <div class="label">Total assignations</div>
+{{-- Key metrics --}}
+<div class="stat-grid">
+    <div class="stat-card color-primary">
+        <div class="stat-value" style="color:var(--primary);">{{ $stats['totalTasks'] }}</div>
+        <div class="stat-label">Total assignations</div>
+    </div>
+    <div class="stat-card color-sky">
+        <div class="stat-value" style="color:var(--sky);">{{ $stats['nbPersonnes'] }}</div>
+        <div class="stat-label">Personnes actives</div>
+    </div>
+    <div class="stat-card color-emerald">
+        <div class="stat-value" style="color:var(--emerald);">{{ $stats['moyenneTaches'] }}</div>
+        <div class="stat-label">Moyenne / personne</div>
+    </div>
+    <div class="stat-card color-amber">
+        <div class="stat-value" style="color:var(--amber);">{{ $stats['maxConsecutif'] }}</div>
+        <div class="stat-label">Max jours consécutifs</div>
+    </div>
+    <div class="stat-card color-violet">
+        <div class="stat-value" style="color:var(--violet);">{{ $stats['tauxUtilisation'] }}%</div>
+        <div class="stat-label">Taux d'utilisation</div>
+    </div>
+    <div class="stat-card color-rose">
+        <div class="stat-value" style="color:var(--rose);">{{ $stats['totalAbsenceDays'] }}</div>
+        <div class="stat-label">Jours d'absence</div>
+        <div class="stat-sub">{{ $stats['nbPersonnesAbsentes'] }} personne(s)</div>
+    </div>
+</div>
+
+{{-- Fairness band --}}
+<div class="fairness-band">
+    <div class="fairness-top">
+        <div>
+            <div class="fairness-title">
+                Score d'équité
+                @if($stats['fairnessScore'] >= 90)
+                    <span class="fairness-emoji">🏆</span>
+                @elseif($stats['fairnessScore'] >= 70)
+                    <span class="fairness-emoji">👍</span>
+                @else
+                    <span class="fairness-emoji">⚠️</span>
+                @endif
+            </div>
+            <div class="fairness-sub">
+                @if($stats['fairnessScore'] >= 90) Excellent — distribution très équilibrée
+                @elseif($stats['fairnessScore'] >= 70) Bon — quelques déséquilibres mineurs
+                @else À améliorer — distribution déséquilibrée
+                @endif
+            </div>
         </div>
-        <div class="metric-card">
-            <div class="value" style="color:#4299e1;">{{ $stats['nbPersonnes'] }}</div>
-            <div class="label">Personnes actives</div>
-        </div>
-        <div class="metric-card">
-            <div class="value" style="color:#48bb78;">{{ $stats['moyenneTaches'] }}</div>
-            <div class="label">Moyenne / personne</div>
-        </div>
-        <div class="metric-card">
-            <div class="value" style="color:#ed8936;">{{ $stats['maxConsecutif'] }}</div>
-            <div class="label">Max jours consécutifs</div>
-            <div class="sub">jours</div>
-        </div>
-        <div class="metric-card">
-            <div class="value" style="color:#d97706;">{{ $stats['totalAbsenceDays'] }}</div>
-            <div class="label">Jours d'absence</div>
-            <div class="sub">{{ $stats['nbPersonnesAbsentes'] }} personne(s)</div>
-        </div>
-        <div class="metric-card">
-            <div class="value" style="color:#667eea;">{{ $stats['tauxUtilisation'] }}%</div>
-            <div class="label">Taux d'utilisation</div>
-            <div class="sub">postes occupés</div>
+        <div class="fairness-score-wrap">
+            <div class="fairness-score">{{ $stats['fairnessScore'] }}</div>
+            <div class="fairness-score-label">/ 100</div>
         </div>
     </div>
 
-    {{-- Score d'équité --}}
-    <div class="fairness-card">
-        <div style="font-size:20px; font-weight:700; margin-bottom:4px;">✨ Évaluation de l'équité</div>
-        <div style="opacity:0.9; font-size:14px;">
-            Score global : <strong style="font-size:28px;">{{ $stats['fairnessScore'] }}/100</strong>
-            @if($stats['fairnessScore'] >= 90) 🏆 Excellent
-            @elseif($stats['fairnessScore'] >= 70) 👍 Bon
-            @else ⚠️ À améliorer
-            @endif
+    <div class="fairness-metrics">
+        <div class="f-metric">
+            <div class="f-metric-label">Écart-type</div>
+            <div class="f-metric-value">{{ $stats['ecartType'] }}</div>
+            <div class="f-metric-sub">Plus bas = meilleur</div>
         </div>
-
-        <div class="fairness-grid">
-            <div class="fairness-metric">
-                <div class="f-label">Écart-type distribution</div>
-                <div class="f-value">{{ $stats['ecartType'] }}</div>
-                <div class="f-sub">Plus bas = meilleure équité</div>
-            </div>
-            <div class="fairness-metric">
-                <div class="f-label">Coefficient de variation</div>
-                <div class="f-value">{{ $stats['coefficientVariation'] }}%</div>
-                <div class="f-sub">Écart relatif à la moyenne</div>
-            </div>
-            <div class="fairness-metric">
-                <div class="f-label">Équilibre Ven./Sam.</div>
-                <div class="f-value">{{ $stats['desequilibreMoyen'] }}</div>
-                <div class="f-sub">Déséquilibre moyen</div>
-            </div>
-            <div class="fairness-metric">
-                <div class="f-label">Distribution Amana Food</div>
-                <div class="f-value">{{ $stats['minAmanaFood'] }}–{{ $stats['maxAmanaFood'] }}</div>
-                <div class="f-sub">Moy. : {{ $stats['avgAmanaFood'] }}</div>
-            </div>
-            <div class="fairness-metric">
-                <div class="f-label">Plage de distribution</div>
-                <div class="f-value">{{ $stats['minTaches'] }}–{{ $stats['maxTaches'] }}</div>
-                <div class="f-sub">Écart : {{ $stats['maxTaches'] - $stats['minTaches'] }}</div>
-            </div>
-            <div class="fairness-metric">
-                <div class="f-label">Jours consécutifs</div>
-                <div class="f-value">{{ $stats['persAvecHautConsec'] }}</div>
-                <div class="f-sub">personne(s) > 2 jours</div>
-            </div>
+        <div class="f-metric">
+            <div class="f-metric-label">Coeff. variation</div>
+            <div class="f-metric-value">{{ $stats['coefficientVariation'] }}%</div>
+            <div class="f-metric-sub">Écart relatif</div>
+        </div>
+        <div class="f-metric">
+            <div class="f-metric-label">Déséq. Ven./Sam.</div>
+            <div class="f-metric-value">{{ $stats['desequilibreMoyen'] }}</div>
+            <div class="f-metric-sub">Moy. par personne</div>
+        </div>
+        <div class="f-metric">
+            <div class="f-metric-label">Amana Food</div>
+            <div class="f-metric-value">{{ $stats['minAmanaFood'] }}–{{ $stats['maxAmanaFood'] }}</div>
+            <div class="f-metric-sub">Moy. {{ $stats['avgAmanaFood'] }}</div>
+        </div>
+        <div class="f-metric">
+            <div class="f-metric-label">Plage distrib.</div>
+            <div class="f-metric-value">{{ $stats['minTaches'] }}–{{ $stats['maxTaches'] }}</div>
+            <div class="f-metric-sub">Écart {{ $stats['maxTaches'] - $stats['minTaches'] }}</div>
+        </div>
+        <div class="f-metric">
+            <div class="f-metric-label">Jours consécutifs</div>
+            <div class="f-metric-value">{{ $stats['persAvecHautConsec'] }}</div>
+            <div class="f-metric-sub">Pers. > 2 jours</div>
         </div>
     </div>
 
-    {{-- Tableau détaillé --}}
-    <div class="card">
-        <div class="card-header">
-            <span class="card-title">📋 Statistiques détaillées par personne</span>
+    <div class="score-bar-wrap">
+        <div class="score-bar-bg">
+            <div class="score-bar-fill" style="width: {{ $stats['fairnessScore'] }}%"></div>
         </div>
-        <div class="table-wrap">
-            <table class="stats-table">
-                <thead>
+        <div class="score-bar-labels">
+            <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+        </div>
+    </div>
+</div>
+
+{{-- Detailed table --}}
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <div class="card-title-icon" style="background:var(--sky-bg);">📋</div>
+            Détail par personne
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>Personne</th>
+                    <th class="col-num">Total</th>
+                    <th class="col-num">Vendredis</th>
+                    <th class="col-num">Samedis</th>
+                    <th class="col-num" style="color:#2563eb;">Entrée</th>
+                    <th class="col-num" style="color:#059669;">Mektaba</th>
+                    <th class="col-num" style="color:#d97706;">Salle</th>
+                    <th class="col-num" style="color:#e11d48;">Amana Food</th>
+                    <th class="col-num">Consécutifs</th>
+                    <th class="col-num">Absences</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($stats['personnes'] as $nom)
+                    @php
+                        $total   = $stats['taskCounts'][$nom]     ?? 0;
+                        $dc      = $stats['dayCounts'][$nom]      ?? ['vendredis' => 0, 'samedis' => 0];
+                        $tp      = $stats['tasksByPerson'][$nom]  ?? [];
+                        $consec  = $stats['consecutiveDays'][$nom]?? 0;
+                        $abs     = $stats['absenceDays'][$nom]    ?? 0;
+                    @endphp
                     <tr>
-                        <th>Personne</th>
-                        <th style="text-align:right;">Total</th>
-                        <th style="text-align:right;">Vendredis</th>
-                        <th style="text-align:right;">Samedis</th>
-                        <th style="text-align:right; color:#3182ce;">Entrée</th>
-                        <th style="text-align:right; color:#276749;">Mektaba</th>
-                        <th style="text-align:right; color:#c05621;">Salle</th>
-                        <th style="text-align:right; color:#c53030;">Amana Food</th>
-                        <th style="text-align:right;">Consécutifs</th>
-                        <th style="text-align:right;">🏖️ Absences</th>
+                        <td class="td-primary">{{ $nom }}</td>
+                        <td class="col-num" style="font-weight:700; color:var(--ink);">{{ $total }}</td>
+                        <td class="col-num">{{ $dc['vendredis'] }}</td>
+                        <td class="col-num">{{ $dc['samedis'] }}</td>
+                        <td class="col-num">{{ $tp['entree']     ?? 0 }}</td>
+                        <td class="col-num">{{ $tp['mektaba']    ?? 0 }}</td>
+                        <td class="col-num">{{ $tp['salle']      ?? 0 }}</td>
+                        <td class="col-num">{{ $tp['amana_food'] ?? 0 }}</td>
+                        <td class="col-num {{ $consec > 2 ? 'high-val' : '' }}">{{ $consec }}</td>
+                        <td class="col-num" style="color:{{ $abs > 0 ? 'var(--amber)' : 'var(--ink-faint)' }};">
+                            {{ $abs ?: '—' }}
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach($stats['personnes'] as $nom)
-                        @php
-                            $total   = $stats['taskCounts'][$nom] ?? 0;
-                            $dc      = $stats['dayCounts'][$nom]    ?? ['vendredis' => 0, 'samedis' => 0];
-                            $tp      = $stats['tasksByPerson'][$nom] ?? ['entree'=>0,'mektaba'=>0,'salle'=>0,'amana_food'=>0];
-                            $consec  = $stats['consecutiveDays'][$nom] ?? 0;
-                            $absences= $stats['absenceDays'][$nom]  ?? 0;
-                        @endphp
-                        <tr>
-                            <td><strong>{{ $nom }}</strong></td>
-                            <td style="text-align:right; font-weight:700;">{{ $total }}</td>
-                            <td style="text-align:right;">{{ $dc['vendredis'] }}</td>
-                            <td style="text-align:right;">{{ $dc['samedis'] }}</td>
-                            <td style="text-align:right;">{{ $tp['entree'] ?? 0 }}</td>
-                            <td style="text-align:right;">{{ $tp['mektaba'] ?? 0 }}</td>
-                            <td style="text-align:right;">{{ $tp['salle'] ?? 0 }}</td>
-                            <td style="text-align:right;">{{ $tp['amana_food'] ?? 0 }}</td>
-                            <td style="text-align:right;"
-                                class="{{ $consec > 2 ? 'high-value' : '' }}">
-                                {{ $consec }}
-                            </td>
-                            <td style="text-align:right;"
-                                class="{{ $absences > 0 ? '' : '' }}"
-                                style="color:{{ $absences > 0 ? '#ed8936' : '#a0aec0' }}">
-                                {{ $absences ?: '—' }}
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+                @endforeach
+            </tbody>
+        </table>
     </div>
+</div>
 
 @endif
 @endsection

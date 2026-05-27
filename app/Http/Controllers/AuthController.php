@@ -38,16 +38,16 @@ class AuthController extends Controller
     {
         // Validation des champs
         $request->validate([
-            'email'    => ['required', 'email'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:6'],
         ], [
-            'email.required'    => 'L\'adresse email est obligatoire.',
-            'email.email'       => 'Format d\'email invalide.',
+            'email.required' => 'L\'adresse email est obligatoire.',
+            'email.email' => 'Format d\'email invalide.',
             'password.required' => 'Le mot de passe est obligatoire.',
         ]);
 
         $credentials = $request->only('email', 'password');
-        $remember    = $request->boolean('remember');
+        $remember = $request->boolean('remember');
 
         // Tentative d'authentification via Auth guard (table users)
         if (Auth::attempt($credentials, $remember)) {

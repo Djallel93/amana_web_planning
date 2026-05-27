@@ -3,165 +3,802 @@
 
 @section('title', 'Planning — AMANA')
 
+@push('styles')
+<style>
+    /* ── Filter Bar ── */
+    .filter-bar {
+        background: var(--surface);
+        border: 1px solid rgba(0,0,0,0.04);
+        border-radius: var(--radius-lg);
+        padding: 16px 20px;
+        margin-bottom: 22px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .filter-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+        white-space: nowrap;
+    }
+    .filter-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;F
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12.5px;
+        font-weight: 600;
+        border: 1.5px solid var(--ink-faint);
+        background: var(--surface);
+        color: var(--ink-muted);
+        cursor: pointer;
+        transition: var(--transition);
+        user-select: none;
+    }
+    .filter-chip:hover  { border-color: var(--primary); color: var(--primary); background: var(--violet-bg); }
+    .filter-chip.active {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
+        border-color: transparent;
+        color: white;
+        box-shadow: 0 3px 10px rgba(79,70,229,0.3);
+    }
+    .filter-divider { width: 1px; height: 28px; background: var(--surface-3); flex-shrink: 0; }
+    .filter-clear {
+        background: none; border: none;
+        color: var(--ink-muted);
+        font-size: 12.5px; font-weight: 600;
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: var(--radius-sm);
+        transition: var(--transition);
+        font-family: inherit;
+        white-space: nowrap;
+    }
+    .filter-clear:hover { color: var(--rose); background: var(--rose-bg); }
+    .results-count { font-size: 12.5px; color: var(--ink-muted); margin-left: auto; }
+
+    /* ── Week blocks ── */
+    .week-block { margin-bottom: 20px; }
+    .week-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 18px;
+        background: linear-gradient(135deg, var(--ink) 0%, #2a2d3e 100%);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    .week-label {
+        display: flex; align-items: center; gap: 10px;
+        font-weight: 700; font-size: 13.5px; color: white;
+    }
+    .week-num {
+        background: rgba(255,255,255,0.15);
+        padding: 2px 10px; border-radius: 20px;
+        font-size: 12px; font-weight: 700;
+    }
+    .week-dates { font-size: 12.5px; color: rgba(255,255,255,0.5); }
+    .week-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-delete-week {
+        background: rgba(225,29,72,0.15);
+        border: 1px solid rgba(225,29,72,0.3);
+        color: rgba(255,255,255,0.7);
+        padding: 5px 12px;
+        border-radius: var(--radius-sm);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: inherit;
+        transition: var(--transition);
+        display: flex; align-items: center; gap: 5px;
+    }
+    .btn-delete-week:hover {
+        background: rgba(225,29,72,0.35);
+        color: white;
+        border-color: rgba(225,29,72,0.6);
+    }
+    .week-body {
+        background: var(--surface);
+        border: 1px solid rgba(0,0,0,0.04);
+        border-top: none;
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+    }
+
+    /* ── Task cells with edit affordance ── */
+    .task-cell {
+        position: relative;
+        min-width: 140px;
+    }
+    .task-cell-inner {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 4px;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    .task-cell-inner:hover {
+        background: var(--surface-2);
+    }
+    .task-cell-inner:hover .edit-icon { opacity: 1; }
+    .edit-icon {
+        opacity: 0;
+        font-size: 11px;
+        color: var(--ink-muted);
+        transition: var(--transition);
+        flex-shrink: 0;
+    }
+
+    .tache-chip {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px; border-radius: 20px;
+        font-size: 12px; font-weight: 600;
+    }
+    .tache-chip.entree     { background:#eff6ff; color:#2563eb; }
+    .tache-chip.mektaba    { background:#ecfdf5; color:#059669; }
+    .tache-chip.salle      { background:#fffbeb; color:#d97706; }
+    .tache-chip.amana_food { background:#fff1f2; color:#e11d48; }
+    .tache-vide { color:var(--ink-faint); font-style:italic; font-size:12px; }
+
+    .day-row-blocked td { opacity: 0.55; }
+    .event-tag {
+        display:inline-flex; align-items:center; gap:4px;
+        background:var(--amber-bg); color:var(--amber);
+        border:1px solid #fde68a;
+        padding:2px 8px; border-radius:20px;
+        font-size:11.5px; font-weight:600;
+    }
+    .event-tag.blocked { background:var(--rose-bg); color:var(--rose); border-color:#fecdd3; }
+
+    /* Delete day button in row */
+    .btn-delete-day {
+        opacity: 0;
+        background: none;
+        border: 1px solid var(--ink-faint);
+        color: var(--ink-muted);
+        border-radius: var(--radius-sm);
+        padding: 3px 7px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: var(--transition);
+        font-family: inherit;
+        white-space: nowrap;
+    }
+    tr:hover .btn-delete-day { opacity: 1; }
+    .btn-delete-day:hover { background: var(--rose-bg); border-color: var(--rose); color: var(--rose); }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+        position: fixed; inset: 0;
+        background: rgba(15,17,23,0.55);
+        backdrop-filter: blur(3px);
+        z-index: 1000;
+        display: flex; align-items: center; justify-content: center;
+        padding: 24px;
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.2s;
+    }
+    .modal-backdrop.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+        background: var(--surface);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        width: 100%; max-width: 460px;
+        overflow: hidden;
+        transform: translateY(16px) scale(0.98);
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+
+    .modal-header {
+        display: flex; align-items: center;
+        justify-content: space-between;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--surface-3);
+    }
+    .modal-title {
+        font-size: 15px; font-weight: 700; color: var(--ink);
+        display: flex; align-items: center; gap: 9px;
+    }
+    .modal-title-icon {
+        width: 30px; height: 30px;
+        border-radius: var(--radius-sm);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px;
+    }
+    .modal-close {
+        background: none; border: none;
+        color: var(--ink-muted); font-size: 18px;
+        cursor: pointer; padding: 4px 8px;
+        border-radius: var(--radius-sm);
+        transition: var(--transition); line-height: 1;
+    }
+    .modal-close:hover { background: var(--surface-2); color: var(--ink); }
+
+    .modal-body { padding: 22px; }
+
+    .modal-info {
+        background: var(--surface-2);
+        border-radius: var(--radius);
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 12.5px;
+        color: var(--ink-muted);
+        display: flex; flex-direction: column; gap: 4px;
+    }
+    .modal-info strong { color: var(--ink); font-size: 13px; }
+
+    .modal-section-title {
+        font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.8px;
+        color: var(--ink-muted); margin-bottom: 10px;
+    }
+
+    .person-select-wrap {
+        display: flex; gap: 10px; margin-bottom: 16px;
+    }
+    .person-select-wrap select {
+        flex: 1; padding: 9px 13px;
+        border: 1.5px solid var(--ink-faint);
+        border-radius: var(--radius);
+        font-size: 13.5px; font-family: inherit;
+        color: var(--ink); background: var(--surface);
+        outline: none; transition: var(--transition);
+    }
+    .person-select-wrap select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    .modal-footer {
+        padding: 16px 22px;
+        border-top: 1px solid var(--surface-3);
+        display: flex; gap: 10px; align-items: center;
+    }
+    .modal-footer-danger { margin-left: auto; }
+
+    /* Toast notification */
+    .toast-container {
+        position: fixed; bottom: 24px; right: 24px;
+        z-index: 2000; display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+        background: var(--ink);
+        color: white;
+        padding: 12px 18px;
+        border-radius: var(--radius-lg);
+        font-size: 13px; font-weight: 500;
+        box-shadow: var(--shadow-lg);
+        display: flex; align-items: center; gap: 10px;
+        min-width: 260px;
+        animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .toast.success { border-left: 3px solid var(--emerald); }
+    .toast.error   { border-left: 3px solid var(--rose); }
+    @keyframes toastIn {
+        from { opacity:0; transform:translateX(20px); }
+        to   { opacity:1; transform:translateX(0); }
+    }
+    @keyframes toastOut {
+        from { opacity:1; transform:translateX(0); }
+        to   { opacity:0; transform:translateX(20px); }
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="page-header">
-    <div>
-        <div class="page-title">📅 Planning des permanences</div>
-        <div class="page-subtitle">Vendredis et samedis — rotation automatique des tâches</div>
+    <div class="page-header-left">
+        <div class="page-title">Planning des permanences</div>
+        <div class="page-subtitle">Vendredis &amp; samedis — cliquez sur une cellule pour modifier</div>
     </div>
-    <div style="display:flex; gap:10px;">
-        <a href="{{ route('planning.generate.form') }}" class="btn btn-primary">
-            ✨ Générer le planning
-        </a>
-        <a href="{{ route('planning.statistics') }}" class="btn btn-secondary">
-            📊 Statistiques
-        </a>
+    <div class="page-header-actions">
+        <a href="{{ route('planning.export.form') }}" class="btn btn-secondary">📄 Export PDF</a>
+        <a href="{{ route('planning.generate.form') }}" class="btn btn-primary">✨ Générer</a>
     </div>
 </div>
 
 @if($creneaux->isEmpty())
-    <div class="card" style="text-align:center; padding: 60px;">
-        <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
-        <div style="font-size: 18px; font-weight: 600; color: #718096; margin-bottom: 12px;">
-            Aucun planning généré
+    <div class="card">
+        <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <div class="empty-title">Aucun planning généré</div>
+            <div class="empty-desc">Cliquez sur "Générer" pour créer le premier planning automatique.</div>
+            <a href="{{ route('planning.generate.form') }}" class="btn btn-primary btn-lg">✨ Générer maintenant</a>
         </div>
-        <p style="color: #a0aec0; margin-bottom: 24px;">
-            Cliquez sur "Générer le planning" pour créer le premier planning automatique.
-        </p>
-        <a href="{{ route('planning.generate.form') }}" class="btn btn-primary">
-            ✨ Générer maintenant
-        </a>
     </div>
 @else
-    @foreach($creneaux as $semaineCle => $creneauxSemaine)
-        @php
-            $premierCreneau = $creneauxSemaine->first();
-            $semaine = $premierCreneau->semaine;
-        @endphp
-        <div class="card" style="margin-bottom: 16px;">
-            {{-- En-tête de semaine --}}
-            <div style="
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                margin: -24px -24px 20px -24px;
-                padding: 14px 24px;
-                border-radius: 10px 10px 0 0;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            ">
-                <span style="color:white; font-weight:700; font-size:15px;">
-                    📅 Semaine {{ $semaine }}
-                </span>
-                <span style="color:rgba(255,255,255,0.8); font-size:13px;">
-                    {{ $creneauxSemaine->first()->date->locale('fr')->isoFormat('D MMM') }}
-                    —
-                    {{ $creneauxSemaine->last()->date->locale('fr')->isoFormat('D MMM YYYY') }}
-                </span>
-            </div>
 
+@php
+    $allYears  = [];
+    $allMonths = [];
+    foreach ($creneaux as $group) {
+        foreach ($group as $c) {
+            $allYears[$c->date->year]  = $c->date->year;
+            $allMonths[$c->date->month] = $c->date->locale('fr')->isoFormat('MMMM');
+        }
+    }
+    krsort($allYears);
+    ksort($allMonths);
+@endphp
+
+{{-- Filter Bar --}}
+<div class="filter-bar">
+    <span class="filter-label">Filtrer</span>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span class="filter-label" style="font-size:11px;">Année</span>
+        <div class="filter-group" id="yearFilters">
+            @foreach($allYears as $year)
+                <span class="filter-chip" data-type="year" data-value="{{ $year }}" onclick="toggleFilter(this)">{{ $year }}</span>
+            @endforeach
+        </div>
+    </div>
+    <div class="filter-divider"></div>
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span class="filter-label" style="font-size:11px;">Mois</span>
+        <div class="filter-group" id="monthFilters">
+            @foreach($allMonths as $num => $name)
+                <span class="filter-chip" data-type="month" data-value="{{ $num }}" onclick="toggleFilter(this)">{{ ucfirst($name) }}</span>
+            @endforeach
+        </div>
+    </div>
+    <div class="filter-divider"></div>
+    <button class="filter-clear" onclick="clearFilters()">✕ Effacer</button>
+    <span class="results-count" id="resultsCount"></span>
+</div>
+
+{{-- Planning Weeks --}}
+<div id="planningContainer">
+@foreach($creneaux as $semaineCle => $creneauxSemaine)
+    @php
+        $first     = $creneauxSemaine->first();
+        $last      = $creneauxSemaine->last();
+        $weekYear  = $first->date->year;
+        $weekMonth = $first->date->month;
+        // Collect all creneau IDs in this week for bulk delete
+        $weekCreneauIds = $creneauxSemaine->pluck('id')->join(',');
+    @endphp
+    <div class="week-block" data-year="{{ $weekYear }}" data-month="{{ $weekMonth }}">
+        <div class="week-header">
+            <div class="week-label">
+                📅 <span class="week-num">S{{ $first->semaine }}</span>
+                {{ $first->date->locale('fr')->isoFormat('D MMMM') }} — {{ $last->date->locale('fr')->isoFormat('D MMMM YYYY') }}
+            </div>
+            <div class="week-actions">
+                <span class="week-dates">{{ $creneauxSemaine->count() }} créneaux</span>
+                <button class="btn-delete-week"
+                        onclick="deleteWeek([{{ $weekCreneauIds }}], this)"
+                        title="Supprimer toute la semaine">
+                    🗑️ Supprimer la semaine
+                </button>
+            </div>
+        </div>
+        <div class="week-body">
             <div class="table-wrap">
                 <table>
                     <thead>
                         <tr>
                             <th>Jour</th>
-                            <th>Date</th>
-                            <th style="color:#3182ce;">🚪 Entrée</th>
-                            <th style="color:#276749;">📚 Mektaba</th>
-                            <th style="color:#c05621;">🏛️ Salle</th>
-                            <th style="color:#c53030;">🥪 Amana Food</th>
+                            <th style="color:#2563eb;">🚪 Entrée</th>
+                            <th style="color:#059669;">📚 Mektaba</th>
+                            <th style="color:#d97706;">🏛️ Salle</th>
+                            <th style="color:#e11d48;">🥪 Amana Food</th>
                             <th>Événements</th>
+                            <th style="width:40px;"></th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($creneauxSemaine as $creneau)
+                        @php
+                            $tachesMap = $creneau->taches->keyBy(fn($t) => $t->tache?->code);
+                            $isBlocked = $creneau->evenements->contains(fn($e) => $e->bloque_planning);
+                            $evtStr    = $creneau->evenements->pluck('nom')->implode(', ');
+                        @endphp
+                        <tr class="{{ $isBlocked ? 'day-row-blocked' : '' }}"
+                            id="row-creneau-{{ $creneau->id }}">
+                            <td>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <strong style="color:var(--ink); font-size:14px;">{{ $creneau->jour }}</strong>
+                                    <span style="color:var(--ink-muted); font-size:12px;">
+                                        {{ $creneau->date->locale('fr')->isoFormat('D MMM YYYY') }}
+                                    </span>
+                                    @if($isBlocked)
+                                        <span class="badge badge-danger badge-dot" style="font-size:10.5px;">Bloqué</span>
+                                    @endif
+                                </div>
+                            </td>
+
+                            {{-- Task cells --}}
+                            @foreach(['entree','mektaba','salle','amana_food'] as $code)
                             @php
-                                // Indexer les tâches par code pour accès facile
-                                $tachesMap = $creneau->taches->keyBy(fn($t) => $t->tache?->code);
-                                $evenementsStr = $creneau->evenements->pluck('nom')->implode(', ');
+                                $ct      = $tachesMap->get($code);
+                                $tacheId = $ct?->id_tache;
+                                $personne = $ct?->personne;
+                                $chipClass = str_replace('_', '_', $code); // keep amana_food
                             @endphp
-                            <tr @if($creneau->evenements->where('bloque_planning', true)->count())
-                                style="background: #fff5f5; opacity: 0.75;"
-                                @endif>
-                                <td>
-                                    <strong>{{ $creneau->jour }}</strong>
-                                </td>
-                                <td>
-                                    {{ $creneau->date->locale('fr')->isoFormat('D MMMM YYYY') }}
-                                </td>
-                                {{-- Entrée --}}
-                                <td>
-                                    @if($tachesMap->has('entree'))
-                                        @if($tachesMap['entree']->personne)
-                                            <span class="tache-entree">
-                                                {{ $tachesMap['entree']->personne->prenom }}
-                                                {{ $tachesMap['entree']->personne->nom }}
-                                            </span>
-                                        @else
-                                            <span class="tache-vide">Non assigné</span>
-                                        @endif
+                            <td class="task-cell"
+                                id="cell-{{ $creneau->id }}-{{ $code }}"
+                                data-creneau-id="{{ $creneau->id }}"
+                                data-tache-id="{{ $tacheId }}"
+                                data-tache-code="{{ $code }}"
+                                data-tache-label="{{ ucfirst(str_replace('_', ' ', $code)) }}"
+                                data-jour="{{ $creneau->jour }}"
+                                data-date="{{ $creneau->date->locale('fr')->isoFormat('D MMM YYYY') }}">
+                                <div class="task-cell-inner" onclick="openEditModal(this.closest('td'))">
+                                    @if($personne)
+                                        <span class="tache-chip {{ $code === 'amana_food' ? 'amana_food' : $code }}"
+                                              id="chip-{{ $creneau->id }}-{{ $code }}">
+                                            {{ $personne->prenom }} {{ $personne->nom }}
+                                        </span>
                                     @else
-                                        <span class="tache-vide">—</span>
+                                        <span class="tache-vide" id="chip-{{ $creneau->id }}-{{ $code }}">—</span>
                                     @endif
-                                </td>
-                                {{-- Mektaba --}}
-                                <td>
-                                    @if($tachesMap->has('mektaba'))
-                                        @if($tachesMap['mektaba']->personne)
-                                            <span class="tache-mektaba">
-                                                {{ $tachesMap['mektaba']->personne->prenom }}
-                                                {{ $tachesMap['mektaba']->personne->nom }}
-                                            </span>
-                                        @else
-                                            <span class="tache-vide">Non assigné</span>
-                                        @endif
-                                    @else
-                                        <span class="tache-vide">—</span>
-                                    @endif
-                                </td>
-                                {{-- Salle --}}
-                                <td>
-                                    @if($tachesMap->has('salle'))
-                                        @if($tachesMap['salle']->personne)
-                                            <span class="tache-salle">
-                                                {{ $tachesMap['salle']->personne->prenom }}
-                                                {{ $tachesMap['salle']->personne->nom }}
-                                            </span>
-                                        @else
-                                            <span class="tache-vide">Non assigné</span>
-                                        @endif
-                                    @else
-                                        <span class="tache-vide">—</span>
-                                    @endif
-                                </td>
-                                {{-- Amana Food --}}
-                                <td>
-                                    @if($tachesMap->has('amana_food'))
-                                        @if($tachesMap['amana_food']->personne)
-                                            <span class="tache-amana_food">
-                                                {{ $tachesMap['amana_food']->personne->prenom }}
-                                                {{ $tachesMap['amana_food']->personne->nom }}
-                                            </span>
-                                        @else
-                                            <span class="tache-vide">Non assigné</span>
-                                        @endif
-                                    @else
-                                        <span class="tache-vide">—</span>
-                                    @endif
-                                </td>
-                                {{-- Événements --}}
-                                <td>
-                                    @if($evenementsStr)
-                                        <span class="badge badge-warning">{{ $evenementsStr }}</span>
-                                    @else
-                                        <span style="color:#a0aec0;">—</span>
-                                    @endif
-                                </td>
-                            </tr>
+                                    <span class="edit-icon">✏️</span>
+                                </div>
+                            </td>
+                            @endforeach
+
+                            <td style="color:var(--ink-faint);">
+                                @if($evtStr)
+                                    <span class="event-tag {{ $isBlocked ? 'blocked' : '' }}">{{ $evtStr }}</span>
+                                @else
+                                    <span style="font-size:12px;">—</span>
+                                @endif
+                            </td>
+
+                            {{-- Delete day button --}}
+                            <td style="text-align:right; padding-right:14px;">
+                                <button class="btn-delete-day"
+                                        onclick="deleteCreneau({{ $creneau->id }}, this)"
+                                        title="Supprimer ce créneau">
+                                    🗑️
+                                </button>
+                            </td>
+                        </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
         </div>
-    @endforeach
+    </div>
+@endforeach
+</div>
 @endif
+
+{{-- ── Edit Modal ── --}}
+<div class="modal-backdrop" id="editModalBackdrop" onclick="closeOnBackdrop(event)">
+    <div class="modal" id="editModal">
+        <div class="modal-header">
+            <div class="modal-title">
+                <div class="modal-title-icon" id="modalTitleIcon" style="background:var(--violet-bg);">✏️</div>
+                <span id="modalTitle">Modifier l'assignation</span>
+            </div>
+            <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-body">
+            {{-- Context info --}}
+            <div class="modal-info">
+                <strong id="modalContextDay">—</strong>
+                <span id="modalContextTask" style="color:var(--ink-muted);">—</span>
+            </div>
+
+            {{-- Reassign section --}}
+            <div class="modal-section-title">👤 Réassigner à</div>
+            <div class="person-select-wrap">
+                <select id="modalPersonSelect">
+                    <option value="">— Aucune personne (désassigner) —</option>
+                    {{-- Options populated by JS --}}
+                </select>
+                <button class="btn btn-primary" onclick="saveAssignation()" id="modalSaveBtn">
+                    Enregistrer
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            {{-- Danger zone --}}
+            <div class="modal-section-title" style="color:var(--rose);">⚠️ Zone dangereuse</div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-danger btn-sm" onclick="unassignTask()" id="modalUnassignBtn">
+                    ✕ Désassigner cette tâche
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteCreneauFromModal()" id="modalDeleteDayBtn">
+                    🗑️ Supprimer tout le créneau
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Toast container --}}
+<div class="toast-container" id="toastContainer"></div>
+
 @endsection
+
+@push('scripts')
+<script>
+const CSRF    = document.querySelector('meta[name="csrf-token"]').content;
+const ROUTES  = {
+    personnes:   '{{ route("planning.edit.personnes") }}',
+    assignation: '{{ url("planning/creneau") }}',  // + /{creneauId}/tache/{tacheId}
+    creneau:     '{{ url("planning/creneau") }}',   // + /{id}
+};
+
+// ── State ────────────────────────────────────────────────────────────────
+let personnesCache = null;
+let currentCell    = null;  // the td element being edited
+
+// ── Filters ──────────────────────────────────────────────────────────────
+const activeYears  = new Set();
+const activeMonths = new Set();
+
+function toggleFilter(chip) {
+    const type  = chip.dataset.type;
+    const value = parseInt(chip.dataset.value);
+    const set   = type === 'year' ? activeYears : activeMonths;
+    if (set.has(value)) { set.delete(value); chip.classList.remove('active'); }
+    else                { set.add(value);    chip.classList.add('active');    }
+    applyFilters();
+}
+function clearFilters() {
+    activeYears.clear(); activeMonths.clear();
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    applyFilters();
+}
+function applyFilters() {
+    let visible = 0;
+    document.querySelectorAll('.week-block').forEach(block => {
+        const yearOk  = activeYears.size  === 0 || activeYears.has(parseInt(block.dataset.year));
+        const monthOk = activeMonths.size === 0 || activeMonths.has(parseInt(block.dataset.month));
+        block.style.display = (yearOk && monthOk) ? '' : 'none';
+        if (yearOk && monthOk) visible++;
+    });
+    const el = document.getElementById('resultsCount');
+    if (el) el.textContent = (activeYears.size || activeMonths.size)
+        ? `${visible} semaine${visible !== 1 ? 's' : ''} affichée${visible !== 1 ? 's' : ''}`
+        : '';
+}
+
+// ── Load personnes ────────────────────────────────────────────────────────
+async function loadPersonnes() {
+    if (personnesCache) return personnesCache;
+    const res  = await fetch(ROUTES.personnes, { headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
+    personnesCache = await res.json();
+    return personnesCache;
+}
+
+// ── Open modal ────────────────────────────────────────────────────────────
+async function openEditModal(td) {
+    currentCell = td;
+    const code  = td.dataset.tacheCode;
+    const label = td.dataset.tacheLabel;
+    const jour  = td.dataset.jour;
+    const date  = td.dataset.date;
+
+    // Colors per task
+    const colors = {
+        entree:     { bg:'#eff6ff', icon:'🚪' },
+        mektaba:    { bg:'#ecfdf5', icon:'📚' },
+        salle:      { bg:'#fffbeb', icon:'🏛️' },
+        amana_food: { bg:'#fff1f2', icon:'🥪' },
+    };
+    const c = colors[code] || { bg: 'var(--violet-bg)', icon: '✏️' };
+
+    document.getElementById('modalTitleIcon').style.background = c.bg;
+    document.getElementById('modalTitleIcon').textContent      = c.icon;
+    document.getElementById('modalTitle').textContent          = `Modifier — ${label}`;
+    document.getElementById('modalContextDay').textContent     = `${jour} ${date}`;
+    document.getElementById('modalContextTask').textContent    = `Tâche : ${label}`;
+
+    // Populate select
+    const select = document.getElementById('modalPersonSelect');
+    select.innerHTML = '<option value="">— Aucune personne (désassigner) —</option>';
+
+    const personnes = await loadPersonnes();
+    personnes.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value       = p.id;
+        opt.textContent = p.label;
+        select.appendChild(opt);
+    });
+
+    // Pre-select current person
+    const chip = document.getElementById(`chip-${td.dataset.creneauId}-${code}`);
+    if (chip && !chip.classList.contains('tache-vide')) {
+        const currentName = chip.textContent.trim();
+        for (const opt of select.options) {
+            if (opt.textContent.trim() === currentName) { opt.selected = true; break; }
+        }
+    }
+
+    // Open
+    document.getElementById('editModalBackdrop').classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+    document.getElementById('editModalBackdrop').classList.remove('open');
+    document.body.style.overflow = '';
+    currentCell = null;
+}
+function closeOnBackdrop(e) {
+    if (e.target === document.getElementById('editModalBackdrop')) closeModal();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Save assignation ──────────────────────────────────────────────────────
+async function saveAssignation() {
+    if (!currentCell) return;
+    const creneauId = currentCell.dataset.creneauId;
+    const tacheId   = currentCell.dataset.tacheId;
+    const personneId = document.getElementById('modalPersonSelect').value || null;
+
+    const btn = document.getElementById('modalSaveBtn');
+    btn.disabled = true; btn.textContent = '…';
+
+    try {
+        const res  = await fetch(`${ROUTES.assignation}/${creneauId}/tache/${tacheId}`, {
+            method:  'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            body:    JSON.stringify({ id_personne: personneId ? parseInt(personneId) : null }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            updateCell(currentCell, data.personne);
+            showToast(data.message, 'success');
+            closeModal();
+        } else {
+            showToast('Erreur lors de la mise à jour', 'error');
+        }
+    } catch (e) {
+        showToast('Erreur réseau', 'error');
+    } finally {
+        btn.disabled = false; btn.textContent = 'Enregistrer';
+    }
+}
+
+// ── Unassign task ─────────────────────────────────────────────────────────
+async function unassignTask() {
+    if (!currentCell) return;
+    if (!confirm('Désassigner cette tâche ?')) return;
+
+    const creneauId = currentCell.dataset.creneauId;
+    const tacheId   = currentCell.dataset.tacheId;
+
+    try {
+        const res  = await fetch(`${ROUTES.assignation}/${creneauId}/tache/${tacheId}`, {
+            method:  'DELETE',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        const data = await res.json();
+        if (data.success) {
+            updateCell(currentCell, null);
+            showToast('Tâche désassignée', 'success');
+            closeModal();
+        }
+    } catch (e) {
+        showToast('Erreur réseau', 'error');
+    }
+}
+
+// ── Delete single creneau ─────────────────────────────────────────────────
+async function deleteCreneau(creneauId, triggerEl) {
+    if (!confirm('Supprimer ce créneau (vendredi ou samedi) et toutes ses tâches ?')) return;
+    await doDeleteCreneau(creneauId, triggerEl);
+}
+
+async function deleteCreneauFromModal() {
+    if (!currentCell) return;
+    const creneauId = parseInt(currentCell.dataset.creneauId);
+    if (!confirm('Supprimer tout ce créneau (vendredi ou samedi) ?')) return;
+    closeModal();
+    await doDeleteCreneau(creneauId, null);
+}
+
+async function doDeleteCreneau(creneauId, triggerEl) {
+    if (triggerEl) { triggerEl.disabled = true; triggerEl.textContent = '…'; }
+    try {
+        const res  = await fetch(`${ROUTES.creneau}/${creneauId}`, {
+            method:  'DELETE',
+            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+        });
+        const data = await res.json();
+        if (data.success) {
+            const row = document.getElementById(`row-creneau-${creneauId}`);
+            if (row) {
+                row.style.transition = 'opacity 0.3s, transform 0.3s';
+                row.style.opacity    = '0';
+                row.style.transform  = 'translateX(-20px)';
+                setTimeout(() => {
+                    row.remove();
+                    // If the week body table is now empty, remove the whole week block
+                    checkAndRemoveEmptyWeeks();
+                }, 300);
+            }
+            showToast(data.message, 'success');
+        } else {
+            showToast('Erreur lors de la suppression', 'error');
+        }
+    } catch (e) {
+        showToast('Erreur réseau', 'error');
+        if (triggerEl) { triggerEl.disabled = false; triggerEl.textContent = '🗑️'; }
+    }
+}
+
+// ── Delete whole week ─────────────────────────────────────────────────────
+async function deleteWeek(creneauIds, triggerEl) {
+    if (!confirm(`Supprimer les ${creneauIds.length} créneaux de cette semaine ?`)) return;
+
+    triggerEl.disabled = true;
+    triggerEl.innerHTML = '⏳ Suppression…';
+
+    let successCount = 0;
+    for (const id of creneauIds) {
+        try {
+            const res  = await fetch(`${ROUTES.creneau}/${id}`, {
+                method:  'DELETE',
+                headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            });
+            const data = await res.json();
+            if (data.success) {
+                successCount++;
+                const row = document.getElementById(`row-creneau-${id}`);
+                if (row) row.remove();
+            }
+        } catch {}
+    }
+
+    checkAndRemoveEmptyWeeks();
+    showToast(`Semaine supprimée (${successCount} créneaux)`, 'success');
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function updateCell(td, personne) {
+    const code = td.dataset.tacheCode;
+    const creneauId = td.dataset.creneauId;
+    const chip = document.getElementById(`chip-${creneauId}-${code}`);
+    if (!chip) return;
+
+    if (personne) {
+        chip.className  = `tache-chip ${code}`;
+        chip.textContent = personne.label;
+    } else {
+        chip.className  = 'tache-vide';
+        chip.textContent = '—';
+    }
+}
+
+function checkAndRemoveEmptyWeeks() {
+    document.querySelectorAll('.week-block').forEach(block => {
+        const rows = block.querySelectorAll('tbody tr');
+        if (rows.length === 0) {
+            block.style.transition = 'opacity 0.4s';
+            block.style.opacity    = '0';
+            setTimeout(() => block.remove(), 400);
+        }
+    });
+}
+
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toastContainer');
+    const toast     = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span><span>${message}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'toastOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, 3200);
+}
+</script>
+@endpush

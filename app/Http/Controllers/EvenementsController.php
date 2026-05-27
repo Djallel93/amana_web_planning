@@ -30,7 +30,7 @@ class EvenementsController extends Controller
     public function store(StoreEvenementRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['bloque_planning']     = $request->boolean('bloque_planning');
+        $data['bloque_planning'] = $request->boolean('bloque_planning');
         $data['necessite_benevoles'] = $request->boolean('necessite_benevoles');
 
         $evenement = Evenement::create($data);
@@ -50,10 +50,10 @@ class EvenementsController extends Controller
     public function update(UpdateEvenementRequest $request, int $id): RedirectResponse
     {
         $evenement = Evenement::findOrFail($id);
-        $avant     = $evenement->toArray();
+        $avant = $evenement->toArray();
 
         $data = $request->validated();
-        $data['bloque_planning']     = $request->boolean('bloque_planning');
+        $data['bloque_planning'] = $request->boolean('bloque_planning');
         $data['necessite_benevoles'] = $request->boolean('necessite_benevoles');
 
         $evenement->update($data);
@@ -67,8 +67,8 @@ class EvenementsController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $evenement = Evenement::findOrFail($id);
-        $avant     = $evenement->toArray();
-        $nom       = $evenement->nom;
+        $avant = $evenement->toArray();
+        $nom = $evenement->nom;
 
         $evenement->delete();
 

@@ -5,77 +5,105 @@
 
 @section('content')
 <div class="page-header">
-    <div>
-        <div class="page-title">🎉 Événements organisationnels</div>
+    <div class="page-header-left">
+        <div class="page-title">Événements organisationnels</div>
         <div class="page-subtitle">Vacances, Ramadan, événements spéciaux…</div>
     </div>
     <a href="{{ route('evenements.create') }}" class="btn btn-primary">+ Créer un événement</a>
 </div>
 
 <div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <div class="card-title-icon" style="background:var(--amber-bg);">🎉</div>
+            {{ $evenements->count() }} événement{{ $evenements->count() !== 1 ? 's' : '' }}
+        </div>
+    </div>
     <div class="table-wrap">
         <table>
             <thead>
                 <tr>
-                    <th>Nom</th>
-                    <th>Du</th>
-                    <th>Au</th>
+                    <th>Événement</th>
+                    <th>Début</th>
+                    <th>Fin</th>
                     <th>Durée</th>
-                    <th>Bloque planning</th>
+                    <th>Planning</th>
                     <th>Bénévoles</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($evenements as $evenement)
+                @forelse($evenements as $evt)
                     @php
-                        $jours = $evenement->date_debut->diffInDays($evenement->date_fin) + 1;
-                        $estActif = now()->between($evenement->date_debut, $evenement->date_fin);
+                        $jours    = $evt->date_debut->diffInDays($evt->date_fin) + 1;
+                        $actif    = now()->between($evt->date_debut, $evt->date_fin);
+                        $futur    = now()->lt($evt->date_debut);
                     @endphp
-                    <tr @if($estActif) style="background:#fff5f5;" @endif>
+                    <tr>
                         <td>
-                            <strong>{{ $evenement->nom }}</strong>
-                            @if($estActif)
-                                <span class="badge badge-warning" style="margin-left:6px;">En cours</span>
-                            @endif
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="
+                                    width:36px; height:36px;
+                                    background: {{ $evt->bloque_planning ? 'var(--rose-bg)' : 'var(--sky-bg)' }};
+                                    border-radius: var(--radius-sm);
+                                    display:flex; align-items:center; justify-content:center;
+                                    font-size:17px; flex-shrink:0;
+                                ">{{ $evt->bloque_planning ? '⛔' : '🎉' }}</div>
+                                <div>
+                                    <div class="td-primary">{{ $evt->nom }}</div>
+                                    @if($actif)
+                                        <span class="badge badge-warning badge-dot" style="font-size:10px;">En cours</span>
+                                    @elseif($futur)
+                                        <span class="badge badge-info badge-dot" style="font-size:10px;">À venir</span>
+                                    @else
+                                        <span class="badge badge-muted" style="font-size:10px;">Passé</span>
+                                    @endif
+                                </div>
+                            </div>
                         </td>
-                        <td>{{ $evenement->date_debut->locale('fr')->isoFormat('D MMM YYYY') }}</td>
-                        <td>{{ $evenement->date_fin->locale('fr')->isoFormat('D MMM YYYY') }}</td>
-                        <td>{{ $jours }} jour{{ $jours > 1 ? 's' : '' }}</td>
+                        <td style="color:var(--ink-muted); font-size:12.5px;">
+                            {{ $evt->date_debut->locale('fr')->isoFormat('D MMM YYYY') }}
+                        </td>
+                        <td style="color:var(--ink-muted); font-size:12.5px;">
+                            {{ $evt->date_fin->locale('fr')->isoFormat('D MMM YYYY') }}
+                        </td>
+                        <td><span class="badge badge-muted">{{ $jours }}j</span></td>
                         <td>
-                            @if($evenement->bloque_planning)
-                                <span class="badge badge-danger">⛔ Oui</span>
+                            @if($evt->bloque_planning)
+                                <span class="badge badge-danger badge-dot">Bloqué</span>
                             @else
-                                <span class="badge badge-muted">Non</span>
+                                <span class="badge badge-muted">Normal</span>
                             @endif
                         </td>
                         <td>
-                            @if($evenement->necessite_benevoles)
-                                <span class="badge badge-info">✓ Oui</span>
+                            @if($evt->necessite_benevoles)
+                                <span class="badge badge-success badge-dot">Oui</span>
                             @else
                                 <span class="badge badge-muted">Non</span>
                             @endif
                         </td>
                         <td>
                             <div class="actions">
-                                <a href="{{ route('evenements.edit', $evenement->id) }}"
-                                   class="btn btn-secondary btn-sm">✏️</a>
-                                <form action="{{ route('evenements.destroy', $evenement->id) }}"
+                                <a href="{{ route('evenements.edit', $evt->id) }}"
+                                   class="btn btn-secondary btn-sm btn-icon" title="Modifier">✏️</a>
+                                <form action="{{ route('evenements.destroy', $evt->id) }}"
                                       method="POST" class="form-delete"
-                                      onsubmit="return confirm('Supprimer l\'événement « {{ $evenement->nom }} » ?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">🗑️</button>
+                                      onsubmit="return confirm('Supprimer « {{ $evt->nom }} » ?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm btn-icon" title="Supprimer">🗑️</button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="7" style="text-align:center; color:#a0aec0; padding:40px;">
-                            Aucun événement enregistré.
-                        </td>
-                    </tr>
+                    <tr><td colspan="7">
+                        <div class="empty-state" style="padding:40px;">
+                            <div class="empty-icon">🎉</div>
+                            <div class="empty-title">Aucun événement</div>
+                            <div class="empty-desc">Créez des événements pour bloquer le planning ou mobiliser des bénévoles.</div>
+                            <a href="{{ route('evenements.create') }}" class="btn btn-primary">+ Créer un événement</a>
+                        </div>
+                    </td></tr>
                 @endforelse
             </tbody>
         </table>
