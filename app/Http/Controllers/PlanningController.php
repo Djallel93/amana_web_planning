@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Contrôleur du module Planning.
@@ -24,8 +25,9 @@ class PlanningController extends Controller
 {
     public function __construct(
         private readonly SchedulerMain $scheduler,
-        private readonly Statistics    $stats,
-    ) {}
+        private readonly Statistics $stats,
+    ) {
+    }
 
     /**
      * Affiche le planning trié du plus récent au plus ancien.
@@ -51,24 +53,31 @@ class PlanningController extends Controller
 
     /**
      * Lance la génération du planning.
-     * Stocke les IDs générés en session pour permettre le rollback.
+     * Envoie ensuite le webhook Make.com de manière asynchrone (via queue).
      */
     public function generate(PlanningGenerateRequest $request): RedirectResponse
     {
         try {
-            $resultat = $this->scheduler->generateSchedule(
-                $request->validated('date_debut'),
-                (int) $request->validated('semaines')
-            );
+            $dateDebut = $request->validated('date_debut');
+            $semaines = (int) $request->validated('semaines');
+
+            $resultat = $this->scheduler->generateSchedule($dateDebut, $semaines);
 
             // Stocker les créneaux générés pour le rollback
-            $lastGenerated = $this->buildRollbackData(
-                $request->validated('date_debut'),
-                (int) $request->validated('semaines')
-            );
+            $lastGenerated = $this->buildRollbackData($dateDebut, $semaines);
             session(['last_generated_creneaux' => $lastGenerated]);
 
             audit('generate', 'planning', null, null, $resultat);
+
+            // ── Envoi du webhook Make.com (asynchrone via queue) ─────────────
+            if (env('MAKE_WEBHOOK_URL')) {
+                $payload = app(\App\Services\WebhookPayloadBuilder::class)
+                    ->build($dateDebut, $semaines);
+
+                \App\Jobs\EnvoyerWebhookMake::dispatch($payload);
+
+                Log::info('[PlanningController] Webhook Make.com dispatché en queue.');
+            }
 
             return redirect()->route('planning.generate.form')
                 ->with('success', "Planning généré : {$resultat['jours_generes']} jours créés en {$resultat['duree_ms']}ms. ({$resultat['non_assignes']} non assigné(s))");
@@ -88,7 +97,9 @@ class PlanningController extends Controller
     {
         // Trouver le premier vendredi
         $date = Carbon::parse($dateDebut)->startOfDay();
-        while ($date->dayOfWeek !== 5) { $date->addDay(); }
+        while ($date->dayOfWeek !== 5) {
+            $date->addDay();
+        }
 
         $dateFin = $date->copy()->addWeeks($semaines)->addDay();
 
@@ -98,10 +109,10 @@ class PlanningController extends Controller
 
         return $creneaux->map(function ($c) {
             return [
-                'id'         => $c->id,
-                'date'       => $c->date->toDateString(),
+                'id' => $c->id,
+                'date' => $c->date->toDateString(),
                 'week_label' => 'Semaine ' . $c->date->isoWeek() . ' — ' .
-                                $c->date->locale('fr')->isoFormat('D MMMM YYYY'),
+                    $c->date->locale('fr')->isoFormat('D MMMM YYYY'),
             ];
         })->toArray();
     }
@@ -111,7 +122,7 @@ class PlanningController extends Controller
      */
     public function rollback(Request $request): RedirectResponse
     {
-        $type    = $request->input('rollback_type', 'total');
+        $type = $request->input('rollback_type', 'total');
         $generated = session('last_generated_creneaux', []);
 
         if (empty($generated)) {
@@ -121,7 +132,7 @@ class PlanningController extends Controller
 
         if ($type === 'total') {
             $ids = array_column($generated, 'id');
-            $nb  = Creneau::whereIn('id', $ids)->count();
+            $nb = Creneau::whereIn('id', $ids)->count();
             Creneau::whereIn('id', $ids)->delete();
             session()->forget('last_generated_creneaux');
 
@@ -192,7 +203,7 @@ class PlanningController extends Controller
     public function exportPdf(PlanningExportRequest $request): mixed
     {
         $dateDebut = $request->validated('date_debut');
-        $dateFin   = $request->validated('date_fin');
+        $dateFin = $request->validated('date_fin');
 
         $creneaux = Creneau::with(['taches.tache', 'taches.personne', 'evenements'])
             ->whereBetween('date', [$dateDebut, $dateFin])
@@ -205,8 +216,8 @@ class PlanningController extends Controller
             ->setPaper('a4', 'landscape')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled'      => false,
-                'defaultFont'          => 'DejaVu Sans',
+                'isRemoteEnabled' => false,
+                'defaultFont' => 'DejaVu Sans',
             ]);
 
         $filename = 'planning-amana-' . $dateDebut . '-au-' . $dateFin . '.pdf';
