@@ -6,7 +6,7 @@ declare(strict_types=1);
 namespace App\Helpers;
 
 use App\Models\AuditLog;
-use Illuminate\Support\Facades\FRequest;
+use Illuminate\Support\Facades\Request;
 
 /**
  * Helper pour journaliser les actions sensibles.
@@ -39,14 +39,14 @@ class AuditHelper
         ?array $after = null
     ): void {
         AuditLog::create([
-            'action'      => $action,
-            'module'      => $module,
-            'entity_id'   => $entityId,
+            'action' => $action,
+            'module' => $module,
+            'entity_id' => $entityId,
             'entity_type' => null,
-            'before'      => $before,
-            'after'       => $after,
-            'ip_address'  => Request::ip(),
-            'user_agent'  => Request::userAgent(),
+            'before' => $before,
+            'after' => $after,
+            'ip_address' => Request::ip(),
+            'user_agent' => Request::userAgent(),
         ]);
     }
 }

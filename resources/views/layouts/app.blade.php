@@ -37,7 +37,6 @@
             --violet-bg:   #f5f3ff;
 
             --sidebar-w:   248px;
-            --topbar-h:    0px;
 
             --radius-sm:   6px;
             --radius:      10px;
@@ -77,7 +76,6 @@
             z-index: 200;
             overflow: hidden;
         }
-
         .sidebar::before {
             content: '';
             position: absolute;
@@ -93,10 +91,7 @@
             position: relative;
         }
         .sidebar-logo {
-            display: flex;
-            align-items: center;
-            gap: 11px;
-            text-decoration: none;
+            display: flex; align-items: center; gap: 11px; text-decoration: none;
         }
         .sidebar-logo-icon {
             width: 36px; height: 36px;
@@ -107,95 +102,82 @@
             box-shadow: 0 4px 12px rgba(79,70,229,0.4);
             flex-shrink: 0;
         }
-        .sidebar-logo-text {
-            display: flex; flex-direction: column;
-        }
+        .sidebar-logo-text { display: flex; flex-direction: column; }
         .sidebar-logo-name {
             font-family: 'DM Serif Display', serif;
-            font-size: 17px;
-            color: #ffffff;
-            letter-spacing: 0.3px;
-            line-height: 1.1;
+            font-size: 17px; color: #ffffff;
+            letter-spacing: 0.3px; line-height: 1.1;
         }
         .sidebar-logo-sub {
-            font-size: 10.5px;
-            color: rgba(255,255,255,0.4);
-            letter-spacing: 0.8px;
-            text-transform: uppercase;
-            font-weight: 500;
+            font-size: 10.5px; color: rgba(255,255,255,0.4);
+            letter-spacing: 0.8px; text-transform: uppercase; font-weight: 500;
         }
 
         .sidebar-section {
             padding: 20px 16px 8px;
-            flex: 1;
-            overflow-y: auto;
+            flex: 1; overflow-y: auto;
         }
         .sidebar-section::-webkit-scrollbar { width: 0; }
 
         .sidebar-label {
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.28);
-            padding: 0 10px;
-            margin-bottom: 6px;
-            margin-top: 12px;
+            font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+            text-transform: uppercase; color: rgba(255,255,255,0.28);
+            padding: 0 10px; margin-bottom: 6px; margin-top: 12px;
         }
         .sidebar-label:first-child { margin-top: 0; }
 
         .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 9px 12px;
-            border-radius: var(--radius-sm);
-            color: rgba(255,255,255,0.6);
-            text-decoration: none;
-            font-size: 13.5px;
-            font-weight: 450;
-            transition: var(--transition);
-            position: relative;
-            margin-bottom: 2px;
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: var(--radius-sm);
+            color: rgba(255,255,255,0.6); text-decoration: none;
+            font-size: 13.5px; font-weight: 450;
+            transition: var(--transition); position: relative; margin-bottom: 2px;
         }
-        .nav-item:hover {
-            background: rgba(255,255,255,0.07);
-            color: rgba(255,255,255,0.92);
-        }
+        .nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.92); }
         .nav-item.active {
             background: linear-gradient(135deg, rgba(79,70,229,0.28) 0%, rgba(124,58,237,0.18) 100%);
             color: #ffffff;
         }
         .nav-item.active::before {
             content: '';
-            position: absolute;
-            left: 0; top: 50%;
-            transform: translateY(-50%);
+            position: absolute; left: 0; top: 50%; transform: translateY(-50%);
             width: 3px; height: 60%;
-            background: var(--primary-2);
-            border-radius: 0 3px 3px 0;
+            background: var(--primary-2); border-radius: 0 3px 3px 0;
         }
         .nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
         .nav-text { flex: 1; }
         .nav-badge {
-            background: var(--primary);
-            color: white;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 1px 7px;
-            border-radius: 20px;
+            background: var(--rose);
+            color: white; font-size: 10px; font-weight: 700;
+            padding: 1px 7px; border-radius: 20px;
+            animation: pulse 2s infinite;
         }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.7; }
+        }
+
+        /* ── Bandeau rôle dans la sidebar ──────────────────────────── */
+        .role-badge {
+            margin: 0 16px 12px;
+            padding: 8px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 11.5px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .role-badge.admin  { background: rgba(225,29,72,0.15); color: #fda4af; border: 1px solid rgba(225,29,72,0.25); }
+        .role-badge.membre { background: rgba(79,70,229,0.15); color: #a5b4fc; border: 1px solid rgba(79,70,229,0.25); }
 
         .sidebar-footer {
             padding: 16px;
             border-top: 1px solid rgba(255,255,255,0.07);
         }
         .sidebar-user {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 10px;
-            border-radius: var(--radius-sm);
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 10px; border-radius: var(--radius-sm);
             background: rgba(255,255,255,0.05);
         }
         .user-avatar {
@@ -203,269 +185,147 @@
             background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 12px; color: white; font-weight: 700;
-            flex-shrink: 0;
+            font-size: 12px; color: white; font-weight: 700; flex-shrink: 0;
         }
+        .user-info { flex: 1; overflow: hidden; }
         .user-name {
-            flex: 1;
-            font-size: 12.5px;
-            color: rgba(255,255,255,0.75);
-            font-weight: 500;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            font-size: 12.5px; color: rgba(255,255,255,0.75); font-weight: 500;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
+        .user-role { font-size: 11px; color: rgba(255,255,255,0.35); }
         .btn-logout-sidebar {
-            background: none; border: none;
-            color: rgba(255,255,255,0.35);
-            cursor: pointer;
-            font-size: 14px;
-            padding: 4px;
-            border-radius: 4px;
-            transition: var(--transition);
-            line-height: 1;
+            background: none; border: none; color: rgba(255,255,255,0.35);
+            cursor: pointer; font-size: 14px; padding: 4px;
+            border-radius: 4px; transition: var(--transition); line-height: 1;
         }
         .btn-logout-sidebar:hover { color: var(--rose); }
 
         /* ── Main content ──────────────────────────────────────────── */
-        .main-wrapper {
-            margin-left: var(--sidebar-w);
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        .main-content {
-            padding: 32px 36px;
-            flex: 1;
-            max-width: 1440px;
-            width: 100%;
-        }
+        .main-wrapper { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .main-content { padding: 32px 36px; flex: 1; max-width: 1440px; width: 100%; }
 
         /* ── Flash Messages ────────────────────────────────────────── */
         .flash {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 13px 18px;
-            border-radius: var(--radius);
-            margin-bottom: 20px;
-            font-size: 13.5px;
-            font-weight: 500;
-            border: 1px solid;
-            animation: slideIn 0.25s ease;
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 18px; border-radius: var(--radius);
+            margin-bottom: 20px; font-size: 13.5px; font-weight: 500;
+            border: 1px solid; animation: slideIn 0.25s ease;
         }
         @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
         .flash-success { background: var(--emerald-bg); border-color: #a7f3d0; color: #065f46; }
         .flash-error   { background: var(--rose-bg);    border-color: #fecdd3; color: #9f1239; }
         .flash-warning { background: var(--amber-bg);   border-color: #fde68a; color: #92400e; }
         .flash-info    { background: var(--sky-bg);     border-color: #bae6fd; color: #0c4a6e; }
-        .flash-icon { font-size: 16px; flex-shrink: 0; }
         .flash-close {
             margin-left: auto; background: none; border: none;
             cursor: pointer; opacity: 0.5; font-size: 16px;
-            transition: var(--transition);
-            color: inherit;
+            transition: var(--transition); color: inherit;
         }
         .flash-close:hover { opacity: 1; }
 
         /* ── Page Header ───────────────────────────────────────────── */
         .page-header {
-            display: flex;
-            align-items: flex-start;
+            display: flex; align-items: flex-start;
             justify-content: space-between;
-            margin-bottom: 28px;
-            gap: 16px;
+            margin-bottom: 28px; gap: 16px;
         }
-        .page-header-left {}
         .page-title {
             font-family: 'DM Serif Display', serif;
-            font-size: 26px;
-            color: var(--ink);
-            line-height: 1.2;
-            letter-spacing: -0.3px;
+            font-size: 26px; color: var(--ink);
+            line-height: 1.2; letter-spacing: -0.3px;
         }
-        .page-subtitle {
-            font-size: 13.5px;
-            color: var(--ink-muted);
-            margin-top: 4px;
-            font-weight: 400;
-        }
-        .page-header-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-shrink: 0;
-        }
+        .page-subtitle { font-size: 13.5px; color: var(--ink-muted); margin-top: 4px; }
+        .page-header-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
         /* ── Buttons ───────────────────────────────────────────────── */
         .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 9px 18px;
-            border-radius: var(--radius);
-            font-size: 13px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            text-decoration: none;
-            border: none;
-            transition: var(--transition);
-            white-space: nowrap;
-            letter-spacing: 0.1px;
-            line-height: 1.4;
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 9px 18px; border-radius: var(--radius);
+            font-size: 13px; font-weight: 600; font-family: inherit;
+            cursor: pointer; text-decoration: none; border: none;
+            transition: var(--transition); white-space: nowrap;
+            letter-spacing: 0.1px; line-height: 1.4;
         }
         .btn:hover { transform: translateY(-1px); }
         .btn:active { transform: translateY(0); }
-
         .btn-primary {
             background: linear-gradient(135deg, var(--primary) 0%, var(--violet) 100%);
-            color: white;
-            box-shadow: 0 4px 14px rgba(79,70,229,0.35);
+            color: white; box-shadow: 0 4px 14px rgba(79,70,229,0.35);
         }
         .btn-primary:hover { box-shadow: 0 6px 20px rgba(79,70,229,0.45); }
-
         .btn-success {
             background: linear-gradient(135deg, var(--emerald) 0%, #10b981 100%);
-            color: white;
-            box-shadow: 0 4px 14px rgba(5,150,105,0.3);
+            color: white; box-shadow: 0 4px 14px rgba(5,150,105,0.3);
         }
-
         .btn-danger {
             background: linear-gradient(135deg, var(--rose) 0%, #f43f5e 100%);
-            color: white;
-            box-shadow: 0 4px 14px rgba(225,29,72,0.3);
+            color: white; box-shadow: 0 4px 14px rgba(225,29,72,0.3);
         }
-
         .btn-warning {
             background: linear-gradient(135deg, var(--amber) 0%, #f59e0b 100%);
             color: white;
         }
-
         .btn-secondary {
-            background: var(--surface);
-            color: var(--ink-light);
-            border: 1.5px solid var(--surface-3);
-            box-shadow: var(--shadow-sm);
+            background: var(--surface); color: var(--ink-light);
+            border: 1.5px solid var(--surface-3); box-shadow: var(--shadow-sm);
         }
         .btn-secondary:hover { background: var(--surface-2); border-color: var(--ink-faint); }
-
         .btn-ghost {
-            background: transparent;
-            color: var(--ink-muted);
+            background: transparent; color: var(--ink-muted);
             border: 1.5px solid var(--ink-faint);
         }
         .btn-ghost:hover { background: var(--surface-3); color: var(--ink); }
-
         .btn-sm { padding: 6px 13px; font-size: 12px; border-radius: var(--radius-sm); }
         .btn-lg { padding: 12px 24px; font-size: 14.5px; }
         .btn-icon { padding: 8px; border-radius: var(--radius-sm); }
-        .btn-icon.btn-sm { padding: 6px; }
 
         /* ── Cards ─────────────────────────────────────────────────── */
         .card {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow);
-            border: 1px solid rgba(0,0,0,0.04);
-            overflow: hidden;
+            background: var(--surface); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,0.04); overflow: hidden;
         }
         .card-body { padding: 24px; }
         .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 18px 24px;
-            border-bottom: 1px solid var(--surface-3);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 24px; border-bottom: 1px solid var(--surface-3);
         }
         .card-title {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--ink);
-            display: flex;
-            align-items: center;
-            gap: 9px;
+            font-size: 15px; font-weight: 700; color: var(--ink);
+            display: flex; align-items: center; gap: 9px;
         }
         .card-title-icon {
-            width: 30px; height: 30px;
-            border-radius: var(--radius-sm);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px;
+            width: 30px; height: 30px; border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
         }
 
-        /* Stat cards */
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
+        /* ── Stat cards ─────────────────────────────────────────────── */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
         .stat-card {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            padding: 20px 22px;
-            border: 1px solid rgba(0,0,0,0.04);
-            box-shadow: var(--shadow-sm);
-            position: relative;
-            overflow: hidden;
+            background: var(--surface); border-radius: var(--radius-lg);
+            padding: 20px 22px; border: 1px solid rgba(0,0,0,0.04);
+            box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
         }
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-        }
+        .stat-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
         .stat-card.color-primary::after { background: linear-gradient(90deg, var(--primary), var(--violet)); }
         .stat-card.color-emerald::after { background: linear-gradient(90deg, var(--emerald), #10b981); }
         .stat-card.color-amber::after   { background: linear-gradient(90deg, var(--amber), #f59e0b); }
         .stat-card.color-sky::after     { background: linear-gradient(90deg, var(--sky), #38bdf8); }
         .stat-card.color-rose::after    { background: linear-gradient(90deg, var(--rose), #f43f5e); }
         .stat-card.color-violet::after  { background: linear-gradient(90deg, var(--violet), #a78bfa); }
-        .stat-value {
-            font-size: 30px;
-            font-weight: 800;
-            line-height: 1;
-            margin-bottom: 6px;
-            letter-spacing: -1px;
-        }
-        .stat-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--ink-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-        }
-        .stat-sub { font-size: 11.5px; color: var(--ink-muted); margin-top: 4px; }
+        .stat-value { font-size: 30px; font-weight: 800; line-height: 1; margin-bottom: 6px; letter-spacing: -1px; }
+        .stat-label { font-size: 12px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.6px; }
+        .stat-sub   { font-size: 11.5px; color: var(--ink-muted); margin-top: 4px; }
 
         /* ── Tables ────────────────────────────────────────────────── */
         .table-wrap { overflow-x: auto; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13.5px;
-        }
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
         thead th {
-            padding: 11px 16px;
-            text-align: left;
-            font-size: 11.5px;
-            font-weight: 700;
-            color: var(--ink-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.7px;
-            background: var(--surface-2);
-            border-bottom: 1px solid var(--surface-3);
-            white-space: nowrap;
+            padding: 11px 16px; text-align: left;
+            font-size: 11.5px; font-weight: 700; color: var(--ink-muted);
+            text-transform: uppercase; letter-spacing: 0.7px;
+            background: var(--surface-2); border-bottom: 1px solid var(--surface-3); white-space: nowrap;
         }
-        thead th:first-child { border-radius: var(--radius-sm) 0 0 0; }
-        thead th:last-child  { border-radius: 0 var(--radius-sm) 0 0; }
-        tbody td {
-            padding: 13px 16px;
-            border-bottom: 1px solid var(--surface-3);
-            vertical-align: middle;
-            color: var(--ink-light);
-        }
+        tbody td { padding: 13px 16px; border-bottom: 1px solid var(--surface-3); vertical-align: middle; color: var(--ink-light); }
         tbody tr:last-child td { border-bottom: none; }
         tbody tr { transition: background 0.1s; }
         tbody tr:hover { background: var(--surface-2); }
@@ -473,137 +333,61 @@
 
         /* ── Badges ────────────────────────────────────────────────── */
         .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 3px 9px;
-            border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 700;
-            letter-spacing: 0.2px;
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 9px; border-radius: 20px;
+            font-size: 11.5px; font-weight: 700; letter-spacing: 0.2px;
         }
-        .badge-success  { background: var(--emerald-bg); color: #065f46; border: 1px solid #a7f3d0; }
-        .badge-warning  { background: var(--amber-bg);   color: #92400e; border: 1px solid #fde68a; }
-        .badge-danger   { background: var(--rose-bg);    color: #9f1239; border: 1px solid #fecdd3; }
-        .badge-info     { background: var(--sky-bg);     color: #0c4a6e; border: 1px solid #bae6fd; }
-        .badge-muted    { background: var(--surface-3);  color: var(--ink-muted); border: 1px solid var(--ink-faint); }
-        .badge-primary  { background: var(--violet-bg);  color: #5b21b6; border: 1px solid #ddd6fe; }
-        .badge-dot::before {
-            content: ''; width: 6px; height: 6px;
-            border-radius: 50%; background: currentColor;
-        }
+        .badge-success { background: var(--emerald-bg); color: #065f46; border: 1px solid #a7f3d0; }
+        .badge-warning { background: var(--amber-bg);   color: #92400e; border: 1px solid #fde68a; }
+        .badge-danger  { background: var(--rose-bg);    color: #9f1239; border: 1px solid #fecdd3; }
+        .badge-info    { background: var(--sky-bg);     color: #0c4a6e; border: 1px solid #bae6fd; }
+        .badge-muted   { background: var(--surface-3);  color: var(--ink-muted); border: 1px solid var(--ink-faint); }
+        .badge-primary { background: var(--violet-bg);  color: #5b21b6; border: 1px solid #ddd6fe; }
+        .badge-dot::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
         /* ── Forms ─────────────────────────────────────────────────── */
         .form-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
         .form-group  { display: flex; flex-direction: column; gap: 6px; }
-        .form-group.full { grid-column: 1 / -1; }
+        .form-group.full   { grid-column: 1 / -1; }
         .form-group.span-2 { grid-column: span 2; }
-
-        label {
-            font-size: 12.5px;
-            font-weight: 700;
-            color: var(--ink);
-            letter-spacing: 0.2px;
-        }
+        label { font-size: 12.5px; font-weight: 700; color: var(--ink); letter-spacing: 0.2px; }
         label .req { color: var(--rose); margin-left: 2px; }
-
-        input[type="text"],
-        input[type="email"],
-        input[type="date"],
-        input[type="number"],
-        input[type="tel"],
-        input[type="password"],
-        select,
-        textarea {
-            padding: 9px 13px;
-            border: 1.5px solid var(--ink-faint);
-            border-radius: var(--radius);
-            font-size: 13.5px;
-            font-family: inherit;
-            color: var(--ink);
-            background: var(--surface);
-            transition: var(--transition);
-            width: 100%;
-            outline: none;
+        input[type="text"], input[type="email"], input[type="date"],
+        input[type="number"], input[type="tel"], input[type="password"],
+        select, textarea {
+            padding: 9px 13px; border: 1.5px solid var(--ink-faint);
+            border-radius: var(--radius); font-size: 13.5px; font-family: inherit;
+            color: var(--ink); background: var(--surface);
+            transition: var(--transition); width: 100%; outline: none;
         }
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--primary);
-            box-shadow: var(--shadow-glow);
-        }
-        input:hover:not(:focus), select:hover:not(:focus), textarea:hover:not(:focus) {
-            border-color: var(--ink-muted);
-        }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: var(--shadow-glow); }
+        input:hover:not(:focus), select:hover:not(:focus), textarea:hover:not(:focus) { border-color: var(--ink-muted); }
         textarea { resize: vertical; min-height: 80px; }
         .form-error { color: var(--rose); font-size: 12px; margin-top: 2px; }
         .form-hint  { color: var(--ink-muted); font-size: 12px; margin-top: 2px; }
-
-        .checkbox-wrap {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 0;
-        }
-        .checkbox-wrap input[type="checkbox"] {
-            width: 16px; height: 16px;
-            accent-color: var(--primary);
-            cursor: pointer;
-            flex-shrink: 0;
-        }
+        .checkbox-wrap { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+        .checkbox-wrap input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0; }
         .checkbox-wrap label { font-weight: 500; cursor: pointer; font-size: 13.5px; }
 
-        /* ── Divider ───────────────────────────────────────────────── */
-        .divider {
-            height: 1px;
-            background: var(--surface-3);
-            margin: 20px 0;
-        }
-        .divider-label {
-            text-align: center;
-            position: relative;
-            margin: 20px 0;
-            color: var(--ink-muted);
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-        .divider-label::before, .divider-label::after {
-            content: '';
-            position: absolute;
-            top: 50%; width: calc(50% - 60px);
-            height: 1px; background: var(--surface-3);
-        }
-        .divider-label::before { left: 0; }
-        .divider-label::after  { right: 0; }
-
-        /* ── Task Colors ───────────────────────────────────────────── */
+        /* ── Misc ──────────────────────────────────────────────────── */
+        .divider { height: 1px; background: var(--surface-3); margin: 20px 0; }
         .tache-entree     { color: #2563eb; font-weight: 600; }
         .tache-mektaba    { color: #059669; font-weight: 600; }
         .tache-salle      { color: #d97706; font-weight: 600; }
         .tache-amana_food { color: #e11d48; font-weight: 600; }
         .tache-vide       { color: var(--ink-faint); font-style: italic; font-size: 12px; }
-
-        /* ── Actions ───────────────────────────────────────────────── */
         .actions { display: flex; gap: 6px; align-items: center; }
         .form-delete { display: inline; margin: 0; padding: 0; }
-
-        /* ── Empty State ───────────────────────────────────────────── */
-        .empty-state {
-            text-align: center;
-            padding: 64px 32px;
-        }
-        .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+        .empty-state { text-align: center; padding: 64px 32px; }
+        .empty-icon  { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
         .empty-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
-        .empty-desc { color: var(--ink-muted); font-size: 13.5px; margin-bottom: 24px; }
-
-        /* ── Scrollbar ─────────────────────────────────────────────── */
+        .empty-desc  { color: var(--ink-muted); font-size: 13.5px; margin-bottom: 24px; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--ink-faint); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--ink-muted); }
 
-        /* ── Responsive ────────────────────────────────────────────── */
         @media (max-width: 900px) {
             .sidebar { display: none; }
             .main-wrapper { margin-left: 0; }
@@ -629,57 +413,97 @@
     </div>
 
     <div class="sidebar-section">
-        <div class="sidebar-label">Principal</div>
+
+        {{-- Bandeau rôle --}}
+        @auth
+            @if(auth()->user()->isAdmin())
+                <div class="role-badge admin">🛡️ Administrateur</div>
+            @else
+                <div class="role-badge membre">👤 Membre</div>
+            @endif
+        @endauth
+
+        {{-- Navigation commune — admin + membre --}}
+        <div class="sidebar-label">Planning</div>
         <a href="{{ route('planning.index') }}"
            class="nav-item {{ request()->routeIs('planning.index') ? 'active' : '' }}">
             <span class="nav-icon">📅</span>
             <span class="nav-text">Planning</span>
-        </a>
-        <a href="{{ route('planning.generate.form') }}"
-           class="nav-item {{ request()->routeIs('planning.generate*') ? 'active' : '' }}">
-            <span class="nav-icon">✨</span>
-            <span class="nav-text">Générer</span>
         </a>
         <a href="{{ route('planning.statistics') }}"
            class="nav-item {{ request()->routeIs('planning.statistics') ? 'active' : '' }}">
             <span class="nav-icon">📊</span>
             <span class="nav-text">Statistiques</span>
         </a>
-
-        <div class="sidebar-label">Gestion</div>
-        <a href="{{ route('personnes.index') }}"
-           class="nav-item {{ request()->routeIs('personnes.*') ? 'active' : '' }}">
-            <span class="nav-icon">👥</span>
-            <span class="nav-text">Personnes</span>
-        </a>
-        <a href="{{ route('restrictions.index') }}"
-           class="nav-item {{ request()->routeIs('restrictions.*') ? 'active' : '' }}">
-            <span class="nav-icon">🔒</span>
-            <span class="nav-text">Restrictions</span>
-        </a>
-        <a href="{{ route('absences.index') }}"
-           class="nav-item {{ request()->routeIs('absences.*') ? 'active' : '' }}">
-            <span class="nav-icon">🏖️</span>
-            <span class="nav-text">Absences</span>
-        </a>
-        <a href="{{ route('evenements.index') }}"
-           class="nav-item {{ request()->routeIs('evenements.*') ? 'active' : '' }}">
-            <span class="nav-icon">🎉</span>
-            <span class="nav-text">Événements</span>
-        </a>
-
-        <div class="sidebar-label">Exports</div>
         <a href="{{ route('planning.export.form') }}"
            class="nav-item {{ request()->routeIs('planning.export*') ? 'active' : '' }}">
             <span class="nav-icon">📄</span>
             <span class="nav-text">Export PDF</span>
         </a>
+
+        {{-- Navigation commune — absences et restrictions --}}
+        <div class="sidebar-label">Mes données</div>
+        <a href="{{ route('absences.index') }}"
+           class="nav-item {{ request()->routeIs('absences.*') ? 'active' : '' }}">
+            <span class="nav-icon">🏖️</span>
+            <span class="nav-text">Absences</span>
+        </a>
+        <a href="{{ route('restrictions.index') }}"
+           class="nav-item {{ request()->routeIs('restrictions.*') ? 'active' : '' }}">
+            <span class="nav-icon">🔒</span>
+            <span class="nav-text">Disponibilités</span>
+        </a>
+
+        {{-- Navigation admin uniquement --}}
+        @auth
+        @if(auth()->user()->isAdmin())
+            <div class="sidebar-label">Administration</div>
+            <a href="{{ route('planning.generate.form') }}"
+               class="nav-item {{ request()->routeIs('planning.generate*') ? 'active' : '' }}">
+                <span class="nav-icon">✨</span>
+                <span class="nav-text">Générer</span>
+            </a>
+            <a href="{{ route('personnes.index') }}"
+               class="nav-item {{ request()->routeIs('personnes.*') ? 'active' : '' }}">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">Personnes</span>
+            </a>
+            <a href="{{ route('evenements.index') }}"
+               class="nav-item {{ request()->routeIs('evenements.*') ? 'active' : '' }}">
+                <span class="nav-icon">🎉</span>
+                <span class="nav-text">Événements</span>
+            </a>
+
+            {{-- Badge candidatures en attente --}}
+            @php
+                $nbCandidatures = \App\Models\Personne::enAttente()->count();
+            @endphp
+            <a href="{{ route('admin.candidatures.index') }}"
+               class="nav-item {{ request()->routeIs('admin.candidatures*') ? 'active' : '' }}">
+                <span class="nav-icon">📥</span>
+                <span class="nav-text">Candidatures</span>
+                @if($nbCandidatures > 0)
+                    <span class="nav-badge">{{ $nbCandidatures }}</span>
+                @endif
+            </a>
+        @endif
+        @endauth
+
     </div>
 
     <div class="sidebar-footer">
         <div class="sidebar-user">
-            <div class="user-avatar">{{ strtoupper(substr(auth()->user()->name ?? 'A', 0, 1)) }}</div>
-            <span class="user-name">{{ auth()->user()->name ?? 'Admin' }}</span>
+            <div class="user-avatar">
+                {{ strtoupper(substr(auth()->user()->prenom ?? 'A', 0, 1)) }}
+            </div>
+            <div class="user-info">
+                <div class="user-name">
+                    {{ auth()->user()->prenom ?? '' }} {{ auth()->user()->nom ?? '' }}
+                </div>
+                <div class="user-role">
+                    {{ auth()->user()->isAdmin() ? 'Administrateur' : 'Membre' }}
+                </div>
+            </div>
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
                 <button type="submit" class="btn-logout-sidebar" title="Déconnexion">↪</button>
@@ -691,30 +515,32 @@
 {{-- ── Main ── --}}
 <div class="main-wrapper">
     <main class="main-content">
+
+        {{-- Flash messages --}}
         @if(session('success'))
             <div class="flash flash-success">
-                <span class="flash-icon">✅</span>
+                <span>✅</span>
                 <span>{{ session('success') }}</span>
                 <button class="flash-close" onclick="this.parentElement.remove()">×</button>
             </div>
         @endif
         @if(session('error'))
             <div class="flash flash-error">
-                <span class="flash-icon">❌</span>
+                <span>❌</span>
                 <span>{{ session('error') }}</span>
                 <button class="flash-close" onclick="this.parentElement.remove()">×</button>
             </div>
         @endif
         @if(session('warning'))
             <div class="flash flash-warning">
-                <span class="flash-icon">⚠️</span>
+                <span>⚠️</span>
                 <span>{{ session('warning') }}</span>
                 <button class="flash-close" onclick="this.parentElement.remove()">×</button>
             </div>
         @endif
         @if(session('info'))
             <div class="flash flash-info">
-                <span class="flash-icon">ℹ️</span>
+                <span>ℹ️</span>
                 <span>{{ session('info') }}</span>
                 <button class="flash-close" onclick="this.parentElement.remove()">×</button>
             </div>

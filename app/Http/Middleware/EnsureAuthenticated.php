@@ -11,10 +11,16 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Middleware : vérifie que l'utilisateur est connecté.
+ * Middleware de base : vérifie que l'utilisateur est connecté.
+ *
  * Si non connecté → redirige vers /login avec un message flash.
  *
- * Appliqué sur toutes les routes sauf /login.
+ * Ce middleware ne vérifie PAS les rôles — il délègue ça à EnsureRole.
+ * Il est appliqué sur toutes les routes protégées via l'alias 'auth'
+ * enregistré dans bootstrap/app.php.
+ *
+ * Utilisé seul pour les routes accessibles à tout utilisateur connecté
+ * (admin ou membre), comme la page planning ou l'export PDF.
  */
 class EnsureAuthenticated
 {

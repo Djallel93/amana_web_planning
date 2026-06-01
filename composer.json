@@ -2,7 +2,11 @@
     "name": "amana/planning",
     "type": "project",
     "description": "Système de planification des permanences AMANA",
-    "keywords": ["laravel", "planning", "amana"],
+    "keywords": [
+        "laravel",
+        "planning",
+        "amana"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.2",

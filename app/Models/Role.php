@@ -6,15 +6,39 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-/** Modèle pour ref_roles. */
+/**
+ * Modèle pour ref_roles.
+ *
+ * Un rôle est toujours lié à une application spécifique.
+ * Exemples :
+ *   admin   → planning
+ *   livreur → livraisons
+ */
 class Role extends Model
 {
     protected $table = 'ref_roles';
     public $timestamps = false;
-    protected $fillable = ['code', 'libelle'];
 
+    protected $fillable = ['code', 'libelle', 'id_application'];
+
+    // ──────────────────────────────────────────────────────────────────────
+    // RELATIONS
+    // ──────────────────────────────────────────────────────────────────────
+
+    /**
+     * Application à laquelle ce rôle appartient.
+     */
+    public function application(): BelongsTo
+    {
+        return $this->belongsTo(Application::class, 'id_application');
+    }
+
+    /**
+     * Personnes ayant ce rôle.
+     */
     public function personnes(): BelongsToMany
     {
         return $this->belongsToMany(

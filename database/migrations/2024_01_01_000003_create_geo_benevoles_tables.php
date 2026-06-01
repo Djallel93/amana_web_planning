@@ -1,4 +1,6 @@
 <?php
+// database/migrations/2024_01_01_000003_create_geo_benevoles_tables.php
+
 declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,24 +8,29 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         // ── geo_villes ─────────────────────────────────────────────────────
         Schema::create('geo_villes', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('nom', 50);
+            $table->string('nom', 100);
+            $table->string('code_postal', 10)->nullable()
+                ->comment('Ex: 44800');
+            $table->string('departement', 100)->nullable()
+                ->comment('Ex: Loire-Atlantique');
         });
-        DB::statement('ALTER TABLE geo_villes ADD COLUMN polygon geometry NOT NULL');
+        // Ajout de la colonne geometry séparément car Blueprint ne supporte
+        // pas nativement le type MySQL GEOMETRY
+        DB::statement('ALTER TABLE geo_villes ADD COLUMN polygon geometry NULL');
 
         // ── geo_secteurs ───────────────────────────────────────────────────
         Schema::create('geo_secteurs', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('nom', 50);
+            $table->string('nom', 100);
             $table->unsignedInteger('id_ville');
 
-            $table->unique(['nom', 'id_ville'], 'unique_nom_ville');
+            $table->unique(['nom', 'id_ville'], 'unique_secteur_nom_ville');
 
             $table->foreign('id_ville')
                 ->references('id')->on('geo_villes')
@@ -32,10 +39,15 @@ return new class extends Migration
 
         // ── geo_quartiers ──────────────────────────────────────────────────
         Schema::create('geo_quartiers', function (Blueprint $table) {
-            $table->increments('id');  // unsigned int
-            $table->string('nom', 50);
+            $table->increments('id');
+            $table->string('nom', 100);
+            $table->unsignedInteger('id_secteur');
+
+            $table->foreign('id_secteur')
+                ->references('id')->on('geo_secteurs')
+                ->onDelete('cascade')->onUpdate('cascade');
         });
-        DB::statement('ALTER TABLE geo_quartiers ADD COLUMN polygon geometry NOT NULL');
+        DB::statement('ALTER TABLE geo_quartiers ADD COLUMN polygon geometry NULL');
 
         // ── benv_disponibilites ────────────────────────────────────────────
         Schema::create('benv_disponibilites', function (Blueprint $table) {
@@ -60,7 +72,7 @@ return new class extends Migration
         // ── benv_couverture ────────────────────────────────────────────────
         Schema::create('benv_couverture', function (Blueprint $table) {
             $table->unsignedInteger('id_personne');
-            $table->unsignedInteger('id_quartier');  // ← corrigé : unsignedInteger
+            $table->unsignedInteger('id_quartier');
             $table->unsignedInteger('id_evenement');
             $table->enum('type_couverture', ['Livraison', 'Collecte', 'Les deux'])
                 ->default('Livraison');
