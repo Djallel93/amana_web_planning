@@ -11,8 +11,7 @@ use Illuminate\Support\Facades\Schema;
  * Migration : tables de référence (véhicules, rôles, tâches, personnes)
  * Ces tables ne dépendent d'aucune autre — créées en premier.
  */
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         // ── ref_vehicules ──────────────────────────────────────────────────
@@ -38,7 +37,7 @@ return new class extends Migration
             $table->string('code', 50)->unique()
                 ->comment('entree, mektaba, salle, amana_food');
             $table->string('libelle', 100)
-                ->comment('Entrée, Médiathèque, Salle, Nourriture');
+                ->comment('Entrée, Mektaba, Salle, Nourriture');
             $table->boolean('actif')->default(true)
                 ->comment('FALSE = archivée, exclue des nouveaux plannings');
         });

@@ -31,7 +31,6 @@ Route::get('/mot-de-passe-oublie', [AuthController::class, 'showForgotPassword']
 Route::post('/mot-de-passe-oublie', [AuthController::class, 'sendResetLink'])->name('password.email');
 
 // ── Réinitialisation / création du mot de passe ───────────────────────────
-// Utilisé pour le reset classique ET le premier login via invitation
 Route::get('/nouveau-mot-de-passe/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
 Route::post('/nouveau-mot-de-passe', [AuthController::class, 'resetPassword'])->name('password.update');
 
@@ -45,33 +44,34 @@ Route::post('/inscription', [AuthController::class, 'inscription'])->name('inscr
 |--------------------------------------------------------------------------
 |
 | Hiérarchie des middlewares :
-|   'auth'        → connecté (admin + membre)
-|   'role:membre' → connecté avec rôle membre ou admin
-|   'role:admin'  → connecté avec rôle admin uniquement
+|   'auth'              → connecté (admin + gestionnaire + membre)
+|   'role:membre'       → connecté avec rôle membre, gestionnaire ou admin
+|   'role:gestionnaire' → connecté avec rôle gestionnaire ou admin
+|   'role:admin'        → connecté avec rôle admin uniquement
 |
 */
 
 Route::middleware('auth')->group(function () {
 
-    // ── Planning — lecture (admin + membre) ───────────────────────────────
+    // ── Planning ───────────────────────────────────────────────────────────
     Route::prefix('planning')->name('planning.')->group(function () {
 
-        // Lecture et export : tous les utilisateurs connectés
+        // Lecture et export : tous les utilisateurs connectés (membres inclus)
         Route::get('/', [PlanningController::class, 'index'])->name('index');
         Route::get('/stats', [PlanningController::class, 'statistics'])->name('statistics');
         Route::get('/export', [PlanningController::class, 'showExportForm'])->name('export.form');
         Route::post('/export/pdf', [PlanningController::class, 'exportPdf'])->name('export.pdf');
 
-        // Génération et rollback : admin uniquement
-        Route::middleware('role:admin')->group(function () {
+        // Génération et rollback : gestionnaire + admin
+        Route::middleware('role:gestionnaire')->group(function () {
             Route::get('/generer', [PlanningController::class, 'showGenerateForm'])->name('generate.form');
             Route::post('/generer', [PlanningController::class, 'generate'])->name('generate');
             Route::post('/rollback', [PlanningController::class, 'rollback'])->name('rollback');
             Route::post('/rollback/dismiss', [PlanningController::class, 'rollbackDismiss'])->name('rollback.dismiss');
         });
 
-        // ── Édition manuelle AJAX — admin uniquement ──────────────────────
-        Route::middleware('role:admin')->group(function () {
+        // ── Édition manuelle AJAX — gestionnaire + admin ──────────────────
+        Route::middleware('role:gestionnaire')->group(function () {
             Route::get('/personnes-actives', [PlanningEditController::class, 'personnes'])
                 ->name('edit.personnes');
 
@@ -95,9 +95,8 @@ Route::middleware('auth')->group(function () {
         // Lecture : tous les connectés
         Route::get('/', [RestrictionsController::class, 'index'])->name('index');
 
-        // Modification globale : admin uniquement
-        // La modification des restrictions personnelles du membre
-        // est gérée dans le contrôleur via Auth::user()->id
+        // Modification : gestionnaire + admin
+        // (le contrôleur gère aussi la modification personnelle du membre)
         Route::post('/update', [RestrictionsController::class, 'update'])->name('update');
     });
 
@@ -110,11 +109,26 @@ Route::middleware('auth')->group(function () {
         // Saisie : tous les connectés (le contrôleur filtre selon le rôle)
         Route::post('/', [AbsencesController::class, 'store'])->name('store');
 
-        // Suppression : admin peut supprimer n'importe laquelle,
-        // membre peut supprimer les siennes (géré dans le contrôleur)
+        // Suppression : le contrôleur vérifie les permissions
         Route::delete('/{id}', [AbsencesController::class, 'destroy'])
             ->name('destroy')
             ->where('id', '[0-9]+');
+    });
+
+    // ── Événements ─────────────────────────────────────────────────────────
+    Route::prefix('evenements')->name('evenements.')->group(function () {
+
+        // Lecture : tous les connectés (membres inclus)
+        Route::get('/', [EvenementsController::class, 'index'])->name('index');
+
+        // Création, modification, suppression : gestionnaire + admin uniquement
+        Route::middleware('role:gestionnaire')->group(function () {
+            Route::get('/creer', [EvenementsController::class, 'create'])->name('create');
+            Route::post('/', [EvenementsController::class, 'store'])->name('store');
+            Route::get('/{id}/editer', [EvenementsController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
+            Route::put('/{id}', [EvenementsController::class, 'update'])->name('update')->where('id', '[0-9]+');
+            Route::delete('/{id}', [EvenementsController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
+        });
     });
 
     // ── Personnes — admin uniquement ──────────────────────────────────────
@@ -125,16 +139,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/editer', [PersonnesController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
         Route::put('/{id}', [PersonnesController::class, 'update'])->name('update')->where('id', '[0-9]+');
         Route::delete('/{id}', [PersonnesController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
-    });
-
-    // ── Événements — admin uniquement ─────────────────────────────────────
-    Route::middleware('role:admin')->prefix('evenements')->name('evenements.')->group(function () {
-        Route::get('/', [EvenementsController::class, 'index'])->name('index');
-        Route::get('/creer', [EvenementsController::class, 'create'])->name('create');
-        Route::post('/', [EvenementsController::class, 'store'])->name('store');
-        Route::get('/{id}/editer', [EvenementsController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
-        Route::put('/{id}', [EvenementsController::class, 'update'])->name('update')->where('id', '[0-9]+');
-        Route::delete('/{id}', [EvenementsController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
     });
 
     // ── Administration — admin uniquement ─────────────────────────────────

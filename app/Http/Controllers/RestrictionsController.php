@@ -18,9 +18,9 @@ use Illuminate\View\View;
  * Contrôleur pour les restrictions de disponibilité.
  *
  * Règles d'accès :
- *   - Admin  : voit et modifie toutes les restrictions (grille complète)
- *   - Membre : voit toutes les restrictions en lecture seule,
- *              ne peut modifier que les siennes via un formulaire dédié
+ *   - Admin / Gestionnaire : voit et modifie toutes les restrictions (grille complète)
+ *   - Membre               : voit toutes les restrictions en lecture seule,
+ *                            ne peut modifier que les siennes via un formulaire dédié
  */
 class RestrictionsController extends Controller
 {
@@ -29,8 +29,8 @@ class RestrictionsController extends Controller
     /**
      * Affiche la grille de restrictions.
      *
-     * Admin  : grille complète modifiable
-     * Membre : grille complète en lecture + formulaire pour ses propres restrictions
+     * Admin / Gestionnaire : grille complète modifiable
+     * Membre               : grille complète en lecture + formulaire pour ses propres restrictions
      */
     public function index(): View
     {
@@ -69,9 +69,9 @@ class RestrictionsController extends Controller
     /**
      * Sauvegarde les restrictions.
      *
-     * Admin  : peut modifier toutes les restrictions de toutes les personnes.
-     * Membre : ne peut modifier que ses propres restrictions.
-     *          On ignore les données envoyées pour d'autres personnes.
+     * Admin / Gestionnaire : peut modifier toutes les restrictions de toutes les personnes.
+     * Membre               : ne peut modifier que ses propres restrictions.
+     *                        On ignore les données envoyées pour d'autres personnes.
      */
     public function update(Request $request): RedirectResponse
     {
@@ -85,8 +85,8 @@ class RestrictionsController extends Controller
 
         $checkboxes = $request->input('checkboxes', []);
 
-        if ($user->isAdmin()) {
-            // ── Admin : mise à jour de toutes les personnes ────────────────
+        if ($user->isAdmin() || $user->isGestionnaire()) {
+            // ── Admin / Gestionnaire : mise à jour de toutes les personnes ─
             $personnes = Personne::actifAuPlanning()->get();
 
             DB::transaction(function () use ($personnes, $taches, $checkboxes) {
@@ -100,7 +100,7 @@ class RestrictionsController extends Controller
             });
 
             audit('update', 'restrictions', null, null, [
-                'message' => 'Grille complète mise à jour par admin',
+                'message' => 'Grille complète mise à jour par ' . ($user->isAdmin() ? 'admin' : 'gestionnaire'),
             ]);
 
             return redirect()->route('restrictions.index')
@@ -129,7 +129,7 @@ class RestrictionsController extends Controller
 
     /**
      * Enregistre les restrictions d'une personne donnée.
-     * Méthode privée partagée entre admin et membre.
+     * Méthode privée partagée entre admin, gestionnaire et membre.
      *
      * @param int        $personneId
      * @param \Illuminate\Support\Collection $taches

@@ -55,16 +55,16 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $request->validate([
-            'email'    => ['required', 'email'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:6'],
         ], [
-            'email.required'    => 'L\'adresse email est obligatoire.',
-            'email.email'       => 'Format d\'email invalide.',
+            'email.required' => 'L\'adresse email est obligatoire.',
+            'email.email' => 'Format d\'email invalide.',
             'password.required' => 'Le mot de passe est obligatoire.',
         ]);
 
         $credentials = $request->only('email', 'password');
-        $remember    = $request->boolean('remember');
+        $remember = $request->boolean('remember');
 
         // Vérifier que le compte existe et est validé avant de tenter l'auth
         $personne = Personne::where('email', $credentials['email'])->first();
@@ -151,7 +151,7 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
         ], [
             'email.required' => 'L\'adresse email est obligatoire.',
-            'email.email'    => 'Format d\'email invalide.',
+            'email.email' => 'Format d\'email invalide.',
         ]);
 
         // Laravel vérifie que l'email existe dans le provider 'personnes'
@@ -200,26 +200,26 @@ class AuthController extends Controller
     public function resetPassword(Request $request): RedirectResponse
     {
         $request->validate([
-            'token'                 => ['required'],
-            'email'                 => ['required', 'email'],
-            'password'              => ['required', 'string', 'min:8', 'confirmed'],
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'password_confirmation' => ['required'],
         ], [
-            'password.required'              => 'Le mot de passe est obligatoire.',
-            'password.min'                   => 'Le mot de passe doit contenir au moins 8 caractères.',
-            'password.confirmed'             => 'Les mots de passe ne correspondent pas.',
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.confirmed' => 'Les mots de passe ne correspondent pas.',
             'password_confirmation.required' => 'Veuillez confirmer votre mot de passe.',
         ]);
 
         $status = Password::broker('personnes')->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (Personne $personne, string $password) {
-                $personne->password       = Hash::make($password);
+                $personne->password = Hash::make($password);
                 $personne->remember_token = Str::random(60);
 
                 // Marquer l'email comme vérifié lors de la première création
                 // de mot de passe via invitation
-                if (! $personne->email_verified_at) {
+                if (!$personne->email_verified_at) {
                     $personne->email_verified_at = now();
                 }
 
@@ -254,8 +254,8 @@ class AuthController extends Controller
         }
 
         $vehicules = \App\Models\Vehicule::orderBy('type')->get();
-        $taches    = \App\Models\Tache::actif()->orderBy('id')->get();
-        $jours     = ['Vendredi', 'Samedi'];
+        $taches = \App\Models\Tache::actif()->orderBy('id')->get();
+        $jours = ['Vendredi', 'Samedi'];
 
         return view('auth.inscription', compact('vehicules', 'taches', 'jours'));
     }
@@ -265,61 +265,65 @@ class AuthController extends Controller
      *
      * Crée la personne avec statut 'En attente', enregistre ses restrictions,
      * puis notifie tous les admins planning par email.
+     *
+     * CHANGEMENT : on recharge la personne avec ses relations (vehicule +
+     * restrictions.tache) avant d'envoyer la notification, afin que le
+     * template email brandé puisse les afficher sans lazy-loading N+1.
      */
     public function inscription(Request $request): RedirectResponse
     {
         $request->validate([
-            'nom'                       => ['required', 'string', 'max:100'],
-            'prenom'                    => ['required', 'string', 'max:100'],
-            'email'                     => ['required', 'email', 'max:255', 'unique:ref_personnes,email'],
-            'telephone'                 => ['nullable', 'string', 'max:20'],
-            'id_vehicule'               => ['nullable', 'integer', 'exists:ref_vehicules,id'],
+            'nom' => ['required', 'string', 'max:100'],
+            'prenom' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', 'unique:ref_personnes,email'],
+            'telephone' => ['nullable', 'string', 'max:20'],
+            'id_vehicule' => ['nullable', 'integer', 'exists:ref_vehicules,id'],
             'date_inscription_benevole' => ['nullable', 'date'],
-            // Restrictions : tableau optionnel de cases cochées
-            'restrictions'              => ['nullable', 'array'],
+            'restrictions' => ['nullable', 'array'],
         ], [
-            'nom.required'    => 'Le nom est obligatoire.',
+            'nom.required' => 'Le nom est obligatoire.',
             'prenom.required' => 'Le prénom est obligatoire.',
-            'email.required'  => 'L\'adresse email est obligatoire.',
-            'email.unique'    => 'Cette adresse email est déjà utilisée.',
-            'email.email'     => 'Format d\'email invalide.',
+            'email.required' => 'L\'adresse email est obligatoire.',
+            'email.unique' => 'Cette adresse email est déjà utilisée.',
+            'email.email' => 'Format d\'email invalide.',
         ]);
 
         // ── Créer la personne ──────────────────────────────────────────────
         $personne = Personne::create([
-            'nom'                       => $request->nom,
-            'prenom'                    => $request->prenom,
-            'email'                     => $request->email,
-            'telephone'                 => $request->telephone,
-            'id_vehicule'               => $request->id_vehicule,
+            'nom' => $request->nom,
+            'prenom' => $request->prenom,
+            'email' => $request->email,
+            'telephone' => $request->telephone,
+            'id_vehicule' => $request->id_vehicule,
             'date_inscription_benevole' => $request->date_inscription_benevole ?? now()->toDateString(),
-            'statut'                    => 'En attente',
-            'tirelire'                  => false,
-            // Pas de password — sera créé via lien d'invitation après validation
+            'statut' => 'En attente',
+            'tirelire' => false,
         ]);
 
         // ── Enregistrer les restrictions ───────────────────────────────────
-        // Le membre a coché les cases pour ce qu'il NE peut PAS faire.
-        // Par défaut tout est autorisé — on n'enregistre que les refus.
         $taches = \App\Models\Tache::actif()->get();
-        $jours  = ['Vendredi', 'Samedi'];
+        $jours = ['Vendredi', 'Samedi'];
         $restrictionsPost = $request->input('restrictions', []);
 
         foreach ($taches as $tache) {
             foreach ($jours as $jour) {
-                // La case est cochée = autorisé, absente = refus
                 $autorise = isset($restrictionsPost[$tache->id][$jour]);
 
                 \App\Models\Restriction::updateOrCreate(
                     [
                         'id_personne' => $personne->id,
-                        'id_tache'    => $tache->id,
-                        'jour'        => $jour,
+                        'id_tache' => $tache->id,
+                        'jour' => $jour,
                     ],
                     ['autorise' => $autorise]
                 );
             }
         }
+
+        // ── Recharger avec les relations nécessaires au template email ─────
+        // vehicule          → affiché dans la fiche candidat
+        // restrictions.tache → affiché dans le tableau des disponibilités
+        $personne->load(['vehicule', 'restrictions.tache']);
 
         // ── Notifier tous les admins planning ─────────────────────────────
         $admins = Personne::adminsPlanning()->get();
@@ -332,7 +336,7 @@ class AuthController extends Controller
         }
 
         audit('create', 'inscription', $personne->id, null, [
-            'email'  => $personne->email,
+            'email' => $personne->email,
             'statut' => 'En attente',
         ]);
 

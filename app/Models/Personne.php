@@ -174,12 +174,21 @@ class Personne extends Model implements
     }
 
     /**
-     * Vérifie si la personne est membre (ou admin) de l'application planning.
-     * Un admin est aussi considéré comme membre.
+     * Vérifie si la personne est gestionnaire de l'application planning.
+     * Le gestionnaire a accès à tout sauf la gestion des utilisateurs.
+     */
+    public function isGestionnaire(): bool
+    {
+        return $this->hasRole('gestionnaire', 'planning');
+    }
+
+    /**
+     * Vérifie si la personne est membre (ou admin ou gestionnaire) de l'application planning.
+     * Un admin et un gestionnaire sont aussi considérés comme membres.
      */
     public function isMembre(): bool
     {
-        return $this->hasRole('membre', 'planning') || $this->isAdmin();
+        return $this->hasRole('membre', 'planning') || $this->isAdmin() || $this->isGestionnaire();
     }
 
     // ──────────────────────────────────────────────────────────────────────

@@ -6,6 +6,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion — AMANA Planning</title>
+
+    {{-- Normalize.css --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap"
@@ -23,28 +27,30 @@
             --emerald: #059669;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
         }
 
         body {
             font-family: 'DM Sans', sans-serif;
             min-height: 100vh;
-            display: grid;
-            grid-template-columns: 1fr 480px;
+            display: flex;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: var(--surface-2);
         }
 
         /* ── Left panel ── */
         .panel-left {
+            flex: 1;
             background: var(--ink);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 60px;
+            padding: 60px 48px;
             position: relative;
             overflow: hidden;
         }
@@ -57,6 +63,7 @@
             width: 400px;
             height: 400px;
             background: radial-gradient(circle, rgba(79, 70, 229, 0.4) 0%, transparent 65%);
+            pointer-events: none;
         }
 
         .panel-left::after {
@@ -67,6 +74,7 @@
             width: 300px;
             height: 300px;
             background: radial-gradient(circle, rgba(124, 58, 237, 0.3) 0%, transparent 65%);
+            pointer-events: none;
         }
 
         .panel-left-content {
@@ -133,11 +141,13 @@
 
         /* ── Right panel ── */
         .panel-right {
+            width: 480px;
             background: var(--surface);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 48px 56px;
+            flex-shrink: 0;
         }
 
         .login-box {
@@ -206,27 +216,32 @@
             background: var(--surface-2);
             outline: none;
             transition: all 0.18s;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
         .form-group input:focus {
             border-color: var(--primary);
             background: white;
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+            font-size: 16px;
+            /* prevent iOS zoom */
         }
 
         .field-error {
             color: var(--rose);
             font-size: 12px;
             margin-top: 5px;
+            display: block;
         }
 
-        /* ── Row remember + forgot ── */
         .login-meta {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 24px;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .remember-wrap {
@@ -241,11 +256,15 @@
             width: auto;
             accent-color: var(--primary);
             cursor: pointer;
+            padding: 0;
+            background: none;
+            border: none;
         }
 
         .remember-wrap label {
             cursor: pointer;
             font-weight: 400;
+            margin-bottom: 0;
         }
 
         .forgot-link {
@@ -275,8 +294,8 @@
             font-family: inherit;
             transition: all 0.2s;
             box-shadow: 0 4px 16px rgba(79, 70, 229, 0.4);
-            letter-spacing: 0.2px;
             margin-bottom: 20px;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-login:hover {
@@ -288,7 +307,6 @@
             transform: none;
         }
 
-        /* ── Register link ── */
         .register-link {
             text-align: center;
             font-size: 13.5px;
@@ -307,9 +325,33 @@
             text-decoration: underline;
         }
 
-        @media (max-width: 768px) {
+        /* ── Responsive ── */
+
+        /* Tablet: shrink left panel */
+        @media (max-width: 900px) {
+            .features {
+                display: none;
+            }
+
+            .panel-left {
+                padding: 40px 32px;
+            }
+
+            .big-title {
+                font-size: 28px;
+            }
+
+            .panel-right {
+                width: 400px;
+                padding: 40px 36px;
+            }
+        }
+
+        /* Mobile: stack vertically, hide left panel */
+        @media (max-width: 640px) {
             body {
-                grid-template-columns: 1fr;
+                flex-direction: column;
+                min-height: 100vh;
             }
 
             .panel-left {
@@ -317,7 +359,31 @@
             }
 
             .panel-right {
-                padding: 32px 24px;
+                width: 100%;
+                flex: 1;
+                padding: 40px 24px 32px;
+                align-items: flex-start;
+                padding-top: 48px;
+            }
+
+            .login-box {
+                max-width: 100%;
+            }
+
+            .login-title {
+                font-size: 28px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .panel-right {
+                padding: 32px 16px;
+            }
+
+            .login-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
             }
         }
     </style>
@@ -369,30 +435,26 @@
                     <label for="email">Adresse email</label>
                     <input type="email" id="email" name="email" value="{{ old('email') }}" autocomplete="email"
                         autofocus placeholder="votre@email.fr">
-                    @error('email')<div class="field-error">{{ $message }}</div>@enderror
+                    @error('email')<span class="field-error">{{ $message }}</span>@enderror
                 </div>
                 <div class="form-group">
                     <label for="password">Mot de passe</label>
                     <input type="password" id="password" name="password" autocomplete="current-password"
                         placeholder="••••••••">
-                    @error('password')<div class="field-error">{{ $message }}</div>@enderror
+                    @error('password')<span class="field-error">{{ $message }}</span>@enderror
                 </div>
 
-                {{-- Remember me + forgot password on same line --}}
                 <div class="login-meta">
                     <div class="remember-wrap">
                         <input type="checkbox" id="remember" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}>
                         <label for="remember">Se souvenir de moi</label>
                     </div>
-                    <a href="{{ route('password.request') }}" class="forgot-link">
-                        Mot de passe oublié ?
-                    </a>
+                    <a href="{{ route('password.request') }}" class="forgot-link">Mot de passe oublié ?</a>
                 </div>
 
                 <button type="submit" class="btn-login">🔐 Se connecter</button>
             </form>
 
-            {{-- Register link --}}
             <div class="register-link">
                 Pas encore de compte ?
                 <a href="{{ route('inscription') }}">Soumettre une candidature</a>

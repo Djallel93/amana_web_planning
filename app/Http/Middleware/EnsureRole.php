@@ -17,17 +17,22 @@ use Symfony\Component\HttpFoundation\Response;
  * dans l'application 'planning'.
  *
  * Hiérarchie des rôles :
- *   admin  → accès complet (peut tout faire)
- *   membre → accès lecture + gestion de ses propres données
+ *   admin        → accès complet (peut tout faire)
+ *   gestionnaire → accès planning + événements + absences + restrictions,
+ *                  mais pas la gestion des utilisateurs
+ *   membre       → accès lecture + gestion de ses propres données
  *
- * Un admin a automatiquement accès aux routes réservées aux membres.
+ * Un admin a automatiquement accès aux routes réservées aux gestionnaires et membres.
+ * Un gestionnaire a automatiquement accès aux routes réservées aux membres.
  *
  * Usage dans routes/web.php :
- *   Route::middleware('role:admin')   → réservé aux admins
- *   Route::middleware('role:membre')  → admins + membres
+ *   Route::middleware('role:admin')        → réservé aux admins uniquement
+ *   Route::middleware('role:gestionnaire') → admins + gestionnaires
+ *   Route::middleware('role:membre')       → admins + gestionnaires + membres
  *
  * Usage dans les contrôleurs :
  *   if (Auth::user()->isAdmin()) { ... }
+ *   if (Auth::user()->isGestionnaire()) { ... }
  *   if (Auth::user()->isMembre()) { ... }
  */
 class EnsureRole
@@ -45,20 +50,20 @@ class EnsureRole
 
         // Vérifier le rôle requis avec hiérarchie
         $autorise = match ($role) {
-            // Route admin : seuls les admins y ont accès
-            'admin'  => $personne->isAdmin(),
+            // Route admin uniquement
+            'admin' => $personne->isAdmin(),
 
-            // Route membre : admins ET membres y ont accès
+            // Route gestionnaire : admins ET gestionnaires y ont accès
+            'gestionnaire' => $personne->isAdmin() || $personne->isGestionnaire(),
+
+            // Route membre : admins, gestionnaires ET membres y ont accès
             'membre' => $personne->isMembre(),
 
             // Rôle inconnu : refus par défaut
-            default  => false,
+            default => false,
         };
 
         if (! $autorise) {
-            // Si connecté mais pas le bon rôle → 403
-            // On redirige vers le planning avec un message d'erreur
-            // plutôt que d'afficher une page 403 brute
             return redirect()->route('planning.index')
                 ->with('error', 'Vous n\'avez pas les permissions nécessaires pour accéder à cette page.');
         }

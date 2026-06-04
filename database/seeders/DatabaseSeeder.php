@@ -21,8 +21,15 @@ use Illuminate\Support\Facades\Hash;
  *   1. Application 'planning' (ref_applications)
  *   2. Tâches planifiables (ref_taches)
  *   3. Rôles liés à l'application planning (ref_roles)
+ *        - admin       : accès complet
+ *        - gestionnaire: accès planning + absences + restrictions + événements,
+ *                        sans gestion des utilisateurs
+ *        - membre      : accès lecture + gestion de ses propres données
+ *        - benevole    : rôle bénévole
  *   4. Compte administrateur dans ref_personnes
  *   5. Attribution du rôle admin à l'administrateur
+ *   6. Types de véhicules
+ *   7. Données géographiques
  *
  * Idempotent : peut être relancé plusieurs fois sans créer de doublons
  * grâce à firstOrCreate() et updateOrCreate().
@@ -41,7 +48,7 @@ class DatabaseSeeder extends Seeder
         // ── 2. Tâches planifiables ─────────────────────────────────────────
         $taches = [
             ['code' => 'entree', 'libelle' => 'Entrée', 'actif' => true],
-            ['code' => 'mektaba', 'libelle' => 'Médiathèque', 'actif' => true],
+            ['code' => 'mektaba', 'libelle' => 'Mektaba', 'actif' => true],
             ['code' => 'salle', 'libelle' => 'Salle', 'actif' => true],
             ['code' => 'amana_food', 'libelle' => 'Amana Food', 'actif' => true],
             ['code' => 'cours', 'libelle' => 'Cours', 'actif' => true],
@@ -54,9 +61,12 @@ class DatabaseSeeder extends Seeder
 
         // ── 3. Rôles liés à l'application planning ─────────────────────────
         //
-        // admin  : accès complet à toutes les fonctionnalités
-        // membre : accès lecture + gestion de ses propres données
-        //          (absences, restrictions)
+        // admin        : accès complet à toutes les fonctionnalités
+        // gestionnaire : accès planning, événements, absences, restrictions
+        //                SANS gestion des utilisateurs (personnes, candidatures)
+        // membre       : accès lecture + gestion de ses propres données
+        //                (absences, restrictions)
+        // benevole     : rôle bénévole (utilisé par d'autres modules)
         //
         $roles = [
             [
@@ -112,9 +122,8 @@ class DatabaseSeeder extends Seeder
         );
         $this->command->info('✅ Administrateur créé/mis à jour : admin@amana.fr');
 
-        // ── 5. Type vehicules ───────────────────────────────────
-
-        DB::table('ref_vehicules')->insert([
+        // ── 5. Types de véhicules ──────────────────────────────────────────
+        $vehicules = [
             ['id' => 1, 'type' => 'Citadine', 'capacite_kg' => 150, 'nombre_parts_max' => 6],
             ['id' => 2, 'type' => 'Berline', 'capacite_kg' => 250, 'nombre_parts_max' => 8],
             ['id' => 3, 'type' => 'Break', 'capacite_kg' => 300, 'nombre_parts_max' => 15],
@@ -123,26 +132,29 @@ class DatabaseSeeder extends Seeder
             ['id' => 6, 'type' => 'Grands fourgon', 'capacite_kg' => 1000, 'nombre_parts_max' => 50],
             ['id' => 7, 'type' => 'Permis', 'capacite_kg' => 0, 'nombre_parts_max' => 0],
             ['id' => 8, 'type' => 'Sans permis', 'capacite_kg' => 0, 'nombre_parts_max' => 0],
-        ]);
+        ];
 
-        $this->command->info('✅ Type vehicule ajoutees');
+        foreach ($vehicules as $vehicule) {
+            DB::table('ref_vehicules')->updateOrInsert(
+                ['id' => $vehicule['id']],
+                $vehicule
+            );
+        }
+        $this->command->info('✅ Types de véhicules ajoutés');
 
-        // ── 6. Donnees geographique ───────────────────────────────────
-
+        // ── 6. Données géographiques ───────────────────────────────────────
         $this->call(GeoSeeder::class);
-        $this->command->info('✅ Donnees Geo ajoutees');
+        $this->command->info('✅ Données Geo ajoutées');
 
         // ── 7. Attribution du rôle admin ───────────────────────────────────
         //
-        // On utilise syncWithoutDetaching pour ne pas supprimer d'autres
-        // rôles éventuellement déjà attribués à cette personne.
+        // On utilise un insert conditionnel pour ne pas créer de doublons.
         //
         $roleAdmin = Role::where('code', 'admin')
             ->where('id_application', $planning->id)
             ->first();
 
         if ($roleAdmin) {
-            // Vérifier si le rôle n'est pas déjà attribué
             $dejaAttribue = DB::table('ref_personnes_roles')
                 ->where('id_personne', $admin->id)
                 ->where('id_role', $roleAdmin->id)
@@ -164,9 +176,15 @@ class DatabaseSeeder extends Seeder
         $this->command->newLine();
         $this->command->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         $this->command->info('  Connexion admin :');
-        $this->command->info('  Email    : admin@amana.fr');
+        $this->command->info('  Email        : admin@amana.fr');
         $this->command->info('  Mot de passe : changeme123!');
         $this->command->warn('  ⚠️  Changez ce mot de passe en production !');
+        $this->command->newLine();
+        $this->command->info('  Rôles disponibles :');
+        $this->command->info('  admin        → accès complet');
+        $this->command->info('  gestionnaire → planning + événements + absences + restrictions');
+        $this->command->info('  membre       → lecture + ses propres données');
+        $this->command->info('  benevole     → rôle bénévole');
         $this->command->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     }
 }

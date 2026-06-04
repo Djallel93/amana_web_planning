@@ -166,7 +166,7 @@
     <div class="page-header">
         <div class="page-header-left">
             <div class="page-title">
-                {{ $user->isAdmin() ? 'Restrictions de disponibilité' : 'Mes disponibilités' }}
+                {{ ($user->isAdmin() || $user->isGestionnaire()) ? 'Restrictions de disponibilité' : 'Mes disponibilités' }}
             </div>
             <div class="page-subtitle">
                 Case cochée ✓ = la personne <strong>peut</strong> effectuer la tâche ce jour-là
@@ -175,149 +175,149 @@
     </div>
 
     @if($personnes->isEmpty())
-            <div class="card">
-                <div class="empty-state">
-                    <div class="empty-icon">🔒</div>
-                    <div class="empty-title">Aucun membre actif</div>
-                    <div class="empty-desc">Ajoutez des personnes avec statut "Validé" et une date de début planning.</div>
-                    @if($user->isAdmin())
-                        <a href="{{ route('personnes.create') }}" class="btn btn-primary">+ Ajouter une personne</a>
-                    @endif
-                </div>
+        <div class="card">
+            <div class="empty-state">
+                <div class="empty-icon">🔒</div>
+                <div class="empty-title">Aucun membre actif</div>
+                <div class="empty-desc">Ajoutez des personnes avec statut "Validé" et une date de début planning.</div>
+                @if($user->isAdmin())
+                    <a href="{{ route('personnes.create') }}" class="btn btn-primary">+ Ajouter une personne</a>
+                @endif
+            </div>
+        </div>
+
+    {{-- ════════════════════════════════════════════════════════════════════ --}}
+    {{-- VUE MEMBRE                                                           --}}
+    {{-- ════════════════════════════════════════════════════════════════════ --}}
+    @elseif(! $user->isAdmin() && ! $user->isGestionnaire())
+
+        {{-- Formulaire personnel du membre --}}
+        <div class="member-section">
+            <div class="member-section-title">
+                🔧 Modifier mes disponibilités
+            </div>
+            <div class="member-section-sub">
+                Cochez les tâches que vous <strong>pouvez effectuer</strong> chaque jour.
+                Ces informations sont prises en compte lors de la génération du planning.
             </div>
 
-        {{-- ════════════════════════════════════════════════════════════════════ --}}
-        {{-- VUE MEMBRE                                                           --}}
-        {{-- ════════════════════════════════════════════════════════════════════ --}}
-    @elseif(!$user->isAdmin())
-
-            {{-- Formulaire personnel du membre --}}
-            <div class="member-section">
-                <div class="member-section-title">
-                    🔧 Modifier mes disponibilités
-                </div>
-                <div class="member-section-sub">
-                    Cochez les tâches que vous <strong>pouvez effectuer</strong> chaque jour.
-                    Ces informations sont prises en compte lors de la génération du planning.
-                </div>
-
-                <form action="{{ route('restrictions.update') }}" method="POST" id="memberForm">
-                    @csrf
-                    <div class="member-grid">
-                        @foreach($taches as $tache)
-                            @php
-                                $chipColors = [
-                                    'entree' => ['bg' => '#eff6ff', 'color' => '#2563eb'],
-                                    'mektaba' => ['bg' => '#ecfdf5', 'color' => '#059669'],
-                                    'salle' => ['bg' => '#fffbeb', 'color' => '#d97706'],
-                                    'amana_food' => ['bg' => '#fff1f2', 'color' => '#e11d48'],
-                                ];
-                                $chip = $chipColors[$tache->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink-muted)'];
-                            @endphp
-                            <div class="member-tache-card">
-                                <div class="member-tache-title">
-                                    <span style="
-                                        padding: 2px 9px; border-radius: 20px;
-                                        font-size: 12px; font-weight: 600;
-                                        background: {{ $chip['bg'] }};
-                                        color: {{ $chip['color'] }};
-                                    ">{{ $tache->libelle }}</span>
-                                </div>
-                                <div class="member-tache-checks">
-                                    @foreach(['Vendredi', 'Samedi'] as $jour)
-                                        @php
-                                            $autorise = $restrictionsMap[$user->id][$tache->id][$jour] ?? true;
-                                        @endphp
-                                        <label class="member-check-item">
-                                            <input
-                                                type="checkbox"
-                                                name="checkboxes[{{ $user->id }}][{{ $tache->id }}][{{ $jour }}]"
-                                                value="1"
-                                                {{ $autorise ? 'checked' : '' }}
-                                            >
-                                            <span>{{ $jour }}</span>
-                                        </label>
-                                    @endforeach
-                                </div>
+            <form action="{{ route('restrictions.update') }}" method="POST" id="memberForm">
+                @csrf
+                <div class="member-grid">
+                    @foreach($taches as $tache)
+                        @php
+                            $chipColors = [
+                                'entree'     => ['bg' => '#eff6ff', 'color' => '#2563eb'],
+                                'mektaba'    => ['bg' => '#ecfdf5', 'color' => '#059669'],
+                                'salle'      => ['bg' => '#fffbeb', 'color' => '#d97706'],
+                                'amana_food' => ['bg' => '#fff1f2', 'color' => '#e11d48'],
+                            ];
+                            $chip = $chipColors[$tache->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink-muted)'];
+                        @endphp
+                        <div class="member-tache-card">
+                            <div class="member-tache-title">
+                                <span style="
+                                    padding: 2px 9px; border-radius: 20px;
+                                    font-size: 12px; font-weight: 600;
+                                    background: {{ $chip['bg'] }};
+                                    color: {{ $chip['color'] }};
+                                ">{{ $tache->libelle }}</span>
                             </div>
-                        @endforeach
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">
-                        💾 Enregistrer mes disponibilités
-                    </button>
-                </form>
-            </div>
-
-            {{-- Grille complète en lecture seule pour le membre --}}
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-title-icon" style="background:var(--sky-bg);">👀</div>
-                        Disponibilités de l'équipe
-                    </div>
+                            <div class="member-tache-checks">
+                                @foreach(['Vendredi', 'Samedi'] as $jour)
+                                    @php
+                                        $autorise = $restrictionsMap[$user->id][$tache->id][$jour] ?? true;
+                                    @endphp
+                                    <label class="member-check-item">
+                                        <input
+                                            type="checkbox"
+                                            name="checkboxes[{{ $user->id }}][{{ $tache->id }}][{{ $jour }}]"
+                                            value="1"
+                                            {{ $autorise ? 'checked' : '' }}
+                                        >
+                                        <span>{{ $jour }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
-                <div class="card-body" style="padding:0;">
-                    <div class="readonly-info" style="margin:16px 20px 0;">
-                        <span style="font-size:18px; flex-shrink:0;">ℹ️</span>
-                        <span>Vue en lecture seule — vous pouvez consulter les disponibilités de toute l'équipe.</span>
-                    </div>
-                    <div style="overflow-x:auto; padding-bottom:4px;">
-                        <table class="restrictions-table" style="min-width:700px;">
-                            <thead>
-                                <tr>
-                                    <th rowspan="2" style="vertical-align:middle; min-width:170px; text-align:left; padding-left:18px;">
-                                        Personne
-                                    </th>
-                                    @foreach(['Vendredi', 'Samedi'] as $jour)
-                                        <th colspan="{{ $taches->count() }}" class="jour-header">{{ $jour }}</th>
+
+                <button type="submit" class="btn btn-primary">
+                    💾 Enregistrer mes disponibilités
+                </button>
+            </form>
+        </div>
+
+        {{-- Grille complète en lecture seule pour le membre --}}
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-title-icon" style="background:var(--sky-bg);">👀</div>
+                    Disponibilités de l'équipe
+                </div>
+            </div>
+            <div class="card-body" style="padding:0;">
+                <div class="readonly-info" style="margin:16px 20px 0;">
+                    <span style="font-size:18px; flex-shrink:0;">ℹ️</span>
+                    <span>Vue en lecture seule — vous pouvez consulter les disponibilités de toute l'équipe.</span>
+                </div>
+                <div style="overflow-x:auto; padding-bottom:4px;">
+                    <table class="restrictions-table" style="min-width:700px;">
+                        <thead>
+                            <tr>
+                                <th rowspan="2" style="vertical-align:middle; min-width:170px; text-align:left; padding-left:18px;">
+                                    Personne
+                                </th>
+                                @foreach(['Vendredi', 'Samedi'] as $jour)
+                                    <th colspan="{{ $taches->count() }}" class="jour-header">{{ $jour }}</th>
+                                @endforeach
+                            </tr>
+                            <tr>
+                                @foreach(['Vendredi', 'Samedi'] as $jour)
+                                    @foreach($taches as $tache)
+                                        <th class="sub-header sub-{{ $tache->code }}">{{ $tache->libelle }}</th>
                                     @endforeach
-                                </tr>
-                                <tr>
+                                @endforeach
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($personnes as $personne)
+                                <tr class="{{ $personne->id === $user->id ? 'my-row' : '' }}">
+                                    <td>
+                                        <div style="display:flex; align-items:center; gap:9px;">
+                                            <div style="
+                                                width:28px; height:28px;
+                                                background:linear-gradient(135deg,var(--primary),var(--violet));
+                                                border-radius:50%;
+                                                display:flex; align-items:center; justify-content:center;
+                                                color:white; font-size:11px; font-weight:700; flex-shrink:0;
+                                            ">{{ strtoupper(substr($personne->prenom, 0, 1)) }}</div>
+                                            {{ $personne->prenom }} {{ $personne->nom }}
+                                        </div>
+                                    </td>
                                     @foreach(['Vendredi', 'Samedi'] as $jour)
                                         @foreach($taches as $tache)
-                                            <th class="sub-header sub-{{ $tache->code }}">{{ $tache->libelle }}</th>
+                                            @php $autorise = $restrictionsMap[$personne->id][$tache->id][$jour] ?? true; @endphp
+                                            <td>
+                                                <input type="checkbox"
+                                                       {{ $autorise ? 'checked' : '' }}
+                                                       disabled
+                                                       title="{{ $personne->prenom }} — {{ $tache->libelle }} — {{ $jour }}">
+                                            </td>
                                         @endforeach
                                     @endforeach
                                 </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($personnes as $personne)
-                                    <tr class="{{ $personne->id === $user->id ? 'my-row' : '' }}">
-                                        <td>
-                                            <div style="display:flex; align-items:center; gap:9px;">
-                                                <div style="
-                                                    width:28px; height:28px;
-                                                    background:linear-gradient(135deg,var(--primary),var(--violet));
-                                                    border-radius:50%;
-                                                    display:flex; align-items:center; justify-content:center;
-                                                    color:white; font-size:11px; font-weight:700; flex-shrink:0;
-                                                ">{{ strtoupper(substr($personne->prenom, 0, 1)) }}</div>
-                                                {{ $personne->prenom }} {{ $personne->nom }}
-                                            </div>
-                                        </td>
-                                        @foreach(['Vendredi', 'Samedi'] as $jour)
-                                            @foreach($taches as $tache)
-                                                @php $autorise = $restrictionsMap[$personne->id][$tache->id][$jour] ?? true; @endphp
-                                                <td>
-                                                    <input type="checkbox"
-                                                           {{ $autorise ? 'checked' : '' }}
-                                                           disabled
-                                                           title="{{ $personne->prenom }} — {{ $tache->libelle }} — {{ $jour }}">
-                                                </td>
-                                            @endforeach
-                                        @endforeach
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                            @endforeach
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </div>
 
-        {{-- ════════════════════════════════════════════════════════════════════ --}}
-        {{-- VUE ADMIN                                                            --}}
-        {{-- ════════════════════════════════════════════════════════════════════ --}}
+    {{-- ════════════════════════════════════════════════════════════════════ --}}
+    {{-- VUE ADMIN / GESTIONNAIRE                                             --}}
+    {{-- ════════════════════════════════════════════════════════════════════ --}}
     @else
         <div class="card">
             <div class="card-body" style="padding:0;">
@@ -409,7 +409,7 @@
 
 @push('scripts')
     <script>
-    // Uniquement disponible pour l'admin
+    // Uniquement disponible pour l'admin et le gestionnaire
     function toggleAll(state) {
         document.querySelectorAll('#restrictionsForm input[type="checkbox"]')
             .forEach(cb => cb.checked = state);
