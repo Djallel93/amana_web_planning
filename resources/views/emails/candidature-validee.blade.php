@@ -451,7 +451,7 @@
 
                 {{-- Features card --}}
                 <div class="features-card">
-                    <div class="features-card-label">&#10022; &nbsp; Une fois connecté·e, vous pourrez</div>
+                    <div class="features-card-label">&#10022; &nbsp; Une fois connecté, vous pourrez</div>
                     <div class="feature-row">
                         <span class="feature-icon">📅</span>
                         <div class="feature-text">

@@ -7,7 +7,6 @@ namespace App\Http\Requests\Personnes;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-/** Validation pour la mise à jour d'une personne. */
 class UpdatePersonneRequest extends FormRequest
 {
     public function authorize(): bool
@@ -17,20 +16,18 @@ class UpdatePersonneRequest extends FormRequest
 
     public function rules(): array
     {
-        // Récupère l'ID depuis l'URL (/personnes/{id})
         $id = $this->route('id');
 
         return [
-            'nom'                        => ['required', 'string', 'max:100'],
-            'prenom'                     => ['required', 'string', 'max:100'],
-            // Ignore l'email de la personne courante pour la règle unique
-            'email'                      => ['required', 'email', 'max:255', "unique:ref_personnes,email,{$id}"],
-            'telephone'                  => ['nullable', 'string', 'max:20'],
-            'date_debut_planning'        => ['nullable', 'date'],
-            'date_inscription_benevole'  => ['nullable', 'date'],
-            'statut'                     => ['required', 'in:En attente,Validé,Suspendu,Archivé'],
-            'tirelire'                   => ['nullable', 'boolean'],
-            'id_vehicule'                => ['nullable', 'integer', 'exists:ref_vehicules,id'],
+            'nom' => ['required', 'string', 'max:100'],
+            'prenom' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email:rfc,dns', 'max:255', "unique:ref_personnes,email,{$id}"],
+            'telephone' => ['nullable', 'string', 'max:20', 'regex:/^[+0-9\s\-\(\)\.]{6,20}$/'],
+            'date_debut_planning' => ['nullable', 'date'],
+            'date_inscription_benevole' => ['nullable', 'date'],
+            'statut' => ['required', 'in:En attente,Validé,Suspendu,Archivé'],
+            'id_vehicule' => ['nullable', 'integer', 'exists:ref_vehicules,id'],
+            'role' => ['required', 'string', 'in:admin,gestionnaire,membre,benevole'],
         ];
     }
 
@@ -38,6 +35,9 @@ class UpdatePersonneRequest extends FormRequest
     {
         return [
             'email.unique' => 'Cette adresse email est déjà utilisée par une autre personne.',
+            'telephone.regex' => 'Format de téléphone invalide (ex: +33 6 00 00 00 00).',
+            'role.required' => 'Le rôle est obligatoire.',
+            'role.in' => 'Rôle invalide.',
         ];
     }
 }

@@ -387,6 +387,12 @@
             border: 1px solid rgba(225, 29, 72, 0.25);
         }
 
+        .role-badge.gestionnaire {
+            background: rgba(217, 119, 6, 0.15);
+            color: #fcd34d;
+            border: 1px solid rgba(217, 119, 6, 0.25);
+        }
+
         .role-badge.membre {
             background: rgba(79, 70, 229, 0.15);
             color: #a5b4fc;
@@ -944,7 +950,6 @@
             transition: var(--transition);
             width: 100%;
             outline: none;
-            /* Fix iOS zoom on focus — font-size must be >= 16px on mobile */
         }
 
         input:focus,
@@ -1100,22 +1105,17 @@
         }
 
         /* ════════════════════════════════════════════════════════════
-           RESPONSIVE — Mobile + Tablet (≤ 768px)
-           Sidebar becomes an off-canvas drawer
+           RESPONSIVE — Mobile (≤ 768px)
         ════════════════════════════════════════════════════════════ */
         @media (max-width: 768px) {
-
-            /* Show mobile topbar */
             .mobile-topbar {
                 display: flex;
             }
 
-            /* Show overlay div */
             .sidebar-overlay {
                 display: block;
             }
 
-            /* Sidebar: off-canvas by default */
             .sidebar {
                 top: 0;
                 transform: translateX(-100%);
@@ -1126,7 +1126,6 @@
                 box-shadow: var(--shadow-lg);
             }
 
-            /* Main wrapper: no left margin, offset for topbar */
             .main-wrapper {
                 margin-left: 0;
                 padding-top: var(--topbar-h);
@@ -1136,7 +1135,6 @@
                 padding: 20px 16px 32px;
             }
 
-            /* Page header stacks vertically */
             .page-header {
                 flex-direction: column;
                 align-items: flex-start;
@@ -1153,7 +1151,6 @@
                 font-size: 22px;
             }
 
-            /* Stat grid: 2 columns on mobile */
             .stat-grid {
                 grid-template-columns: 1fr 1fr;
                 gap: 12px;
@@ -1163,7 +1160,6 @@
                 font-size: 24px;
             }
 
-            /* Forms: single column */
             .form-grid,
             .form-grid-3 {
                 grid-template-columns: 1fr;
@@ -1174,7 +1170,6 @@
                 grid-column: 1;
             }
 
-            /* Cards */
             .card-body {
                 padding: 16px;
             }
@@ -1183,7 +1178,6 @@
                 padding: 14px 16px;
             }
 
-            /* Tables: allow horizontal scroll, smaller text */
             .table-wrap {
                 margin: 0 -16px;
             }
@@ -1201,18 +1195,15 @@
                 padding: 10px 12px;
             }
 
-            /* Buttons: full-width where applicable */
             .btn-lg {
                 width: 100%;
                 justify-content: center;
             }
 
-            /* Empty state */
             .empty-state {
                 padding: 40px 16px;
             }
 
-            /* Prevent iOS input zoom (font-size >= 16px on focus) */
             input[type="text"]:focus,
             input[type="email"]:focus,
             input[type="date"]:focus,
@@ -1254,13 +1245,11 @@
                 font-size: 20px;
             }
 
-            /* Flash messages */
             .flash {
                 padding: 10px 14px;
                 font-size: 13px;
             }
 
-            /* Badges: slightly smaller */
             .badge {
                 font-size: 10.5px;
                 padding: 2px 7px;
@@ -1302,16 +1291,18 @@
 
         <div class="sidebar-section">
 
-            {{-- Bandeau rôle --}}
+            {{-- ── Role badge ── --}}
             @auth
                 @if(auth()->user()->isAdmin())
                     <div class="role-badge admin">🛡️ Administrateur</div>
+                @elseif(auth()->user()->isGestionnaire())
+                    <div class="role-badge gestionnaire">⚙️ Gestionnaire</div>
                 @else
                     <div class="role-badge membre">👤 Membre</div>
                 @endif
             @endauth
 
-            {{-- Navigation commune — admin + membre --}}
+            {{-- ── Planning — visible to everyone ── --}}
             <div class="sidebar-label">Planning</div>
             <a href="{{ route('planning.index') }}"
                 class="nav-item {{ request()->routeIs('planning.index') ? 'active' : '' }}" onclick="closeSidebar()">
@@ -1330,7 +1321,7 @@
                 <span class="nav-text">Export PDF</span>
             </a>
 
-            {{-- Navigation commune — absences et restrictions --}}
+            {{-- ── Mes données — visible to everyone ── --}}
             <div class="sidebar-label">Mes données</div>
             <a href="{{ route('absences.index') }}"
                 class="nav-item {{ request()->routeIs('absences.*') ? 'active' : '' }}" onclick="closeSidebar()">
@@ -1343,25 +1334,32 @@
                 <span class="nav-text">Disponibilités</span>
             </a>
 
-            {{-- Navigation admin uniquement --}}
+            {{-- ── Gestion — gestionnaire + admin ── --}}
             @auth
-                @if(auth()->user()->isAdmin())
-                    <div class="sidebar-label">Administration</div>
+                @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
+                    <div class="sidebar-label">Gestion</div>
                     <a href="{{ route('planning.generate.form') }}"
                         class="nav-item {{ request()->routeIs('planning.generate*') ? 'active' : '' }}"
                         onclick="closeSidebar()">
                         <span class="nav-icon">✨</span>
                         <span class="nav-text">Générer</span>
                     </a>
-                    <a href="{{ route('personnes.index') }}"
-                        class="nav-item {{ request()->routeIs('personnes.*') ? 'active' : '' }}" onclick="closeSidebar()">
-                        <span class="nav-icon">👥</span>
-                        <span class="nav-text">Personnes</span>
-                    </a>
                     <a href="{{ route('evenements.index') }}"
                         class="nav-item {{ request()->routeIs('evenements.*') ? 'active' : '' }}" onclick="closeSidebar()">
                         <span class="nav-icon">🎉</span>
                         <span class="nav-text">Événements</span>
+                    </a>
+                @endif
+            @endauth
+
+            {{-- ── Administration — admin only ── --}}
+            @auth
+                @if(auth()->user()->isAdmin())
+                    <div class="sidebar-label">Administration</div>
+                    <a href="{{ route('personnes.index') }}"
+                        class="nav-item {{ request()->routeIs('personnes.*') ? 'active' : '' }}" onclick="closeSidebar()">
+                        <span class="nav-icon">👥</span>
+                        <span class="nav-text">Personnes</span>
                     </a>
 
                     @php
@@ -1391,7 +1389,13 @@
                         {{ auth()->user()->prenom ?? '' }} {{ auth()->user()->nom ?? '' }}
                     </div>
                     <div class="user-role">
-                        {{ auth()->user()->isAdmin() ? 'Administrateur' : 'Membre' }}
+                        @if(auth()->user()->isAdmin())
+                            Administrateur
+                        @elseif(auth()->user()->isGestionnaire())
+                            Gestionnaire
+                        @else
+                            Membre
+                        @endif
                     </div>
                 </div>
                 <form action="{{ route('logout') }}" method="POST">
@@ -1441,7 +1445,7 @@
     </div>
 
     <script>
-        // ── Sidebar mobile toggle ──────────────────────────────────────────────
+        // ── Sidebar mobile toggle ─────────────────────────────────────────
         const sidebar = document.getElementById('mainSidebar');
         const overlay = document.getElementById('sidebarOverlay');
         const hamburger = document.getElementById('hamburgerBtn');
@@ -1468,12 +1472,10 @@
 
         hamburger.addEventListener('click', toggleSidebar);
 
-        // Close on Escape key
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') closeSidebar();
         });
 
-        // Close sidebar when viewport grows back to desktop size
         window.addEventListener('resize', function () {
             if (window.innerWidth > 768) closeSidebar();
         });

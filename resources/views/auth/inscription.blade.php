@@ -432,7 +432,7 @@
                                                 name="restrictions[{{ $tache->id }}][{{ $jour }}]"
                                                 value="1"
                                                 title="{{ $tache->libelle }} — {{ $jour }}"
-                                                {{ old('restrictions.' . $tache->id . '.' . $jour, '1') ? 'checked' : '' }}
+                                                {{ old('restrictions.' . $tache->id . '.' . $jour) ? 'checked' : '' }}
                                             >
                                         </td>
                                     @endforeach
@@ -457,7 +457,7 @@
                                                 type="checkbox"
                                                 name="restrictions[{{ $tache->id }}][{{ $jour }}]"
                                                 value="1"
-                                                {{ old('restrictions.' . $tache->id . '.' . $jour, '1') ? 'checked' : '' }}
+                                                {{ old('restrictions.' . $tache->id . '.' . $jour) ? 'checked' : '' }}
                                             >
                                             {{ $jour }}
                                         </label>
