@@ -15,8 +15,8 @@
     <div class="card">
         <div class="card-header">
             <div class="card-title">
-                <div class="card-title-icon" style="background:var(--violet-bg);">👥</div>
-                <span>{{ $personnes->count() }} personne{{ $personnes->count() !== 1 ? 's' : '' }}</span>
+                <div class="card-title-icon" style="background:var(--sky-bg);">👥</div>
+                {{ $personnes->count() }} personne{{ $personnes->count() !== 1 ? 's' : '' }}
             </div>
         </div>
         <div class="table-wrap">
@@ -24,7 +24,7 @@
                 <thead>
                     <tr>
                         <th>Nom</th>
-                        <th>Rôle planning</th>
+                        <th>Rôle</th>
                         <th>Email</th>
                         <th>Téléphone</th>
                         <th>Statut</th>
@@ -35,7 +35,6 @@
                 <tbody>
                     @forelse($personnes as $personne)
                                 @php
-                                    // Get the planning role (first one since one role per app)
                                     $planningRole = $personne->roles->first();
                                     $roleLabels = [
                                         'admin' => ['label' => 'Admin', 'class' => 'badge-danger', 'icon' => '🛡️'],
@@ -43,34 +42,42 @@
                                         'membre' => ['label' => 'Membre', 'class' => 'badge-primary', 'icon' => '👤'],
                                         'benevole' => ['label' => 'Bénévole', 'class' => 'badge-info', 'icon' => '🤝'],
                                     ];
-                                    $roleInfo = $planningRole ? ($roleLabels[$planningRole->code] ?? ['label' => $planningRole->libelle, 'class' => 'badge-muted', 'icon' => '❓']) : null;
+                                    $roleInfo = $planningRole
+                                        ? ($roleLabels[$planningRole->code] ?? ['label' => $planningRole->libelle, 'class' => 'badge-muted', 'icon' => '❓'])
+                                        : null;
                                 @endphp
                                 <tr>
-                                    <td class="td-primary">{{ $personne->prenom }} {{ $personne->nom }}</td>
+                                    <td>
+                                        <div style="display:flex;align-items:center;gap:10px;">
+                                            <div
+                                                style="width:30px;height:30px;background:var(--app-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;flex-shrink:0;">
+                                                {{ strtoupper(substr($personne->prenom, 0, 1)) }}
+                                            </div>
+                                            <span class="td-primary">{{ $personne->prenom }} {{ $personne->nom }}</span>
+                                        </div>
+                                    </td>
                                     <td>
                                         @if($roleInfo)
-                                            <span class="badge {{ $roleInfo['class'] }}">
-                                                {{ $roleInfo['icon'] }} {{ $roleInfo['label'] }}
-                                            </span>
+                                            <span class="badge {{ $roleInfo['class'] }}">{{ $roleInfo['icon'] }}
+                                                {{ $roleInfo['label'] }}</span>
                                         @else
-                                            <span style="color:var(--ink-faint); font-size:12px; font-style:italic;">Aucun rôle</span>
+                                            <span style="color:var(--ink-faint);font-size:12px;font-style:italic;">Aucun rôle</span>
                                         @endif
                                     </td>
-                                    <td style="color:var(--ink-muted);">{{ $personne->email }}</td>
-                                    <td style="color:var(--ink-muted);">{{ $personne->telephone ?? '—' }}</td>
+                                    <td style="color:var(--ink-muted);font-size:12.5px;">{{ $personne->email }}</td>
+                                    <td style="color:var(--ink-muted);font-size:12.5px;">{{ $personne->telephone ?? '—' }}</td>
                                     <td>
                                         @php
-                                            $cls = match ($personne->statut) {
+                                            $statusCls = match ($personne->statut) {
                                                 'Validé' => 'badge-success',
                                                 'En attente' => 'badge-warning',
                                                 'Suspendu' => 'badge-danger',
-                                                'Archivé' => 'badge-muted',
                                                 default => 'badge-muted',
                                             };
                                         @endphp
-                                        <span class="badge {{ $cls }} badge-dot">{{ $personne->statut }}</span>
+                                        <span class="badge {{ $statusCls }} badge-dot">{{ $personne->statut }}</span>
                                     </td>
-                                    <td style="color:var(--ink-muted); font-size:12.5px;">
+                                    <td style="color:var(--ink-muted);font-size:12.5px;">
                                         {{ $personne->date_debut_planning
                         ? $personne->date_debut_planning->locale('fr')->isoFormat('D MMM YYYY')
                         : '—' }}
