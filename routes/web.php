@@ -11,6 +11,7 @@ use App\Http\Controllers\PersonnesController;
 use App\Http\Controllers\RestrictionsController;
 use App\Http\Controllers\AbsencesController;
 use App\Http\Controllers\EvenementsController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -87,6 +88,12 @@ Route::middleware('auth')->group(function () {
                 ->name('edit.delete-creneau')
                 ->where('id', '[0-9]+');
         });
+    });
+
+    // ── Paramètres — gestionnaire + admin ─────────────────────────────────
+    Route::middleware('role:gestionnaire')->group(function () {
+        Route::get('/parametres', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/parametres', [SettingsController::class, 'update'])->name('settings.update');
     });
 
     // ── Restrictions ───────────────────────────────────────────────────────

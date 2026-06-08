@@ -1,5 +1,5 @@
 {{-- resources/views/planning/pdf.blade.php --}}
-{{-- DomPDF template — uses table-based layout for maximum email/PDF client compat --}}
+{{-- DomPDF template — uses table-based layout for maximum PDF client compat --}}
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -66,7 +66,7 @@
             margin-top: 3px;
         }
 
-        /* ── Accent stripe ── */
+        /* ── Stripe ── */
         .pdf-stripe {
             height: 3px;
             background: #0369a1;
@@ -169,6 +169,11 @@
             font-weight: 600;
         }
 
+        .task-cours {
+            color: #7c3aed;
+            font-weight: 600;
+        }
+
         .task-empty {
             color: #cbd5e1;
             font-style: italic;
@@ -239,7 +244,9 @@
                 Du {{ \Carbon\Carbon::parse($dateDebut)->locale('fr')->isoFormat('D MMMM YYYY') }}
                 au {{ \Carbon\Carbon::parse($dateFin)->locale('fr')->isoFormat('D MMMM YYYY') }}
             </div>
-            <div class="pdf-generated">Généré le {{ now()->locale('fr')->isoFormat('D MMMM YYYY à HH:mm') }}</div>
+            <div class="pdf-generated">
+                Généré le {{ now()->locale('fr')->isoFormat('D MMMM YYYY à HH:mm') }}
+            </div>
         </div>
     </div>
 
@@ -265,11 +272,12 @@
                 <table>
                     <thead>
                         <tr>
-                            <th style="width:120px;">Jour</th>
+                            <th style="width:100px;">Jour</th>
                             <th>Entrée</th>
                             <th>Mektaba</th>
                             <th>Salle</th>
                             <th>Amana Food</th>
+                            <th>Cours</th>
                             <th>Événements</th>
                         </tr>
                     </thead>
@@ -281,24 +289,35 @@
                                 $evtStr = $creneau->evenements->pluck('nom')->implode(', ');
                             @endphp
                             <tr class="{{ $isBlocked ? 'blocked-row' : '' }}">
+
+                                {{-- Jour --}}
                                 <td>
                                     <div class="day-label">{{ $creneau->jour }}</div>
-                                    <div class="day-date">{{ $creneau->date->locale('fr')->isoFormat('D MMM YYYY') }}</div>
+                                    <div class="day-date">
+                                        {{ $creneau->date->locale('fr')->isoFormat('D MMM YYYY') }}
+                                    </div>
                                 </td>
-                                @foreach(['entree', 'mektaba', 'salle', 'amana_food'] as $code)
+
+                                {{-- 5 tâches --}}
+                                @foreach(['entree', 'mektaba', 'salle', 'amana_food', 'cours'] as $code)
                                     <td>
                                         @if($tachesMap->has($code) && $tachesMap[$code]->personne)
                                             <span class="task-{{ $code }}">
-                                                {{ $tachesMap[$code]->personne->prenom }} {{ $tachesMap[$code]->personne->nom }}
+                                                {{ $tachesMap[$code]->personne->prenom }}
+                                                {{ $tachesMap[$code]->personne->nom }}
                                             </span>
                                         @else
                                             <span class="task-empty">—</span>
                                         @endif
                                     </td>
                                 @endforeach
+
+                                {{-- Événements --}}
                                 <td>
                                     @if($evtStr)
-                                        <span class="evt-tag {{ $isBlocked ? 'evt-blocked' : '' }}">{{ $evtStr }}</span>
+                                        <span class="evt-tag {{ $isBlocked ? 'evt-blocked' : '' }}">
+                                            {{ $evtStr }}
+                                        </span>
                                     @else
                                         <span class="task-empty">—</span>
                                     @endif
@@ -313,7 +332,9 @@
 
     <div class="pdf-footer">
         <div class="pdf-footer-left">AMANA Planning — Document confidentiel</div>
-        <div class="pdf-footer-right">Total : {{ $creneaux->flatten()->count() }} créneaux</div>
+        <div class="pdf-footer-right">
+            Total : {{ $creneaux->flatten()->count() }} créneaux
+        </div>
     </div>
 
 </body>

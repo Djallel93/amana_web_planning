@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Creneau;
+use App\Models\Setting;
 use App\Models\Tache;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -13,32 +14,31 @@ use Illuminate\Support\Collection;
 /**
  * Construit le payload JSON à envoyer vers Make.com après génération du planning.
  *
- * Calcul des horaires relatifs à HEURE_COURS (depuis .env) :
- *   entree              : cours - 30min  → cours + 30min
- *   mektaba             : cours - 20min  → cours + 100min
- *   salle               : cours          → cours + 90min
- *   amana_food          : cours + 30min  → cours + 90min
- *   assistance_amana_food : cours + 30min → cours + 90min
- *   cours               : cours          → cours + 60min
- *   rappel_sandwich     : 08:00          → 08:15
+ * Toutes les valeurs de configuration (lieu, heure_cours, offsets) sont
+ * chargées depuis ref_settings via Setting::get() — plus aucune constante
+ * hardcodée sauf le cas spécial du rappel_sandwich (horaire fixe 08:00–08:15).
+ *
+ * Structure du payload par créneau :
+ * {
+ *   "taches": {
+ *     "entree": { nom_complet, email, heure_debut, heure_fin, description },
+ *     "mektaba": { ... },
+ *     "salle": { ... },
+ *     "amana_food": { ... },
+ *     "cours": { nom_complet, email, heure_debut, heure_fin, description }
+ *   },
+ *   "evenements_speciaux": {
+ *     "rappel_sandwich": { nom_complet (= amana_food), email, heure_debut, heure_fin, description },
+ *     "assistance_amana_food": { nom_complet (= entree), email, heure_debut, heure_fin, description }
+ *   },
+ *   "evenements_sociaux": {
+ *     "annonce_cours": { nom_complet: null, email: null, heure_debut, heure_fin, description },
+ *     "message_general": { nom_complet: null, email: null, heure_debut, heure_fin, description }
+ *   }
+ * }
  */
 class WebhookPayloadBuilder
 {
-    /** Lieu fixe de tous les événements */
-    private const LIEU = '319 Rte de Vannes, 44800 Saint-Herblain, France';
-
-    /**
-     * Décalages en minutes par rapport à HEURE_COURS : [debut, fin]
-     */
-    private const OFFSETS = [
-        'entree' => [-30, 30],
-        'mektaba' => [-20, 100],
-        'salle' => [0, 90],
-        'amana_food' => [30, 90],
-        'assistance_amana_food' => [30, 90],
-        'cours' => [0, 60],
-    ];
-
     /**
      * Construit et retourne le payload complet pour Make.com.
      *
@@ -48,23 +48,24 @@ class WebhookPayloadBuilder
      */
     public function build(string $dateDebut, int $semaines): array
     {
-        // Récupération de HEURE_COURS depuis .env
-        $heureCours = env('HEURE_COURS', '20:00');
+        // ── Paramètres depuis ref_settings ────────────────────────────────
+        $heureCours = Setting::get('heure_cours', 'planning') ?? '20:00';
+        $lieu = Setting::get('lieu', 'planning') ?? '';
 
-        // Calcul de la plage de dates (premier vendredi → fin)
+        // ── Plage de dates ─────────────────────────────────────────────────
         $premier = $this->trouverPremierVendredi($dateDebut);
         $fin = $premier->copy()->addWeeks($semaines)->addDay();
 
-        // Chargement de tous les créneaux dans la plage
+        // ── Chargement des créneaux ────────────────────────────────────────
         $creneaux = Creneau::with(['taches.tache', 'taches.personne', 'evenements'])
             ->whereBetween('date', [$premier->toDateString(), $fin->toDateString()])
             ->orderBy('date')
             ->get();
 
-        // Chargement de TOUTES les tâches (actif=0 inclus) indexées par code
+        // ── Toutes les tâches indexées par code (actif=0 inclus) ───────────
         $toutesLesTaches = Tache::all()->keyBy('code');
 
-        // Construction des créneaux
+        // ── Construction des créneaux ──────────────────────────────────────
         $creneauxPayload = $creneaux->map(
             fn(Creneau $c) => $this->buildCreneau($c, $toutesLesTaches, $heureCours)
         )->values()->all();
@@ -72,44 +73,39 @@ class WebhookPayloadBuilder
         return [
             'genere_le' => now()->toIso8601String(),
             'heure_cours' => $heureCours,
-            'lieu' => self::LIEU,
+            'lieu' => $lieu,
             'creneaux' => $creneauxPayload,
         ];
     }
 
-    // ─────────────────────────────────────────────────────────────────────
+    // ── Construction d'un créneau ──────────────────────────────────────────
 
     /**
-     * Construit les données d'un créneau.
+     * Construit les données complètes d'un créneau.
      */
     private function buildCreneau(Creneau $creneau, Collection $taches, string $heureCours): array
     {
         $tachesMap = $creneau->taches->keyBy(fn($ct) => $ct->tache?->code);
+        $date = Carbon::parse($creneau->date)->toDateString();
 
-        // Tâches principales (actif = 1)
+        // ── Tâches principales avec assignee ──────────────────────────────
+        // cours rejoint entree, mektaba, salle, amana_food
         $tachesPayload = [];
-        foreach (['entree', 'mektaba', 'salle', 'amana_food'] as $code) {
+        foreach (['entree', 'mektaba', 'salle', 'amana_food', 'cours'] as $code) {
             $tachesPayload[$code] = $this->buildTacheAssignee(
                 $tachesMap->get($code),
                 $taches->get($code),
                 $code,
-                $creneau->date->toDateString(),
+                $date,
                 $heureCours
             );
         }
 
-        // Événements spéciaux (actif = 0)
+        // ── Événements spéciaux (personne héritée d'une autre tâche) ──────
         $personneAmanaFood = $tachesMap->get('amana_food')?->personne;
         $personneEntree = $tachesMap->get('entree')?->personne;
 
         $eventsSpeciaux = [
-            'cours' => $this->buildEvenementSpecial(
-                'cours',
-                $taches->get('cours'),
-                null,
-                $creneau->date->toDateString(),
-                $heureCours
-            ),
             'rappel_sandwich' => $this->buildRappelSandwich(
                 $taches->get('rappel_sandwich'),
                 $personneAmanaFood
@@ -118,27 +114,47 @@ class WebhookPayloadBuilder
                 'assistance_amana_food',
                 $taches->get('assistance_amana_food'),
                 $personneEntree,
-                $creneau->date->toDateString(),
+                $date,
                 $heureCours
             ),
         ];
 
-        // Noms des événements organisationnels liés
+        // ── Événements sociaux (pas d'assignee, computed uniquement) ──────
+        $eventsSociaux = [
+            'annonce_cours' => $this->buildEvenementSocial(
+                'annonce_cours',
+                $taches->get('annonce_cours'),
+                $date,
+                $heureCours
+            ),
+            'message_general' => $this->buildEvenementSocial(
+                'message_bot',
+                $taches->get('message_general'),
+                $date,
+                $heureCours
+            ),
+        ];
+
+        // ── Noms des événements organisationnels liés ──────────────────────
         $nomsEvenements = $creneau->evenements->pluck('nom')->implode(', ');
 
         return [
-            'date' => $creneau->date->toDateString(),
+            'date' => $date,
             'jour' => $creneau->jour,
             'semaine' => $creneau->semaine,
             'evenements' => $nomsEvenements ?: null,
             'taches' => $tachesPayload,
             'evenements_speciaux' => $eventsSpeciaux,
+            'evenements_sociaux' => $eventsSociaux,
         ];
     }
 
+    // ── Builders par type d'événement ─────────────────────────────────────
+
     /**
-     * Construit les données d'une tâche assignée (entree, mektaba, salle, amana_food).
-     * Retourne null si non assignée.
+     * Construit une tâche avec personne assignée (entree, mektaba, salle,
+     * amana_food, cours). Retourne toujours un tableau — nom_complet et email
+     * sont null si la tâche n'est pas assignée.
      */
     private function buildTacheAssignee(
         mixed $creneauTache,
@@ -146,10 +162,8 @@ class WebhookPayloadBuilder
         string $code,
         string $date,
         string $heureCours
-    ): ?array {
+    ): array {
         $personne = $creneauTache?->personne;
-
-        // Calcul des horaires
         [$debut, $fin] = $this->calculerHoraires($code, $date, $heureCours);
 
         return [
@@ -162,7 +176,8 @@ class WebhookPayloadBuilder
     }
 
     /**
-     * Construit un événement spécial avec personne optionnelle.
+     * Construit un événement spécial dont la personne est héritée d'une
+     * autre tâche (rappel_sandwich → amana_food, assistance → entree).
      */
     private function buildEvenementSpecial(
         string $code,
@@ -173,23 +188,18 @@ class WebhookPayloadBuilder
     ): array {
         [$debut, $fin] = $this->calculerHoraires($code, $date, $heureCours);
 
-        $data = [
+        return [
+            'nom_complet' => $personne ? trim($personne->prenom . ' ' . $personne->nom) : null,
+            'email' => $personne?->email,
             'heure_debut' => $debut,
             'heure_fin' => $fin,
             'description' => $tacheRef?->description,
         ];
-
-        if ($personne !== null) {
-            $data['nom_complet'] = trim($personne->prenom . ' ' . $personne->nom);
-            $data['email'] = $personne->email;
-        }
-
-        return $data;
     }
 
     /**
-     * Construit le rappel sandwich (horaire fixe 08:00-08:15).
-     * Lié à la personne assignée à amana_food.
+     * Construit le rappel sandwich : horaire fixe 08:00–08:15,
+     * personne = celle assignée à amana_food ce jour.
      */
     private function buildRappelSandwich(mixed $tacheRef, mixed $personne): array
     {
@@ -203,26 +213,65 @@ class WebhookPayloadBuilder
     }
 
     /**
-     * Calcule les horaires de début/fin pour un code de tâche donné.
-     * Retourne ['HH:MM', 'HH:MM'].
+     * Construit un événement social : pas d'assignee, timing relatif
+     * à heure_cours via les offsets en ref_settings.
+     * nom_complet et email sont toujours null.
+     */
+    private function buildEvenementSocial(
+        string $codeOffset,
+        mixed $tacheRef,
+        string $date,
+        string $heureCours
+    ): array {
+        [$debut, $fin] = $this->calculerHoraires($codeOffset, $date, $heureCours);
+
+        return [
+            'nom_complet' => null,
+            'email' => null,
+            'heure_debut' => $debut,
+            'heure_fin' => $fin,
+            'description' => $tacheRef?->description ?? '',
+        ];
+    }
+
+    // ── Calcul des horaires ────────────────────────────────────────────────
+
+    /**
+     * Calcule les horaires début/fin pour un code de tâche donné.
+     *
+     * Les offsets sont chargés depuis ref_settings :
+     *   offset_{code}_debut et offset_{code}_fin
+     *
+     * Cas spécial : rappel_sandwich → horaire fixe 08:00–08:15.
+     *
+     * @return array{0: string, 1: string} ['HH:MM', 'HH:MM']
      */
     private function calculerHoraires(string $code, string $date, string $heureCours): array
     {
-        // Rappel sandwich : horaire fixe
+        // Cas spécial : horaire fixe, indépendant de heure_cours
         if ($code === 'rappel_sandwich') {
             return ['08:00', '08:15'];
         }
 
-        $offsets = self::OFFSETS[$code] ?? [0, 60];
+        // Chargement des offsets depuis ref_settings
+        $offsetDebut = Setting::get("offset_{$code}_debut", 'planning');
+        $offsetFin = Setting::get("offset_{$code}_fin", 'planning');
 
-        // Base : HEURE_COURS à la date du créneau
+        // Fallback si la clé n'existe pas en base
+        if ($offsetDebut === null || $offsetFin === null) {
+            $offsetDebut = 0;
+            $offsetFin = 60;
+        }
+
+        // Base : heure_cours à la date du créneau
         $base = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $heureCours);
-
-        $debut = $base->copy()->addMinutes($offsets[0])->format('H:i');
-        $fin = $base->copy()->addMinutes($offsets[1])->format('H:i');
+        $debut = $base->copy()->addMinutes((int) $offsetDebut)->format('H:i');
+        $fin = $base->copy()->addMinutes((int) $offsetFin)->format('H:i');
 
         return [$debut, $fin];
     }
+
+    // ── Utilitaire ────────────────────────────────────────────────────────
 
     /**
      * Trouve le premier vendredi à partir d'une date donnée.

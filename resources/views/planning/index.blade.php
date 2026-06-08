@@ -174,7 +174,7 @@
         /* ── Task cells ── */
         .task-cell {
             position: relative;
-            min-width: 130px;
+            min-width: 120px;
         }
 
         .task-cell-inner {
@@ -231,6 +231,11 @@
         .tache-chip.amana_food {
             background: #fff1f2;
             color: #e11d48;
+        }
+
+        .tache-chip.cours {
+            background: #f5f3ff;
+            color: #7c3aed;
         }
 
         .tache-vide {
@@ -588,6 +593,7 @@
                                         <th style="color:#059669;">📚 Mektaba</th>
                                         <th style="color:#d97706;">🏛️ Salle</th>
                                         <th style="color:#e11d48;">🥪 Amana Food</th>
+                                        <th style="color:#7c3aed;">🎓 Cours</th>
                                         <th>Événements</th>
                                         <th style="width:36px;"></th>
                                     </tr>
@@ -600,19 +606,24 @@
                                             $evtStr = $creneau->evenements->pluck('nom')->implode(', ');
                                         @endphp
                                         <tr class="{{ $isBlocked ? 'day-row-blocked' : '' }}" id="row-creneau-{{ $creneau->id }}">
+
+                                            {{-- Jour + date --}}
                                             <td>
                                                 <div style="display:flex;align-items:center;gap:8px;">
-                                                    <strong
-                                                        style="color:var(--ink);font-family:var(--font-heading);font-size:13px;">{{ $creneau->jour }}</strong>
-                                                    <span
-                                                        style="color:var(--ink-muted);font-size:12px;">{{ $creneau->date->locale('fr')->isoFormat('D MMM YYYY') }}</span>
+                                                    <strong style="color:var(--ink);font-family:var(--font-heading);font-size:13px;">
+                                                        {{ $creneau->jour }}
+                                                    </strong>
+                                                    <span style="color:var(--ink-muted);font-size:12px;">
+                                                        {{ $creneau->date->locale('fr')->isoFormat('D MMM YYYY') }}
+                                                    </span>
                                                     @if($isBlocked)
                                                         <span class="badge badge-danger badge-dot" style="font-size:10px;">Bloqué</span>
                                                     @endif
                                                 </div>
                                             </td>
 
-                                            @foreach(['entree', 'mektaba', 'salle', 'amana_food'] as $code)
+                                            {{-- 5 tâches : entree, mektaba, salle, amana_food, cours --}}
+                                            @foreach(['entree', 'mektaba', 'salle', 'amana_food', 'cours'] as $code)
                                                 @php
                                                     $ct = $tachesMap->get($code);
                                                     $tacheId = $ct?->id_tache;
@@ -624,6 +635,7 @@
                                                     data-tache-label="{{ ucfirst(str_replace('_', ' ', $code)) }}"
                                                     data-jour="{{ $creneau->jour }}"
                                                     data-date="{{ $creneau->date->locale('fr')->isoFormat('D MMM YYYY') }}">
+
                                                     @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                                                         <div class="task-cell-inner" onclick="openEditModal(this.closest('td'))">
                                                     @else
@@ -643,14 +655,18 @@
                                                 </td>
                                             @endforeach
 
+                                            {{-- Événements organisationnels --}}
                                             <td style="color:var(--ink-faint);">
                                                 @if($evtStr)
-                                                    <span class="event-tag {{ $isBlocked ? 'blocked' : '' }}">{{ $evtStr }}</span>
+                                                    <span class="event-tag {{ $isBlocked ? 'blocked' : '' }}">
+                                                        {{ $evtStr }}
+                                                    </span>
                                                 @else
                                                     <span style="font-size:12px;">—</span>
                                                 @endif
                                             </td>
 
+                                            {{-- Suppression créneau --}}
                                             <td style="text-align:right;padding-right:12px;">
                                                 @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                                                     <button class="btn-delete-day"
@@ -698,8 +714,9 @@
                     <div class="modal-section-title" style="color:var(--rose);">⚠️ Zone dangereuse</div>
                     <div style="display:flex;gap:9px;flex-wrap:wrap;">
                         <button class="btn btn-danger btn-sm" onclick="unassignTask()">✕ Désassigner</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteCreneauFromModal()">🗑️ Supprimer le
-                            créneau</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCreneauFromModal()">
+                            🗑️ Supprimer le créneau
+                        </button>
                     </div>
                 </div>
             </div>
@@ -754,7 +771,9 @@
         /* ── Load personnes ── */
         async function loadPersonnes() {
             if (personnesCache) return personnesCache;
-            const res = await fetch(ROUTES.personnes, { headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
+            const res = await fetch(ROUTES.personnes, {
+                headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+            });
             personnesCache = await res.json();
             return personnesCache;
         }
@@ -764,12 +783,15 @@
             currentCell = td;
             const code = td.dataset.tacheCode;
             const label = td.dataset.tacheLabel;
+
             const colors = {
                 entree: { bg: '#eff6ff', icon: '🚪' },
                 mektaba: { bg: '#ecfdf5', icon: '📚' },
                 salle: { bg: '#fffbeb', icon: '🏛️' },
                 amana_food: { bg: '#fff1f2', icon: '🥪' },
+                cours: { bg: '#f5f3ff', icon: '🎓' },
             };
+
             const c = colors[code] || { bg: 'var(--sky-bg)', icon: '✏️' };
             document.getElementById('modalTitleIcon').style.background = c.bg;
             document.getElementById('modalTitleIcon').textContent = c.icon;
@@ -793,6 +815,7 @@
                     if (opt.textContent.trim() === name) { opt.selected = true; break; }
                 }
             }
+
             document.getElementById('editModalBackdrop').classList.add('open');
             document.body.style.overflow = 'hidden';
         }
@@ -802,7 +825,9 @@
             document.body.style.overflow = '';
             currentCell = null;
         }
-        function closeOnBackdrop(e) { if (e.target === document.getElementById('editModalBackdrop')) closeModal(); }
+        function closeOnBackdrop(e) {
+            if (e.target === document.getElementById('editModalBackdrop')) closeModal();
+        }
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
         /* ── Save ── */
@@ -833,7 +858,8 @@
             const tacheId = currentCell.dataset.tacheId;
             try {
                 const res = await fetch(`${ROUTES.assignation}/${creneauId}/tache/${tacheId}`, {
-                    method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
                 });
                 const data = await res.json();
                 if (data.success) { updateCell(currentCell, null); showToast('Tâche désassignée', 'success'); closeModal(); }
@@ -855,15 +881,23 @@
             if (el) { el.disabled = true; el.textContent = '…'; }
             try {
                 const res = await fetch(`${ROUTES.creneau}/${id}`, {
-                    method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+                    method: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
                 });
                 const data = await res.json();
                 if (data.success) {
                     const row = document.getElementById(`row-creneau-${id}`);
-                    if (row) { row.style.transition = 'opacity 0.3s'; row.style.opacity = '0'; setTimeout(() => { row.remove(); checkEmptyWeeks(); }, 300); }
+                    if (row) {
+                        row.style.transition = 'opacity 0.3s';
+                        row.style.opacity = '0';
+                        setTimeout(() => { row.remove(); checkEmptyWeeks(); }, 300);
+                    }
                     showToast(data.message, 'success');
                 } else showToast('Erreur', 'error');
-            } catch { showToast('Erreur réseau', 'error'); if (el) { el.disabled = false; el.textContent = '🗑️'; } }
+            } catch {
+                showToast('Erreur réseau', 'error');
+                if (el) { el.disabled = false; el.textContent = '🗑️'; }
+            }
         }
 
         async function deleteWeek(ids, el) {
@@ -872,7 +906,10 @@
             let n = 0;
             for (const id of ids) {
                 try {
-                    const res = await fetch(`${ROUTES.creneau}/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
+                    const res = await fetch(`${ROUTES.creneau}/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
+                    });
                     const data = await res.json();
                     if (data.success) { n++; document.getElementById(`row-creneau-${id}`)?.remove(); }
                 } catch { }
@@ -905,7 +942,10 @@
             t.className = `toast ${type}`;
             t.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span><span>${msg}</span>`;
             c.appendChild(t);
-            setTimeout(() => { t.style.animation = 'toastOut 0.3s ease forwards'; setTimeout(() => t.remove(), 300); }, 3200);
+            setTimeout(() => {
+                t.style.animation = 'toastOut 0.3s ease forwards';
+                setTimeout(() => t.remove(), 300);
+            }, 3200);
         }
     </script>
 @endpush
