@@ -43,13 +43,6 @@ Route::post('/inscription', [AuthController::class, 'inscription'])->name('inscr
 |--------------------------------------------------------------------------
 | Routes protégées — nécessitent une connexion
 |--------------------------------------------------------------------------
-|
-| Hiérarchie des middlewares :
-|   'auth'              → connecté (admin + gestionnaire + membre)
-|   'role:membre'       → connecté avec rôle membre, gestionnaire ou admin
-|   'role:gestionnaire' → connecté avec rôle gestionnaire ou admin
-|   'role:admin'        → connecté avec rôle admin uniquement
-|
 */
 
 Route::middleware('auth')->group(function () {
@@ -57,7 +50,7 @@ Route::middleware('auth')->group(function () {
     // ── Planning ───────────────────────────────────────────────────────────
     Route::prefix('planning')->name('planning.')->group(function () {
 
-        // Lecture et export : tous les utilisateurs connectés (membres inclus)
+        // Lecture et export : tous les utilisateurs connectés
         Route::get('/', [PlanningController::class, 'index'])->name('index');
         Route::get('/stats', [PlanningController::class, 'statistics'])->name('statistics');
         Route::get('/export', [PlanningController::class, 'showExportForm'])->name('export.form');
@@ -73,6 +66,7 @@ Route::middleware('auth')->group(function () {
 
         // ── Édition manuelle AJAX — gestionnaire + admin ──────────────────
         Route::middleware('role:gestionnaire')->group(function () {
+
             Route::get('/personnes-actives', [PlanningEditController::class, 'personnes'])
                 ->name('edit.personnes');
 
@@ -87,6 +81,10 @@ Route::middleware('auth')->group(function () {
             Route::delete('/creneau/{id}', [PlanningEditController::class, 'deleteCreneau'])
                 ->name('edit.delete-creneau')
                 ->where('id', '[0-9]+');
+
+            // ── NEW: create a créneau manually ────────────────────────────
+            Route::post('/creneau', [PlanningEditController::class, 'createCreneau'])
+                ->name('edit.create-creneau');
         });
     });
 
@@ -98,25 +96,14 @@ Route::middleware('auth')->group(function () {
 
     // ── Restrictions ───────────────────────────────────────────────────────
     Route::prefix('restrictions')->name('restrictions.')->group(function () {
-
-        // Lecture : tous les connectés
         Route::get('/', [RestrictionsController::class, 'index'])->name('index');
-
-        // Modification : gestionnaire + admin
-        // (le contrôleur gère aussi la modification personnelle du membre)
         Route::post('/update', [RestrictionsController::class, 'update'])->name('update');
     });
 
     // ── Absences ───────────────────────────────────────────────────────────
     Route::prefix('absences')->name('absences.')->group(function () {
-
-        // Lecture : tous les connectés
         Route::get('/', [AbsencesController::class, 'index'])->name('index');
-
-        // Saisie : tous les connectés (le contrôleur filtre selon le rôle)
         Route::post('/', [AbsencesController::class, 'store'])->name('store');
-
-        // Suppression : le contrôleur vérifie les permissions
         Route::delete('/{id}', [AbsencesController::class, 'destroy'])
             ->name('destroy')
             ->where('id', '[0-9]+');
@@ -124,11 +111,8 @@ Route::middleware('auth')->group(function () {
 
     // ── Événements ─────────────────────────────────────────────────────────
     Route::prefix('evenements')->name('evenements.')->group(function () {
-
-        // Lecture : tous les connectés (membres inclus)
         Route::get('/', [EvenementsController::class, 'index'])->name('index');
 
-        // Création, modification, suppression : gestionnaire + admin uniquement
         Route::middleware('role:gestionnaire')->group(function () {
             Route::get('/creer', [EvenementsController::class, 'create'])->name('create');
             Route::post('/', [EvenementsController::class, 'store'])->name('store');
@@ -150,8 +134,6 @@ Route::middleware('auth')->group(function () {
 
     // ── Administration — admin uniquement ─────────────────────────────────
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-
-        // Candidatures en attente
         Route::prefix('candidatures')->name('candidatures.')->group(function () {
             Route::get('/', [CandidaturesController::class, 'index'])->name('index');
             Route::post('/{id}/valider', [CandidaturesController::class, 'valider'])->name('valider')->where('id', '[0-9]+');

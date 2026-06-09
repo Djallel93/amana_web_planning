@@ -16,6 +16,11 @@
             padding: 10px 8px;
         }
 
+        /* Left border separator between Vendredi and Samedi groups */
+        .restrictions-table .jour-separator {
+            border-left: 2px solid var(--app-accent) !important;
+        }
+
         .restrictions-table th.sub-header {
             text-align: center;
             font-size: 10.5px;
@@ -53,30 +58,13 @@
             opacity: 0.45;
         }
 
-        .sub-entree {
-            color: #2563eb;
-        }
+        .sub-entree      { color: #2563eb; }
+        .sub-mektaba     { color: #059669; }
+        .sub-salle       { color: #d97706; }
+        .sub-amana_food  { color: #e11d48; }
 
-        .sub-mektaba {
-            color: #059669;
-        }
-
-        .sub-salle {
-            color: #d97706;
-        }
-
-        .sub-amana_food {
-            color: #e11d48;
-        }
-
-        .my-row {
-            background: var(--sky-bg) !important;
-        }
-
-        .my-row:hover {
-            background: #e0f2fe !important;
-        }
-
+        .my-row { background: var(--sky-bg) !important; }
+        .my-row:hover { background: #e0f2fe !important; }
         .my-row td:first-child::after {
             content: ' (moi)';
             font-size: 11px;
@@ -104,13 +92,8 @@
             gap: 14px;
         }
 
-        .hint-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+        .hint-item { display: flex; align-items: center; gap: 5px; }
 
-        /* Member personal section */
         .member-section {
             background: var(--sky-bg);
             border: 1.5px solid var(--sky-border);
@@ -152,9 +135,7 @@
             transition: var(--transition);
         }
 
-        .member-tache-card:hover {
-            border-color: var(--app-accent);
-        }
+        .member-tache-card:hover { border-color: var(--app-accent); }
 
         .member-tache-title {
             font-size: 13px;
@@ -166,11 +147,7 @@
             gap: 7px;
         }
 
-        .member-tache-checks {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        .member-tache-checks { display: flex; flex-direction: column; gap: 8px; }
 
         .member-check-item {
             display: flex;
@@ -201,25 +178,10 @@
             font-weight: 600;
         }
 
-        .chip-entree {
-            background: #eff6ff;
-            color: #2563eb;
-        }
-
-        .chip-mektaba {
-            background: #ecfdf5;
-            color: #059669;
-        }
-
-        .chip-salle {
-            background: #fffbeb;
-            color: #d97706;
-        }
-
-        .chip-amana_food {
-            background: #fff1f2;
-            color: #e11d48;
-        }
+        .chip-entree     { background: #eff6ff; color: #2563eb; }
+        .chip-mektaba    { background: #ecfdf5; color: #059669; }
+        .chip-salle      { background: #fffbeb; color: #d97706; }
+        .chip-amana_food { background: #fff1f2; color: #e11d48; }
     </style>
 @endpush
 
@@ -245,10 +207,9 @@
             </div>
         </div>
 
-        {{-- ── MEMBER VIEW ── --}}
     @elseif(!$user->isAdmin() && !$user->isGestionnaire())
 
-        {{-- Personal form --}}
+        {{-- Member: personal edit form --}}
         <div class="member-section">
             <div class="member-section-title">🔧 Modifier mes disponibilités</div>
             <div class="member-section-sub">
@@ -260,15 +221,6 @@
                 @csrf
                 <div class="member-grid">
                     @foreach($taches as $tache)
-                        @php
-                            $chipColors = [
-                                'entree' => ['bg' => '#eff6ff', 'color' => '#2563eb'],
-                                'mektaba' => ['bg' => '#ecfdf5', 'color' => '#059669'],
-                                'salle' => ['bg' => '#fffbeb', 'color' => '#d97706'],
-                                'amana_food' => ['bg' => '#fff1f2', 'color' => '#e11d48'],
-                            ];
-                            $chip = $chipColors[$tache->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink-muted)'];
-                        @endphp
                         <div class="member-tache-card">
                             <div class="member-tache-title">
                                 <span class="tache-chip chip-{{ $tache->code }}">{{ $tache->libelle }}</span>
@@ -277,7 +229,8 @@
                                 @foreach(['Vendredi', 'Samedi'] as $jour)
                                     @php $autorise = $restrictionsMap[$user->id][$tache->id][$jour] ?? true; @endphp
                                     <label class="member-check-item">
-                                        <input type="checkbox" name="checkboxes[{{ $user->id }}][{{ $tache->id }}][{{ $jour }}]"
+                                        <input type="checkbox"
+                                            name="checkboxes[{{ $user->id }}][{{ $tache->id }}][{{ $jour }}]"
                                             value="1" {{ $autorise ? 'checked' : '' }}>
                                         <span>{{ $jour }}</span>
                                     </label>
@@ -290,7 +243,7 @@
             </form>
         </div>
 
-        {{-- Read-only full grid --}}
+        {{-- Member: read-only full grid --}}
         <div class="card">
             <div class="card-header">
                 <div class="card-title">
@@ -299,8 +252,7 @@
                 </div>
             </div>
             <div class="card-body" style="padding:0;">
-                <div
-                    style="background:var(--sky-bg);border-bottom:1px solid var(--sky-border);padding:11px 20px;font-size:12.5px;color:#0c4a6e;display:flex;align-items:center;gap:8px;">
+                <div style="background:var(--sky-bg);border-bottom:1px solid var(--sky-border);padding:11px 20px;font-size:12.5px;color:#0c4a6e;display:flex;align-items:center;gap:8px;">
                     <span>ℹ️</span>
                     <span>Vue en lecture seule — vous pouvez consulter les disponibilités de toute l'équipe.</span>
                 </div>
@@ -308,17 +260,15 @@
                     <table class="restrictions-table" style="min-width:680px;">
                         <thead>
                             <tr>
-                                <th rowspan="2"
-                                    style="vertical-align:middle;min-width:160px;text-align:left;padding-left:18px;background:var(--surface-2);">
-                                    Personne</th>
+                                <th rowspan="2" style="vertical-align:middle;min-width:160px;text-align:left;padding-left:18px;background:var(--surface-2);">Personne</th>
                                 @foreach(['Vendredi', 'Samedi'] as $jour)
-                                    <th colspan="{{ $taches->count() }}" class="jour-header">{{ $jour }}</th>
+                                    <th colspan="{{ $taches->count() }}" class="jour-header{{ $loop->last ? ' jour-separator' : '' }}">{{ $jour }}</th>
                                 @endforeach
                             </tr>
                             <tr>
                                 @foreach(['Vendredi', 'Samedi'] as $jour)
                                     @foreach($taches as $tache)
-                                        <th class="sub-header sub-{{ $tache->code }}">{{ $tache->libelle }}</th>
+                                        <th class="sub-header sub-{{ $tache->code }}{{ ($jour === 'Samedi' && $loop->first) ? ' jour-separator' : '' }}">{{ $tache->libelle }}</th>
                                     @endforeach
                                 @endforeach
                             </tr>
@@ -328,8 +278,7 @@
                                 <tr class="{{ $personne->id === $user->id ? 'my-row' : '' }}">
                                     <td>
                                         <div style="display:flex;align-items:center;gap:9px;">
-                                            <div
-                                                style="width:26px;height:26px;background:var(--app-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;flex-shrink:0;">
+                                            <div style="width:26px;height:26px;background:var(--app-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;flex-shrink:0;">
                                                 {{ strtoupper(substr($personne->prenom, 0, 1)) }}
                                             </div>
                                             {{ $personne->prenom }} {{ $personne->nom }}
@@ -338,7 +287,7 @@
                                     @foreach(['Vendredi', 'Samedi'] as $jour)
                                         @foreach($taches as $tache)
                                             @php $autorise = $restrictionsMap[$personne->id][$tache->id][$jour] ?? true; @endphp
-                                            <td>
+                                            <td class="{{ ($jour === 'Samedi' && $loop->first) ? 'jour-separator' : '' }}">
                                                 <input type="checkbox" {{ $autorise ? 'checked' : '' }} disabled
                                                     title="{{ $personne->prenom }} — {{ $tache->libelle }} — {{ $jour }}">
                                             </td>
@@ -352,8 +301,8 @@
             </div>
         </div>
 
-        {{-- ── ADMIN / GESTIONNAIRE VIEW ── --}}
     @else
+        {{-- Admin / Gestionnaire: editable grid --}}
         <div class="card">
             <div class="card-body" style="padding:0;">
                 <form action="{{ route('restrictions.update') }}" method="POST" id="restrictionsForm">
@@ -362,17 +311,15 @@
                         <table class="restrictions-table" style="min-width:680px;">
                             <thead>
                                 <tr>
-                                    <th rowspan="2"
-                                        style="vertical-align:middle;min-width:160px;text-align:left;padding-left:18px;">
-                                        Personne</th>
+                                    <th rowspan="2" style="vertical-align:middle;min-width:160px;text-align:left;padding-left:18px;">Personne</th>
                                     @foreach(['Vendredi', 'Samedi'] as $jour)
-                                        <th colspan="{{ $taches->count() }}" class="jour-header">{{ $jour }}</th>
+                                        <th colspan="{{ $taches->count() }}" class="jour-header{{ $loop->last ? ' jour-separator' : '' }}">{{ $jour }}</th>
                                     @endforeach
                                 </tr>
                                 <tr>
                                     @foreach(['Vendredi', 'Samedi'] as $jour)
                                         @foreach($taches as $tache)
-                                            <th class="sub-header sub-{{ $tache->code }}">{{ $tache->libelle }}</th>
+                                            <th class="sub-header sub-{{ $tache->code }}{{ ($jour === 'Samedi' && $loop->first) ? ' jour-separator' : '' }}">{{ $tache->libelle }}</th>
                                         @endforeach
                                     @endforeach
                                 </tr>
@@ -382,8 +329,7 @@
                                     <tr class="{{ $personne->id === $user->id ? 'my-row' : '' }}">
                                         <td>
                                             <div style="display:flex;align-items:center;gap:9px;">
-                                                <div
-                                                    style="width:26px;height:26px;background:var(--app-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;flex-shrink:0;">
+                                                <div style="width:26px;height:26px;background:var(--app-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;flex-shrink:0;">
                                                     {{ strtoupper(substr($personne->prenom, 0, 1)) }}
                                                 </div>
                                                 {{ $personne->prenom }} {{ $personne->nom }}
@@ -392,9 +338,13 @@
                                         @foreach(['Vendredi', 'Samedi'] as $jour)
                                             @foreach($taches as $tache)
                                                 @php $autorise = $restrictionsMap[$personne->id][$tache->id][$jour] ?? true; @endphp
-                                                <td> <input type="checkbox"
-                                                        name="checkboxes[{{ $personne->id }}][{{ $tache->id }}][{{ $jour }}]" value="1"
-                                                        title="{{ $personne->prenom }} — {{ $tache->libelle }} — {{ $jour }}" {{ $autorise ? 'checked' : '' }}> </td>
+                                                <td class="{{ ($jour === 'Samedi' && $loop->first) ? 'jour-separator' : '' }}">
+                                                    <input type="checkbox"
+                                                        name="checkboxes[{{ $personne->id }}][{{ $tache->id }}][{{ $jour }}]"
+                                                        value="1"
+                                                        title="{{ $personne->prenom }} — {{ $tache->libelle }} — {{ $jour }}"
+                                                        {{ $autorise ? 'checked' : '' }}>
+                                                </td>
                                             @endforeach
                                         @endforeach
                                     </tr>
@@ -410,13 +360,11 @@
                             <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAll(false)">Tout décocher</button>
                             <div class="hint-text">
                                 <div class="hint-item">
-                                    <input type="checkbox" checked disabled
-                                        style="width:13px;height:13px;accent-color:var(--app-accent);-webkit-appearance:auto;appearance:auto;">
+                                    <input type="checkbox" checked disabled style="width:13px;height:13px;accent-color:var(--app-accent);-webkit-appearance:auto;appearance:auto;">
                                     <span>Disponible</span>
                                 </div>
                                 <div class="hint-item">
-                                    <input type="checkbox" disabled
-                                        style="width:13px;height:13px;-webkit-appearance:auto;appearance:auto;">
+                                    <input type="checkbox" disabled style="width:13px;height:13px;-webkit-appearance:auto;appearance:auto;">
                                     <span>Indisponible</span>
                                 </div>
                             </div>

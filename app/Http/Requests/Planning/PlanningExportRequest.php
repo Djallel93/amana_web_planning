@@ -10,7 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
 /** Validation du formulaire d'export PDF du planning. */
 class PlanningExportRequest extends FormRequest
 {
-    public function authorize(): boolF
+    public function authorize(): bool
     {
         return auth()->check();
     }
@@ -19,15 +19,15 @@ class PlanningExportRequest extends FormRequest
     {
         return [
             'date_debut' => ['required', 'date'],
-            'date_fin'   => ['required', 'date', 'after_or_equal:date_debut'],
+            'date_fin' => ['required', 'date', 'after_or_equal:date_debut'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'date_debut.required'     => 'La date de début est obligatoire.',
-            'date_fin.required'       => 'La date de fin est obligatoire.',
+            'date_debut.required' => 'La date de début est obligatoire.',
+            'date_fin.required' => 'La date de fin est obligatoire.',
             'date_fin.after_or_equal' => 'La date de fin doit être après ou égale à la date de début.',
         ];
     }

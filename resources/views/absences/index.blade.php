@@ -51,13 +51,14 @@
                                             <td>
                                                 <div style="display:flex;align-items:center;gap:10px;">
                                                     <div style="
-                                                                                width:30px;height:30px;
-                                                                                background:{{ $isMine ? 'var(--app-accent)' : '#9ca3af' }};
-                                                                                border-radius:50%;
-                                                                                display:flex;align-items:center;justify-content:center;
-                                                                                color:white;font-size:11px;font-weight:700;flex-shrink:0;
-                                                                            ">
-                                                        {{ strtoupper(substr($absence->personne->prenom ?? '?', 0, 1)) }}</div>
+                                                                                    width:30px;height:30px;
+                                                                                    background:{{ $isMine ? 'var(--app-accent)' : '#9ca3af' }};
+                                                                                    border-radius:50%;
+                                                                                    display:flex;align-items:center;justify-content:center;
+                                                                                    color:white;font-size:11px;font-weight:700;flex-shrink:0;
+                                                                                ">
+                                                        {{ strtoupper(substr($absence->personne->prenom ?? '?', 0, 1)) }}
+                                                    </div>
                                                     <div>
                                                         <div class="td-primary" style="{{ $isMine ? 'color:var(--app-accent);' : '' }}">
                                                             {{ $absence->personne
@@ -136,6 +137,7 @@
                 <form action="{{ route('absences.store') }}" method="POST">
                     @csrf
 
+                    {{-- Personne selector --}}
                     <div class="form-group" style="margin-bottom:14px;">
                         @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                             <label for="id_personne">Personne <span class="req">*</span></label>
@@ -157,17 +159,17 @@
                         @error('id_personne')<span class="form-error">{{ $message }}</span>@enderror
                     </div>
 
-                    <div class="form-grid" style="margin-bottom:14px;">
-                        <div class="form-group">
-                            <label for="date_debut">Début <span class="req">*</span></label>
-                            <input type="date" id="date_debut" name="date_debut" value="{{ old('date_debut') }}" required>
-                            @error('date_debut')<span class="form-error">{{ $message }}</span>@enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="date_fin">Fin <span class="req">*</span></label>
-                            <input type="date" id="date_fin" name="date_fin" value="{{ old('date_fin') }}" required>
-                            @error('date_fin')<span class="form-error">{{ $message }}</span>@enderror
-                        </div>
+                    {{-- Dates: single-column layout to avoid overflow in narrow sidebar --}}
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="date_debut">Début <span class="req">*</span></label>
+                        <input type="date" id="date_debut" name="date_debut" value="{{ old('date_debut') }}" required>
+                        @error('date_debut')<span class="form-error">{{ $message }}</span>@enderror
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label for="date_fin">Fin <span class="req">*</span></label>
+                        <input type="date" id="date_fin" name="date_fin" value="{{ old('date_fin') }}" required>
+                        @error('date_fin')<span class="form-error">{{ $message }}</span>@enderror
                     </div>
 
                     <div class="form-group" style="margin-bottom:20px;">

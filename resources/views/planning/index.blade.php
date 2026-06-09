@@ -141,8 +141,8 @@
         }
 
         .btn-delete-week {
-            background: rgba(225, 29, 72, 0.12);
-            border: 1px solid rgba(225, 29, 72, 0.25);
+            background: rgba(225, 29, 72, 0.3);
+            border: 1px solid rgba(225, 29, 72, 0.6);
             color: rgba(255, 255, 255, 0.65);
             padding: 5px 12px;
             border-radius: var(--radius-sm);
@@ -160,6 +160,29 @@
             background: rgba(225, 29, 72, 0.28);
             color: white;
             border-color: rgba(225, 29, 72, 0.5);
+        }
+
+        /* ── Add créneau button ── */
+        .btn-add-creneau {
+            background: rgba(14, 165, 233, 0.3);
+            border: 1px solid rgba(14, 165, 233, 0.6);
+            color: rgba(255, 255, 255, 0.75);
+            padding: 5px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: var(--font-body);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-add-creneau:hover {
+            background: rgba(14, 165, 233, 0.25);
+            color: white;
+            border-color: rgba(14, 165, 233, 0.55);
         }
 
         .week-body {
@@ -291,7 +314,7 @@
             color: var(--rose);
         }
 
-        /* ── Modal ── */
+        /* ── Assignment modal ── */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -430,6 +453,42 @@
             box-shadow: var(--shadow-glow);
         }
 
+        /* ── Add créneau modal ── */
+        .add-creneau-modal {
+            max-width: 380px;
+        }
+
+        .add-creneau-modal .date-input-wrap {
+            margin-bottom: 18px;
+        }
+
+        .add-creneau-modal input[type="date"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--ink-faint);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--surface);
+            outline: none;
+            transition: var(--transition);
+            -webkit-appearance: auto;
+            appearance: auto;
+        }
+
+        .add-creneau-modal input[type="date"]:focus {
+            border-color: var(--app-accent);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .add-creneau-hint {
+            font-size: 12px;
+            color: var(--ink-muted);
+            margin-top: 6px;
+            line-height: 1.55;
+        }
+
         /* ── Toasts ── */
         .toast-container {
             position: fixed;
@@ -566,6 +625,14 @@
                     $weekYear = $first->date->year;
                     $weekMonth = $first->date->month;
                     $weekIds = $creneauxSemaine->pluck('id')->join(',');
+
+                    // Compute ISO week bounds (Monday → Sunday) for the date picker
+                    // Carbon 2 compatible: isoWeekday() returns 1=Mon … 7=Sun
+                    $weekMonday = $first->date->copy()->subDays($first->date->isoWeekday() - 1)->startOfDay();
+                    $weekSunday = $weekMonday->copy()->addDays(6)->endOfDay();
+
+                    // Dates already covered in this week (to disable in picker)
+                    $existingDates = $creneauxSemaine->pluck('date')->map(fn($d) => $d->toDateString())->toJson();
                 @endphp
                 <div class="week-block" data-year="{{ $weekYear }}" data-month="{{ $weekMonth }}">
                     <div class="week-header">
@@ -577,6 +644,14 @@
                         <div class="week-actions">
                             <span class="week-dates">{{ $creneauxSemaine->count() }} créneaux</span>
                             @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
+                                {{-- Add créneau button --}}
+                                <button class="btn-add-creneau" onclick="openAddCreneauModal(
+                                                                                                                                        '{{ $weekMonday->toDateString() }}',
+                                                                                                                                        '{{ $weekSunday->toDateString() }}',
+                                                                                                                                        {{ $existingDates }}
+                                                                                                                                    )">
+                                    ➕ Créneau
+                                </button>
                                 <button class="btn-delete-week" onclick="deleteWeek([{{ $weekIds }}], this)">
                                     🗑️ Supprimer la semaine
                                 </button>
@@ -622,7 +697,7 @@
                                                 </div>
                                             </td>
 
-                                            {{-- 5 tâches : entree, mektaba, salle, amana_food, cours --}}
+                                            {{-- 5 tâches --}}
                                             @foreach(['entree', 'mektaba', 'salle', 'amana_food', 'cours'] as $code)
                                                 @php
                                                     $ct = $tachesMap->get($code);
@@ -655,12 +730,10 @@
                                                 </td>
                                             @endforeach
 
-                                            {{-- Événements organisationnels --}}
+                                            {{-- Événements --}}
                                             <td style="color:var(--ink-faint);">
                                                 @if($evtStr)
-                                                    <span class="event-tag {{ $isBlocked ? 'blocked' : '' }}">
-                                                        {{ $evtStr }}
-                                                    </span>
+                                                    <span class="event-tag {{ $isBlocked ? 'blocked' : '' }}">{{ $evtStr }}</span>
                                                 @else
                                                     <span style="font-size:12px;">—</span>
                                                 @endif
@@ -684,7 +757,7 @@
         </div>
     @endif
 
-    {{-- Edit Modal (admin/gestionnaire only) --}}
+    {{-- ── Edit / Assign modal (admin/gestionnaire only) ── --}}
     @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
         <div class="modal-backdrop" id="editModalBackdrop" onclick="closeOnBackdrop(event)">
             <div class="modal" id="editModal">
@@ -714,9 +787,43 @@
                     <div class="modal-section-title" style="color:var(--rose);">⚠️ Zone dangereuse</div>
                     <div style="display:flex;gap:9px;flex-wrap:wrap;">
                         <button class="btn btn-danger btn-sm" onclick="unassignTask()">✕ Désassigner</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteCreneauFromModal()">
-                            🗑️ Supprimer le créneau
+                        <button class="btn btn-danger btn-sm" onclick="deleteCreneauFromModal()">🗑️ Supprimer le
+                            créneau</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ── Add créneau modal ── --}}
+        <div class="modal-backdrop" id="addCreneauBackdrop" onclick="closeAddCreneauOnBackdrop(event)">
+            <div class="modal add-creneau-modal" id="addCreneauModal">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <div class="modal-title-icon" style="background:var(--emerald-bg);">➕</div>
+                        <span>Ajouter un créneau</span>
+                    </div>
+                    <button class="modal-close" onclick="closeAddCreneauModal()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="modal-info" id="addCreneauWeekInfo">
+                        <strong>Semaine en cours</strong>
+                        <span>Choisissez une date dans cette semaine</span>
+                    </div>
+
+                    <div class="modal-section-title">📅 Date du créneau</div>
+                    <div class="date-input-wrap">
+                        <input type="date" id="addCreneauDate" />
+                        <div class="add-creneau-hint" id="addCreneauHint">
+                            Les dates déjà utilisées dans cette semaine sont désactivées.
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:9px;">
+                        <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="submitAddCreneau()"
+                            id="addCreneauBtn">
+                            ➕ Créer le créneau
                         </button>
+                        <button class="btn btn-secondary" onclick="closeAddCreneauModal()">Annuler</button>
                     </div>
                 </div>
             </div>
@@ -740,7 +847,14 @@
         const activeYears = new Set();
         const activeMonths = new Set();
 
-        /* ── Filters ── */
+        // State for add-créneau modal
+        let addCreneauMin = '';
+        let addCreneauMax = '';
+        let addCreneauExisting = [];
+
+        /* ══════════════════════════════════════════
+           FILTERS
+        ══════════════════════════════════════════ */
         function toggleFilter(chip) {
             const type = chip.dataset.type;
             const value = parseInt(chip.dataset.value);
@@ -749,11 +863,13 @@
             else { set.add(value); chip.classList.add('active'); }
             applyFilters();
         }
+
         function clearFilters() {
             activeYears.clear(); activeMonths.clear();
             document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
             applyFilters();
         }
+
         function applyFilters() {
             let visible = 0;
             document.querySelectorAll('.week-block').forEach(block => {
@@ -768,7 +884,9 @@
                 : '';
         }
 
-        /* ── Load personnes ── */
+        /* ══════════════════════════════════════════
+           LOAD PERSONNES
+        ══════════════════════════════════════════ */
         async function loadPersonnes() {
             if (personnesCache) return personnesCache;
             const res = await fetch(ROUTES.personnes, {
@@ -778,7 +896,9 @@
             return personnesCache;
         }
 
-        /* ── Modal ── */
+        /* ══════════════════════════════════════════
+           EDIT / ASSIGN MODAL
+        ══════════════════════════════════════════ */
         async function openEditModal(td) {
             currentCell = td;
             const code = td.dataset.tacheCode;
@@ -808,6 +928,7 @@
                 select.appendChild(opt);
             });
 
+            // Pre-select current assignee if any
             const chip = document.getElementById(`chip-${td.dataset.creneauId}-${code}`);
             if (chip && !chip.classList.contains('tache-vide')) {
                 const name = chip.textContent.trim();
@@ -825,12 +946,16 @@
             document.body.style.overflow = '';
             currentCell = null;
         }
+
         function closeOnBackdrop(e) {
             if (e.target === document.getElementById('editModalBackdrop')) closeModal();
         }
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-        /* ── Save ── */
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') { closeModal(); closeAddCreneauModal(); }
+        });
+
+        /* ── Save assignation ── */
         async function saveAssignation() {
             if (!currentCell) return;
             const creneauId = currentCell.dataset.creneauId;
@@ -851,6 +976,7 @@
             finally { btn.disabled = false; btn.textContent = 'Enregistrer'; }
         }
 
+        /* ── Unassign ── */
         async function unassignTask() {
             if (!currentCell) return;
             if (!confirm('Désassigner cette tâche ?')) return;
@@ -866,10 +992,12 @@
             } catch { showToast('Erreur réseau', 'error'); }
         }
 
+        /* ── Delete créneau ── */
         async function deleteCreneau(id, el) {
             if (!confirm('Supprimer ce créneau et toutes ses tâches ?')) return;
             await doDeleteCreneau(id, el);
         }
+
         async function deleteCreneauFromModal() {
             if (!currentCell) return;
             const id = parseInt(currentCell.dataset.creneauId);
@@ -877,6 +1005,7 @@
             closeModal();
             await doDeleteCreneau(id, null);
         }
+
         async function doDeleteCreneau(id, el) {
             if (el) { el.disabled = true; el.textContent = '…'; }
             try {
@@ -900,6 +1029,7 @@
             }
         }
 
+        /* ── Delete week ── */
         async function deleteWeek(ids, el) {
             if (!confirm(`Supprimer les ${ids.length} créneaux de cette semaine ?`)) return;
             el.disabled = true; el.innerHTML = '⏳ Suppression…';
@@ -918,6 +1048,7 @@
             showToast(`Semaine supprimée (${n} créneaux)`, 'success');
         }
 
+        /* ── Update cell DOM ── */
         function updateCell(td, personne) {
             const code = td.dataset.tacheCode;
             const chip = document.getElementById(`chip-${td.dataset.creneauId}-${code}`);
@@ -936,6 +1067,119 @@
             });
         }
 
+        /* ══════════════════════════════════════════
+           ADD CRÉNEAU MODAL
+        ══════════════════════════════════════════ */
+
+        /**
+         * Opens the add-créneau modal for a given week.
+         *
+         * @param {string}   weekMin       - ISO date of Monday of the week
+         * @param {string}   weekMax       - ISO date of Sunday of the week
+         * @param {string[]} existingDates - Array of ISO dates already having a créneau this week
+         */
+        function openAddCreneauModal(weekMin, weekMax, existingDates) {
+            addCreneauMin = weekMin;
+            addCreneauMax = weekMax;
+            addCreneauExisting = existingDates || [];
+
+            // Update info text
+            const infoEl = document.getElementById('addCreneauWeekInfo');
+            if (infoEl) {
+                const fmtMin = new Date(weekMin + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+                const fmtMax = new Date(weekMax + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+                infoEl.innerHTML = `<strong>Semaine du ${fmtMin} au ${fmtMax}</strong>`;
+            }
+
+            // Configure date input
+            const dateInput = document.getElementById('addCreneauDate');
+            dateInput.min = weekMin;
+            dateInput.max = weekMax;
+            dateInput.value = '';
+
+            // Build hint listing disabled dates
+            const hint = document.getElementById('addCreneauHint');
+            if (addCreneauExisting.length > 0) {
+                const labels = addCreneauExisting.map(d => {
+                    const dt = new Date(d + 'T00:00:00');
+                    return dt.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+                });
+                hint.textContent = `Déjà créé : ${labels.join(', ')}.`;
+            } else {
+                hint.textContent = 'Choisissez n\'importe quel jour de cette semaine.';
+            }
+
+            document.getElementById('addCreneauBackdrop').classList.add('open');
+            document.body.style.overflow = 'hidden';
+
+            // Focus the date input after animation
+            setTimeout(() => dateInput.focus(), 220);
+        }
+
+        function closeAddCreneauModal() {
+            document.getElementById('addCreneauBackdrop')?.classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function closeAddCreneauOnBackdrop(e) {
+            if (e.target === document.getElementById('addCreneauBackdrop')) closeAddCreneauModal();
+        }
+
+        /**
+         * Validates the chosen date client-side (must not be in existingDates),
+         * then POSTs to create the créneau and reloads on success.
+         */
+        async function submitAddCreneau() {
+            const dateInput = document.getElementById('addCreneauDate');
+            const date = dateInput.value;
+
+            if (!date) {
+                dateInput.focus();
+                showToast('Veuillez choisir une date.', 'error');
+                return;
+            }
+
+            if (addCreneauExisting.includes(date)) {
+                showToast('Un créneau existe déjà pour cette date.', 'error');
+                dateInput.focus();
+                return;
+            }
+
+            const btn = document.getElementById('addCreneauBtn');
+            btn.disabled = true; btn.textContent = '⏳ Création…';
+
+            try {
+                const res = await fetch(`${ROUTES.creneau}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': CSRF,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ date }),
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    showToast(data.message, 'success');
+                    closeAddCreneauModal();
+                    // Reload to show the new row in the correct week block
+                    setTimeout(() => window.location.reload(), 700);
+                } else {
+                    const msg = data.errors?.date?.[0] || data.message || 'Erreur lors de la création.';
+                    showToast(msg, 'error');
+                    btn.disabled = false; btn.textContent = '➕ Créer le créneau';
+                }
+            } catch {
+                showToast('Erreur réseau', 'error');
+                btn.disabled = false; btn.textContent = '➕ Créer le créneau';
+            }
+        }
+
+        /* ══════════════════════════════════════════
+           TOASTS
+        ══════════════════════════════════════════ */
         function showToast(msg, type = 'success') {
             const c = document.getElementById('toastContainer');
             const t = document.createElement('div');
