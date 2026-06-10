@@ -29,8 +29,7 @@
                         <th>Début</th>
                         <th>Fin</th>
                         <th>Durée</th>
-                        <th>Planning</th>
-                        <th>Bénévoles</th>
+                        <th>Tâches bloquées</th>
                         @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                             <th>Actions</th>
                         @endif
@@ -42,17 +41,26 @@
                             $jours = $evt->date_debut->diffInDays($evt->date_fin) + 1;
                             $actif = now()->between($evt->date_debut, $evt->date_fin);
                             $futur = now()->lt($evt->date_debut);
+                            $nbBloquees = $evt->tachesBloquees->count();
+
+                            $tacheColors = [
+                                'entree' => ['bg' => '#eff6ff', 'color' => '#2563eb'],
+                                'mektaba' => ['bg' => '#ecfdf5', 'color' => '#059669'],
+                                'salle' => ['bg' => '#fffbeb', 'color' => '#d97706'],
+                                'amana_food' => ['bg' => '#fff1f2', 'color' => '#e11d48'],
+                                'cours' => ['bg' => '#f5f3ff', 'color' => '#7c3aed'],
+                            ];
                         @endphp
                         <tr>
                             <td>
                                 <div style="display:flex;align-items:center;gap:10px;">
                                     <div style="
-                                                    width:34px;height:34px;
-                                                    background:{{ $evt->bloque_planning ? 'var(--rose-bg)' : 'var(--amber-bg)' }};
-                                                    border-radius:var(--radius-sm);
-                                                    display:flex;align-items:center;justify-content:center;
-                                                    font-size:16px;flex-shrink:0;
-                                                ">{{ $evt->bloque_planning ? '⛔' : '🎉' }}</div>
+                                                        width:34px;height:34px;
+                                                        background:{{ $nbBloquees > 0 ? 'var(--rose-bg)' : 'var(--amber-bg)' }};
+                                                        border-radius:var(--radius-sm);
+                                                        display:flex;align-items:center;justify-content:center;
+                                                        font-size:16px;flex-shrink:0;
+                                                    ">{{ $nbBloquees > 0 ? '🚫' : '📢' }}</div>
                                     <div>
                                         <div class="td-primary">{{ $evt->nom }}</div>
                                         @if($actif)
@@ -73,17 +81,20 @@
                             </td>
                             <td><span class="badge badge-muted">{{ $jours }}j</span></td>
                             <td>
-                                @if($evt->bloque_planning)
-                                    <span class="badge badge-danger badge-dot">Bloqué</span>
+                                @if($nbBloquees === 0)
+                                    <span class="badge badge-info" style="font-size:11px;">📢 Informatif</span>
                                 @else
-                                    <span class="badge badge-muted">Normal</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($evt->necessite_benevoles)
-                                    <span class="badge badge-success badge-dot">Oui</span>
-                                @else
-                                    <span class="badge badge-muted">Non</span>
+                                    <div style="display:flex;flex-wrap:wrap;gap:4px;">
+                                        @foreach($evt->tachesBloquees as $tache)
+                                            @php $s = $tacheColors[$tache->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink)']; @endphp
+                                            <span style="
+                                                                                display:inline-flex;align-items:center;
+                                                                                padding:2px 8px;border-radius:20px;
+                                                                                font-size:11px;font-weight:600;
+                                                                                background:{{ $s['bg'] }};color:{{ $s['color'] }};
+                                                                            ">{{ $tache->libelle }}</span>
+                                        @endforeach
+                                    </div>
                                 @endif
                             </td>
                             @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
@@ -103,13 +114,13 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ (auth()->user()->isAdmin() || auth()->user()->isGestionnaire()) ? 7 : 6 }}">
+                            <td colspan="{{ (auth()->user()->isAdmin() || auth()->user()->isGestionnaire()) ? 6 : 5 }}">
                                 <div class="empty-state" style="padding:40px;">
                                     <div class="empty-icon">🎉</div>
                                     <div class="empty-title">Aucun événement</div>
                                     <div class="empty-desc">
                                         @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
-                                            Créez des événements pour bloquer le planning ou mobiliser des bénévoles.
+                                            Créez des événements pour bloquer certaines tâches du planning ou informer l'équipe.
                                         @else
                                             Aucun événement n'a encore été créé.
                                         @endif

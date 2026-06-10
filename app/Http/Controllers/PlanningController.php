@@ -19,7 +19,6 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Contrôleur du module Planning.
- * Gère l'affichage, la génération, le rollback, l'export PDF et les statistiques.
  */
 class PlanningController extends Controller
 {
@@ -30,31 +29,95 @@ class PlanningController extends Controller
     }
 
     /**
-     * Affiche le planning trié du plus récent au plus ancien.
+     * Affiche le planning.
+     *
+     * Par défaut : 1 an glissant (aujourd'hui - 365 jours → futur).
+     * Avec ?historique=1 : tout l'historique.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $creneaux = Creneau::with(['taches.tache', 'taches.personne', 'evenements'])
-            ->orderBy('date', 'desc')   // ← plus récent en premier
-            ->get()
+        $historique = $request->boolean('historique');
+
+        $query = Creneau::with(['taches.tache', 'taches.personne', 'evenements.tachesBloquees'])
+            ->orderBy('date', 'desc');
+
+        if (!$historique) {
+            $dateMin = now()->subYear()->toDateString();
+            $query->where('date', '>=', $dateMin);
+        }
+
+        $creneaux = $query->get()
             ->groupBy(fn($c) => $c->date->isoWeek() . '-' . $c->date->year);
 
-        return view('planning.index', compact('creneaux'));
+        // Charger tous les événements de la période pour les bannières informatives
+        // (événements sans tâches bloquées, ou sur des jours non-vendredi/samedi)
+        $evenementsQuery = \App\Models\Evenement::with('tachesBloquees')
+            ->orderBy('date_debut');
+
+        if (!$historique) {
+            $evenementsQuery->where('date_fin', '>=', now()->subYear()->toDateString());
+        }
+
+        $tousEvenements = $evenementsQuery->get();
+
+        // Construire les bannières informatives : événements actifs par semaine ISO
+        // Un événement informatif (aucune tâche bloquée) ou couvrant un jour hors Ven/Sam
+        // est affiché comme bannière dans le bloc semaine
+        $bannièresParSemaine = $this->buildBannièresInformatives($tousEvenements, $creneaux);
+
+        return view('planning.index', compact('creneaux', 'historique', 'bannièresParSemaine'));
     }
 
     /**
-     * Affiche le formulaire de génération.
-     * Si une session de rollback est active, elle est passée à la vue.
+     * Construit les bannières informatives à afficher dans les blocs semaine.
+     *
+     * Une bannière est affichée pour un événement si :
+     * - Il n'a aucune tâche bloquée (purement informatif), OU
+     * - Il couvre au moins un jour dans la semaine (pour info visuelle)
+     *
+     * Retourne un tableau indexé par clé semaine ('isoWeek-year') => [evenements]
      */
+    private function buildBannièresInformatives(
+        \Illuminate\Support\Collection $tousEvenements,
+        \Illuminate\Support\Collection $creneauxParSemaine
+    ): array {
+        $bannières = [];
+
+        // Récupérer toutes les clés semaine présentes dans le planning
+        foreach ($creneauxParSemaine as $semaineCle => $creneaux) {
+            $first = $creneaux->first();
+            $weekStart = $first->date->copy()->subDays($first->date->isoWeekday() - 1)->startOfDay();
+            $weekEnd = $weekStart->copy()->addDays(6)->endOfDay();
+
+            foreach ($tousEvenements as $evenement) {
+                // L'événement se chevauche-t-il avec cette semaine ?
+                if ($evenement->date_debut->lte($weekEnd) && $evenement->date_fin->gte($weekStart)) {
+                    // Calculer les dates exactes de l'événement dans cette semaine
+                    $debutDansSemaine = $evenement->date_debut->lt($weekStart)
+                        ? $weekStart->copy()
+                        : $evenement->date_debut->copy();
+                    $finDansSemaine = $evenement->date_fin->gt($weekEnd)
+                        ? $weekEnd->copy()
+                        : $evenement->date_fin->copy();
+
+                    $bannières[$semaineCle][] = [
+                        'evenement' => $evenement,
+                        'debut_semaine' => $debutDansSemaine,
+                        'fin_semaine' => $finDansSemaine,
+                        'informatif' => $evenement->tachesBloquees->isEmpty(),
+                    ];
+                }
+            }
+        }
+
+        return $bannières;
+    }
+
     public function showGenerateForm(): View
     {
         return view('planning.generate');
     }
 
-    /**
-     * Lance la génération du planning.
-     * Envoie ensuite le webhook Make.com de manière asynchrone (via queue).
-     */
     public function generate(PlanningGenerateRequest $request): RedirectResponse
     {
         try {
@@ -63,13 +126,11 @@ class PlanningController extends Controller
 
             $resultat = $this->scheduler->generateSchedule($dateDebut, $semaines);
 
-            // Stocker les créneaux générés pour le rollback
             $lastGenerated = $this->buildRollbackData($dateDebut, $semaines);
             session(['last_generated_creneaux' => $lastGenerated]);
 
             audit('generate', 'planning', null, null, $resultat);
 
-            // ── Envoi du webhook Make.com (asynchrone via queue) ─────────────
             if (env('MAKE_WEBHOOK_URL')) {
                 $payload = app(\App\Services\WebhookPayloadBuilder::class)
                     ->build($dateDebut, $semaines);
@@ -89,13 +150,8 @@ class PlanningController extends Controller
         }
     }
 
-    /**
-     * Construit les données de rollback après une génération.
-     * Récupère les créneaux créés/modifiés à partir de la date de début.
-     */
     private function buildRollbackData(string $dateDebut, int $semaines): array
     {
-        // Trouver le premier vendredi
         $date = Carbon::parse($dateDebut)->startOfDay();
         while ($date->dayOfWeek !== 5) {
             $date->addDay();
@@ -117,9 +173,6 @@ class PlanningController extends Controller
         })->toArray();
     }
 
-    /**
-     * Rollback : annulation totale ou partielle.
-     */
     public function rollback(Request $request): RedirectResponse
     {
         $type = $request->input('rollback_type', 'total');
@@ -142,7 +195,6 @@ class PlanningController extends Controller
                 ->with('success', "Annulation totale : {$nb} créneaux supprimés.");
         }
 
-        // Partial rollback
         $selectedWeeks = $request->input('selected_weeks', []);
         $creneauIdsByWeek = $request->input('creneau_ids', []);
 
@@ -159,13 +211,11 @@ class PlanningController extends Controller
             return redirect()->back()->with('error', 'Aucun créneau sélectionné pour l\'annulation.');
         }
 
-        // Only delete if they're in the generated set
         $allowedIds = array_column($generated, 'id');
         $safeDelete = array_intersect($toDelete, $allowedIds);
         $nb = count($safeDelete);
         Creneau::whereIn('id', $safeDelete)->delete();
 
-        // Remove deleted from session
         $remaining = array_filter($generated, fn($item) => !in_array($item['id'], $safeDelete));
         if (empty($remaining)) {
             session()->forget('last_generated_creneaux');
@@ -179,9 +229,6 @@ class PlanningController extends Controller
             ->with('success', "Annulation partielle : {$nb} créneau(x) supprimé(s).");
     }
 
-    /**
-     * Dismiss the rollback session without deleting anything.
-     */
     public function rollbackDismiss(): RedirectResponse
     {
         session()->forget('last_generated_creneaux');
@@ -189,17 +236,11 @@ class PlanningController extends Controller
             ->with('success', 'Planning conservé. Session de rollback fermée.');
     }
 
-    /**
-     * Affiche le formulaire d'export PDF.
-     */
     public function showExportForm(): View
     {
         return view('planning.export');
     }
 
-    /**
-     * Génère et télécharge le PDF du planning pour une plage de dates.
-     */
     public function exportPdf(PlanningExportRequest $request): mixed
     {
         $dateDebut = $request->validated('date_debut');
@@ -211,7 +252,6 @@ class PlanningController extends Controller
             ->get()
             ->groupBy(fn($c) => $c->date->isoWeek() . '-' . $c->date->year);
 
-        // Use DomPDF via Laravel facade
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('planning.pdf', compact('creneaux', 'dateDebut', 'dateFin'))
             ->setPaper('a4', 'landscape')
             ->setOptions([
@@ -225,9 +265,6 @@ class PlanningController extends Controller
         return $pdf->download($filename);
     }
 
-    /**
-     * Affiche les statistiques du planning.
-     */
     public function statistics(): View
     {
         $stats = $this->stats->computeAll();

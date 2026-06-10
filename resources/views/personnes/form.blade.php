@@ -19,7 +19,8 @@
     </div>
 
     <div style="max-width:760px;">
-        <form action="{{ $edit ? route('personnes.update', $personne->id) : route('personnes.store') }}" method="POST">
+        <form action="{{ $edit ? route('personnes.update', $personne->id) : route('personnes.store') }}" method="POST"
+            id="personneForm">
             @csrf
             @if($edit) @method('PUT') @endif
 
@@ -53,13 +54,18 @@
                             @error('email')<span class="form-error">{{ $message }}</span>@enderror
                         </div>
                         <div class="form-group">
-                            <label for="telephone">Téléphone
+                            <label for="telephone">
+                                Téléphone
                                 <span style="color:var(--ink-muted);font-weight:400;">(optionnel)</span>
                             </label>
                             <input type="tel" id="telephone" name="telephone"
                                 value="{{ old('telephone', $personne->telephone ?? '') }}" maxlength="20"
-                                placeholder="+33 6 00 00 00 00">
-                            <span class="form-hint">Formats acceptés : +33 6 00 00 00 00, 06 00 00 00 00</span>
+                                placeholder="06 12 34 56 78" pattern="(\+33|0033|0)[1-9](\s?[0-9]{2}){4}"
+                                title="Numéro français : 06 12 34 56 78 ou +33 6 12 34 56 78">
+                            <span class="form-hint">
+                                Formats acceptés : <code>06 12 34 56 78</code> &nbsp;·&nbsp;
+                                <code>0612345678</code> &nbsp;·&nbsp; <code>+33 6 12 34 56 78</code>
+                            </span>
                             @error('telephone')<span class="form-error">{{ $message }}</span>@enderror
                         </div>
                     </div>
@@ -94,8 +100,11 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <span class="form-hint">Admin : accès complet · Gestionnaire : planning + événements · Membre :
-                                lecture + ses données</span>
+                            <span class="form-hint">
+                                Admin : accès complet &nbsp;·&nbsp;
+                                Gestionnaire : planning + événements &nbsp;·&nbsp;
+                                Membre : lecture + ses données
+                            </span>
                             @error('role')<span class="form-error">{{ $message }}</span>@enderror
                         </div>
                         <div class="form-group">
@@ -103,7 +112,12 @@
                             <select id="statut" name="statut" required>
                                 @foreach($statuts as $s)
                                     @php
-                                        $icons = ['Validé' => '✅', 'En attente' => '⏳', 'Suspendu' => '⏸️', 'Archivé' => '📦'];
+                                        $icons = [
+                                            'Validé' => '✅',
+                                            'En attente' => '⏳',
+                                            'Suspendu' => '⏸️',
+                                            'Archivé' => '📦',
+                                        ];
                                     @endphp
                                     <option value="{{ $s }}" {{ old('statut', $personne->statut ?? 'En attente') === $s ? 'selected' : '' }}>
                                         {{ ($icons[$s] ?? '') . ' ' . $s }}
@@ -125,41 +139,23 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="date_debut_planning">Date de début planning</label>
-                            <input type="date" id="date_debut_planning" name="date_debut_planning"
-                                value="{{ old('date_debut_planning', isset($personne) ? $personne->date_debut_planning?->toDateString() : '') }}">
-                            <span class="form-hint">Laisser vide si non membre officiel</span>
-                            @error('date_debut_planning')<span class="form-error">{{ $message }}</span>@enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="date_inscription_benevole">Date inscription bénévole</label>
-                            <input type="date" id="date_inscription_benevole" name="date_inscription_benevole"
-                                value="{{ old('date_inscription_benevole', isset($personne) ? $personne->date_inscription_benevole?->toDateString() : '') }}">
-                            <span class="form-hint">Laisser vide si non bénévole</span>
-                            @error('date_inscription_benevole')<span class="form-error">{{ $message }}</span>@enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="id_vehicule">Véhicule
-                                <span style="color:var(--ink-muted);font-weight:400;">(optionnel)</span>
-                            </label>
-                            <select id="id_vehicule" name="id_vehicule">
-                                <option value="">— Aucun —</option>
-                                @foreach($vehicules as $v)
-                                    <option value="{{ $v->id }}" {{ old('id_vehicule', $personne->id_vehicule ?? '') == $v->id ? 'selected' : '' }}>
-                                        {{ $v->type }} ({{ $v->capacite_kg }} kg)
-                                    </option>
-                                @endforeach
-                            </select>
-                            @error('id_vehicule')<span class="form-error">{{ $message }}</span>@enderror
-                        </div>
+                    <div class="form-group">
+                        <label for="date_debut_planning">Date de début planning</label>
+                        <input type="date" id="date_debut_planning" name="date_debut_planning"
+                            value="{{ old('date_debut_planning', isset($personne) ? $personne->date_debut_planning?->toDateString() : '') }}"
+                            style="max-width:260px;">
+                        <span class="form-hint">
+                            Utilisée lors de la génération pour ne pas assigner ce membre
+                            avant son arrivée, et dans le calcul du score de charge.
+                            Laisser vide pour inclure ce membre immédiatement.
+                        </span>
+                        @error('date_debut_planning')<span class="form-error">{{ $message }}</span>@enderror
                     </div>
                 </div>
             </div>
 
-            <div style="display:flex;gap:11px;">
-                <button type="submit" class="btn btn-primary btn-lg">
+            <div style="display:flex;gap:11px;align-items:center;">
+                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
                     {{ $edit ? '💾 Enregistrer les modifications' : '➕ Créer la personne' }}
                 </button>
                 <a href="{{ route('personnes.index') }}" class="btn btn-secondary btn-lg">Annuler</a>
@@ -167,3 +163,19 @@
         </form>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.getElementById('personneForm').addEventListener('submit', function () {
+            const btn = document.getElementById('submitBtn');
+
+            // Ne désactiver que si le formulaire est valide
+            if (!this.checkValidity()) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '⏳ {{ $edit ? "Enregistrement…" : "Création en cours…" }}';
+            btn.style.opacity = '0.75';
+            btn.style.cursor = 'not-allowed';
+        });
+    </script>
+@endpush

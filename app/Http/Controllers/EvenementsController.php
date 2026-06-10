@@ -8,6 +8,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\Evenements\StoreEvenementRequest;
 use App\Http\Requests\Evenements\UpdateEvenementRequest;
 use App\Models\Evenement;
+use App\Models\Tache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -18,24 +19,32 @@ class EvenementsController extends Controller
 {
     public function index(): View
     {
-        $evenements = Evenement::orderBy('date_debut', 'desc')->get();
+        $evenements = Evenement::with('tachesBloquees')
+            ->orderBy('date_debut', 'desc')
+            ->get();
+
         return view('evenements.index', compact('evenements'));
     }
 
     public function create(): View
     {
-        return view('evenements.form');
+        $taches = Tache::actif()->orderBy('id')->get();
+        return view('evenements.form', compact('taches'));
     }
 
     public function store(StoreEvenementRequest $request): RedirectResponse
     {
         $data = $request->validated();
-        $data['bloque_planning'] = $request->boolean('bloque_planning');
-        $data['necessite_benevoles'] = $request->boolean('necessite_benevoles');
+        $tacheIds = $data['taches'] ?? [];
+        unset($data['taches']);
 
         $evenement = Evenement::create($data);
+        $evenement->tachesBloquees()->sync($tacheIds);
 
-        audit('create', 'evenements', $evenement->id, null, $evenement->toArray());
+        audit('create', 'evenements', $evenement->id, null, array_merge(
+            $evenement->toArray(),
+            ['taches_bloquees' => $tacheIds]
+        ));
 
         return redirect()->route('evenements.index')
             ->with('success', "Événement « {$evenement->nom} » créé.");
@@ -43,8 +52,9 @@ class EvenementsController extends Controller
 
     public function edit(int $id): View
     {
-        $evenement = Evenement::findOrFail($id);
-        return view('evenements.form', compact('evenement'));
+        $evenement = Evenement::with('tachesBloquees')->findOrFail($id);
+        $taches = Tache::actif()->orderBy('id')->get();
+        return view('evenements.form', compact('evenement', 'taches'));
     }
 
     public function update(UpdateEvenementRequest $request, int $id): RedirectResponse
@@ -53,12 +63,16 @@ class EvenementsController extends Controller
         $avant = $evenement->toArray();
 
         $data = $request->validated();
-        $data['bloque_planning'] = $request->boolean('bloque_planning');
-        $data['necessite_benevoles'] = $request->boolean('necessite_benevoles');
+        $tacheIds = $data['taches'] ?? [];
+        unset($data['taches']);
 
         $evenement->update($data);
+        $evenement->tachesBloquees()->sync($tacheIds);
 
-        audit('update', 'evenements', $evenement->id, $avant, $evenement->fresh()->toArray());
+        audit('update', 'evenements', $evenement->id, $avant, array_merge(
+            $evenement->fresh()->toArray(),
+            ['taches_bloquees' => $tacheIds]
+        ));
 
         return redirect()->route('evenements.index')
             ->with('success', "Événement « {$evenement->nom} » mis à jour.");

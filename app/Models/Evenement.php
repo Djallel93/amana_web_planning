@@ -10,7 +10,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Modèle pour ref_evenements.
- * Double usage : blocage du planning ET/OU mobilisation de bénévoles.
+ *
+ * Un événement peut bloquer certaines tâches lors de la génération du planning.
+ * Si aucune tâche n'est liée → événement purement informatif (s'affiche dans
+ * la bannière de semaine sans affecter les assignations).
+ *
+ * @property int    $id
+ * @property string $nom
+ * @property \Carbon\Carbon $date_debut
+ * @property \Carbon\Carbon $date_fin
+ * @property string|null $description
  */
 class Evenement extends Model
 {
@@ -21,18 +30,19 @@ class Evenement extends Model
         'nom',
         'date_debut',
         'date_fin',
-        'bloque_planning',
-        'necessite_benevoles',
         'description',
     ];
 
     protected $casts = [
-        'date_debut'          => 'date',
-        'date_fin'            => 'date',
-        'bloque_planning'     => 'boolean',
-        'necessite_benevoles' => 'boolean',
+        'date_debut' => 'date',
+        'date_fin' => 'date',
     ];
 
+    // ── Relations ──────────────────────────────────────────────────────────
+
+    /**
+     * Créneaux liés à cet événement (N-N).
+     */
     public function creneaux(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -43,17 +53,46 @@ class Evenement extends Model
         );
     }
 
-    /** Scope : événements qui bloquent le planning */
-    public function scopeBloqueant($query)
+    /**
+     * Tâches bloquées par cet événement (N-N).
+     * Si vide → événement informatif uniquement.
+     */
+    public function tachesBloquees(): BelongsToMany
     {
-        return $query->where('bloque_planning', true);
+        return $this->belongsToMany(
+            Tache::class,
+            'ref_evenements_taches',
+            'id_evenement',
+            'id_tache'
+        );
     }
 
-    /** Scope : événements actifs (couvrant la date donnée) */
+    // ── Helpers ────────────────────────────────────────────────────────────
+
+    /**
+     * Retourne true si cet événement bloque au moins une tâche.
+     */
+    public function bloqueDesTaches(): bool
+    {
+        return $this->tachesBloquees->isNotEmpty();
+    }
+
+    /**
+     * Retourne true si cet événement bloque toutes les tâches actives.
+     * Utilisé pour l'affichage du badge "Bloqué" dans le planning.
+     */
+    public function bloqueTout(int $nbTachesActives): bool
+    {
+        return $this->tachesBloquees->count() >= $nbTachesActives;
+    }
+
+    // ── Scopes ─────────────────────────────────────────────────────────────
+
+    /** Scope : événements actifs à une date donnée */
     public function scopeActifALaDate($query, string $date)
     {
         return $query->where('date_debut', '<=', $date)
-                     ->where('date_fin', '>=', $date);
+            ->where('date_fin', '>=', $date);
     }
 
     /** Scope : événements futurs ou en cours */

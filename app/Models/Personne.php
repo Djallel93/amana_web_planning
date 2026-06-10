@@ -22,12 +22,6 @@ use Illuminate\Notifications\Notifiable;
 /**
  * Modèle principal de l'application — remplace User.php de Laravel.
  *
- * Implémente toutes les interfaces Laravel nécessaires pour :
- *   - L'authentification (login / logout / remember me)
- *   - La réinitialisation de mot de passe (lien par email)
- *   - La vérification d'email
- *   - Les notifications (emails système)
- *
  * @property int         $id
  * @property string      $nom
  * @property string      $prenom
@@ -56,7 +50,6 @@ class Personne extends Model implements
 
     protected $table = 'ref_personnes';
 
-    // Pas de created_at / updated_at standard — on a derniere_maj
     public $timestamps = false;
 
     protected $fillable = [
@@ -72,39 +65,26 @@ class Personne extends Model implements
         'id_vehicule',
     ];
 
-    /**
-     * Colonnes masquées lors de la sérialisation (ex: réponses JSON).
-     * Le mot de passe et le token ne doivent jamais être exposés.
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
     protected $casts = [
-        'date_debut_planning'       => 'date',
+        'date_debut_planning' => 'date',
         'date_inscription_benevole' => 'date',
-        'email_verified_at'         => 'datetime',
-        'tirelire'                  => 'boolean',
-        'derniere_maj'              => 'datetime',
+        'email_verified_at' => 'datetime',
+        'tirelire' => 'boolean',
+        'derniere_maj' => 'datetime',
     ];
 
-    // ──────────────────────────────────────────────────────────────────────
-    // RELATIONS
-    // ──────────────────────────────────────────────────────────────────────
+    // ── Relations ─────────────────────────────────────────────────────────
 
     public function vehicule(): BelongsTo
     {
         return $this->belongsTo(Vehicule::class, 'id_vehicule');
     }
 
-    /**
-     * Rôles de la personne, avec la possibilité de filtrer par application.
-     *
-     * Utilisation :
-     *   $personne->roles                                    → tous les rôles
-     *   $personne->rolesForApp('planning')                  → rôles planning
-     */
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(
@@ -130,15 +110,8 @@ class Personne extends Model implements
         return $this->hasMany(CreneauTache::class, 'id_personne');
     }
 
-    // ──────────────────────────────────────────────────────────────────────
-    // MÉTHODES DE RÔLES
-    // ──────────────────────────────────────────────────────────────────────
+    // ── Méthodes de rôles ─────────────────────────────────────────────────
 
-    /**
-     * Retourne les rôles de la personne pour une application donnée.
-     *
-     * Exemple : $personne->rolesForApp('planning')
-     */
     public function rolesForApp(string $appCode): BelongsToMany
     {
         return $this->belongsToMany(
@@ -147,15 +120,10 @@ class Personne extends Model implements
             'id_personne',
             'id_role'
         )
-        ->withPivot('date_attribution')
-        ->whereHas('application', fn($q) => $q->where('code', $appCode));
+            ->withPivot('date_attribution')
+            ->whereHas('application', fn($q) => $q->where('code', $appCode));
     }
 
-    /**
-     * Vérifie si la personne a un rôle donné dans une application.
-     *
-     * Exemple : $personne->hasRole('admin', 'planning')
-     */
     public function hasRole(string $roleCode, string $appCode = 'planning'): bool
     {
         return $this->roles()
@@ -164,36 +132,22 @@ class Personne extends Model implements
             ->exists();
     }
 
-    /**
-     * Vérifie si la personne est admin de l'application planning.
-     * Raccourci pratique utilisé dans les vues et contrôleurs.
-     */
     public function isAdmin(): bool
     {
         return $this->hasRole('admin', 'planning');
     }
 
-    /**
-     * Vérifie si la personne est gestionnaire de l'application planning.
-     * Le gestionnaire a accès à tout sauf la gestion des utilisateurs.
-     */
     public function isGestionnaire(): bool
     {
         return $this->hasRole('gestionnaire', 'planning');
     }
 
-    /**
-     * Vérifie si la personne est membre (ou admin ou gestionnaire) de l'application planning.
-     * Un admin et un gestionnaire sont aussi considérés comme membres.
-     */
     public function isMembre(): bool
     {
         return $this->hasRole('membre', 'planning') || $this->isAdmin() || $this->isGestionnaire();
     }
 
-    // ──────────────────────────────────────────────────────────────────────
-    // SCOPES
-    // ──────────────────────────────────────────────────────────────────────
+    // ── Scopes ────────────────────────────────────────────────────────────
 
     public function scopeValide($query)
     {
@@ -215,53 +169,46 @@ class Personne extends Model implements
         return $query->whereNotNull('date_inscription_benevole');
     }
 
+    /**
+     * Scope : toutes les personnes avec statut 'Validé'.
+     *
+     * date_debut_planning n'est pas un critère d'affichage — elle sert
+     * uniquement dans le scheduler pour ne pas assigner un nouveau membre
+     * avant sa date d'arrivée, et dans les stats pour ne pas le pénaliser.
+     * Toute personne validée dans cette app est un membre officiel.
+     *
+     * Le paramètre $date est conservé pour compatibilité avec les appels
+     * existants dans le scheduler mais n'est plus utilisé ici.
+     */
     public function scopeActifAuPlanning($query, string $date = null)
     {
-        $date ??= now()->toDateString();
-        return $query
-            ->valide()
-            ->membreOfficiel()
-            ->where('date_debut_planning', '<=', $date);
+        return $query->valide();
     }
 
     /**
      * Scope : tous les admins de l'application planning.
-     * Utilisé pour envoyer les notifications aux administrateurs.
-     *
-     * Exemple : Personne::adminsPlanning()->get()
      */
     public function scopeAdminsPlanning($query)
     {
         return $query->whereHas('roles', function ($q) {
             $q->where('ref_roles.code', 'admin')
-              ->whereHas('application', fn($q2) => $q2->where('code', 'planning'));
+                ->whereHas('application', fn($q2) => $q2->where('code', 'planning'));
         });
     }
 
-    // ──────────────────────────────────────────────────────────────────────
-    // ACCESSEURS
-    // ──────────────────────────────────────────────────────────────────────
+    // ── Accesseurs ────────────────────────────────────────────────────────
 
-    /**
-     * Nom complet "Prénom NOM" — utilisé dans les vues et les emails.
-     */
     public function getNomCompletAttribute(): string
     {
         return $this->prenom . ' ' . strtoupper($this->nom);
     }
 
-    /**
-     * Requis par Laravel Notifiable pour savoir où envoyer les notifications.
-     * On retourne l'email de la personne.
-     */
     public function routeNotificationForMail(): string
     {
         return $this->email;
     }
 
-    // ──────────────────────────────────────────────────────────────────────
-    // MÉTHODES MÉTIER
-    // ──────────────────────────────────────────────────────────────────────
+    // ── Méthodes métier ───────────────────────────────────────────────────
 
     public function estAbsentLe(string $date): bool
     {

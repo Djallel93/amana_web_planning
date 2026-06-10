@@ -66,31 +66,86 @@
 
                     <div class="divider"></div>
 
+                    {{-- ── Tâches bloquées ───────────────────────────────────────────── --}}
                     <div style="margin-bottom:24px;">
-                        <div
-                            style="font-size:11px;font-weight:700;color:var(--ink-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.6px;">
-                            Options</div>
-                        <div
-                            style="background:var(--surface-2);border:1px solid var(--surface-border);border-radius:var(--radius);overflow:hidden;">
-                            <div class="checkbox-wrap" style="padding:12px 16px;border-bottom:1px solid var(--surface-3);">
-                                <input type="hidden" name="bloque_planning" value="0">
-                                <input type="checkbox" id="bloque_planning" name="bloque_planning" value="1" {{ old('bloque_planning', isset($evenement) ? $evenement->bloque_planning : false) ? 'checked' : '' }}>
-                                <label for="bloque_planning" style="display:flex;flex-direction:column;gap:2px;">
-                                    <span>⛔ Bloque le planning</span>
-                                    <span style="font-size:12px;font-weight:400;color:var(--ink-muted);">Aucune tâche ne
-                                        sera assignée pendant cette période</span>
-                                </label>
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:4px;">
+                                🚫 Tâches bloquées pendant cet événement
                             </div>
-                            <div class="checkbox-wrap" style="padding:12px 16px;">
-                                <input type="hidden" name="necessite_benevoles" value="0">
-                                <input type="checkbox" id="necessite_benevoles" name="necessite_benevoles" value="1" {{ old('necessite_benevoles', isset($evenement) ? $evenement->necessite_benevoles : false) ? 'checked' : '' }}>
-                                <label for="necessite_benevoles" style="display:flex;flex-direction:column;gap:2px;">
-                                    <span>👥 Nécessite des bénévoles</span>
-                                    <span style="font-size:12px;font-weight:400;color:var(--ink-muted);">Les bénévoles
-                                        peuvent s'inscrire pour cet événement</span>
-                                </label>
+                            <div style="font-size:12.5px;color:var(--ink-muted);line-height:1.6;">
+                                Cochez les tâches qui <strong>ne seront pas assignées</strong> lors de la génération du planning
+                                pour les créneaux couverts par cet événement.<br>
+                                <span style="color:var(--amber);font-weight:600;">Si aucune tâche n'est cochée</span>,
+                                l'événement est purement informatif — il apparaîtra dans la bannière de la semaine
+                                sans affecter les assignations.
                             </div>
                         </div>
+
+                        @php
+                            $tachesBloquéesIds = isset($evenement)
+                                ? $evenement->tachesBloquees->pluck('id')->toArray()
+                                : [];
+                            $oldTaches = old('taches', $tachesBloquéesIds);
+
+                            $tacheColors = [
+                                'entree'     => ['bg' => '#eff6ff', 'color' => '#2563eb', 'icon' => '🚪'],
+                                'mektaba'    => ['bg' => '#ecfdf5', 'color' => '#059669', 'icon' => '📚'],
+                                'salle'      => ['bg' => '#fffbeb', 'color' => '#d97706', 'icon' => '🏛️'],
+                                'amana_food' => ['bg' => '#fff1f2', 'color' => '#e11d48', 'icon' => '🥪'],
+                                'cours'      => ['bg' => '#f5f3ff', 'color' => '#7c3aed', 'icon' => '🎓'],
+                            ];
+                        @endphp
+
+                        <div style="background:var(--surface-2);border:1px solid var(--surface-border);border-radius:var(--radius);overflow:hidden;">
+
+                            {{-- Boutons tout cocher / tout décocher --}}
+                            <div style="padding:10px 16px;border-bottom:1px solid var(--surface-3);display:flex;align-items:center;gap:10px;">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(true)">Tout bloquer</button>
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(false)">Tout libérer</button>
+                                <span id="blockedCount" style="margin-left:auto;font-size:12px;color:var(--ink-muted);"></span>
+                            </div>
+
+                            @foreach($taches as $tache)
+                                @php
+                                    $style = $tacheColors[$tache->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink)', 'icon' => '•'];
+                                    $checked = in_array($tache->id, (array) $oldTaches);
+                                @endphp
+                                <label class="tache-block-item {{ $checked ? 'checked' : '' }}"
+                                    id="label-{{ $tache->id }}"
+                                    style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--surface-3);cursor:pointer;transition:background 0.15s;">
+                                    <input
+                                        type="checkbox"
+                                        name="taches[]"
+                                        value="{{ $tache->id }}"
+                                        id="tache_{{ $tache->id }}"
+                                        class="tache-checkbox"
+                                        {{ $checked ? 'checked' : '' }}
+                                        style="width:16px;height:16px;accent-color:var(--rose);cursor:pointer;flex-shrink:0;-webkit-appearance:auto;appearance:auto;">
+                                    <div style="display:flex;align-items:center;gap:9px;flex:1;">
+                                        <span style="
+                                            display:inline-flex;align-items:center;gap:5px;
+                                            padding:3px 11px;border-radius:20px;
+                                            font-size:12.5px;font-weight:600;
+                                            background:{{ $style['bg'] }};color:{{ $style['color'] }};
+                                        ">
+                                            {{ $style['icon'] }} {{ $tache->libelle }}
+                                        </span>
+                                    </div>
+                                    <span class="block-status" style="font-size:11.5px;font-weight:600;color:{{ $checked ? 'var(--rose)' : 'var(--emerald)' }};">
+                                        {{ $checked ? '🚫 Bloquée' : '✅ Libre' }}
+                                    </span>
+                                </label>
+                            @endforeach
+
+                            {{-- Dernière ligne sans border-bottom --}}
+                            <style>
+                                .tache-block-item:last-of-type { border-bottom: none !important; }
+                                .tache-block-item:hover { background: var(--rose-bg) !important; }
+                                .tache-block-item.checked { background: #fff1f2; }
+                            </style>
+                        </div>
+
+                        @error('taches')<span class="form-error" style="margin-top:6px;display:block;">{{ $message }}</span>@enderror
                     </div>
 
                     <div style="display:flex;gap:11px;">
@@ -112,5 +167,52 @@
             if (!fin.value || fin.value < this.value) fin.value = this.value;
             fin.min = this.value;
         });
+
+        function updateStatus() {
+            const checkboxes = document.querySelectorAll('.tache-checkbox');
+            let blockedCount = 0;
+
+            checkboxes.forEach(function (cb) {
+                const label = cb.closest('.tache-block-item');
+                const statusEl = label.querySelector('.block-status');
+
+                if (cb.checked) {
+                    blockedCount++;
+                    label.classList.add('checked');
+                    label.style.background = '#fff1f2';
+                    statusEl.textContent = '🚫 Bloquée';
+                    statusEl.style.color = 'var(--rose)';
+                } else {
+                    label.classList.remove('checked');
+                    label.style.background = '';
+                    statusEl.textContent = '✅ Libre';
+                    statusEl.style.color = 'var(--emerald)';
+                }
+            });
+
+            const countEl = document.getElementById('blockedCount');
+            if (blockedCount === 0) {
+                countEl.textContent = 'Événement informatif';
+                countEl.style.color = 'var(--amber)';
+            } else if (blockedCount === checkboxes.length) {
+                countEl.textContent = 'Toutes les tâches bloquées';
+                countEl.style.color = 'var(--rose)';
+            } else {
+                countEl.textContent = `${blockedCount} tâche${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`;
+                countEl.style.color = 'var(--amber)';
+            }
+        }
+
+        function toutCocher(state) {
+            document.querySelectorAll('.tache-checkbox').forEach(cb => cb.checked = state);
+            updateStatus();
+        }
+
+        document.querySelectorAll('.tache-checkbox').forEach(cb => {
+            cb.addEventListener('change', updateStatus);
+        });
+
+        // Init
+        updateStatus();
     </script>
 @endpush

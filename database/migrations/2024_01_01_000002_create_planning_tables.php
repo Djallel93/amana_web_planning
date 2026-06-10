@@ -10,8 +10,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Migration : tables du planning, des événements, restrictions et absences
  */
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         // ── ref_evenements ─────────────────────────────────────────────────
@@ -21,9 +20,6 @@ return new class extends Migration
                 ->comment('Doit être unique et précis : Vacances Noël, Vacances Toussaint');
             $table->date('date_debut');
             $table->date('date_fin');
-            $table->boolean('bloque_planning')->default(false);
-            $table->boolean('necessite_benevoles')->default(false)
-                ->comment('TRUE : les bénévoles peuvent s\'inscrire');
             $table->text('description')->nullable();
 
             $table->index(['date_debut', 'date_fin'], 'idx_evenements_dates');
@@ -92,7 +88,7 @@ return new class extends Migration
             $table->increments('id');
             $table->unsignedInteger('id_personne');
             $table->unsignedTinyInteger('id_tache');
-            $table->enum('jour', ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche']);
+            $table->enum('jour', ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']);
             $table->boolean('autorise')->default(true)
                 ->comment('TRUE = peut faire / FALSE = interdit');
 
