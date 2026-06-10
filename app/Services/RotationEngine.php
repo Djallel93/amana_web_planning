@@ -16,7 +16,7 @@ use Illuminate\Support\Collection;
  *
  * Algorithme :
  *  1. amana_food → rotation stricte (cycle global, le moins assigné passe en premier)
- *  2. entree, mektaba, salle → score d'équilibrage avec pénalité adaptative
+ *  2. entree, mektaba, salle, cours → score d'équilibrage avec pénalité adaptative
  */
 class RotationEngine
 {
@@ -28,7 +28,7 @@ class RotationEngine
     }
 
     /**
-     * Assigne un jour complet (4 tâches).
+     * Assigne un jour complet (5 tâches).
      * Équivalent de assignDay() dans RotationEngine.js.
      *
      * @param string $jour    'Vendredi' ou 'Samedi'
@@ -38,8 +38,8 @@ class RotationEngine
      */
     public function assignDay(string $jour, Carbon $date, array &$context): array
     {
-        $assignments    = [];
-        $dejaAssignes   = [];
+        $assignments = [];
+        $dejaAssignes = [];
 
         // 1. AMANA_FOOD (rotation stricte — priorité absolue)
         $assignments['amana_food'] = $this->assignAmanaFood($jour, $date, $context, $dejaAssignes);
@@ -65,6 +65,12 @@ class RotationEngine
             $dejaAssignes[] = $assignments['salle'];
         }
 
+        // 5. COURS
+        $assignments['cours'] = $this->assignOtherTask('cours', $jour, $date, $context, $dejaAssignes);
+        if ($assignments['cours'] !== null) {
+            $dejaAssignes[] = $assignments['cours'];
+        }
+
         return $assignments;
     }
 
@@ -80,7 +86,7 @@ class RotationEngine
      */
     private function assignAmanaFood(string $jour, Carbon $date, array &$context, array $dejaAssignes): ?string
     {
-        $cycles    = &$context['amanaFoodCycles'];
+        $cycles = &$context['amanaFoodCycles'];
         $personnes = $context['personnes'];
 
         // Personnes éligibles au cycle amana_food
@@ -90,14 +96,15 @@ class RotationEngine
             return null;
         }
 
-        $minCycle = collect($cycles)->filter(fn($c, $nom) =>
+        $minCycle = collect($cycles)->filter(
+            fn($c, $nom) =>
             $eligibles->contains(fn($p) => $this->nomCle($p) === $nom)
         )->min();
 
         $candidats = [];
 
         foreach ($eligibles as $personne) {
-            $nom   = $this->nomCle($personne);
+            $nom = $this->nomCle($personne);
             $cycle = $cycles[$nom];
 
             if ($cycle !== $minCycle) {
@@ -116,7 +123,7 @@ class RotationEngine
 
             // Vérifier restriction pour amana_food ce jour
             $tacheAmana = $context['taches']->firstWhere('code', 'amana_food');
-            if ($tacheAmana && ! $personne->peutFaireTache($tacheAmana->id, $jour)) {
+            if ($tacheAmana && !$personne->peutFaireTache($tacheAmana->id, $jour)) {
                 continue;
             }
 
@@ -127,10 +134,6 @@ class RotationEngine
 
             // Calcul repos
             $lastWork = $context['lastWorkDate'][$nom] ?? null;
-            $daysRest = $lastWork
-                ? (int) $date->diffInDays(Carbon::parse($lastWork), false) * -1
-                : 999;
-            // Note : diffInDays avec absolute=false peut être négatif ; on veut positif si dans le passé
             $daysRest = $lastWork ? (int) Carbon::parse($lastWork)->diffInDays($date) : 999;
 
             $candidats[] = ['nom' => $nom, 'cycle' => $cycle, 'repos' => $daysRest];
@@ -176,12 +179,12 @@ class RotationEngine
         $candidats = [];
 
         // Initialiser l'historique si nécessaire
-        if (! isset($context['taskHistory'][$codeTask])) {
+        if (!isset($context['taskHistory'][$codeTask])) {
             $context['taskHistory'][$codeTask] = [];
         }
 
         $tache = $context['taches']->firstWhere('code', $codeTask);
-        if (! $tache) {
+        if (!$tache) {
             return null;
         }
 
@@ -204,37 +207,37 @@ class RotationEngine
             }
 
             // Restriction pour cette tâche ce jour ?
-            if (! $personne->peutFaireTache($tache->id, $jour)) {
+            if (!$personne->peutFaireTache($tache->id, $jour)) {
                 continue;
             }
 
             // ── Calcul du score ────────────────────────────────────────────
             $totalTasks = $context['totalTasks'][$nom] ?? 0;
-            $lastWork   = $context['lastWorkDate'][$nom] ?? null;
-            $daysRest   = $lastWork
+            $lastWork = $context['lastWorkDate'][$nom] ?? null;
+            $daysRest = $lastWork
                 ? Carbon::parse($lastWork)->diffInDays($date)
                 : 999;
 
-            $taskCount  = $context['taskHistory'][$codeTask][$nom] ?? 0;
+            $taskCount = $context['taskHistory'][$codeTask][$nom] ?? 0;
             $numOptions = $context['personOptions'][$nom] ?? 8;
 
             // Multiplicateur adaptatif
-            $penaltyMultiplier = match(true) {
+            $penaltyMultiplier = match (true) {
                 $numOptions >= 8 => 80,
                 $numOptions >= 6 => 60,
                 $numOptions >= 4 => 40,
-                default          => 20,
+                default => 20,
             };
 
             $score = ($totalTasks * 10) - ($daysRest * 1) + ($taskCount * $penaltyMultiplier);
 
             $candidats[] = [
-                'nom'               => $nom,
-                'score'             => $score,
-                'totalTasks'        => $totalTasks,
-                'daysRest'          => $daysRest,
-                'taskCount'         => $taskCount,
-                'numOptions'        => $numOptions,
+                'nom' => $nom,
+                'score' => $score,
+                'totalTasks' => $totalTasks,
+                'daysRest' => $daysRest,
+                'taskCount' => $taskCount,
+                'numOptions' => $numOptions,
                 'penaltyMultiplier' => $penaltyMultiplier,
             ];
         }

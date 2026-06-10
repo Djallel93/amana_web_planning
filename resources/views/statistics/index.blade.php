@@ -299,6 +299,7 @@
                             <th class="col-num" style="color:#059669;">Mektaba</th>
                             <th class="col-num" style="color:#d97706;">Salle</th>
                             <th class="col-num" style="color:#e11d48;">Amana Food</th>
+                            <th class="col-num" style="color:#7c3aed;">Cours</th>
                             <th class="col-num">Consécutifs</th>
                             <th class="col-num">Absences</th>
                         </tr>
@@ -321,6 +322,7 @@
                                 <td class="col-num">{{ $tp['mektaba'] ?? 0 }}</td>
                                 <td class="col-num">{{ $tp['salle'] ?? 0 }}</td>
                                 <td class="col-num">{{ $tp['amana_food'] ?? 0 }}</td>
+                                <td class="col-num">{{ $tp['cours'] ?? 0 }}</td>
                                 <td class="col-num {{ $consec > 2 ? 'high-val' : '' }}">{{ $consec }}</td>
                                 <td class="col-num" style="color:{{ $abs > 0 ? 'var(--amber)' : 'var(--ink-faint)' }};">
                                     {{ $abs ?: '—' }}
