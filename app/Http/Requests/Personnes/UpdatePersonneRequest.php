@@ -24,7 +24,6 @@ class UpdatePersonneRequest extends FormRequest
             'email' => ['required', 'email:rfc,dns', 'max:255', "unique:ref_personnes,email,{$id}"],
             'telephone' => ['nullable', 'string', 'max:20', 'regex:/^(\+33|0033|0)[1-9](\s?[0-9]{2}){4}$/'],
             'date_debut_planning' => ['nullable', 'date'],
-            'date_inscription_benevole' => ['nullable', 'date'],
             'statut' => ['required', 'in:En attente,Validé,Suspendu,Archivé'],
             'role' => ['required', 'string', 'in:admin,gestionnaire,membre,benevole'],
         ];

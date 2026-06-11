@@ -152,6 +152,55 @@
             color: var(--rose);
             font-weight: 700;
         }
+
+        /* ── Explanations card ── */
+        .explain-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 14px;
+        }
+
+        .explain-item {
+            background: var(--surface-2);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+        }
+
+        .explain-term {
+            font-family: var(--font-heading);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .explain-def {
+            font-size: 12.5px;
+            color: var(--ink-muted);
+            line-height: 1.65;
+        }
+
+        .explain-def strong {
+            color: var(--ink-light);
+            font-weight: 600;
+        }
+
+        .explain-example {
+            margin-top: 6px;
+            font-size: 11.5px;
+            color: var(--app-accent);
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .explain-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 @endpush
 
@@ -280,7 +329,7 @@
         </div>
 
         {{-- Detail table --}}
-        <div class="card">
+        <div class="card" style="margin-bottom:22px;">
             <div class="card-header">
                 <div class="card-title">
                     <div class="card-title-icon" style="background:var(--sky-bg);">📋</div>
@@ -331,6 +380,154 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        {{-- ── Explanations card ─────────────────────────────────────────── --}}
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-title-icon" style="background:var(--violet-bg);">📖</div>
+                    Comment lire ces statistiques
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="explain-grid">
+
+                    <div class="explain-item">
+                        <div class="explain-term">📊 Total assignations</div>
+                        <div class="explain-def">
+                            Nombre total de fois qu'une personne a été assignée à une tâche sur toute la période.
+                            C'est l'indicateur brut de charge de travail.
+                        </div>
+                        <div class="explain-example">
+                            Idéalement, toutes les personnes devraient avoir un total proche de la <strong>moyenne</strong>.
+                        </div>
+                    </div>
+
+                    <div class="explain-item">
+                        <div class="explain-term">➗ Moyenne / personne</div>
+                        <div class="explain-def">
+                            Nombre moyen d'assignations par personne sur la période.
+                            Sert de référence pour évaluer si une personne est sur- ou sous-chargée.
+                        </div>
+                        <div class="explain-example">
+                            Ex : moyenne de <strong>{{ $stats['moyenneTaches'] }}</strong> — toute valeur très éloignée de ce
+                            chiffre signale un déséquilibre.
+                        </div>
+                    </div>
+
+                    <div class="explain-item">
+                        <div class="explain-term">📉 Écart-type</div>
+                        <div class="explain-def">
+                            Mesure la dispersion des totaux autour de la moyenne.
+                            <strong>Plus il est faible, plus la distribution est homogène.</strong>
+                            Un écart-type élevé indique que certaines personnes travaillent beaucoup plus que d'autres.
+                        </div>
+                        <div class="explain-example">
+                            Valeur actuelle : <strong>{{ $stats['ecartType'] }}</strong>.
+                            En dessous de 2 = très bonne équité ; au-dessus de 4 = déséquilibre notable.
+                        </div>
+                    </div>
+
+                    <div class="explain-item">
+                        <div class="explain-term">📐 Coefficient de variation</div>
+                        <div class="explain-def">
+                            L'écart-type exprimé en pourcentage de la moyenne.
+                            Permet de comparer l'équité quelle que soit la durée de la période.
+                            <strong>En dessous de 15% = équité satisfaisante.</strong>
+                        </div>
+                        <div class="explain-example">
+                            Valeur actuelle : <strong>{{ $stats['coefficientVariation'] }}%</strong>.
+                            Ce chiffre intervient directement dans le calcul du score d'équité (−30 pts max).
+                        </div>
+                    </div>
+
+                    <div class="explain-item">
+                        <div class="explain-term">⚖️ Déséquilibre Vendredi / Samedi</div>
+                        <div class="explain-def">
+                            Différence moyenne, par personne, entre le nombre de vendredis et de samedis travaillés.
+                            <strong>Proche de 0 = bonne alternance</strong> entre les deux jours.
+                        </div>
+                        <div class="explain-example">
+                            Valeur actuelle : <strong>{{ $stats['desequilibreMoyen'] }}</strong>.
+                            Une valeur de 3 signifie qu'en moyenne chaque personne a 3 jours d'écart entre ses vendredis et ses
+                            samedis.
+                        </div>
+                    </div>
+
+                    <div class="explain-item">
+                        <div class="explain-term">🔢 Plage de distribution</div>
+                        <div class="explain-def">
+                            Fourchette entre la personne la moins assignée et la plus assignée.
+                            <strong>Un écart faible indique une bonne équité globale.</strong>
+                        </div>
+                        <div class="explain-example">
+                            Actuel : <strong>{{ $stats['minTaches'] }}</strong> à <strong>{{ $stats['maxTaches'] }}</strong>
+                            (écart de {{ $stats['maxTaches'] - $stats['minTaches'] }}).
+                        </div>
+                    </div>
+
+                    <div class="explain-item">
+                        <div class="explain-term">🥪 Distribution Amana Food</div>
+                        <div class="explain-def">
+                            Répartition spécifique de la tâche Amana Food, qui suit une <strong>rotation stricte par cycle
+                                global</strong>
+                            indépendante du score d'équilibrage des autres tâches.
+                            Min / Max / Moyenne indiquent à quel point ce cycle est respecté.
+                        </div>
+                        <div class="explain-example">
+                            Actuel : min <strong>{{ $stats['minAmanaFood'] }}</strong>,
+                            max <strong>{{ $stats['maxAmanaFood'] }}</strong>,
+                            moy. <strong>{{ $stats['avgAmanaFood'] }}</strong>.
+                            Un écart min–max ≤ 1 confirme que le cycle tourne correctement.
+                        </div>
+                    </div>
+
+                    <div class="explain-item">
+                        <div class="explain-term">📅 Jours consécutifs</div>
+                        <div class="explain-def">
+                            Nombre maximum de créneaux consécutifs (vendredi + samedi comptent chacun pour 1)
+                            travaillés d'affilée par une personne.
+                            <strong>Une valeur supérieure à 2 est surlignée en rouge</strong> car elle signale une fatigue
+                            potentielle.
+                        </div>
+                        <div class="explain-example">
+                            Ex : 3 consécutifs = vendredi, samedi, vendredi suivant sans interruption.
+                            Le score d'équité est pénalisé de 5 pts par personne dans cette situation (−20 pts max).
+                        </div>
+                    </div>
+
+                    <div class="explain-item">
+                        <div class="explain-term">📈 Taux d'utilisation</div>
+                        <div class="explain-def">
+                            Pourcentage de slots de tâches effectivement assignés parmi tous les slots disponibles
+                            (nombre de créneaux × nombre de tâches actives).
+                            <strong>Un taux bas signale des tâches non assignées</strong>, souvent dû à des absences
+                            ou à un manque de membres disponibles.
+                        </div>
+                        <div class="explain-example">
+                            Actuel : <strong>{{ $stats['tauxUtilisation'] }}%</strong>.
+                            En dessous de 85%, vérifier les restrictions et les absences enregistrées.
+                        </div>
+                    </div>
+
+                    <div class="explain-item">
+                        <div class="explain-term">🏆 Score d'équité</div>
+                        <div class="explain-def">
+                            Score composite sur 100 calculé à partir de trois pénalités :
+                            <strong>coefficient de variation</strong> (−30 pts max),
+                            <strong>jours consécutifs</strong> (−20 pts max) et
+                            <strong>déséquilibre vendredi/samedi</strong> (−20 pts max).
+                            Il résume en un seul chiffre la qualité globale de la rotation.
+                        </div>
+                        <div class="explain-example">
+                            90–100 = excellent · 70–89 = bon · &lt;70 = à améliorer.
+                            Relancer la génération sur une période plus longue améliore généralement ce score.
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
 

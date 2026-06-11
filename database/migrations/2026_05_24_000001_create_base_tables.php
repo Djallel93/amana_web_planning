@@ -8,22 +8,14 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Migration : tables de référence (véhicules, rôles, tâches, personnes)
+ * Migration : tables de référence (rôles, tâches, personnes)
  * Ces tables ne dépendent d'aucune autre — créées en premier.
+ *
+ * Note : ref_vehicules a été supprimée — elle appartient au module livraisons.
  */
 return new class extends Migration {
     public function up(): void
     {
-        // ── ref_vehicules ──────────────────────────────────────────────────
-        Schema::create('ref_vehicules', function (Blueprint $table) {
-            $table->tinyIncrements('id');
-            $table->string('type', 50);
-            $table->unsignedSmallInteger('capacite_kg')->default(0)
-                ->comment('Capacité maximale en kilogrammes');
-            $table->unsignedSmallInteger('nombre_parts_max')->default(0)
-                ->comment('Nombre maximum de parts alimentaires transportables');
-        });
-
         // ── ref_roles ──────────────────────────────────────────────────────
         Schema::create('ref_roles', function (Blueprint $table) {
             $table->tinyIncrements('id');
@@ -35,9 +27,9 @@ return new class extends Migration {
         Schema::create('ref_taches', function (Blueprint $table) {
             $table->tinyIncrements('id');
             $table->string('code', 50)->unique()
-                ->comment('entree, mektaba, salle, amana_food');
-            $table->string('libelle', 100)
-                ->comment('Entrée, Mektaba, Salle, Nourriture');
+                ->comment('entree, mektaba, salle, amana_food, cours');
+            $table->string('libelle', 100);
+            $table->string('description', 250);
             $table->boolean('actif')->default(true)
                 ->comment('FALSE = archivée, exclue des nouveaux plannings');
         });
@@ -50,18 +42,10 @@ return new class extends Migration {
             $table->string('email', 255)->unique();
             $table->string('telephone', 20)->nullable();
             $table->date('date_debut_planning')->nullable()
-                ->comment('NULL si la personne n\'est pas membre officiel');
-            $table->date('date_inscription_benevole')->nullable()
-                ->comment('NULL si la personne n\'est pas bénévole');
+                ->comment('NULL si la personne n\'est pas encore dans la rotation');
             $table->enum('statut', ['En attente', 'Validé', 'Suspendu', 'Archivé'])
                 ->default('En attente');
-            $table->boolean('tirelire')->default(false);
-            $table->unsignedTinyInteger('id_vehicule')->nullable();
             $table->timestamp('derniere_maj')->useCurrent()->useCurrentOnUpdate();
-
-            $table->foreign('id_vehicule')
-                ->references('id')->on('ref_vehicules')
-                ->onDelete('set null')->onUpdate('cascade');
         });
 
         // ── ref_personnes_roles ────────────────────────────────────────────
@@ -87,6 +71,5 @@ return new class extends Migration {
         Schema::dropIfExists('ref_personnes');
         Schema::dropIfExists('ref_taches');
         Schema::dropIfExists('ref_roles');
-        Schema::dropIfExists('ref_vehicules');
     }
 };

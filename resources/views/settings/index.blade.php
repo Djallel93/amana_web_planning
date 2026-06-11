@@ -54,17 +54,9 @@
         vertical-align: middle;
     }
 
-    .offsets-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-
-    .offsets-table tbody tr:hover {
-        background: var(--surface-2);
-    }
-
-    .offsets-table td.col-num {
-        text-align: center;
-    }
+    .offsets-table tbody tr:last-child td { border-bottom: none; }
+    .offsets-table tbody tr:hover { background: var(--surface-2); }
+    .offsets-table td.col-num { text-align: center; }
 
     .offset-input {
         width: 90px;
@@ -121,6 +113,70 @@
         gap: 18px;
     }
 
+    /* ── Toggle switch for boolean ── */
+    .toggle-wrap {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 48px;
+        height: 26px;
+        flex-shrink: 0;
+    }
+
+    .toggle-switch input[type="checkbox"] {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        position: absolute;
+    }
+
+    .toggle-slider {
+        position: absolute;
+        inset: 0;
+        background: var(--ink-faint);
+        border-radius: 26px;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .toggle-slider::before {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        left: 3px;
+        top: 3px;
+        background: white;
+        border-radius: 50%;
+        transition: var(--transition);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+        background: var(--emerald);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+        transform: translateX(22px);
+    }
+
+    .toggle-label {
+        font-size: 13.5px;
+        color: var(--ink-light);
+        font-weight: 500;
+    }
+
+    /* ── Calendriers grid ── */
+    .calendriers-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 14px;
+    }
+
     /* ── Info note ── */
     .info-note {
         background: var(--sky-bg);
@@ -135,13 +191,24 @@
         margin-bottom: 22px;
     }
 
+    /* ── Warning note ── */
+    .warn-note {
+        background: var(--rose-bg);
+        border: 1px solid var(--rose-border);
+        border-radius: var(--radius);
+        padding: 11px 15px;
+        font-size: 12.5px;
+        color: #9f1239;
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        margin-bottom: 22px;
+    }
+
     @media (max-width: 768px) {
-        .horaires-grid {
-            grid-template-columns: 1fr;
-        }
-        .offset-input {
-            width: 75px;
-        }
+        .horaires-grid { grid-template-columns: 1fr; }
+        .offset-input  { width: 75px; }
+        .calendriers-grid { grid-template-columns: 1fr; }
     }
 </style>
 @endpush
@@ -158,7 +225,54 @@
         @csrf
 
         {{-- ══════════════════════════════════════════════════════════════
-             SECTION 1 — Horaires
+             SECTION 1 — Inscription
+        ══════════════════════════════════════════════════════════════ --}}
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-title-icon" style="background:var(--emerald-bg);">🔓</div>
+                    Inscription publique
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="settings-section-sub">
+                    Contrôle l'accès au formulaire d'inscription public (<code>/inscription</code>).
+                    Fermer les inscriptions bloque l'affichage du formulaire et la soumission.
+                </div>
+
+                @if(isset($inscription['inscription_ouverte']))
+                    @php $io = $inscription['inscription_ouverte']; @endphp
+
+                    {{-- Hidden input ensures the value is always submitted (even when unchecked) --}}
+                    <input type="hidden" name="settings[inscription_ouverte]" value="0">
+
+                    <div class="toggle-wrap">
+                        <label class="toggle-switch">
+                            <input
+                                type="checkbox"
+                                name="settings[inscription_ouverte]"
+                                value="1"
+                                {{ $io['valeur'] ? 'checked' : '' }}
+                                onchange="updateInscriptionStatus(this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label" id="inscriptionLabel">
+                            {{ $io['valeur'] ? '✅ Inscriptions ouvertes' : '🔒 Inscriptions fermées' }}
+                        </span>
+                    </div>
+
+                    @if(!$io['valeur'])
+                        <div class="warn-note" style="margin-top:14px;margin-bottom:0;">
+                            <span style="flex-shrink:0;">⚠️</span>
+                            <span>Les inscriptions sont actuellement <strong>fermées</strong>. Le formulaire public est inaccessible.</span>
+                        </div>
+                    @endif
+                @endif
+            </div>
+        </div>
+
+        {{-- ══════════════════════════════════════════════════════════════
+             SECTION 2 — Horaires & Lieu
         ══════════════════════════════════════════════════════════════ --}}
         <div class="card" style="margin-bottom:20px;">
             <div class="card-header">
@@ -174,7 +288,6 @@
                 </div>
 
                 <div class="horaires-grid">
-                    {{-- Heure du cours --}}
                     @if(isset($horaires['heure_cours']))
                         @php $hc = $horaires['heure_cours']; @endphp
                         <div class="form-group">
@@ -190,7 +303,6 @@
                         </div>
                     @endif
 
-                    {{-- Lieu --}}
                     @if(isset($horaires['lieu']))
                         @php $lieu = $horaires['lieu']; @endphp
                         <div class="form-group">
@@ -210,7 +322,62 @@
         </div>
 
         {{-- ══════════════════════════════════════════════════════════════
-             SECTION 2 — Décalages des tâches
+             SECTION 3 — Calendriers Google Calendar
+        ══════════════════════════════════════════════════════════════ --}}
+        <div class="card" style="margin-bottom:20px;">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-title-icon" style="background:var(--violet-bg);">📆</div>
+                    Calendriers Google Calendar
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="settings-section-sub">
+                    Nom du calendrier Google Calendar dans lequel chaque type d'événement sera créé.
+                    Laissez vide pour utiliser le calendrier par défaut configuré dans Make.com.
+                </div>
+
+                @php
+                    $calendarChips = [
+                        'calendar_entree'                => ['libelle' => 'Entrée',                 'chip' => 'entree'],
+                        'calendar_mektaba'               => ['libelle' => 'Mektaba',                'chip' => 'mektaba'],
+                        'calendar_salle'                 => ['libelle' => 'Salle',                  'chip' => 'salle'],
+                        'calendar_amana_food'            => ['libelle' => 'Amana Food',             'chip' => 'amana_food'],
+                        'calendar_cours'                 => ['libelle' => 'Cours',                  'chip' => 'cours'],
+                        'calendar_rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',        'chip' => 'rappel_sandwich'],
+                        'calendar_assistance_amana_food' => ['libelle' => 'Assistance Amana Food',  'chip' => 'assistance_amana_food'],
+                        'calendar_annonce_cours'         => ['libelle' => 'Annonce Cours',          'chip' => 'annonce_cours'],
+                        'calendar_message_bot'           => ['libelle' => 'Message Bot',            'chip' => 'message_bot'],
+                    ];
+                @endphp
+
+                <div class="calendriers-grid">
+                    @foreach($calendarChips as $cle => $meta)
+                        @if(isset($calendriers[$cle]))
+                            @php $cal = $calendriers[$cle]; @endphp
+                            <div class="form-group">
+                                <label for="{{ $cle }}">
+                                    <span class="tache-chip chip-{{ $meta['chip'] }}" style="font-size:11px;padding:1px 8px;">
+                                        {{ $meta['libelle'] }}
+                                    </span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="{{ $cle }}"
+                                    name="settings[{{ $cle }}]"
+                                    value="{{ $cal['valeur_raw'] }}"
+                                    maxlength="200"
+                                    placeholder="Nom du calendrier…"
+                                    style="margin-top:6px;">
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        </div>
+
+        {{-- ══════════════════════════════════════════════════════════════
+             SECTION 4 — Décalages des tâches
         ══════════════════════════════════════════════════════════════ --}}
         <div class="card" style="margin-bottom:24px;">
             <div class="card-header">
@@ -254,7 +421,6 @@
                                         @endif
                                     </td>
 
-                                    {{-- Début --}}
                                     <td class="col-num">
                                         @if($groupe['debut'])
                                             @php $d = $groupe['debut']; @endphp
@@ -275,7 +441,6 @@
                                         @endif
                                     </td>
 
-                                    {{-- Fin --}}
                                     <td class="col-num">
                                         @if($groupe['fin'])
                                             @php $f = $groupe['fin']; @endphp
@@ -296,7 +461,6 @@
                                         @endif
                                     </td>
 
-                                    {{-- Horaire calculé (aperçu dynamique) --}}
                                     <td>
                                         @if($codeTache === 'rappel_sandwich')
                                             <span style="font-size:12.5px;color:var(--ink-muted);font-weight:600;">
@@ -306,15 +470,13 @@
                                             @php
                                                 $heureCours = $horaires['heure_cours']['valeur_raw'] ?? '20:00';
                                                 [$h, $m] = explode(':', $heureCours);
-                                                $baseMin = (int)$h * 60 + (int)$m;
+                                                $baseMin  = (int)$h * 60 + (int)$m;
                                                 $debutMin = $baseMin + (int)($groupe['debut']['valeur_raw'] ?? 0);
                                                 $finMin   = $baseMin + (int)($groupe['fin']['valeur_raw'] ?? 60);
-                                                $fmt = fn(int $mins) => sprintf('%02d:%02d', intdiv(abs($mins), 60) + ($mins < 0 ? -1 : 0), abs($mins) % 60);
-                                                // Calcul propre
-                                                $debutH = intdiv((($debutMin % 1440) + 1440) % 1440, 60);
-                                                $debutM = ((($debutMin % 1440) + 1440) % 1440) % 60;
-                                                $finH   = intdiv((($finMin % 1440) + 1440) % 1440, 60);
-                                                $finM   = ((($finMin % 1440) + 1440) % 1440) % 60;
+                                                $debutH   = intdiv((($debutMin % 1440) + 1440) % 1440, 60);
+                                                $debutM   = ((($debutMin % 1440) + 1440) % 1440) % 60;
+                                                $finH     = intdiv((($finMin % 1440) + 1440) % 1440, 60);
+                                                $finM     = ((($finMin % 1440) + 1440) % 1440) % 60;
                                             @endphp
                                             <span
                                                 class="horaire-preview"
@@ -351,12 +513,16 @@
 
 @push('scripts')
 <script>
-/**
- * Mise à jour dynamique de l'aperçu "Horaire calculé"
- * quand l'utilisateur modifie heure_cours ou un offset.
- */
+function updateInscriptionStatus(checkbox) {
+    const label = document.getElementById('inscriptionLabel');
+    if (label) {
+        label.textContent = checkbox.checked
+            ? '✅ Inscriptions ouvertes'
+            : '🔒 Inscriptions fermées';
+    }
+}
+
 (function () {
-    // Convertit "HH:MM" + offset minutes en "HH:MM"
     function addMinutes(hhmm, minutes) {
         const [h, m] = hhmm.split(':').map(Number);
         const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440;
@@ -370,22 +536,15 @@
         document.querySelectorAll('.horaire-preview').forEach(function (span) {
             const debutName = span.dataset.debutInput;
             const finName   = span.dataset.finInput;
-
-            const debutEl = document.querySelector('[name="' + debutName + '"]');
-            const finEl   = document.querySelector('[name="' + finName + '"]');
-
+            const debutEl   = document.querySelector('[name="' + debutName + '"]');
+            const finEl     = document.querySelector('[name="' + finName + '"]');
             if (!debutEl || !finEl) return;
-
             const offsetDebut = parseInt(debutEl.value, 10) || 0;
             const offsetFin   = parseInt(finEl.value,   10) || 0;
-
-            span.textContent = addMinutes(heureCours, offsetDebut)
-                + ' → '
-                + addMinutes(heureCours, offsetFin);
+            span.textContent  = addMinutes(heureCours, offsetDebut) + ' → ' + addMinutes(heureCours, offsetFin);
         });
     }
 
-    // Écouter tous les inputs concernés
     document.getElementById('settingsForm').addEventListener('input', updatePreviews);
 })();
 </script>

@@ -44,7 +44,6 @@
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
         }
 
-        /* ── Header ── */
         .header {
             background: #0c1e2e;
             padding: 40px 32px 36px;
@@ -61,17 +60,6 @@
             width: 280px;
             height: 280px;
             background: radial-gradient(circle, rgba(3, 105, 161, 0.35) 0%, transparent 65%);
-            pointer-events: none;
-        }
-
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: -60px;
-            right: -60px;
-            width: 220px;
-            height: 220px;
-            background: radial-gradient(circle, rgba(14, 165, 233, 0.2) 0%, transparent 65%);
             pointer-events: none;
         }
 
@@ -169,13 +157,11 @@
             z-index: 1;
         }
 
-        /* ── Stripe ── */
         .stripe {
             height: 4px;
             background: repeating-linear-gradient(90deg, #0369a1 0px, #0369a1 8px, #0284c7 8px, #0284c7 10px, #0ea5e9 10px, #0ea5e9 12px, #0284c7 12px, #0284c7 14px, #0369a1 14px, #0369a1 22px, #ffffff 22px, #ffffff 28px);
         }
 
-        /* ── Body ── */
         .body {
             background: #ffffff;
             padding: 36px 32px;
@@ -209,7 +195,6 @@
             font-weight: 600;
         }
 
-        /* ── Candidat info card ── */
         .candidat-card {
             background: #0c1e2e;
             border-radius: 10px;
@@ -258,7 +243,6 @@
             font-weight: 600;
         }
 
-        /* ── Restrictions summary ── */
         .restrictions-label {
             font-size: 9.5px;
             letter-spacing: 2px;
@@ -335,7 +319,6 @@
             color: #991b1b;
         }
 
-        /* ── CTA ── */
         .cta-wrap {
             text-align: center;
             margin: 28px 0;
@@ -348,13 +331,11 @@
             text-decoration: none;
             font-size: 14px;
             font-weight: 700;
-            letter-spacing: 0.3px;
             padding: 14px 32px;
             border-radius: 8px;
             box-shadow: 0 4px 16px rgba(3, 105, 161, 0.35);
         }
 
-        /* ── Closing divider ── */
         .closing-divider {
             display: table;
             width: 100%;
@@ -373,7 +354,6 @@
             white-space: nowrap;
         }
 
-        /* ── Footer ── */
         .footer {
             background: #f0f6fb;
             border: 1px solid #c7dff0;
@@ -470,13 +450,11 @@
 
             <div class="body">
                 <p class="greeting">Bonjour <em>{{ $adminPrenom }}</em>,</p>
-
                 <p class="body-text">
                     Une nouvelle candidature bénévole vient d'être soumise sur
                     <strong>AMANA Planning</strong> et attend votre validation.
                 </p>
 
-                {{-- Candidat card --}}
                 <div class="candidat-card">
                     <div class="candidat-label">&#10022; &nbsp; Informations du candidat</div>
                     <div class="info-row">
@@ -494,27 +472,8 @@
                             <div class="info-text-cell">{{ $candidat->telephone }}</div>
                         </div>
                     @endif
-                    <div class="info-row">
-                        <div class="info-icon-cell">📅</div>
-                        <div class="info-text-cell">
-                            Inscrit le :
-                            <strong>{{ $candidat->date_inscription_benevole
-    ? $candidat->date_inscription_benevole->locale('fr')->isoFormat('D MMMM YYYY')
-    : 'Non renseignée' }}</strong>
-                        </div>
-                    </div>
-                    @if($candidat->vehicule)
-                        <div class="info-row">
-                            <div class="info-icon-cell">🚗</div>
-                            <div class="info-text-cell">
-                                Véhicule : <strong>{{ $candidat->vehicule->type }} ({{ $candidat->vehicule->capacite_kg }}
-                                    kg)</strong>
-                            </div>
-                        </div>
-                    @endif
                 </div>
 
-                {{-- Restrictions --}}
                 @if($candidat->restrictions->isNotEmpty())
                     <div class="restrictions-label">&#10022; &nbsp; Disponibilités déclarées &nbsp; &#10022;</div>
                     <table class="restrictions-grid" role="presentation" cellpadding="5" cellspacing="0" border="0">
@@ -562,8 +521,7 @@
                 <div style="width:32px;height:1px;background:#c7dff0;margin:0 auto 10px;"></div>
                 <p>
                     Vous recevez cet email en tant qu'administrateur d'AMANA Planning.<br>
-                    Pour toute question&nbsp;: <a
-                        href="mailto:amana44.benevole@gmail.com">amana44.benevole@gmail.com</a>
+                    Pour toute question : <a href="mailto:amana44.benevole@gmail.com">amana44.benevole@gmail.com</a>
                 </p>
             </div>
 

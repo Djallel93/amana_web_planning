@@ -5,15 +5,21 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Jobs\EnvoyerWebhookMake;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Personne;
 use App\Models\Tache;
+use App\Services\WebhookPayloadBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Contrôleur pour les modifications manuelles du planning généré.
+ *
+ * Chaque modification d'assignation (patch ou unassign) déclenche
+ * un webhook vers Make.com pour maintenir Google Calendar à jour.
  *
  * Routes :
  *   PATCH  /planning/creneau/{creneauId}/tache/{tacheId}  → modifier l'assignation
@@ -24,6 +30,11 @@ use Illuminate\Http\Request;
  */
 class PlanningEditController extends Controller
 {
+    public function __construct(
+        private readonly WebhookPayloadBuilder $webhookBuilder,
+    ) {
+    }
+
     /**
      * Retourne la liste des personnes actives pour peupler la modale.
      */
@@ -67,6 +78,9 @@ class PlanningEditController extends Controller
 
         audit('update', 'planning', $creneauId, $avant, $ct->fresh()->toArray());
 
+        // ── Déclencher le webhook pour refléter la modification ────────────
+        $this->dispatchWebhookForCreneau($creneauId);
+
         return response()->json([
             'success' => true,
             'personne' => $newPersonne,
@@ -92,6 +106,9 @@ class PlanningEditController extends Controller
 
         audit('update', 'planning', $creneauId, $avant, $ct->fresh()->toArray());
 
+        // ── Déclencher le webhook pour refléter la désassignation ──────────
+        $this->dispatchWebhookForCreneau($creneauId);
+
         return response()->json([
             'success' => true,
             'message' => 'Assignation supprimée',
@@ -101,6 +118,10 @@ class PlanningEditController extends Controller
     /**
      * Supprime un créneau entier avec toutes ses tâches.
      * DELETE /planning/creneau/{id}
+     *
+     * Note : pas de webhook ici — la suppression d'un créneau côté Make.com
+     * est gérée par la logique de déduplication du scénario (il ne recréera
+     * pas un événement qui n'existe plus dans le payload).
      */
     public function deleteCreneau(int $id): JsonResponse
     {
@@ -127,7 +148,6 @@ class PlanningEditController extends Controller
      * Body JSON : { "date": "2025-06-06" }
      *
      * Crée le créneau + une CreneauTache (vide) par tâche active.
-     * Retourne les données nécessaires pour recharger la page.
      */
     public function createCreneau(Request $request): JsonResponse
     {
@@ -140,10 +160,8 @@ class PlanningEditController extends Controller
 
         $date = $request->input('date');
 
-        // Create the créneau
         $creneau = Creneau::create(['date' => $date]);
 
-        // Create one empty CreneauTache per active task
         $taches = Tache::actif()->orderBy('id')->get();
         foreach ($taches as $tache) {
             CreneauTache::create([
@@ -167,5 +185,35 @@ class PlanningEditController extends Controller
                 $carbonDate->locale('fr')->isoFormat('D MMM YYYY') . ' créé.',
             'date' => $date,
         ]);
+    }
+
+    // ── Private ───────────────────────────────────────────────────────────
+
+    /**
+     * Construit et dispatche le webhook pour un créneau spécifique.
+     * Silencieux en cas d'erreur (ne doit pas faire échouer la réponse JSON).
+     */
+    private function dispatchWebhookForCreneau(int $creneauId): void
+    {
+        if (empty(env('MAKE_WEBHOOK_URL'))) {
+            return;
+        }
+
+        try {
+            $creneau = Creneau::findOrFail($creneauId);
+            $payload = $this->webhookBuilder->buildForCreneau($creneau);
+
+            EnvoyerWebhookMake::dispatch($payload);
+
+            Log::info('[PlanningEditController] Webhook Make.com dispatché pour créneau', [
+                'creneau_id' => $creneauId,
+                'date' => $creneau->date->toDateString(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[PlanningEditController] Échec dispatch webhook', [
+                'creneau_id' => $creneauId,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

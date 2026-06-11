@@ -13,12 +13,18 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Construit le payload JSON à envoyer vers Make.com après génération du planning.
+ * Construit le payload JSON à envoyer vers Make.com après génération du planning
+ * ou après une modification manuelle d'une assignation.
  *
  * Les tâches bloquées par un événement actif sont exclues du payload.
  */
 class WebhookPayloadBuilder
 {
+    // ── Public entry points ───────────────────────────────────────────────
+
+    /**
+     * Construit le payload pour une plage de semaines (appelé après génération).
+     */
     public function build(string $dateDebut, int $semaines): array
     {
         $heureCours = Setting::get('heure_cours', 'planning') ?? '20:00';
@@ -50,12 +56,41 @@ class WebhookPayloadBuilder
         ];
     }
 
+    /**
+     * Construit le payload pour un seul créneau (appelé après modification manuelle).
+     * La structure racine est identique à build() — un seul élément dans "creneaux".
+     */
+    public function buildForCreneau(Creneau $creneau): array
+    {
+        // Recharger le créneau avec toutes les relations nécessaires
+        $creneau->load([
+            'taches.tache',
+            'taches.personne',
+            'evenements.tachesBloquees',
+        ]);
+
+        $heureCours = Setting::get('heure_cours', 'planning') ?? '20:00';
+        $lieu = Setting::get('lieu', 'planning') ?? '';
+        $toutesLesTaches = Tache::all()->keyBy('code');
+
+        return [
+            'genere_le' => now()->toIso8601String(),
+            'heure_cours' => $heureCours,
+            'lieu' => $lieu,
+            'creneaux' => [
+                $this->buildCreneau($creneau, $toutesLesTaches, $heureCours),
+            ],
+        ];
+    }
+
+    // ── Private builders ──────────────────────────────────────────────────
+
     private function buildCreneau(Creneau $creneau, Collection $taches, string $heureCours): array
     {
         $tachesMap = $creneau->taches->keyBy(fn($ct) => $ct->tache?->code);
         $date = Carbon::parse($creneau->date)->toDateString();
 
-        // Construire l'ensemble des codes de tâches bloquées par les événements actifs
+        // Codes de tâches bloquées par les événements actifs sur ce créneau
         $tachesBloquees = collect();
         foreach ($creneau->evenements as $evenement) {
             foreach ($evenement->tachesBloquees as $tache) {
@@ -65,12 +100,10 @@ class WebhookPayloadBuilder
         $tachesBloquees = $tachesBloquees->unique();
 
         // ── Tâches principales ─────────────────────────────────────────────
-        // Une tâche bloquée est exclue du payload (null pour nom + email)
         $tachesPayload = [];
         foreach (['entree', 'mektaba', 'salle', 'amana_food', 'cours'] as $code) {
             if ($tachesBloquees->contains($code)) {
-                // Tâche bloquée → exclue du payload
-                continue;
+                continue; // Tâche bloquée → exclue du payload
             }
             $tachesPayload[$code] = $this->buildTacheAssignee(
                 $tachesMap->get($code),
@@ -82,7 +115,6 @@ class WebhookPayloadBuilder
         }
 
         // ── Événements spéciaux ────────────────────────────────────────────
-        // rappel_sandwich hérite de amana_food → exclu si amana_food est bloqué
         $personneAmanaFood = $tachesBloquees->contains('amana_food')
             ? null
             : $tachesMap->get('amana_food')?->personne;
@@ -110,7 +142,7 @@ class WebhookPayloadBuilder
             );
         }
 
-        // ── Événements sociaux (pas d'assignee, toujours inclus) ──────────
+        // ── Événements sociaux ─────────────────────────────────────────────
         $eventsSociaux = [
             'annonce_cours' => $this->buildEvenementSocial(
                 'annonce_cours',
@@ -154,6 +186,7 @@ class WebhookPayloadBuilder
             'email' => $personne?->email,
             'heure_debut' => $debut,
             'heure_fin' => $fin,
+            'calendar_name' => $this->getCalendarName($code),
             'description' => $tacheRef?->description,
         ];
     }
@@ -172,6 +205,7 @@ class WebhookPayloadBuilder
             'email' => $personne?->email,
             'heure_debut' => $debut,
             'heure_fin' => $fin,
+            'calendar_name' => $this->getCalendarName($code),
             'description' => $tacheRef?->description,
         ];
     }
@@ -183,6 +217,7 @@ class WebhookPayloadBuilder
             'email' => $personne?->email,
             'heure_debut' => '08:00',
             'heure_fin' => '08:15',
+            'calendar_name' => $this->getCalendarName('rappel_sandwich'),
             'description' => $tacheRef?->description,
         ];
     }
@@ -195,13 +230,28 @@ class WebhookPayloadBuilder
     ): array {
         [$debut, $fin] = $this->calculerHoraires($codeOffset, $date, $heureCours);
 
+        // Pour message_general, le code offset est 'message_bot' mais la clé
+        // de calendrier est 'message_bot' également
         return [
             'nom_complet' => null,
             'email' => null,
             'heure_debut' => $debut,
             'heure_fin' => $fin,
+            'calendar_name' => $this->getCalendarName($codeOffset),
             'description' => $tacheRef?->description ?? '',
         ];
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+
+    /**
+     * Récupère le nom de calendrier configuré pour un code de tâche/événement.
+     * Clé en base : calendar_{code}  (ex: calendar_entree, calendar_amana_food)
+     * Retourne null si non configuré — Make.com utilisera son calendrier par défaut.
+     */
+    private function getCalendarName(string $code): ?string
+    {
+        return Setting::get("calendar_{$code}", 'planning') ?: null;
     }
 
     private function calculerHoraires(string $code, string $date, string $heureCours): array

@@ -8,23 +8,13 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Étape 2 du refactoring auth.
- *
  * Ajoute les colonnes nécessaires à l'authentification Laravel
- * directement dans ref_personnes, qui devient le modèle User de l'app.
- *
- * Colonnes ajoutées :
- *   - password          : mot de passe hashé (nullable au début car les membres
- *                         existants n'en ont pas encore — ils le créeront via email)
- *   - remember_token    : requis par Laravel pour "se souvenir de moi"
- *   - email_verified_at : requis par Laravel pour la vérification d'email
+ * directement dans ref_personnes.
  */
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::table('ref_personnes', function (Blueprint $table) {
-            // Nullable car les membres existants créeront leur mdp via invitation
             $table->string('password')->nullable()->after('email');
             $table->rememberToken()->after('password');
             $table->timestamp('email_verified_at')->nullable()->after('remember_token');

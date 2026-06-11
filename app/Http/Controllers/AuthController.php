@@ -17,29 +17,12 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
-/**
- * Contrôleur d'authentification.
- *
- * Gère l'ensemble du cycle d'authentification :
- *   - Connexion / déconnexion
- *   - Mot de passe oublié (envoi du lien de reset)
- *   - Réinitialisation du mot de passe (via le lien reçu par email)
- *   - Premier login (création du mot de passe via invitation)
- *
- * Le "premier login" et le "reset de mot de passe" utilisent le même
- * mécanisme Laravel (password broker) — la seule différence est le
- * texte affiché à l'utilisateur.
- */
 class AuthController extends Controller
 {
     // ──────────────────────────────────────────────────────────────────────
     // CONNEXION
     // ──────────────────────────────────────────────────────────────────────
 
-    /**
-     * Affiche le formulaire de connexion.
-     * Redirige vers le planning si déjà connecté.
-     */
     public function showLogin(): View|RedirectResponse
     {
         if (Auth::check()) {
@@ -49,9 +32,6 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    /**
-     * Traite la soumission du formulaire de connexion.
-     */
     public function login(Request $request): RedirectResponse
     {
         $request->validate([
@@ -66,73 +46,52 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
         $remember = $request->boolean('remember');
 
-        // Vérifier que le compte existe et est validé avant de tenter l'auth
         $personne = Personne::where('email', $credentials['email'])->first();
 
         if ($personne && $personne->statut === 'En attente') {
-            return back()
-                ->withInput($request->only('email'))
+            return back()->withInput($request->only('email'))
                 ->withErrors(['email' => 'Votre candidature est en attente de validation par un administrateur.']);
         }
 
         if ($personne && $personne->statut === 'Suspendu') {
-            return back()
-                ->withInput($request->only('email'))
+            return back()->withInput($request->only('email'))
                 ->withErrors(['email' => 'Votre compte a été suspendu. Contactez un administrateur.']);
         }
 
         if ($personne && $personne->statut === 'Archivé') {
-            return back()
-                ->withInput($request->only('email'))
+            return back()->withInput($request->only('email'))
                 ->withErrors(['email' => 'Ce compte est archivé.']);
         }
 
-        // Vérifier que le compte a un mot de passe défini
-        // (un membre invité qui n'a pas encore cliqué sur son lien)
         if ($personne && empty($personne->password)) {
-            return back()
-                ->withInput($request->only('email'))
+            return back()->withInput($request->only('email'))
                 ->withErrors(['email' => 'Vous n\'avez pas encore créé votre mot de passe. Vérifiez vos emails ou contactez un administrateur.']);
         }
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
-
             audit('login', 'auth');
-
             session()->flash('success', 'Bienvenue ' . Auth::user()->prenom . ' !');
-
             return redirect()->intended(route('planning.index'));
         }
 
-        return back()
-            ->withInput($request->only('email'))
+        return back()->withInput($request->only('email'))
             ->withErrors(['email' => 'Email ou mot de passe incorrect.']);
     }
 
-    /**
-     * Déconnexion.
-     */
     public function logout(Request $request): RedirectResponse
     {
         audit('logout', 'auth');
-
         Auth::logout();
-
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
-        return redirect()->route('login')
-            ->with('success', 'Vous avez été déconnecté.');
+        return redirect()->route('login')->with('success', 'Vous avez été déconnecté.');
     }
 
     // ──────────────────────────────────────────────────────────────────────
     // MOT DE PASSE OUBLIÉ
     // ──────────────────────────────────────────────────────────────────────
 
-    /**
-     * Affiche le formulaire "mot de passe oublié".
-     */
     public function showForgotPassword(): View|RedirectResponse
     {
         if (Auth::check()) {
@@ -142,9 +101,6 @@ class AuthController extends Controller
         return view('auth.forgot-password');
     }
 
-    /**
-     * Envoie le lien de réinitialisation par email.
-     */
     public function sendResetLink(Request $request): RedirectResponse
     {
         $request->validate([
@@ -154,10 +110,6 @@ class AuthController extends Controller
             'email.email' => 'Format d\'email invalide.',
         ]);
 
-        // Laravel vérifie que l'email existe dans le provider 'personnes'
-        // et envoie le lien si c'est le cas.
-        // On retourne toujours le même message pour ne pas révéler
-        // si l'email existe ou non dans la base (sécurité).
         $status = Password::broker('personnes')->sendResetLink(
             $request->only('email')
         );
@@ -166,15 +118,11 @@ class AuthController extends Controller
             return back()->with('success', 'Un lien de réinitialisation a été envoyé à votre adresse email.');
         }
 
-        // Throttle : l'utilisateur a déjà demandé un lien récemment
         if ($status === Password::RESET_THROTTLED) {
-            return back()
-                ->withInput()
+            return back()->withInput()
                 ->withErrors(['email' => 'Veuillez patienter avant de demander un nouveau lien.']);
         }
 
-        // Email non trouvé — on retourne le même message générique
-        // pour ne pas révéler si l'email existe dans la base
         return back()->with('success', 'Si cette adresse est connue, un lien vous a été envoyé.');
     }
 
@@ -182,10 +130,6 @@ class AuthController extends Controller
     // RÉINITIALISATION DU MOT DE PASSE
     // ──────────────────────────────────────────────────────────────────────
 
-    /**
-     * Affiche le formulaire de création/réinitialisation du mot de passe.
-     * Utilisé pour le reset classique ET pour le premier login via invitation.
-     */
     public function showResetPassword(Request $request, string $token): View
     {
         return view('auth.reset-password', [
@@ -194,9 +138,6 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Traite la création/réinitialisation du mot de passe.
-     */
     public function resetPassword(Request $request): RedirectResponse
     {
         $request->validate([
@@ -217,14 +158,11 @@ class AuthController extends Controller
                 $personne->password = Hash::make($password);
                 $personne->remember_token = Str::random(60);
 
-                // Marquer l'email comme vérifié lors de la première création
-                // de mot de passe via invitation
                 if (!$personne->email_verified_at) {
                     $personne->email_verified_at = now();
                 }
 
                 $personne->save();
-
                 event(new PasswordReset($personne));
             }
         );
@@ -234,9 +172,7 @@ class AuthController extends Controller
                 ->with('success', 'Votre mot de passe a été créé avec succès. Vous pouvez maintenant vous connecter.');
         }
 
-        // Token expiré ou invalide
-        return back()
-            ->withInput($request->only('email'))
+        return back()->withInput($request->only('email'))
             ->withErrors(['email' => 'Ce lien est invalide ou a expiré. Veuillez en demander un nouveau.']);
     }
 
@@ -244,32 +180,18 @@ class AuthController extends Controller
     // INSCRIPTION
     // ──────────────────────────────────────────────────────────────────────
 
-    /**
-     * Affiche le formulaire d'inscription public.
-     */
     public function showInscription(): View|RedirectResponse
     {
         if (Auth::check()) {
             return redirect()->route('planning.index');
         }
 
-        $vehicules = \App\Models\Vehicule::orderBy('type')->get();
         $taches = \App\Models\Tache::actif()->orderBy('id')->get();
         $jours = ['Vendredi', 'Samedi'];
 
-        return view('auth.inscription', compact('vehicules', 'taches', 'jours'));
+        return view('auth.inscription', compact('taches', 'jours'));
     }
 
-    /**
-     * Traite la soumission du formulaire d'inscription.
-     *
-     * Crée la personne avec statut 'En attente', enregistre ses restrictions,
-     * puis notifie tous les admins planning par email.
-     *
-     * CHANGEMENT : on recharge la personne avec ses relations (vehicule +
-     * restrictions.tache) avant d'envoyer la notification, afin que le
-     * template email brandé puisse les afficher sans lazy-loading N+1.
-     */
     public function inscription(Request $request): RedirectResponse
     {
         $request->validate([
@@ -277,8 +199,6 @@ class AuthController extends Controller
             'prenom' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', 'unique:ref_personnes,email'],
             'telephone' => ['nullable', 'string', 'max:20'],
-            'id_vehicule' => ['nullable', 'integer', 'exists:ref_vehicules,id'],
-            'date_inscription_benevole' => ['nullable', 'date'],
             'restrictions' => ['nullable', 'array'],
         ], [
             'nom.required' => 'Le nom est obligatoire.',
@@ -294,10 +214,7 @@ class AuthController extends Controller
             'prenom' => $request->prenom,
             'email' => $request->email,
             'telephone' => $request->telephone,
-            'id_vehicule' => $request->id_vehicule,
-            'date_inscription_benevole' => $request->date_inscription_benevole ?? now()->toDateString(),
             'statut' => 'En attente',
-            'tirelire' => false,
         ]);
 
         // ── Enregistrer les restrictions ───────────────────────────────────
@@ -310,29 +227,20 @@ class AuthController extends Controller
                 $autorise = isset($restrictionsPost[$tache->id][$jour]);
 
                 \App\Models\Restriction::updateOrCreate(
-                    [
-                        'id_personne' => $personne->id,
-                        'id_tache' => $tache->id,
-                        'jour' => $jour,
-                    ],
+                    ['id_personne' => $personne->id, 'id_tache' => $tache->id, 'jour' => $jour],
                     ['autorise' => $autorise]
                 );
             }
         }
 
         // ── Recharger avec les relations nécessaires au template email ─────
-        // vehicule          → affiché dans la fiche candidat
-        // restrictions.tache → affiché dans le tableau des disponibilités
-        $personne->load(['vehicule', 'restrictions.tache']);
+        $personne->load(['restrictions.tache']);
 
         // ── Notifier tous les admins planning ─────────────────────────────
         $admins = Personne::adminsPlanning()->get();
 
         if ($admins->isNotEmpty()) {
-            Notification::send(
-                $admins,
-                new NouveauMembreNotification($personne)
-            );
+            Notification::send($admins, new NouveauMembreNotification($personne));
         }
 
         audit('create', 'inscription', $personne->id, null, [

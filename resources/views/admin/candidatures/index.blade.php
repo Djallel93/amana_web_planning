@@ -57,18 +57,8 @@
                             <div style="display:flex;flex-direction:column;gap:5px;min-width:180px;">
                                 <div
                                     style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--ink-muted);">
-                                    Informations</div>
-                                <div style="font-size:12.5px;color:var(--ink-light);">
-                                    📅 Inscrit le :
-                                    {{ $candidat->date_inscription_benevole
-                        ? $candidat->date_inscription_benevole->locale('fr')->isoFormat('D MMM YYYY')
-                        : '—' }}
+                                    Informations
                                 </div>
-                                @if($candidat->vehicule)
-                                    <div style="font-size:12.5px;color:var(--ink-light);">
-                                        🚗 {{ $candidat->vehicule->type }} ({{ $candidat->vehicule->capacite_kg }} kg)
-                                    </div>
-                                @endif
                                 <div style="font-size:12.5px;color:var(--ink-light);">
                                     🕐 {{ $candidat->derniere_maj?->locale('fr')->isoFormat('D MMM YYYY à HH:mm') ?? '—' }}
                                 </div>
@@ -78,7 +68,8 @@
                             <div style="min-width:200px;">
                                 <div
                                     style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--ink-muted);margin-bottom:8px;">
-                                    Disponibilités</div>
+                                    Disponibilités
+                                </div>
                                 @if($candidat->restrictions->isEmpty())
                                     <span style="font-size:12px;color:var(--ink-faint);font-style:italic;">Non renseignées</span>
                                 @else
@@ -105,7 +96,6 @@
                             {{-- Actions --}}
                             <div style="display:flex;flex-direction:column;gap:9px;flex-shrink:0;min-width:190px;">
 
-                                {{-- Validate with role selector --}}
                                 <form action="{{ route('admin.candidatures.valider', $candidat->id) }}" method="POST"
                                     onsubmit="return confirmValidation(this)">
                                     @csrf
@@ -131,7 +121,6 @@
                                     </button>
                                 </form>
 
-                                {{-- Refuse --}}
                                 <form action="{{ route('admin.candidatures.refuser', $candidat->id) }}" method="POST"
                                     onsubmit="return confirm('Refuser la candidature de {{ $candidat->prenom }} {{ $candidat->nom }} ?')">
                                     @csrf

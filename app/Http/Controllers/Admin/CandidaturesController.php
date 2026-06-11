@@ -19,17 +19,13 @@ use Illuminate\View\View;
 
 class CandidaturesController extends Controller
 {
-    /**
-     * Liste toutes les candidatures en attente.
-     */
     public function index(): View
     {
         $candidatures = Personne::enAttente()
-            ->with(['vehicule', 'restrictions.tache'])
+            ->with(['restrictions.tache'])
             ->orderBy('derniere_maj', 'desc')
             ->get();
 
-        // Pass available planning roles to the view for the role selector
         $planningApp = Application::where('code', 'planning')->first();
         $roles = $planningApp
             ? Role::where('id_application', $planningApp->id)
@@ -41,9 +37,6 @@ class CandidaturesController extends Controller
         return view('admin.candidatures.index', compact('candidatures', 'roles'));
     }
 
-    /**
-     * Valide une candidature avec le rôle choisi par l'admin.
-     */
     public function valider(Request $request, int $id): RedirectResponse
     {
         $request->validate([
@@ -63,32 +56,22 @@ class CandidaturesController extends Controller
         $avant = $personne->toArray();
         $roleCode = $request->input('role', 'membre');
 
-        // ── 1. Valider le statut ───────────────────────────────────────────
         $personne->statut = 'Validé';
         $personne->date_debut_planning = now()->toDateString();
         $personne->save();
 
-        // ── 2. Attribuer le rôle choisi ────────────────────────────────────
         $this->attribuerRole($personne, $roleCode);
 
-        // ── 3. Email selon présence d'un mot de passe ──────────────────────
         $dejaMotDePasse = !empty($personne->password);
 
         if ($dejaMotDePasse) {
-            $personne->notify(
-                new CandidatureValideeDejaInscritNotification(route('login'))
-            );
-            $messageFlash = "Candidature de {$personne->prenom} {$personne->nom} validée (rôle : {$roleCode}). "
-                . "Email de connexion directe envoyé (compte déjà existant).";
+            $personne->notify(new CandidatureValideeDejaInscritNotification(route('login')));
+            $messageFlash = "Candidature de {$personne->prenom} {$personne->nom} validée (rôle : {$roleCode}). Email de connexion directe envoyé.";
         } else {
             $token = Password::broker('personnes')->createToken($personne);
-            $resetUrl = route('password.reset', [
-                'token' => $token,
-                'email' => $personne->email,
-            ]);
+            $resetUrl = route('password.reset', ['token' => $token, 'email' => $personne->email]);
             $personne->notify(new CandidatureValideeNotification($resetUrl));
-            $messageFlash = "Candidature de {$personne->prenom} {$personne->nom} validée (rôle : {$roleCode}). "
-                . "Email d'invitation envoyé.";
+            $messageFlash = "Candidature de {$personne->prenom} {$personne->nom} validée (rôle : {$roleCode}). Email d'invitation envoyé.";
         }
 
         audit('update', 'candidatures', $personne->id, $avant, [
@@ -98,13 +81,9 @@ class CandidaturesController extends Controller
             'deja_mot_de_passe' => $dejaMotDePasse,
         ]);
 
-        return redirect()->route('admin.candidatures.index')
-            ->with('success', $messageFlash);
+        return redirect()->route('admin.candidatures.index')->with('success', $messageFlash);
     }
 
-    /**
-     * Refuse une candidature et archive la personne.
-     */
     public function refuser(int $id): RedirectResponse
     {
         $personne = Personne::findOrFail($id);
@@ -127,9 +106,6 @@ class CandidaturesController extends Controller
             ->with('success', "Candidature de {$personne->prenom} {$personne->nom} refusée.");
     }
 
-    /**
-     * Renvoie l'email d'invitation à un membre validé.
-     */
     public function renvoyerInvitation(int $id): RedirectResponse
     {
         $personne = Personne::findOrFail($id);
@@ -142,17 +118,11 @@ class CandidaturesController extends Controller
         $dejaMotDePasse = !empty($personne->password);
 
         if ($dejaMotDePasse) {
-            $personne->notify(
-                new CandidatureValideeDejaInscritNotification(route('login'))
-            );
-            $messageFlash = "Email de connexion renvoyé à {$personne->prenom} {$personne->nom} "
-                . "(compte déjà existant, connexion directe).";
+            $personne->notify(new CandidatureValideeDejaInscritNotification(route('login')));
+            $messageFlash = "Email de connexion renvoyé à {$personne->prenom} {$personne->nom}.";
         } else {
             $token = Password::broker('personnes')->createToken($personne);
-            $resetUrl = route('password.reset', [
-                'token' => $token,
-                'email' => $personne->email,
-            ]);
+            $resetUrl = route('password.reset', ['token' => $token, 'email' => $personne->email]);
             $personne->notify(new CandidatureValideeNotification($resetUrl));
             $messageFlash = "Invitation renvoyée à {$personne->prenom} {$personne->nom}.";
         }
@@ -162,24 +132,15 @@ class CandidaturesController extends Controller
             'deja_mot_de_passe' => $dejaMotDePasse,
         ]);
 
-        return redirect()->route('admin.candidatures.index')
-            ->with('success', $messageFlash);
+        return redirect()->route('admin.candidatures.index')->with('success', $messageFlash);
     }
 
-    // ── Private ───────────────────────────────────────────────────────────
-
-    /**
-     * Attribue un rôle planning à une personne.
-     * Supprime d'abord tous ses rôles planning existants (un seul rôle par app).
-     */
     private function attribuerRole(Personne $personne, string $roleCode): void
     {
         $planningApp = Application::where('code', 'planning')->first();
-        if (!$planningApp) {
+        if (!$planningApp)
             return;
-        }
 
-        // Supprimer tous les rôles planning existants
         $planningRoleIds = Role::where('id_application', $planningApp->id)->pluck('id')->toArray();
         if (!empty($planningRoleIds)) {
             DB::table('ref_personnes_roles')
@@ -188,7 +149,6 @@ class CandidaturesController extends Controller
                 ->delete();
         }
 
-        // Attribuer le nouveau rôle
         $role = Role::where('code', $roleCode)
             ->where('id_application', $planningApp->id)
             ->first();

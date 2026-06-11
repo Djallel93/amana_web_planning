@@ -60,8 +60,7 @@
                             </label>
                             <input type="tel" id="telephone" name="telephone"
                                 value="{{ old('telephone', $personne->telephone ?? '') }}" maxlength="20"
-                                placeholder="06 12 34 56 78" pattern="(\+33|0033|0)[1-9](\s?[0-9]{2}){4}"
-                                title="Numéro français : 06 12 34 56 78 ou +33 6 12 34 56 78">
+                                placeholder="06 12 34 56 78">
                             <span class="form-hint">
                                 Formats acceptés : <code>06 12 34 56 78</code> &nbsp;·&nbsp;
                                 <code>0612345678</code> &nbsp;·&nbsp; <code>+33 6 12 34 56 78</code>
@@ -146,8 +145,7 @@
                             style="max-width:260px;">
                         <span class="form-hint">
                             Utilisée lors de la génération pour ne pas assigner ce membre
-                            avant son arrivée, et dans le calcul du score de charge.
-                            Laisser vide pour inclure ce membre immédiatement.
+                            avant son arrivée. Laisser vide pour inclure ce membre immédiatement.
                         </span>
                         @error('date_debut_planning')<span class="form-error">{{ $message }}</span>@enderror
                     </div>
@@ -168,10 +166,7 @@
     <script>
         document.getElementById('personneForm').addEventListener('submit', function () {
             const btn = document.getElementById('submitBtn');
-
-            // Ne désactiver que si le formulaire est valide
             if (!this.checkValidity()) return;
-
             btn.disabled = true;
             btn.innerHTML = '⏳ {{ $edit ? "Enregistrement…" : "Création en cours…" }}';
             btn.style.opacity = '0.75';

@@ -8,7 +8,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Migration : tables du planning, des événements, restrictions et absences
+ * Migration : tables du planning, des événements, restrictions et absences.
  */
 return new class extends Migration {
     public function up(): void
@@ -16,8 +16,7 @@ return new class extends Migration {
         // ── ref_evenements ─────────────────────────────────────────────────
         Schema::create('ref_evenements', function (Blueprint $table) {
             $table->increments('id');
-            $table->string('nom', 150)
-                ->comment('Doit être unique et précis : Vacances Noël, Vacances Toussaint');
+            $table->string('nom', 150);
             $table->date('date_debut');
             $table->date('date_fin');
             $table->text('description')->nullable();
@@ -44,8 +43,7 @@ return new class extends Migration {
         // ── plan_creneaux ──────────────────────────────────────────────────
         Schema::create('plan_creneaux', function (Blueprint $table) {
             $table->increments('id');
-            $table->date('date')->unique('uq_planning_date')
-                ->comment('Une ligne par date de permanence');
+            $table->date('date')->unique('uq_planning_date');
         });
 
         // ── plan_creneaux_evenements ───────────────────────────────────────
@@ -89,8 +87,7 @@ return new class extends Migration {
             $table->unsignedInteger('id_personne');
             $table->unsignedTinyInteger('id_tache');
             $table->enum('jour', ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']);
-            $table->boolean('autorise')->default(true)
-                ->comment('TRUE = peut faire / FALSE = interdit');
+            $table->boolean('autorise')->default(true);
 
             $table->unique(['id_personne', 'id_tache', 'jour'], 'uq_restrictions');
 
