@@ -138,6 +138,66 @@ class DatabaseSeeder extends Seeder
             ['cle' => 'offset_annonce_cours_fin', 'valeur' => '-345', 'type' => 'integer', 'libelle' => 'Annonce cours : fin (min)'],
             ['cle' => 'offset_message_bot_debut', 'valeur' => '-30', 'type' => 'integer', 'libelle' => 'Message bot : début (min)'],
             ['cle' => 'offset_message_bot_fin', 'valeur' => '0', 'type' => 'integer', 'libelle' => 'Message bot : fin (min)'],
+
+            // ── D. Noms de calendriers Google Calendar ─────────────────────
+            // Vides par défaut — à renseigner via la page Paramètres.
+            // Chaque valeur est le nom exact du calendrier Google Calendar
+            // dans lequel Make.com créera les événements pour cette tâche.
+            // Si vide → Make.com utilise son calendrier par défaut.
+            [
+                'cle' => 'calendar_entree',
+                'valeur' => 'AMANA - Planning',
+                'type' => 'string',
+                'libelle' => 'Entrée',
+            ],
+            [
+                'cle' => 'calendar_mektaba',
+                'valeur' => 'AMANA - Planning',
+                'type' => 'string',
+                'libelle' => 'Mektaba',
+            ],
+            [
+                'cle' => 'calendar_salle',
+                'valeur' => 'AMANA - Planning',
+                'type' => 'string',
+                'libelle' => 'Salle',
+            ],
+            [
+                'cle' => 'calendar_amana_food',
+                'valeur' => 'AMANA - Planning',
+                'type' => 'string',
+                'libelle' => 'Amana Food',
+            ],
+            [
+                'cle' => 'calendar_cours',
+                'valeur' => 'AMANA - Planning',
+                'type' => 'string',
+                'libelle' => 'Cours',
+            ],
+            [
+                'cle' => 'calendar_rappel_sandwich',
+                'valeur' => 'AMANA - Planning',
+                'type' => 'string',
+                'libelle' => 'Rappel Sandwich',
+            ],
+            [
+                'cle' => 'calendar_assistance_amana_food',
+                'valeur' => 'AMANA - Planning',
+                'type' => 'string',
+                'libelle' => 'Assistance Amana Food',
+            ],
+            [
+                'cle' => 'calendar_annonce_cours',
+                'valeur' => 'AMANA - Communications',
+                'type' => 'string',
+                'libelle' => 'Annonce Cours',
+            ],
+            [
+                'cle' => 'calendar_message_bot',
+                'valeur' => 'AMANA - Communications',
+                'type' => 'string',
+                'libelle' => 'Message Bot',
+            ],
         ];
 
         foreach ($settings as $s) {
