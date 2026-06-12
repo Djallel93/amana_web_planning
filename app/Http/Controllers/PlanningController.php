@@ -50,7 +50,6 @@ class PlanningController extends Controller
             ->groupBy(fn($c) => $c->date->isoWeek() . '-' . $c->date->year);
 
         // Charger tous les événements de la période pour les bannières informatives
-        // (événements sans tâches bloquées, ou sur des jours non-vendredi/samedi)
         $evenementsQuery = \App\Models\Evenement::with('tachesBloquees')
             ->orderBy('date_debut');
 
@@ -60,9 +59,6 @@ class PlanningController extends Controller
 
         $tousEvenements = $evenementsQuery->get();
 
-        // Construire les bannières informatives : événements actifs par semaine ISO
-        // Un événement informatif (aucune tâche bloquée) ou couvrant un jour hors Ven/Sam
-        // est affiché comme bannière dans le bloc semaine
         $bannièresParSemaine = $this->buildBannièresInformatives($tousEvenements, $creneaux);
 
         return view('planning.index', compact('creneaux', 'historique', 'bannièresParSemaine'));
@@ -70,12 +66,6 @@ class PlanningController extends Controller
 
     /**
      * Construit les bannières informatives à afficher dans les blocs semaine.
-     *
-     * Une bannière est affichée pour un événement si :
-     * - Il n'a aucune tâche bloquée (purement informatif), OU
-     * - Il couvre au moins un jour dans la semaine (pour info visuelle)
-     *
-     * Retourne un tableau indexé par clé semaine ('isoWeek-year') => [evenements]
      */
     private function buildBannièresInformatives(
         \Illuminate\Support\Collection $tousEvenements,
@@ -83,16 +73,13 @@ class PlanningController extends Controller
     ): array {
         $bannières = [];
 
-        // Récupérer toutes les clés semaine présentes dans le planning
         foreach ($creneauxParSemaine as $semaineCle => $creneaux) {
             $first = $creneaux->first();
             $weekStart = $first->date->copy()->subDays($first->date->isoWeekday() - 1)->startOfDay();
             $weekEnd = $weekStart->copy()->addDays(6)->endOfDay();
 
             foreach ($tousEvenements as $evenement) {
-                // L'événement se chevauche-t-il avec cette semaine ?
                 if ($evenement->date_debut->lte($weekEnd) && $evenement->date_fin->gte($weekStart)) {
-                    // Calculer les dates exactes de l'événement dans cette semaine
                     $debutDansSemaine = $evenement->date_debut->lt($weekStart)
                         ? $weekStart->copy()
                         : $evenement->date_debut->copy();
@@ -131,7 +118,8 @@ class PlanningController extends Controller
 
             audit('generate', 'planning', null, null, $resultat);
 
-            if (env('MAKE_WEBHOOK_URL')) {
+            // config() fonctionne après php artisan config:cache, env() ne fonctionne pas.
+            if (config('services.make.webhook_url')) {
                 $payload = app(\App\Services\WebhookPayloadBuilder::class)
                     ->build($dateDebut, $semaines);
 

@@ -35,4 +35,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Make.com Webhook
+    |--------------------------------------------------------------------------
+    |
+    | URL du webhook Make.com vers lequel le planning généré est envoyé.
+    | Utilisé par EnvoyerWebhookMake, PlanningController et PlanningEditController.
+    |
+    | ⚠️  Toujours lire via config('services.make.webhook_url') et jamais via
+    |     env() directement — env() retourne null après php artisan config:cache.
+    |
+    */
+
+    'make' => [
+        'webhook_url' => env('MAKE_WEBHOOK_URL'),
+    ],
+
 ];

@@ -36,8 +36,16 @@ Route::get('/nouveau-mot-de-passe/{token}', [AuthController::class, 'showResetPa
 Route::post('/nouveau-mot-de-passe', [AuthController::class, 'resetPassword'])->name('password.update');
 
 // ── Inscription publique ──────────────────────────────────────────────────
-Route::get('/inscription', [AuthController::class, 'showInscription'])->name('inscription');
-Route::post('/inscription', [AuthController::class, 'inscription'])->name('inscription.submit');
+// throttle:20,1 → max 20 requêtes par minute par IP pour afficher le formulaire.
+// throttle:5,1  → max 5 soumissions par minute par IP pour éviter le spam.
+// Laravel retourne automatiquement une réponse 429 en cas de dépassement.
+Route::get('/inscription', [AuthController::class, 'showInscription'])
+    ->name('inscription')
+    ->middleware('throttle:20,1');
+
+Route::post('/inscription', [AuthController::class, 'inscription'])
+    ->name('inscription.submit')
+    ->middleware('throttle:5,1');
 
 /*
 |--------------------------------------------------------------------------
@@ -82,7 +90,6 @@ Route::middleware('auth')->group(function () {
                 ->name('edit.delete-creneau')
                 ->where('id', '[0-9]+');
 
-            // ── NEW: create a créneau manually ────────────────────────────
             Route::post('/creneau', [PlanningEditController::class, 'createCreneau'])
                 ->name('edit.create-creneau');
         });

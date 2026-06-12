@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Modèle pour la table audit_logs.
@@ -13,15 +14,18 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Utilisation via le helper global :
  *   audit('create', 'personnes', $personne->id, null, $personne->toArray());
+ *
+ * user_id est résolu automatiquement par AuditHelper depuis Auth::id().
+ * Il est null pour les actions système (jobs en queue, webhook, etc.)
  */
 class AuditLog extends Model
 {
     protected $table = 'audit_logs';
 
-    // On utilise les timestamps Laravel standard (created_at / updated_at)
     public $timestamps = true;
 
     protected $fillable = [
+        'user_id',
         'action',
         'module',
         'entity_id',
@@ -34,6 +38,17 @@ class AuditLog extends Model
 
     protected $casts = [
         'before' => 'array',
-        'after'  => 'array',
+        'after' => 'array',
     ];
+
+    // ── Relations ─────────────────────────────────────────────────────────
+
+    /**
+     * La personne qui a effectué l'action.
+     * Peut être null pour les actions système (jobs, webhook).
+     */
+    public function personne(): BelongsTo
+    {
+        return $this->belongsTo(Personne::class, 'user_id');
+    }
 }

@@ -37,10 +37,12 @@ class EnvoyerWebhookMake implements ShouldQueue
      */
     public function handle(): void
     {
-        $url = env('MAKE_WEBHOOK_URL');
+        // config() fonctionne correctement après php artisan config:cache,
+        // contrairement à env() qui retourne null en production.
+        $url = config('services.make.webhook_url');
 
         if (empty($url)) {
-            Log::warning('[WebhookMake] MAKE_WEBHOOK_URL non configurée — envoi ignoré.');
+            Log::warning('[WebhookMake] services.make.webhook_url non configurée — envoi ignoré.');
             return;
         }
 
