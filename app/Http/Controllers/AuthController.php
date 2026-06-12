@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Personne;
+use App\Models\Setting;
 use App\Notifications\NouveauMembreNotification;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
@@ -180,10 +181,23 @@ class AuthController extends Controller
     // INSCRIPTION
     // ──────────────────────────────────────────────────────────────────────
 
+    /**
+     * Affiche le formulaire d'inscription publique.
+     *
+     * Si le paramètre `inscription_ouverte` est false dans ref_settings,
+     * redirige vers la page de connexion avec un message informatif.
+     * Par défaut (paramètre absent), les inscriptions sont considérées ouvertes.
+     */
     public function showInscription(): View|RedirectResponse
     {
         if (Auth::check()) {
             return redirect()->route('planning.index');
+        }
+
+        $ouvert = Setting::get('inscription_ouverte', 'planning') ?? true;
+        if (!$ouvert) {
+            return redirect()->route('login')
+                ->with('error', 'Les inscriptions sont actuellement fermées. Veuillez contacter un administrateur.');
         }
 
         $taches = \App\Models\Tache::actif()->orderBy('id')->get();
@@ -192,8 +206,24 @@ class AuthController extends Controller
         return view('auth.inscription', compact('taches', 'jours'));
     }
 
+    /**
+     * Traite la soumission du formulaire d'inscription publique.
+     *
+     * Vérifie à nouveau que les inscriptions sont ouvertes au moment de la
+     * soumission pour éviter tout contournement via un formulaire mis en cache.
+     */
     public function inscription(Request $request): RedirectResponse
     {
+        if (Auth::check()) {
+            return redirect()->route('planning.index');
+        }
+
+        $ouvert = Setting::get('inscription_ouverte', 'planning') ?? true;
+        if (!$ouvert) {
+            return redirect()->route('login')
+                ->with('error', 'Les inscriptions sont actuellement fermées.');
+        }
+
         $request->validate([
             'nom' => ['required', 'string', 'max:100'],
             'prenom' => ['required', 'string', 'max:100'],

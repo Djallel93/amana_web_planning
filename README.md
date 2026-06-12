@@ -20,13 +20,22 @@ AMANA Planning est une application web de gestion des permanences hebdomadaires 
 
 **Tâches planifiées :**
 
-| Code         | Libellé    | Description                                      |
-| ------------ | ---------- | ------------------------------------------------ |
-| `entree`     | Entrée     | Accueil des bénéficiaires à l'entrée             |
-| `mektaba`    | Mektaba    | Gestion de la bibliothèque / espace documentaire |
-| `salle`      | Salle      | Préparation et rangement de la salle             |
-| `amana_food` | Amana Food | Distribution alimentaire                         |
-| `cours`      | Cours      | Animation du cours du soir                       |
+| Code         | Libellé    | Actif dans le scheduler | Description                                      |
+| ------------ | ---------- | :---------------------: | ------------------------------------------------ |
+| `entree`     | Entrée     |           ✅            | Accueil des bénéficiaires à l'entrée             |
+| `mektaba`    | Mektaba    |           ✅            | Gestion de la bibliothèque / espace documentaire |
+| `salle`      | Salle      |           ✅            | Préparation et rangement de la salle             |
+| `amana_food` | Amana Food |           ✅            | Distribution alimentaire                         |
+| `cours`      | Cours      |           ✅            | Animation du cours du soir                       |
+
+Les tâches suivantes existent dans `ref_taches` mais ne sont **pas incluses dans la rotation du scheduler** (`actif = false`). Elles ne servent qu'à calculer les horaires du payload webhook :
+
+| Code                    | Libellé               |
+| ----------------------- | --------------------- |
+| `rappel_sandwich`       | Rappel Sandwich       |
+| `assistance_amana_food` | Assistance Amana Food |
+| `annonce_cours`         | Annonce Cours         |
+| `message_general`       | Message Général       |
 
 ---
 
@@ -48,8 +57,12 @@ graph TD
 - **Base de données :** MySQL 8 / MariaDB 10.4+
 - **Frontend :** Blade + CSS custom (pas de framework JS)
 - **PDF :** barryvdh/laravel-dompdf
-- **Queue :** Laravel Queue (driver database)
+- **Queue :** Laravel Queue (driver `database` en prod, `sync` supporté en dev)
 - **Automatisation externe :** Make.com via webhook
+
+**Configuration dynamique :**
+
+Tous les paramètres applicatifs (heure du cours, lieu, offsets horaires, noms de calendriers, ouverture des inscriptions) sont stockés dans la table `ref_settings` et gérés via la page **Paramètres** (`/parametres`). Il n'y a **pas** de variable d'environnement pour l'heure du cours — la clé `.env` `HEURE_COURS` présente dans les anciennes versions du projet est obsolète et ignorée.
 
 ---
 
@@ -82,9 +95,12 @@ graph LR
 | Rollback (annuler une génération)         |  ✅   |      ✅      |      ❌      |
 | Créer / modifier les événements           |  ✅   |      ✅      |      ❌      |
 | Voir les événements                       |  ✅   |      ✅      |      ✅      |
-| Paramètres de l'application               |  ✅   |      ✅      |      ❌      |
+| Paramètres de l'application               |  ✅   | ✅ (partiel) |      ❌      |
+| Ouvrir / fermer les inscriptions          |  ✅   |      ❌      |      ❌      |
 | Gérer les personnes (CRUD)                |  ✅   |      ❌      |      ❌      |
 | Valider / refuser les candidatures        |  ✅   |      ❌      |      ❌      |
+
+> **Note :** Les gestionnaires peuvent accéder à la page Paramètres et modifier les horaires, le lieu, les offsets et les noms de calendriers. Le paramètre **Inscriptions ouvertes/fermées** est réservé aux administrateurs — les gestionnaires voient la section en lecture seule.
 
 ---
 
@@ -96,10 +112,11 @@ Vue principale de l'application. Affiche les créneaux regroupés par semaine IS
 
 **Fonctionnalités :**
 
-- Filtre par année et par mois (filtre par défaut : mois courant + mois précédent)
-- Bannières informatives par semaine pour les événements
+- Par défaut : affichage glissant sur 12 mois (aujourd'hui − 1 an → futur). Un lien « Historique complet » charge tout l'historique à la demande.
+- Filtre par année et par mois (filtre par défaut : mois courant + mois précédent, activé automatiquement)
+- Bannières informatives par semaine pour les événements (informatifs ou bloquants)
 - Clic sur une cellule → modale de réassignation (admin/gestionnaire)
-- Bouton « + Créneau » pour ajouter manuellement un jour (admin/gestionnaire)
+- Bouton « + Créneau » pour ajouter manuellement un jour dans une semaine existante (admin/gestionnaire)
 - Suppression d'un créneau ou d'une semaine entière (admin/gestionnaire)
 - Toasts de confirmation en temps réel (AJAX)
 
@@ -174,6 +191,8 @@ Grille de disponibilité par personne, tâche et jour (Vendredi / Samedi).
 - **Case cochée** = la personne peut effectuer la tâche ce jour-là
 - **Case décochée** = la personne est indisponible pour cette tâche ce jour-là
 
+**Comportement par défaut :** si aucune ligne n'existe en base pour une combinaison personne/tâche/jour, la personne est considérée **disponible**. Une ligne n'est créée que pour exprimer une contrainte.
+
 **Cas d'usage typique :** pour la tâche `cours`, cocher uniquement la personne désignée pour animer le cours, et décocher tous les autres.
 
 Admin/gestionnaire voient la grille complète modifiable. Les membres voient la grille en lecture seule et disposent d'un formulaire pour modifier uniquement leurs propres disponibilités.
@@ -191,15 +210,24 @@ Les événements organisationnels (vacances, Ramadan, conférences…) peuvent b
 | **Informatif** (aucune tâche cochée)           | Affiche une bannière dans le planning, n'affecte pas les assignations                     |
 | **Bloquant** (une ou plusieurs tâches cochées) | Les tâches sélectionnées ne sont pas assignées pour les créneaux couverts par l'événement |
 
+Les tâches bloquées sont gérées via la table pivot `ref_evenements_taches`. Les créneaux liés à un événement actif sont enregistrés dans `plan_creneaux_evenements`.
+
 ---
 
 ### ⚙️ Paramètres (`/parametres`)
 
-Configuration de l'application (admin/gestionnaire uniquement) :
+Configuration de l'application (admin/gestionnaire, avec restrictions selon le rôle).
 
-- **Heure du cours** : heure de référence pour le calcul des horaires webhook
-- **Lieu** : adresse des permanences, incluse dans le payload webhook
-- **Décalages des tâches** : offsets en minutes (positif = après le cours, négatif = avant) pour chaque tâche, utilisés par Make.com pour créer les événements Google Calendar
+**Sections :**
+
+| Section               | Modifiable par       | Description                                                       |
+| --------------------- | -------------------- | ----------------------------------------------------------------- |
+| Inscriptions ouvertes | Admin uniquement     | Active ou désactive le formulaire public `/inscription`           |
+| Heure du cours & Lieu | Admin + Gestionnaire | Heure de référence pour les horaires webhook ; adresse physique   |
+| Calendriers Google    | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement |
+| Décalages des tâches  | Admin + Gestionnaire | Offsets en minutes (positif = après le cours, négatif = avant)    |
+
+> Tous ces paramètres sont stockés dans `ref_settings` et lus dynamiquement — il n'y a pas de valeur en `.env` pour ces réglages.
 
 ---
 
@@ -244,6 +272,8 @@ sequenceDiagram
 - **Refuser** : passe le statut à `Archivé`
 - **Renvoyer l'invitation** : renvoie l'email avec un nouveau lien de création de mot de passe
 
+> **Note :** si la personne possède déjà un mot de passe (compte existant sur une autre app AMANA), l'email envoyé est différent — il lui indique de se connecter directement avec son mot de passe habituel, sans lien de reset.
+
 ---
 
 ## Gestion des utilisateurs
@@ -270,6 +300,8 @@ flowchart TD
     I --> L
     K --> L
 ```
+
+> Le formulaire public `/inscription` peut être désactivé par un administrateur via **Paramètres → Inscriptions ouvertes**. Lorsqu'il est fermé, la page affiche une redirection vers la connexion.
 
 ### Commande de secours
 
@@ -350,7 +382,7 @@ flowchart TD
 
 Pour `entree`, `mektaba`, `salle` et `cours`, un score est calculé pour chaque candidat. **Le score le plus bas est prioritaire.**
 
-```
+```txt
 Score = (total_assignations × 10) - (jours_de_repos × 1) + (nb_fois_cette_tâche × multiplicateur)
 ```
 
@@ -406,22 +438,30 @@ Toutes les notifications sont envoyées de manière **asynchrone** (via la queue
 
 ## Intégration Make.com (Webhook)
 
-Après chaque génération de planning, l'application envoie un payload JSON à Make.com via un job asynchrone. Make.com peut alors créer automatiquement des événements Google Calendar pour les rappels et notifications de l'équipe.
+Après chaque génération de planning (ou après toute modification manuelle d'une assignation), l'application envoie un payload JSON à Make.com via un job asynchrone (`EnvoyerWebhookMake`). Make.com peut alors créer automatiquement des événements Google Calendar pour les rappels et notifications de l'équipe.
 
-**Variables `.env` concernées :**
+**Variable `.env` concernée :**
 
 ```dotenv
 MAKE_WEBHOOK_URL=https://hook.make.com/votre-identifiant
-HEURE_COURS=19:30
 ```
 
-**Structure du payload :**
+> L'heure du cours n'est **plus** lue depuis `.env`. Elle est stockée dans `ref_settings` (clé `heure_cours`) et modifiable via la page Paramètres. La variable `HEURE_COURS` présente dans certains anciens fichiers `.env.example` est obsolète.
+
+**Déclencheurs du webhook :**
+
+| Action                                  | Méthode appelée                            | Contenu                         |
+| --------------------------------------- | ------------------------------------------ | ------------------------------- |
+| Génération d'un planning                | `WebhookPayloadBuilder::build()`           | Tous les créneaux de la période |
+| Modification manuelle d'une assignation | `WebhookPayloadBuilder::buildForCreneau()` | Le créneau modifié uniquement   |
+
+**Structure complète du payload :**
 
 ```json
 {
     "genere_le": "2025-06-06T20:00:00+02:00",
-    "heure_cours": "19:30",
-    "lieu": "319 Rte de Vannes, 44800 Saint-Herblain",
+    "heure_cours": "20:00",
+    "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
     "creneaux": [
         {
             "date": "2025-06-06",
@@ -431,57 +471,79 @@ HEURE_COURS=19:30
             "taches": {
                 "entree": {
                     "nom_complet": "Prénom Nom",
-                    "email": "...",
-                    "heure_debut": "19:00",
-                    "heure_fin": "20:00"
+                    "email": "personne@exemple.fr",
+                    "heure_debut": "19:30",
+                    "heure_fin": "20:30",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
                 },
                 "mektaba": {
-                    "nom_complet": "...",
-                    "email": "...",
-                    "heure_debut": "19:10",
-                    "heure_fin": "21:10"
+                    "nom_complet": "Prénom Nom",
+                    "email": "personne@exemple.fr",
+                    "heure_debut": "19:40",
+                    "heure_fin": "21:40",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
                 },
                 "salle": {
-                    "nom_complet": "...",
-                    "email": "...",
-                    "heure_debut": "19:30",
-                    "heure_fin": "21:00"
+                    "nom_complet": "Prénom Nom",
+                    "email": "personne@exemple.fr",
+                    "heure_debut": "20:00",
+                    "heure_fin": "21:30",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
                 },
                 "amana_food": {
-                    "nom_complet": "...",
-                    "email": "...",
-                    "heure_debut": "20:00",
-                    "heure_fin": "21:00"
+                    "nom_complet": "Prénom Nom",
+                    "email": "personne@exemple.fr",
+                    "heure_debut": "20:30",
+                    "heure_fin": "21:30",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
                 },
                 "cours": {
-                    "nom_complet": "...",
-                    "email": "...",
-                    "heure_debut": "19:30",
-                    "heure_fin": "20:30"
+                    "nom_complet": "Prénom Nom",
+                    "email": "personne@exemple.fr",
+                    "heure_debut": "20:00",
+                    "heure_fin": "21:00",
+                    "calendar_name": "AMANA - Planning",
+                    "description": "Animation du cours"
                 }
             },
             "evenements_speciaux": {
                 "rappel_sandwich": {
-                    "nom_complet": "...",
-                    "email": "...",
+                    "nom_complet": "Prénom Nom",
+                    "email": "personne@exemple.fr",
                     "heure_debut": "08:00",
-                    "heure_fin": "08:15"
+                    "heure_fin": "08:15",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
                 },
                 "assistance_amana_food": {
-                    "nom_complet": "...",
-                    "email": "...",
-                    "heure_debut": "20:00",
-                    "heure_fin": "21:00"
+                    "nom_complet": "Prénom Nom",
+                    "email": "personne@exemple.fr",
+                    "heure_debut": "20:30",
+                    "heure_fin": "21:30",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
                 }
             },
             "evenements_sociaux": {
                 "annonce_cours": {
-                    "heure_debut": "13:30",
-                    "heure_fin": "13:45"
+                    "nom_complet": null,
+                    "email": null,
+                    "heure_debut": "14:00",
+                    "heure_fin": "14:15",
+                    "calendar_name": "AMANA - Communications",
+                    "description": ""
                 },
                 "message_general": {
-                    "heure_debut": "19:00",
-                    "heure_fin": "19:30"
+                    "nom_complet": null,
+                    "email": null,
+                    "heure_debut": "19:30",
+                    "heure_fin": "20:00",
+                    "calendar_name": "AMANA - Communications",
+                    "description": ""
                 }
             }
         }
@@ -489,4 +551,12 @@ HEURE_COURS=19:30
 }
 ```
 
-Les horaires sont calculés en ajoutant les offsets configurés dans **Paramètres** à l'heure du cours. Si une tâche est bloquée par un événement, elle est simplement absente du payload.
+**Notes importantes sur le payload :**
+
+- Les horaires (`heure_debut`, `heure_fin`) sont calculés en ajoutant les offsets configurés dans **Paramètres** à l'heure du cours stockée en base.
+- `rappel_sandwich` a un horaire fixe (08:00–08:15) indépendant des offsets.
+- Si une tâche est **bloquée par un événement** sur ce créneau, elle est **absente** du payload (ni dans `taches`, ni dans `evenements_speciaux`).
+- `rappel_sandwich` utilise la personne assignée à `amana_food` ; `assistance_amana_food` utilise la personne assignée à `entree`.
+- `evenements_sociaux` (`annonce_cours`, `message_general`) n'ont pas de `nom_complet` ni d'`email` — ce sont des événements automatisés sans assignation personnelle.
+- `calendar_name` correspond au nom exact du calendrier Google Calendar cible, configuré dans **Paramètres → Calendriers**. S'il est vide, Make.com utilise son calendrier par défaut.
+- Le champ `evenements` au niveau du créneau est une chaîne avec les noms des événements organisationnels actifs ce jour-là (ex : `"Ramadan"`) ou `null`.

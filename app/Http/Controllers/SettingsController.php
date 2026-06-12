@@ -8,13 +8,18 @@ namespace App\Http\Controllers;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
  * Contrôleur pour les paramètres de l'application planning.
  *
- * Accès : gestionnaire + admin uniquement (middleware 'role:gestionnaire').
+ * Accès route : gestionnaire + admin (middleware 'role:gestionnaire').
+ *
+ * Restriction interne :
+ *   - Le paramètre `inscription_ouverte` est réservé aux admins.
+ *     Un gestionnaire peut voir la section mais ne peut pas la modifier.
  *
  * Routes :
  *   GET  /parametres  → index()   Affiche tous les paramètres groupés
@@ -25,23 +30,25 @@ class SettingsController extends Controller
     private const APP_CODE = 'planning';
 
     /**
+     * Clés réservées aux administrateurs — ignorées si soumises par un gestionnaire.
+     */
+    private const ADMIN_ONLY_KEYS = ['inscription_ouverte'];
+
+    /**
      * Affiche tous les paramètres planning groupés par catégorie.
      */
     public function index(): View
     {
         $settings = Setting::allForApp(self::APP_CODE);
 
-        // ── Groupes ────────────────────────────────────────────────────────
         $horaires = $settings->only(['heure_cours', 'lieu']);
         $decalages = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'offset_'));
-
         $decalagesGroupes = $this->grouperDecalages($decalages);
-
-        // ── Inscription ────────────────────────────────────────────────────
         $inscription = $settings->only(['inscription_ouverte']);
-
-        // ── Calendriers ────────────────────────────────────────────────────
         $calendriers = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'calendar_'));
+
+        /** @var \App\Models\Personne $user */
+        $user = Auth::user();
 
         return view('settings.index', compact(
             'horaires',
@@ -50,11 +57,16 @@ class SettingsController extends Controller
             'settings',
             'inscription',
             'calendriers',
+            'user',
         ));
     }
 
     /**
      * Sauvegarde les paramètres soumis via le formulaire.
+     *
+     * Les clés dans ADMIN_ONLY_KEYS ne sont mises à jour que si l'utilisateur
+     * connecté est un administrateur. Un gestionnaire peut soumettre le
+     * formulaire complet : ces clés seront silencieusement ignorées.
      */
     public function update(Request $request): RedirectResponse
     {
@@ -63,6 +75,8 @@ class SettingsController extends Controller
             'settings.*' => ['nullable', 'string', 'max:500'],
         ]);
 
+        /** @var \App\Models\Personne $user */
+        $user = Auth::user();
         $settingsInput = $request->input('settings', []);
 
         $avant = Setting::allForApp(self::APP_CODE)
@@ -80,6 +94,11 @@ class SettingsController extends Controller
 
         $apres = [];
         foreach ($settingsInput as $cle => $valeur) {
+            // Clé réservée aux admins : ignorer si l'utilisateur n'est pas admin
+            if (in_array($cle, self::ADMIN_ONLY_KEYS, true) && !$user->isAdmin()) {
+                continue;
+            }
+
             $existe = DB::table('ref_settings')
                 ->where('id_application', $idApp)
                 ->where('cle', $cle)

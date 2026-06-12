@@ -164,6 +164,12 @@
         transform: translateX(22px);
     }
 
+    /* Disabled state for non-admin */
+    .toggle-switch input:disabled + .toggle-slider {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
     .toggle-label {
         font-size: 13.5px;
         color: var(--ink-light);
@@ -202,7 +208,24 @@
         display: flex;
         align-items: flex-start;
         gap: 9px;
-        margin-bottom: 22px;
+        margin-bottom: 0;
+        margin-top: 14px;
+    }
+
+    /* ── Admin-only badge ── */
+    .admin-only-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        background: var(--rose-bg);
+        color: #9f1239;
+        border: 1px solid var(--rose-border);
+        margin-left: 8px;
+        vertical-align: middle;
     }
 
     @media (max-width: 768px) {
@@ -225,48 +248,91 @@
         @csrf
 
         {{-- ══════════════════════════════════════════════════════════════
-             SECTION 1 — Inscription
+             SECTION 1 — Inscription publique (admin uniquement)
         ══════════════════════════════════════════════════════════════ --}}
         <div class="card" style="margin-bottom:20px;">
             <div class="card-header">
                 <div class="card-title">
                     <div class="card-title-icon" style="background:var(--emerald-bg);">🔓</div>
                     Inscription publique
+                    @if(!$user->isAdmin())
+                        <span class="admin-only-badge">🛡️ Admin uniquement</span>
+                    @endif
                 </div>
             </div>
             <div class="card-body">
                 <div class="settings-section-sub">
                     Contrôle l'accès au formulaire d'inscription public (<code>/inscription</code>).
                     Fermer les inscriptions bloque l'affichage du formulaire et la soumission.
+                    @if(!$user->isAdmin())
+                        <strong style="color:var(--rose);">Seuls les administrateurs peuvent modifier ce paramètre.</strong>
+                    @endif
                 </div>
 
                 @if(isset($inscription['inscription_ouverte']))
                     @php $io = $inscription['inscription_ouverte']; @endphp
 
-                    {{-- Hidden input ensures the value is always submitted (even when unchecked) --}}
-                    <input type="hidden" name="settings[inscription_ouverte]" value="0">
+                    @if($user->isAdmin())
+                        {{--
+                            Hidden input ensures value "0" is submitted when the checkbox is unchecked.
+                            When checked, the checkbox value "1" overrides this hidden input because it
+                            appears later in the DOM (PHP takes the last value for duplicate keys in
+                            regular POST, but Laravel's request->input() takes the last occurrence).
+                            We use a separate name trick: the hidden sends 0, the checkbox sends 1.
+                        --}}
+                        <input type="hidden" name="settings[inscription_ouverte]" value="0">
 
-                    <div class="toggle-wrap">
-                        <label class="toggle-switch">
-                            <input
-                                type="checkbox"
-                                name="settings[inscription_ouverte]"
-                                value="1"
-                                {{ $io['valeur'] ? 'checked' : '' }}
-                                onchange="updateInscriptionStatus(this)">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span class="toggle-label" id="inscriptionLabel">
-                            {{ $io['valeur'] ? '✅ Inscriptions ouvertes' : '🔒 Inscriptions fermées' }}
+                        <div class="toggle-wrap">
+                            <label class="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    name="settings[inscription_ouverte]"
+                                    value="1"
+                                    id="inscriptionToggle"
+                                    {{ $io['valeur'] ? 'checked' : '' }}
+                                    onchange="updateInscriptionStatus(this)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label" id="inscriptionLabel">
+                                {{ $io['valeur'] ? '✅ Inscriptions ouvertes' : '🔒 Inscriptions fermées' }}
+                            </span>
+                        </div>
+
+                        @if(!$io['valeur'])
+                            <div class="warn-note">
+                                <span style="flex-shrink:0;">⚠️</span>
+                                <span>Les inscriptions sont actuellement <strong>fermées</strong>. Le formulaire public est inaccessible.</span>
+                            </div>
+                        @endif
+
+                    @else
+                        {{-- Gestionnaire : affichage lecture seule --}}
+                        <div class="toggle-wrap" style="opacity:0.6;">
+                            <label class="toggle-switch">
+                                <input
+                                    type="checkbox"
+                                    {{ $io['valeur'] ? 'checked' : '' }}
+                                    disabled>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">
+                                {{ $io['valeur'] ? '✅ Inscriptions ouvertes' : '🔒 Inscriptions fermées' }}
+                            </span>
+                        </div>
+                        <p style="font-size:12px;color:var(--ink-muted);margin-top:10px;">
+                            Connectez-vous en tant qu'administrateur pour modifier ce paramètre.
+                        </p>
+                    @endif
+
+                @else
+                    {{-- Paramètre absent de la base (ancien déploiement avant migration) --}}
+                    <div class="info-note" style="margin-bottom:0;">
+                        <span style="flex-shrink:0;">⚠️</span>
+                        <span>
+                            Le paramètre <code>inscription_ouverte</code> n'existe pas encore en base.
+                            Lancez <code>php artisan migrate</code> ou <code>php artisan db:seed</code> pour l'ajouter.
                         </span>
                     </div>
-
-                    @if(!$io['valeur'])
-                        <div class="warn-note" style="margin-top:14px;margin-bottom:0;">
-                            <span style="flex-shrink:0;">⚠️</span>
-                            <span>Les inscriptions sont actuellement <strong>fermées</strong>. Le formulaire public est inaccessible.</span>
-                        </div>
-                    @endif
                 @endif
             </div>
         </div>
