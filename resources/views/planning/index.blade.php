@@ -163,430 +163,470 @@
         }
 
         .btn-add-creneau {
-                background: rgba(14, 165, 233, 0.3);
-                border: 1px solid rgba(14, 165, 233, 0.6);
-                color: rgba(255, 255, 255, 0.75);
-                padding: 5px 12px;
-                border-radius: var(--radius-sm);
-                font-size: 11.5px;
-                font-weight: 600;
-                cursor: pointer;
-                font-family: var(--font-body);
-                transition: var(--transition);
-                display: flex;
-                align-items: center;
-                gap: 5px;
-            }
+            background: rgba(14, 165, 233, 0.3);
+            border: 1px solid rgba(14, 165, 233, 0.6);
+            color: rgba(255, 255, 255, 0.75);
+            padding: 5px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: var(--font-body);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
 
-            .btn-add-creneau:hover {
-                background: rgba(14, 165, 233, 0.25);
-                color: white;
-                border-color: rgba(14, 165, 233, 0.55);
-            }
+        .btn-add-creneau:hover {
+            background: rgba(14, 165, 233, 0.25);
+            color: white;
+            border-color: rgba(14, 165, 233, 0.55);
+        }
 
-            .week-body {
-                background: var(--surface);
-                border: 1px solid var(--surface-border);
-                border-top: none;
-                border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-                overflow: hidden;
-                box-shadow: var(--shadow);
-            }
+        .week-body {
+            background: var(--surface);
+            border: 1px solid var(--surface-border);
+            border-top: none;
+            border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
 
-            /* ── Bannière événement dans le bloc semaine ── */
-            /* Événement informatif (aucune tâche bloquée) */
-            .event-banner-info {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 9px 18px;
-                background: linear-gradient(90deg, #f5f3ff 0%, #ede9fe 100%);
-                border-bottom: 1px solid #ddd6fe;
-                font-size: 12.5px;
-                color: #5b21b6;
-            }
+        /* ── Bannière événement dans le bloc semaine ── */
+        /* Événement informatif (aucune tâche bloquée) */
+        .event-banner-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 18px;
+            background: linear-gradient(90deg, #f5f3ff 0%, #ede9fe 100%);
+            border-bottom: 1px solid #ddd6fe;
+            font-size: 12.5px;
+            color: #5b21b6;
+        }
 
-            /* Événement bloquant (tâches partiellement ou totalement bloquées) */
-            .event-banner-blocking {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 9px 18px;
-                background: linear-gradient(90deg, #fff1f2 0%, #ffe4e6 100%);
-                border-bottom: 1px solid #fecdd3;
-                font-size: 12.5px;
-                color: #9f1239;
-            }
+        /* Événement bloquant (tâches partiellement ou totalement bloquées) */
+        .event-banner-blocking {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 18px;
+            background: linear-gradient(90deg, #fff1f2 0%, #ffe4e6 100%);
+            border-bottom: 1px solid #fecdd3;
+            font-size: 12.5px;
+            color: #9f1239;
+        }
 
-            .event-banner-icon {
-                font-size: 14px;
-                flex-shrink: 0;
-            }
+        .event-banner-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
 
-            .event-banner-name {
-                font-weight: 700;
-            }
+        .event-banner-name {
+            font-weight: 700;
+        }
 
-            .event-banner-dates {
-                color: inherit;
-                opacity: 0.7;
-                font-size: 11.5px;
-                margin-left: 4px;
-            }
+        .event-banner-dates {
+            color: inherit;
+            opacity: 0.7;
+            font-size: 11.5px;
+            margin-left: 4px;
+        }
 
-            .event-banner-taches {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 4px;
-                margin-left: auto;
-            }
+        .event-banner-taches {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-left: auto;
+        }
 
-            /* ── Task cells ── */
-            .task-cell {
-                position: relative;
-                min-width: 120px;
-            }
+        /* ── Task cells ── */
+        .task-cell {
+            position: relative;
+            min-width: 120px;
+        }
 
-            .task-cell-inner {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                padding: 2px 4px;
-                border-radius: var(--radius-sm);
-                cursor: pointer;
-                transition: var(--transition);
-            }
+        .task-cell-inner {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 4px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+        }
 
-            .task-cell-inner:hover {
-                background: var(--surface-2);
-            }
+        .task-cell-inner:hover {
+            background: var(--surface-2);
+        }
 
-            .task-cell-inner:hover .edit-icon {
-                opacity: 1;
-            }
+        .task-cell-inner:hover .edit-icon {
+            opacity: 1;
+        }
 
-            .edit-icon {
+        .edit-icon {
+            opacity: 0;
+            font-size: 10px;
+            color: var(--ink-muted);
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .tache-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .tache-chip.entree {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .tache-chip.mektaba {
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .tache-chip.salle {
+            background: #fffbeb;
+            color: #d97706;
+        }
+
+        .tache-chip.amana_food {
+            background: #fff1f2;
+            color: #e11d48;
+        }
+
+        .tache-chip.cours {
+            background: #f5f3ff;
+            color: #7c3aed;
+        }
+
+        .tache-vide {
+            color: var(--ink-faint);
+            font-style: italic;
+            font-size: 12px;
+        }
+
+        /* Cellule bloquée par un événement */
+        .task-cell-blocked {
+            background: #fff8f0;
+        }
+
+        .tache-blocked-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #fff3cd;
+            color: #92400e;
+            border: 1px solid #fde68a;
+            max-width: 160px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Ligne entièrement bloquée */
+        .day-row-blocked td {
+            opacity: 0.55;
+        }
+
+        .event-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--amber-bg);
+            color: var(--amber);
+            border: 1px solid var(--amber-border);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .event-tag.blocked {
+            background: var(--rose-bg);
+            color: var(--rose);
+            border-color: var(--rose-border);
+        }
+
+        .btn-delete-day {
+            opacity: 0;
+            background: none;
+            border: 1px solid var(--ink-faint);
+            color: var(--ink-muted);
+            border-radius: var(--radius-sm);
+            padding: 3px 7px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font-body);
+            white-space: nowrap;
+        }
+
+        tr:hover .btn-delete-day {
+            opacity: 1;
+        }
+
+        .btn-delete-day:hover {
+            background: var(--rose-bg);
+            border-color: var(--rose);
+            color: var(--rose);
+        }
+
+        /* ── Assignment modal ── */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(13, 17, 23, 0.5);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .modal-backdrop.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal {
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 440px;
+            overflow: hidden;
+            transform: translateY(14px) scale(0.98);
+            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid var(--surface-border);
+        }
+
+        .modal-backdrop.open .modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--surface-3);
+        }
+
+        .modal-title {
+            font-family: var(--font-heading);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .modal-title-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--ink-muted);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            background: var(--surface-2);
+            color: var(--ink);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-info {
+            background: var(--surface-2);
+            border-radius: var(--radius);
+            padding: 11px 15px;
+            margin-bottom: 18px;
+            font-size: 12.5px;
+            color: var(--ink-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .modal-info strong {
+            color: var(--ink);
+            font-size: 13px;
+        }
+
+        .modal-section-title {
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--ink-muted);
+            margin-bottom: 9px;
+        }
+
+        .person-select-wrap {
+            display: flex;
+            gap: 9px;
+            margin-bottom: 16px;
+        }
+
+        .person-select-wrap select {
+            flex: 1;
+            padding: 9px 13px;
+            border: 1.5px solid var(--ink-faint);
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--surface);
+            outline: none;
+            transition: var(--transition);
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .person-select-wrap select:focus {
+            border-color: var(--app-accent);
+            box-shadow: var(--shadow-glow);
+        }
+
+        /* ── Add créneau modal ── */
+        .add-creneau-modal {
+            max-width: 380px;
+        }
+
+        .add-creneau-modal input[type="date"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid var(--ink-faint);
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--surface);
+            outline: none;
+            transition: var(--transition);
+            -webkit-appearance: auto;
+            appearance: auto;
+        }
+
+        .add-creneau-modal input[type="date"]:focus {
+            border-color: var(--app-accent);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .add-creneau-hint {
+            font-size: 12px;
+            color: var(--ink-muted);
+            margin-top: 6px;
+            line-height: 1.55;
+        }
+
+        /* ── Toasts ── */
+        .toast-container {
+            position: fixed;
+            bottom: 22px;
+            right: 22px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        .toast {
+            background: var(--ink);
+            color: white;
+            padding: 11px 16px;
+            border-radius: var(--radius-lg);
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 240px;
+            animation: toastIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--emerald);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--rose);
+        }
+
+        @keyframes toastIn {
+            from {
                 opacity: 0;
-                font-size: 10px;
-                color: var(--ink-muted);
-                transition: var(--transition);
-                flex-shrink: 0;
+                transform: translateX(16px);
             }
 
-            .tache-chip {
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-                padding: 3px 10px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 600;
-            }
-
-            .tache-chip.entree     { background: #eff6ff; color: #2563eb; }
-            .tache-chip.mektaba    { background: #ecfdf5; color: #059669; }
-            .tache-chip.salle      { background: #fffbeb; color: #d97706; }
-            .tache-chip.amana_food { background: #fff1f2; color: #e11d48; }
-            .tache-chip.cours      { background: #f5f3ff; color: #7c3aed; }
-
-            .tache-vide {
-                color: var(--ink-faint);
-                font-style: italic;
-                font-size: 12px;
-            }
-
-            /* Cellule bloquée par un événement */
-            .task-cell-blocked {
-                background: #fff8f0;
-            }
-
-            .tache-blocked-label {
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-                padding: 3px 9px;
-                border-radius: 20px;
-                font-size: 11px;
-                font-weight: 600;
-                background: #fff3cd;
-                color: #92400e;
-                border: 1px solid #fde68a;
-                max-width: 160px;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-            }
-
-            /* Ligne entièrement bloquée */
-            .day-row-blocked td {
-                opacity: 0.55;
-            }
-
-            .event-tag {
-                display: inline-flex;
-                align-items: center;
-                gap: 4px;
-                background: var(--amber-bg);
-                color: var(--amber);
-                border: 1px solid var(--amber-border);
-                padding: 2px 8px;
-                border-radius: 20px;
-                font-size: 11px;
-                font-weight: 600;
-            }
-
-            .event-tag.blocked {
-                background: var(--rose-bg);
-                color: var(--rose);
-                border-color: var(--rose-border);
-            }
-
-            .btn-delete-day {
-                opacity: 0;
-                background: none;
-                border: 1px solid var(--ink-faint);
-                color: var(--ink-muted);
-                border-radius: var(--radius-sm);
-                padding: 3px 7px;
-                font-size: 11px;
-                cursor: pointer;
-                transition: var(--transition);
-                font-family: var(--font-body);
-                white-space: nowrap;
-            }
-
-            tr:hover .btn-delete-day {
+            to {
                 opacity: 1;
+                transform: translateX(0);
             }
+        }
 
-            .btn-delete-day:hover {
-                background: var(--rose-bg);
-                border-color: var(--rose);
-                color: var(--rose);
-            }
-
-            /* ── Assignment modal ── */
-            .modal-backdrop {
-                position: fixed;
-                inset: 0;
-                background: rgba(13, 17, 23, 0.5);
-                backdrop-filter: blur(3px);
-                -webkit-backdrop-filter: blur(3px);
-                z-index: 1000;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 24px;
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.2s;
-            }
-
-            .modal-backdrop.open {
+        @keyframes toastOut {
+            from {
                 opacity: 1;
-                pointer-events: all;
+                transform: translateX(0);
             }
 
-            .modal {
-                background: var(--surface);
-                border-radius: var(--radius-xl);
-                box-shadow: var(--shadow-lg);
-                width: 100%;
-                max-width: 440px;
-                overflow: hidden;
-                transform: translateY(14px) scale(0.98);
-                transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-                border: 1px solid var(--surface-border);
+            to {
+                opacity: 0;
+                transform: translateX(16px);
             }
+        }
 
-            .modal-backdrop.open .modal {
-                transform: translateY(0) scale(1);
-            }
-
-            .modal-header {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                padding: 16px 20px;
-                border-bottom: 1px solid var(--surface-3);
-            }
-
-            .modal-title {
-                font-family: var(--font-heading);
-                font-size: 14px;
-                font-weight: 600;
-                color: var(--ink);
-                display: flex;
-                align-items: center;
-                gap: 9px;
-            }
-
-            .modal-title-icon {
-                width: 28px;
-                height: 28px;
-                border-radius: var(--radius-sm);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 13px;
-            }
-
-            .modal-close {
-                background: none;
-                border: none;
-                color: var(--ink-muted);
-                font-size: 18px;
-                cursor: pointer;
-                padding: 4px 8px;
-                border-radius: var(--radius-sm);
-                transition: var(--transition);
-                line-height: 1;
-            }
-
-            .modal-close:hover {
-                background: var(--surface-2);
-                color: var(--ink);
-            }
-
-            .modal-body {
-                padding: 20px;
-            }
-
-            .modal-info {
-                background: var(--surface-2);
-                border-radius: var(--radius);
-                padding: 11px 15px;
-                margin-bottom: 18px;
-                font-size: 12.5px;
-                color: var(--ink-muted);
-                display: flex;
-                flex-direction: column;
-                gap: 3px;
-            }
-
-            .modal-info strong {
-                color: var(--ink);
-                font-size: 13px;
-            }
-
-            .modal-section-title {
-                font-size: 10.5px;
-                font-weight: 700;
-                text-transform: uppercase;
-                letter-spacing: 0.8px;
-                color: var(--ink-muted);
-                margin-bottom: 9px;
-            }
-
-            .person-select-wrap {
-                display: flex;
-                gap: 9px;
-                margin-bottom: 16px;
-            }
-
-            .person-select-wrap select {
-                flex: 1;
-                padding: 9px 13px;
-                border: 1.5px solid var(--ink-faint);
-                border-radius: var(--radius);
-                font-size: 13px;
-                font-family: var(--font-body);
-                color: var(--ink);
-                background: var(--surface);
-                outline: none;
-                transition: var(--transition);
-                -webkit-appearance: none;
-                appearance: none;
-            }
-
-            .person-select-wrap select:focus {
-                border-color: var(--app-accent);
-                box-shadow: var(--shadow-glow);
-            }
-
-            /* ── Add créneau modal ── */
-            .add-creneau-modal { max-width: 380px; }
-
-            .add-creneau-modal input[type="date"] {
-                width: 100%;
-                padding: 10px 14px;
-                border: 1.5px solid var(--ink-faint);
-                border-radius: var(--radius);
-                font-size: 14px;
-                font-family: var(--font-body);
-                color: var(--ink);
-                background: var(--surface);
-                outline: none;
-                transition: var(--transition);
-                -webkit-appearance: auto;
-                appearance: auto;
-            }
-
-            .add-creneau-modal input[type="date"]:focus {
-                border-color: var(--app-accent);
-                box-shadow: var(--shadow-glow);
-            }
-
-            .add-creneau-hint {
-                font-size: 12px;
-                color: var(--ink-muted);
-                margin-top: 6px;
-                line-height: 1.55;
-            }
-
-            /* ── Toasts ── */
-            .toast-container {
-                position: fixed;
-                bottom: 22px;
-                right: 22px;
-                z-index: 2000;
-                display: flex;
-                flex-direction: column;
-                gap: 9px;
-            }
-
-            .toast {
-                background: var(--ink);
-                color: white;
-                padding: 11px 16px;
-                border-radius: var(--radius-lg);
-                font-size: 13px;
-                font-weight: 500;
-                box-shadow: var(--shadow-lg);
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                min-width: 240px;
-                animation: toastIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
-            }
-
-            .toast.success { border-left: 3px solid var(--emerald); }
-            .toast.error   { border-left: 3px solid var(--rose); }
-
-            @keyframes toastIn {
-                from { opacity: 0; transform: translateX(16px); }
-                to   { opacity: 1; transform: translateX(0); }
-            }
-
-            @keyframes toastOut {
-                from { opacity: 1; transform: translateX(0); }
-                to   { opacity: 0; transform: translateX(16px); }
-            }
-
-            /* ── Historique banner ── */
-            .historique-banner {
-                background: var(--amber-bg);
-                border: 1px solid var(--amber-border);
-                border-radius: var(--radius);
-                padding: 10px 16px;
-                margin-bottom: 18px;
-                font-size: 13px;
-                color: #92400e;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-        </style>
+        /* ── Historique banner ── */
+        .historique-banner {
+            background: var(--amber-bg);
+            border: 1px solid var(--amber-border);
+            border-radius: var(--radius);
+            padding: 10px 16px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            color: #92400e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -596,10 +636,12 @@
             <div class="page-subtitle">Vendredis &amp; samedis — cliquez sur une cellule pour modifier</div>
         </div>
         <div class="page-header-actions">
+            <a href="{{ route('mon-planning') }}" class="btn btn-ghost btn-sm">🙋 Mon planning</a>
             <a href="{{ route('planning.export.form') }}" class="btn btn-secondary">📄 Export PDF</a>
             @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                 <a href="{{ route('planning.generate.form') }}" class="btn btn-primary">✨ Générer</a>
             @endif
+
         </div>
     </div>
 
@@ -622,7 +664,8 @@
                 <div class="empty-desc">
                     @if(!$historique)
                         Aucun créneau dans les 12 derniers mois.
-                        <a href="{{ route('planning.index', ['historique' => 1]) }}" style="color:var(--app-accent);font-weight:600;">
+                        <a href="{{ route('planning.index', ['historique' => 1]) }}"
+                            style="color:var(--app-accent);font-weight:600;">
                             Voir tout l'historique
                         </a>
                     @else
@@ -630,7 +673,8 @@
                     @endif
                 </div>
                 @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
-                    <a href="{{ route('planning.generate.form') }}" class="btn btn-primary btn-lg" style="margin-top:16px;">✨ Générer maintenant</a>
+                    <a href="{{ route('planning.generate.form') }}" class="btn btn-primary btn-lg" style="margin-top:16px;">✨
+                        Générer maintenant</a>
                 @endif
             </div>
         </div>
@@ -671,8 +715,7 @@
                 <div class="filter-group" id="monthFilters">
                     @foreach($allMonths as $num => $name)
                         <span class="filter-chip {{ in_array($num, [$currentMonth, $previousMonth]) ? 'active' : '' }}"
-                            data-type="month" data-value="{{ $num }}"
-                            onclick="toggleFilter(this)">{{ ucfirst($name) }}</span>
+                            data-type="month" data-value="{{ $num }}" onclick="toggleFilter(this)">{{ ucfirst($name) }}</span>
                     @endforeach
                 </div>
             </div>
@@ -720,15 +763,15 @@
                             {{ $last->date->locale('fr')->isoFormat('D MMMM YYYY') }}
                             @if($evtToutBloque)
                                 <span style="
-                                    background:rgba(225,29,72,0.25);
-                                    border:1px solid rgba(225,29,72,0.5);
-                                    color:#fda4af;
-                                    padding:2px 10px;
-                                    border-radius:20px;
-                                    font-size:11px;
-                                    font-weight:600;
-                                    margin-left:6px;
-                                ">
+                                                        background:rgba(225,29,72,0.25);
+                                                        border:1px solid rgba(225,29,72,0.5);
+                                                        color:#fda4af;
+                                                        padding:2px 10px;
+                                                        border-radius:20px;
+                                                        font-size:11px;
+                                                        font-weight:600;
+                                                        margin-left:6px;
+                                                    ">
                                     🚫 {{ $evtToutBloque['evenement']->nom }}
                                 </span>
                             @endif
@@ -737,10 +780,10 @@
                             <span class="week-dates">{{ $creneauxSemaine->count() }} créneaux</span>
                             @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                                 <button class="btn-add-creneau" onclick="openAddCreneauModal(
-                                    '{{ $weekMonday->toDateString() }}',
-                                    '{{ $weekSunday->toDateString() }}',
-                                    {{ $existingDates }}
-                                )">
+                                                        '{{ $weekMonday->toDateString() }}',
+                                                        '{{ $weekSunday->toDateString() }}',
+                                                        {{ $existingDates }}
+                                                    )">
                                     ➕ Créneau
                                 </button>
                                 <button class="btn-delete-week" onclick="deleteWeek([{{ $weekIds }}], this)">
@@ -788,11 +831,11 @@
                                                 $s = $tbColors[$tb->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink)'];
                                             @endphp
                                             <span style="
-                                                display:inline-flex;align-items:center;
-                                                padding:2px 8px;border-radius:20px;
-                                                font-size:11px;font-weight:600;
-                                                background:{{ $s['bg'] }};color:{{ $s['color'] }};
-                                            ">{{ $tb->libelle }}</span>
+                                                                            display:inline-flex;align-items:center;
+                                                                            padding:2px 8px;border-radius:20px;
+                                                                            font-size:11px;font-weight:600;
+                                                                            background:{{ $s['bg'] }};color:{{ $s['color'] }};
+                                                                        ">{{ $tb->libelle }}</span>
                                         @endforeach
                                     </div>
                                 </div>
@@ -842,8 +885,7 @@
 
                                             $evtStr = $creneau->evenements->pluck('nom')->implode(', ');
                                         @endphp
-                                        <tr class="{{ $toutBloque ? 'day-row-blocked' : '' }}"
-                                            id="row-creneau-{{ $creneau->id }}">
+                                        <tr class="{{ $toutBloque ? 'day-row-blocked' : '' }}" id="row-creneau-{{ $creneau->id }}">
 
                                             {{-- Jour + date --}}
                                             <td>
@@ -871,10 +913,8 @@
                                                     $estBloquee = $tachesBloquéesCreneau->contains($code);
                                                 @endphp
                                                 <td class="task-cell {{ $estBloquee ? 'task-cell-blocked' : '' }}"
-                                                    id="cell-{{ $creneau->id }}-{{ $code }}"
-                                                    data-creneau-id="{{ $creneau->id }}"
-                                                    data-tache-id="{{ $tacheId }}"
-                                                    data-tache-code="{{ $code }}"
+                                                    id="cell-{{ $creneau->id }}-{{ $code }}" data-creneau-id="{{ $creneau->id }}"
+                                                    data-tache-id="{{ $tacheId }}" data-tache-code="{{ $code }}"
                                                     data-tache-label="{{ ucfirst(str_replace('_', ' ', $code)) }}"
                                                     data-jour="{{ $creneau->jour }}"
                                                     data-date="{{ $creneau->date->locale('fr')->isoFormat('D MMM YYYY') }}">
@@ -890,8 +930,8 @@
                                                         @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                                                             <div class="task-cell-inner" onclick="openEditModal(this.closest('td'))">
                                                         @else
-                                                            <div class="task-cell-inner" style="cursor:default;">
-                                                        @endif
+                                                                <div class="task-cell-inner" style="cursor:default;">
+                                                            @endif
                                                                 @if($personne)
                                                                     <span class="tache-chip {{ $code }}" id="chip-{{ $creneau->id }}-{{ $code }}">
                                                                         {{ $personne->prenom }} {{ $personne->nom }}
@@ -962,7 +1002,8 @@
                     <div class="modal-section-title" style="color:var(--rose);">⚠️ Zone dangereuse</div>
                     <div style="display:flex;gap:9px;flex-wrap:wrap;">
                         <button class="btn btn-danger btn-sm" onclick="unassignTask()">✕ Désassigner</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteCreneauFromModal()">🗑️ Supprimer le créneau</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteCreneauFromModal()">🗑️ Supprimer le
+                            créneau</button>
                     </div>
                 </div>
             </div>
@@ -989,8 +1030,8 @@
                         <div class="add-creneau-hint" id="addCreneauHint"></div>
                     </div>
                     <div style="display:flex;gap:9px;margin-top:16px;">
-                        <button class="btn btn-primary" style="flex:1;justify-content:center;"
-                            onclick="submitAddCreneau()" id="addCreneauBtn">
+                        <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="submitAddCreneau()"
+                            id="addCreneauBtn">
                             ➕ Créer le créneau
                         </button>
                         <button class="btn btn-secondary" onclick="closeAddCreneauModal()">Annuler</button>
@@ -1005,16 +1046,16 @@
 
 @push('scripts')
     <script>
-        const CSRF   = document.querySelector('meta[name="csrf-token"]').content;
+        const CSRF = document.querySelector('meta[name="csrf-token"]').content;
         const ROUTES = {
-            personnes:   '{{ route("planning.edit.personnes") }}',
+            personnes: '{{ route("planning.edit.personnes") }}',
             assignation: '{{ url("planning/creneau") }}',
-            creneau:     '{{ url("planning/creneau") }}',
+            creneau: '{{ url("planning/creneau") }}',
         };
 
         let personnesCache = null;
-        let currentCell    = null;
-        const activeYears  = new Set();
+        let currentCell = null;
+        const activeYears = new Set();
         const activeMonths = new Set();
 
         // ── Init filtre par défaut : mois courant + mois précédent ──────────
@@ -1026,9 +1067,9 @@
 
         /* ══ FILTERS ══════════════════════════════════════════════════════ */
         function toggleFilter(chip) {
-            const type  = chip.dataset.type;
+            const type = chip.dataset.type;
             const value = parseInt(chip.dataset.value);
-            const set   = type === 'year' ? activeYears : activeMonths;
+            const set = type === 'year' ? activeYears : activeMonths;
             if (set.has(value)) { set.delete(value); chip.classList.remove('active'); }
             else { set.add(value); chip.classList.add('active'); }
             applyFilters();
@@ -1043,7 +1084,7 @@
         function applyFilters() {
             let visible = 0;
             document.querySelectorAll('.week-block').forEach(block => {
-                const y = activeYears.size  === 0 || activeYears.has(parseInt(block.dataset.year));
+                const y = activeYears.size === 0 || activeYears.has(parseInt(block.dataset.year));
                 const m = activeMonths.size === 0 || activeMonths.has(parseInt(block.dataset.month));
                 block.style.display = (y && m) ? '' : 'none';
                 if (y && m) visible++;
@@ -1067,25 +1108,25 @@
         /* ══ EDIT / ASSIGN MODAL ══════════════════════════════════════════ */
         async function openEditModal(td) {
             currentCell = td;
-            const code  = td.dataset.tacheCode;
+            const code = td.dataset.tacheCode;
             const label = td.dataset.tacheLabel;
 
             const colors = {
-                entree:     { bg: '#eff6ff', icon: '🚪' },
-                mektaba:    { bg: '#ecfdf5', icon: '📚' },
-                salle:      { bg: '#fffbeb', icon: '🏛️' },
+                entree: { bg: '#eff6ff', icon: '🚪' },
+                mektaba: { bg: '#ecfdf5', icon: '📚' },
+                salle: { bg: '#fffbeb', icon: '🏛️' },
                 amana_food: { bg: '#fff1f2', icon: '🥪' },
-                cours:      { bg: '#f5f3ff', icon: '🎓' },
+                cours: { bg: '#f5f3ff', icon: '🎓' },
             };
 
             const c = colors[code] || { bg: 'var(--sky-bg)', icon: '✏️' };
             document.getElementById('modalTitleIcon').style.background = c.bg;
-            document.getElementById('modalTitleIcon').textContent      = c.icon;
-            document.getElementById('modalTitle').textContent          = `Modifier — ${label}`;
-            document.getElementById('modalContextDay').textContent     = `${td.dataset.jour} ${td.dataset.date}`;
-            document.getElementById('modalContextTask').textContent    = `Tâche : ${label}`;
+            document.getElementById('modalTitleIcon').textContent = c.icon;
+            document.getElementById('modalTitle').textContent = `Modifier — ${label}`;
+            document.getElementById('modalContextDay').textContent = `${td.dataset.jour} ${td.dataset.date}`;
+            document.getElementById('modalContextTask').textContent = `Tâche : ${label}`;
 
-            const select   = document.getElementById('modalPersonSelect');
+            const select = document.getElementById('modalPersonSelect');
             select.innerHTML = '<option value="">— Aucune personne (désassigner) —</option>';
             const personnes = await loadPersonnes();
             personnes.forEach(p => {
@@ -1123,7 +1164,7 @@
         async function saveAssignation() {
             if (!currentCell) return;
             const creneauId = currentCell.dataset.creneauId;
-            const tacheId   = currentCell.dataset.tacheId;
+            const tacheId = currentCell.dataset.tacheId;
             const personneId = document.getElementById('modalPersonSelect').value || null;
             const btn = document.getElementById('modalSaveBtn');
             btn.disabled = true; btn.textContent = '…';
@@ -1144,7 +1185,7 @@
             if (!currentCell) return;
             if (!confirm('Désassigner cette tâche ?')) return;
             const creneauId = currentCell.dataset.creneauId;
-            const tacheId   = currentCell.dataset.tacheId;
+            const tacheId = currentCell.dataset.tacheId;
             try {
                 const res = await fetch(`${ROUTES.assignation}/${creneauId}/tache/${tacheId}`, {
                     method: 'DELETE',
@@ -1180,7 +1221,7 @@
                     const row = document.getElementById(`row-creneau-${id}`);
                     if (row) {
                         row.style.transition = 'opacity 0.3s';
-                        row.style.opacity    = '0';
+                        row.style.opacity = '0';
                         setTimeout(() => { row.remove(); checkEmptyWeeks(); }, 300);
                     }
                     showToast(data.message, 'success');
@@ -1203,7 +1244,7 @@
                     });
                     const data = await res.json();
                     if (data.success) { n++; document.getElementById(`row-creneau-${id}`)?.remove(); }
-                } catch {}
+                } catch { }
             }
             checkEmptyWeeks();
             showToast(`Semaine supprimée (${n} créneaux)`, 'success');
@@ -1221,7 +1262,7 @@
             document.querySelectorAll('.week-block').forEach(block => {
                 if (block.querySelectorAll('tbody tr').length === 0) {
                     block.style.transition = 'opacity 0.4s';
-                    block.style.opacity    = '0';
+                    block.style.opacity = '0';
                     setTimeout(() => block.remove(), 400);
                 }
             });
@@ -1231,8 +1272,8 @@
         let addCreneauMin = '', addCreneauMax = '', addCreneauExisting = [];
 
         function openAddCreneauModal(weekMin, weekMax, existingDates) {
-            addCreneauMin      = weekMin;
-            addCreneauMax      = weekMax;
+            addCreneauMin = weekMin;
+            addCreneauMax = weekMax;
             addCreneauExisting = existingDates || [];
 
             const infoEl = document.getElementById('addCreneauWeekInfo');
@@ -1243,8 +1284,8 @@
             }
 
             const dateInput = document.getElementById('addCreneauDate');
-            dateInput.min   = weekMin;
-            dateInput.max   = weekMax;
+            dateInput.min = weekMin;
+            dateInput.max = weekMax;
             dateInput.value = '';
 
             const hint = document.getElementById('addCreneauHint');
@@ -1274,7 +1315,7 @@
 
         async function submitAddCreneau() {
             const dateInput = document.getElementById('addCreneauDate');
-            const date      = dateInput.value;
+            const date = dateInput.value;
 
             if (!date) { dateInput.focus(); showToast('Veuillez choisir une date.', 'error'); return; }
             if (addCreneauExisting.includes(date)) { showToast('Un créneau existe déjà pour cette date.', 'error'); dateInput.focus(); return; }

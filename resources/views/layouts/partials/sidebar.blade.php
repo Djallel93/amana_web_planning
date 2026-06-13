@@ -49,6 +49,12 @@
             <span class="nav-text">Planning</span>
         </a>
 
+        <a href="{{ route('mon-planning') }}" class="nav-item {{ request()->routeIs('mon-planning') ? 'active' : '' }}"
+            onclick="closeSidebar()">
+            <span class="nav-icon">🙋</span>
+            <span class="nav-text">Mon planning</span>
+        </a>
+
         <a href="{{ route('planning.statistics') }}"
             class="nav-item {{ request()->routeIs('planning.statistics') ? 'active' : '' }}" onclick="closeSidebar()">
             <span class="nav-icon">📊</span>
@@ -82,7 +88,8 @@
                 <div class="sidebar-label">Gestion</div>
 
                 <a href="{{ route('planning.generate.form') }}"
-                    class="nav-item {{ request()->routeIs('planning.generate*') ? 'active' : '' }}" onclick="closeSidebar()">
+                    class="nav-item {{ request()->routeIs('planning.generate*') || request()->routeIs('planning.preview') ? 'active' : '' }}"
+                    onclick="closeSidebar()">
                     <span class="nav-icon">✨</span>
                     <span class="nav-text">Générer</span>
                 </a>
@@ -93,7 +100,6 @@
                     <span class="nav-text">Événements</span>
                 </a>
 
-                {{-- Guard Route::has pour éviter l'erreur si web.php n'est pas encore mis à jour --}}
                 @if(Route::has('settings.index'))
                     <a href="{{ route('settings.index') }}" class="nav-item {{ request()->routeIs('settings.*') ? 'active' : '' }}"
                         onclick="closeSidebar()">

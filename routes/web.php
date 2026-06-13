@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\CandidaturesController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\MonPlanningController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\PlanningEditController;
 use App\Http\Controllers\PersonnesController;
@@ -36,9 +37,6 @@ Route::get('/nouveau-mot-de-passe/{token}', [AuthController::class, 'showResetPa
 Route::post('/nouveau-mot-de-passe', [AuthController::class, 'resetPassword'])->name('password.update');
 
 // ── Inscription publique ──────────────────────────────────────────────────
-// throttle:20,1 → max 20 requêtes par minute par IP pour afficher le formulaire.
-// throttle:5,1  → max 5 soumissions par minute par IP pour éviter le spam.
-// Laravel retourne automatiquement une réponse 429 en cas de dépassement.
 Route::get('/inscription', [AuthController::class, 'showInscription'])
     ->name('inscription')
     ->middleware('throttle:20,1');
@@ -55,6 +53,9 @@ Route::post('/inscription', [AuthController::class, 'inscription'])
 
 Route::middleware('auth')->group(function () {
 
+    // ── Mon planning (vue personnelle) — tous les membres connectés ────────
+    Route::get('/mon-planning', [MonPlanningController::class, 'index'])->name('mon-planning');
+
     // ── Planning ───────────────────────────────────────────────────────────
     Route::prefix('planning')->name('planning.')->group(function () {
 
@@ -64,12 +65,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/export', [PlanningController::class, 'showExportForm'])->name('export.form');
         Route::post('/export/pdf', [PlanningController::class, 'exportPdf'])->name('export.pdf');
 
-        // Génération et rollback : gestionnaire + admin
+        // Génération, rollback, preview : gestionnaire + admin
         Route::middleware('role:gestionnaire')->group(function () {
             Route::get('/generer', [PlanningController::class, 'showGenerateForm'])->name('generate.form');
             Route::post('/generer', [PlanningController::class, 'generate'])->name('generate');
+            Route::post('/generer/apercu', [PlanningController::class, 'preview'])->name('preview');
             Route::post('/rollback', [PlanningController::class, 'rollback'])->name('rollback');
             Route::post('/rollback/dismiss', [PlanningController::class, 'rollbackDismiss'])->name('rollback.dismiss');
+            // Clear the pending overlap confirmation from session
+            Route::post('/overlap/cancel', function () {
+                session()->forget('pending_generation');
+                return redirect()->route('planning.generate.form');
+            })->name('overlap.cancel');
         });
 
         // ── Édition manuelle AJAX — gestionnaire + admin ──────────────────

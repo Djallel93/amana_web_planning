@@ -82,6 +82,7 @@ graph LR
 | Fonctionnalité                            | Admin | Gestionnaire |    Membre    |
 | ----------------------------------------- | :---: | :----------: | :----------: |
 | Voir le planning                          |  ✅   |      ✅      |      ✅      |
+| Voir mon planning personnel               |  ✅   |      ✅      |      ✅      |
 | Voir les statistiques                     |  ✅   |      ✅      |      ✅      |
 | Export PDF                                |  ✅   |      ✅      |      ✅      |
 | Voir les absences                         |  ✅   |      ✅      |      ✅      |
@@ -91,6 +92,7 @@ graph LR
 | Modifier ses disponibilités               |  ✅   |      ✅      |      ✅      |
 | Modifier toutes les disponibilités        |  ✅   |      ✅      |      ❌      |
 | Générer le planning                       |  ✅   |      ✅      |      ❌      |
+| Prévisualiser le planning (dry-run)       |  ✅   |      ✅      |      ❌      |
 | Modifier le planning manuellement         |  ✅   |      ✅      |      ❌      |
 | Rollback (annuler une génération)         |  ✅   |      ✅      |      ❌      |
 | Créer / modifier les événements           |  ✅   |      ✅      |      ❌      |
@@ -119,6 +121,7 @@ Vue principale de l'application. Affiche les créneaux regroupés par semaine IS
 - Bouton « + Créneau » pour ajouter manuellement un jour dans une semaine existante (admin/gestionnaire)
 - Suppression d'un créneau ou d'une semaine entière (admin/gestionnaire)
 - Toasts de confirmation en temps réel (AJAX)
+- Bouton **« Mon planning »** dans le header → accès rapide à la vue personnelle
 
 ```mermaid
 stateDiagram-v2
@@ -136,6 +139,26 @@ stateDiagram-v2
 
 ---
 
+### 🙋 Mon planning (`/mon-planning`)
+
+Vue personnelle filtrée pour le membre connecté. Accessible à tous les rôles depuis la barre latérale et depuis un bouton dans la vue Planning principale.
+
+**Fonctionnalités :**
+
+- Affiche uniquement les créneaux où **la personne connectée est assignée**
+- Fenêtre temporelle identique à la vue Planning : un an glissant + futur
+- Regroupement par **mois** avec compteur par section
+- Chaque créneau est affiché en carte individuelle avec :
+  - Bloc date (jour numérique, mois abrégé, nom du jour)
+  - Chip de tâche colorée avec icône
+  - Numéro de semaine ISO
+  - Date complète et nom de l'événement éventuel
+  - Badge de statut : **À venir** (futur), **Aujourd'hui**, **Effectué** (passé)
+- Bandeau de statistiques rapides : total créneaux, nombre à venir, décompte par tâche
+- Vue en **lecture seule** — pas d'édition
+
+---
+
 ### ✨ Générer le planning (`/planning/generer`)
 
 Formulaire de génération automatique du planning.
@@ -147,7 +170,31 @@ Formulaire de génération automatique du planning.
 
 **Aperçu dynamique** : le formulaire calcule et affiche en temps réel les dates concernées avant soumission.
 
+**Avertissement de chevauchement** : si des créneaux futurs existent déjà dans la période ciblée, la génération ne se déclenche **pas** immédiatement. À la place, un panneau d'avertissement s'affiche listant toutes les semaines qui seront écrasées, avec pour chacune le label, la plage de dates et le nombre de créneaux concernés. L'admin/gestionnaire doit choisir explicitement entre :
+
+- **Confirmer et écraser** : relance la génération avec `confirmed=1`
+- **Annuler** : efface la session et revient au formulaire vierge
+
+**Prévisualisation (dry-run)** : le bouton **« 👁 Aperçu »** soumet les paramètres à une route dédiée (`/planning/generer/apercu`) qui exécute l'algorithme complet **sans rien persister** (transaction rollbackée). Le résultat s'affiche dans une vue preview marquée « Aperçu — non enregistré » avec un filigrane. Depuis cette vue, deux boutons « Confirmer et générer » (haut et bas) soumettent la génération réelle.
+
 **Rollback** : après chaque génération, un panneau de rollback apparaît permettant d'annuler tout ou partie des créneaux générés (par semaine). La session de rollback est conservée jusqu'à fermeture explicite.
+
+```mermaid
+flowchart TD
+    A[Formulaire generate] --> B{Créneaux futurs\nexistants ?}
+    B -->|Non| D[Génération directe]
+    B -->|Oui et confirmed=1| D
+    B -->|Oui sans confirmed| C[Panneau avertissement\nliste des semaines affectées]
+    C -->|Confirmer et écraser| D
+    C -->|Annuler| A
+    A -->|Bouton Aperçu| E[Dry-run — transaction rollback]
+    E --> F[Vue preview — non enregistré]
+    F -->|Confirmer et générer| D
+    F -->|← Modifier| A
+    D --> G[Planning enregistré]
+    G --> H[Webhook Make.com dispatché]
+    G --> I[Session rollback disponible]
+```
 
 ---
 
@@ -326,7 +373,9 @@ php artisan amana:reset-admin --email=mon@email.fr --password=NouveauMotDePasse!
 flowchart TD
     A[Démarrage génération] --> B[DataLoader : charger\npersonnes, tâches,\nabsences, événements]
     B --> C[Trouver le 1er vendredi\naprès date_debut]
-    C --> D[Supprimer les créneaux\nexistants à partir de cette date]
+    C --> C2{Créneaux futurs\nexistants ?}
+    C2 -->|Oui — non confirmé| C3[Redirection vers formulaire\navec liste des semaines affectées]
+    C2 -->|Non ou confirmed=1| D[Supprimer les créneaux\nexistants à partir de cette date]
     D --> E{Pour chaque semaine}
     E --> F[Générer Vendredi]
     F --> G[Générer Samedi]
@@ -334,6 +383,28 @@ flowchart TD
     H -->|Non| E
     H -->|Oui| I[Envoyer Webhook Make.com\nen arrière-plan]
     I --> J[Fin]
+```
+
+### Mode dry-run (prévisualisation)
+
+Lorsque `SchedulerMain::generateSchedule` est appelé avec `dryRun: true` (depuis `PlanningController::preview`) :
+
+- Les créneaux existants **ne sont pas supprimés**
+- L'algorithme s'exécute normalement mais dans une **transaction DB**
+- La transaction est **rollbackée** à la fin — aucune donnée n'est persistée
+- Le retour contient le tableau des propositions d'assignation par jour, affiché dans `planning/preview.blade.php`
+- Aucun webhook n'est dispatché
+
+```mermaid
+flowchart LR
+    A[Bouton Aperçu] --> B[POST /planning/generer/apercu]
+    B --> C[SchedulerMain::generateSchedule\ndryRun=true]
+    C --> D[DB::beginTransaction]
+    D --> E[Calcul complet des assignations]
+    E --> F[DB::rollBack]
+    F --> G[Vue preview — non enregistré]
+    G -->|Confirmer| H[POST /planning/generer\nconfirmed=1]
+    H --> I[Génération réelle]
 ```
 
 ### Pour chaque jour (vendredi ou samedi)
@@ -439,6 +510,8 @@ Toutes les notifications sont envoyées de manière **asynchrone** (via la queue
 ## Intégration Make.com (Webhook)
 
 Après chaque génération de planning (ou après toute modification manuelle d'une assignation), l'application envoie un payload JSON à Make.com via un job asynchrone (`EnvoyerWebhookMake`). Make.com peut alors créer automatiquement des événements Google Calendar pour les rappels et notifications de l'équipe.
+
+> Le webhook n'est **pas** dispatché lors d'une prévisualisation dry-run.
 
 **Variable `.env` concernée :**
 

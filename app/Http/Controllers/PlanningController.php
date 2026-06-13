@@ -105,12 +105,62 @@ class PlanningController extends Controller
         return view('planning.generate');
     }
 
+    /**
+     * Génère le planning.
+     *
+     * Si des créneaux futurs existent et que la génération n'a pas encore été
+     * confirmée, redirige vers le formulaire avec un avertissement détaillé.
+     * La confirmation se fait via le champ caché `confirmed=1`.
+     */
     public function generate(PlanningGenerateRequest $request): RedirectResponse
     {
-        try {
-            $dateDebut = $request->validated('date_debut');
-            $semaines = (int) $request->validated('semaines');
+        $dateDebut = $request->validated('date_debut');
+        $semaines = (int) $request->validated('semaines');
 
+        // ── Calculer le premier vendredi ──────────────────────────────────
+        $premierVendredi = $this->trouverPremierVendredi($dateDebut);
+
+        // ── Détecter les créneaux qui seraient écrasés ────────────────────
+        $creneauxExistants = Creneau::where('date', '>=', $premierVendredi->toDateString())
+            ->orderBy('date')
+            ->get();
+
+        if ($creneauxExistants->isNotEmpty() && $request->input('confirmed') !== '1') {
+            // Construire la liste des semaines affectées (pour l'affichage)
+            $semainesAffectées = $creneauxExistants
+                ->groupBy(fn($c) => $c->date->isoWeek() . '-' . $c->date->year)
+                ->map(function ($groupe) {
+                    $first = $groupe->first();
+                    $last = $groupe->last();
+                    return [
+                        'label' => 'Semaine ' . $first->semaine,
+                        'dates' => $first->date->locale('fr')->isoFormat('D MMM')
+                            . ' — '
+                            . $last->date->locale('fr')->isoFormat('D MMM YYYY'),
+                        'nb_creneaux' => $groupe->count(),
+                    ];
+                })
+                ->values()
+                ->toArray();
+
+            session([
+                'pending_generation' => [
+                    'date_debut' => $dateDebut,
+                    'semaines' => $semaines,
+                    'semaines_affectees' => $semainesAffectées,
+                    'nb_total' => $creneauxExistants->count(),
+                ],
+            ]);
+
+            return redirect()->route('planning.generate.form')
+                ->with('warning', 'Des créneaux existants vont être supprimés. Veuillez confirmer ci-dessous.');
+        }
+
+        // Nettoyer la session de confirmation si elle traîne
+        session()->forget('pending_generation');
+
+        // ── Génération effective ──────────────────────────────────────────
+        try {
             $resultat = $this->scheduler->generateSchedule($dateDebut, $semaines);
 
             $lastGenerated = $this->buildRollbackData($dateDebut, $semaines);
@@ -118,7 +168,6 @@ class PlanningController extends Controller
 
             audit('generate', 'planning', null, null, $resultat);
 
-            // config() fonctionne après php artisan config:cache, env() ne fonctionne pas.
             if (config('services.make.webhook_url')) {
                 $payload = app(\App\Services\WebhookPayloadBuilder::class)
                     ->build($dateDebut, $semaines);
@@ -138,13 +187,41 @@ class PlanningController extends Controller
         }
     }
 
-    private function buildRollbackData(string $dateDebut, int $semaines): array
+    /**
+     * Aperçu (dry-run) du planning sans rien enregistrer.
+     * Affiche le résultat proposé dans une vue dédiée.
+     */
+    public function preview(PlanningGenerateRequest $request): View|RedirectResponse
+    {
+        $dateDebut = $request->validated('date_debut');
+        $semaines = (int) $request->validated('semaines');
+
+        try {
+            $propositions = $this->scheduler->generateSchedule($dateDebut, $semaines, dryRun: true);
+
+            return view('planning.preview', compact('propositions', 'dateDebut', 'semaines'));
+
+        } catch (\Exception $e) {
+            return redirect()->route('planning.generate.form')
+                ->withInput()
+                ->with('error', 'Erreur lors de la prévisualisation : ' . $e->getMessage());
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+
+    private function trouverPremierVendredi(string $dateDebut): Carbon
     {
         $date = Carbon::parse($dateDebut)->startOfDay();
         while ($date->dayOfWeek !== 5) {
             $date->addDay();
         }
+        return $date;
+    }
 
+    private function buildRollbackData(string $dateDebut, int $semaines): array
+    {
+        $date = $this->trouverPremierVendredi($dateDebut);
         $dateFin = $date->copy()->addWeeks($semaines)->addDay();
 
         $creneaux = Creneau::whereBetween('date', [$date->toDateString(), $dateFin->toDateString()])
