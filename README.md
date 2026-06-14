@@ -12,6 +12,20 @@
 8. [Système de notifications](#système-de-notifications)
 9. [Intégration Make.com (Webhook)](#intégration-makecom-webhook)
 
+## Documentation complémentaire
+
+| Document                                     | Description                                                                                               |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| [docs/installation.md](docs/installation.md) | Prérequis, installation locale (XAMPP), déploiement IONOS, référence des routes, résolution des problèmes |
+| [docs/Schema_bdd.md](docs/Schema_bdd.md)     | Schéma complet de la base de données, diagramme des relations, description de chaque table                |
+
+---
+
+> 📖 **Guides détaillés**
+>
+> - [**Guide d'installation**](docs/installation.md) — mise en place locale et production, référence complète des routes, résolution des problèmes courants
+> - [**Schéma de la base de données**](docs/Schema_bdd.md) — description de chaque table, diagramme ERD, notes sur les fonctionnalités applicatives
+
 ---
 
 ## Présentation du projet

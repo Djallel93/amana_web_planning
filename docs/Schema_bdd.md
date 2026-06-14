@@ -18,6 +18,8 @@ La base de données est organisée en trois groupes fonctionnels :
 | **Planning**    | `plan_`          | Données opérationnelles (créneaux, assignations, absences, restrictions)            |
 | **Système**     | _(sans préfixe)_ | Tables techniques Laravel (sessions, jobs, cache, audit)                            |
 
+> **Aucune migration n'a été ajoutée** pour les fonctionnalités « Mon planning », « Avertissement de chevauchement » et « Dry-run preview ». Ces trois fonctionnalités sont purement applicatives et n'ajoutent aucune table ni colonne.
+
 ---
 
 ## Diagramme des relations
@@ -116,7 +118,7 @@ erDiagram
     plan_restrictions {
         int id PK
         int id_personne FK
-        tinyint id_tache FK
+        int id_tache FK
         enum jour
         boolean autorise
     }
@@ -303,6 +305,8 @@ Un créneau = une date de permanence (vendredi ou samedi). Une seule ligne par d
 | `date`  | DATE UNIQUE | Date de la permanence |
 
 > L'accesseur `jour` retourne `"Vendredi"` ou `"Samedi"`. L'accesseur `semaine` retourne le numéro de semaine ISO.
+>
+> **Vue Mon planning :** `MonPlanningController` interroge cette table via un `JOIN` sur `plan_creneaux_taches` filtré par `id_personne = auth()->id()`, sans aucune colonne supplémentaire.
 
 ---
 
@@ -318,6 +322,8 @@ Cœur du planning : lie un créneau à une tâche et à la personne assignée.
 
 > Clé primaire composite : `(id_planning, id_tache)`.
 > La suppression d'un créneau déclenche la suppression en cascade de toutes ses assignations.
+>
+> **En mode dry-run**, des lignes sont temporairement insérées dans cette table le temps du calcul, puis supprimées par le rollback de transaction. Aucun effet visible en dehors de la transaction.
 
 ---
 
@@ -385,6 +391,8 @@ Journal d'audit de toutes les actions sensibles.
 | `created_at`  | TIMESTAMP        | Date de l'action                                                                      |
 
 > Utilisé via le helper global `audit('action', 'module', $id, $avant, $apres)`.
+>
+> **Note :** les prévisualisations dry-run ne génèrent **aucune entrée** dans `audit_logs` — la transaction étant rollbackée, l'appel à `audit()` à l'intérieur ne se produit pas (il n'y en a pas dans le chemin dry-run).
 
 ---
 
@@ -400,6 +408,13 @@ Sessions utilisateurs (driver `database` de Laravel).
 | `user_agent`    | TEXT         | Navigateur                             |
 | `payload`       | LONGTEXT     | Données de session sérialisées         |
 | `last_activity` | INT          | Timestamp Unix de la dernière activité |
+
+> **Données de session utilisées par les nouvelles fonctionnalités :**
+>
+> | Clé session               | Contenu                                                     | Durée de vie                                            |
+> | ------------------------- | ----------------------------------------------------------- | ------------------------------------------------------- |
+> | `pending_generation`      | `date_debut`, `semaines`, `semaines_affectees`, `nb_total`  | Jusqu'à confirmation, annulation ou nouvelle soumission |
+> | `last_generated_creneaux` | Liste des créneaux générés pour le rollback post-génération | Jusqu'à dismiss ou rollback explicite                   |
 
 ---
 
