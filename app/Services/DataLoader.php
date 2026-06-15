@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\DateHelper;
 use App\Models\Personne;
 use App\Models\Absence;
 use App\Models\Evenement;
@@ -70,13 +71,13 @@ class DataLoader
             ->get();
     }
 
+    /**
+     * Délègue à DateHelper pour rester compatible avec les appelants existants
+     * (notamment SchedulerMain qui lit $context['premierVendredi']).
+     */
     public function findPremierVendredi(string $dateDebut): Carbon
     {
-        $date = Carbon::parse($dateDebut)->startOfDay();
-        while ($date->dayOfWeek !== 5) {
-            $date->addDay();
-        }
-        return $date;
+        return DateHelper::premierVendredi($dateDebut);
     }
 
     public function initializeCountersFromHistory(Collection $personnes, Collection $taches): array

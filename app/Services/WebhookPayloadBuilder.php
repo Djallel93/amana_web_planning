@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\DateHelper;
 use App\Models\Creneau;
 use App\Models\Evenement;
 use App\Models\Setting;
@@ -30,7 +31,7 @@ class WebhookPayloadBuilder
         $heureCours = Setting::get('heure_cours', 'planning') ?? '20:00';
         $lieu = Setting::get('lieu', 'planning') ?? '';
 
-        $premier = $this->trouverPremierVendredi($dateDebut);
+        $premier = DateHelper::premierVendredi($dateDebut);
         $fin = $premier->copy()->addWeeks($semaines)->addDay();
 
         $creneaux = Creneau::with([
@@ -230,8 +231,6 @@ class WebhookPayloadBuilder
     ): array {
         [$debut, $fin] = $this->calculerHoraires($codeOffset, $date, $heureCours);
 
-        // Pour message_general, le code offset est 'message_bot' mais la clé
-        // de calendrier est 'message_bot' également
         return [
             'nom_complet' => null,
             'email' => null,
@@ -273,14 +272,5 @@ class WebhookPayloadBuilder
         $fin = $base->copy()->addMinutes((int) $offsetFin)->format('H:i');
 
         return [$debut, $fin];
-    }
-
-    private function trouverPremierVendredi(string $dateDebut): Carbon
-    {
-        $date = Carbon::parse($dateDebut)->startOfDay();
-        while ($date->dayOfWeek !== Carbon::FRIDAY) {
-            $date->addDay();
-        }
-        return $date;
     }
 }

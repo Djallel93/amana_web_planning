@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Helpers\DateHelper;
 use App\Http\Requests\Planning\PlanningExportRequest;
 use App\Http\Requests\Planning\PlanningGenerateRequest;
 use App\Models\Creneau;
@@ -118,7 +119,7 @@ class PlanningController extends Controller
         $semaines = (int) $request->validated('semaines');
 
         // ── Calculer le premier vendredi ──────────────────────────────────
-        $premierVendredi = $this->trouverPremierVendredi($dateDebut);
+        $premierVendredi = DateHelper::premierVendredi($dateDebut);
 
         // ── Détecter les créneaux qui seraient écrasés ────────────────────
         $creneauxExistants = Creneau::where('date', '>=', $premierVendredi->toDateString())
@@ -210,18 +211,9 @@ class PlanningController extends Controller
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private function trouverPremierVendredi(string $dateDebut): Carbon
-    {
-        $date = Carbon::parse($dateDebut)->startOfDay();
-        while ($date->dayOfWeek !== 5) {
-            $date->addDay();
-        }
-        return $date;
-    }
-
     private function buildRollbackData(string $dateDebut, int $semaines): array
     {
-        $date = $this->trouverPremierVendredi($dateDebut);
+        $date = DateHelper::premierVendredi($dateDebut);
         $dateFin = $date->copy()->addWeeks($semaines)->addDay();
 
         $creneaux = Creneau::whereBetween('date', [$date->toDateString(), $dateFin->toDateString()])
