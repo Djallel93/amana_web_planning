@@ -8,6 +8,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * Modèle pour plan_creneaux.
@@ -76,8 +77,13 @@ class Creneau extends Model
     public function getJourAttribute(): string
     {
         $jours = [
-            0 => 'Dimanche', 1 => 'Lundi', 2 => 'Mardi',
-            3 => 'Mercredi', 4 => 'Jeudi', 5 => 'Vendredi', 6 => 'Samedi',
+            0 => 'Dimanche',
+            1 => 'Lundi',
+            2 => 'Mardi',
+            3 => 'Mercredi',
+            4 => 'Jeudi',
+            5 => 'Vendredi',
+            6 => 'Samedi',
         ];
         return $jours[$this->date->dayOfWeek] ?? '';
     }
@@ -88,5 +94,24 @@ class Creneau extends Model
     public function getSemaineAttribute(): int
     {
         return (int) $this->date->isoWeek();
+    }
+
+    // ── Métier ─────────────────────────────────────────────────────────────
+
+    /**
+     * Retourne la collection des codes de tâches bloquées par les événements
+     * liés à ce créneau.
+     *
+     * Suppose que la relation evenements.tachesBloquees est déjà eager-loaded
+     * (ce qui est le cas dans PlanningController::index()).
+     *
+     * Exemple : collect(['amana_food', 'entree'])
+     */
+    public function tachesBloqueesCodes(): Collection
+    {
+        return $this->evenements
+            ->flatMap(fn($evenement) => $evenement->tachesBloquees->pluck('code'))
+            ->unique()
+            ->values();
     }
 }

@@ -5,9 +5,8 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Models\Application;
 use App\Models\Personne;
-use App\Models\Role;
+use App\Services\RoleService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -43,6 +42,12 @@ class ResetAdminPassword extends Command
     protected $description = 'Réinitialise le mot de passe du compte administrateur AMANA Planning. '
         . 'À utiliser uniquement en cas de perte d\'accès via SSH.';
 
+    public function __construct(
+        private readonly RoleService $roleService,
+    ) {
+        parent::__construct();
+    }
+
     public function handle(): int
     {
         $this->newLine();
@@ -77,16 +82,13 @@ class ResetAdminPassword extends Command
         $genere = false;
 
         if (empty($motDePasse)) {
-            // Générer un mot de passe aléatoire sécurisé :
-            // 8 lettres majuscules/minuscules + 4 chiffres + 4 caractères spéciaux
-            $motDePasse = Str::upper(Str::random(4))
+            $motDePasse = str_shuffle(
+                Str::upper(Str::random(4))
                 . Str::lower(Str::random(4))
                 . rand(1000, 9999)
                 . Str::substr('!@#$%^&*', rand(0, 4), 1)
-                . Str::substr('!@#$%^&*', rand(4, 7), 1);
-
-            // Mélanger les caractères
-            $motDePasse = str_shuffle($motDePasse);
+                . Str::substr('!@#$%^&*', rand(4, 7), 1)
+            );
             $genere = true;
         }
 
@@ -121,12 +123,11 @@ class ResetAdminPassword extends Command
         $this->components->info('Mot de passe mis à jour avec succès.');
 
         // ── 6. S'assurer que le rôle admin est bien attribué ──────────────
-        $planningApp = Application::where('code', 'planning')->first();
+        $planningApp = $this->roleService->planningApp();
 
         if ($planningApp) {
-            $roleAdmin = Role::where('code', 'admin')
-                ->where('id_application', $planningApp->id)
-                ->first();
+            $roleAdmin = $this->roleService->planningRoles()
+                ->firstWhere('code', 'admin');
 
             if ($roleAdmin) {
                 $dejaAttribue = DB::table('ref_personnes_roles')
@@ -135,11 +136,7 @@ class ResetAdminPassword extends Command
                     ->exists();
 
                 if (!$dejaAttribue) {
-                    DB::table('ref_personnes_roles')->insert([
-                        'id_personne' => $admin->id,
-                        'id_role' => $roleAdmin->id,
-                        'date_attribution' => now()->toDateString(),
-                    ]);
+                    $this->roleService->syncRolePlanning($admin, 'admin');
                     $this->components->info('Rôle admin attribué.');
                 } else {
                     $this->components->info('Rôle admin déjà attribué — inchangé.');
@@ -165,7 +162,6 @@ class ResetAdminPassword extends Command
         $this->newLine();
 
         // ── 8. Invalider toutes les sessions actives de ce compte ─────────
-        // Pour forcer une reconnexion avec le nouveau mot de passe
         DB::table('sessions')
             ->where('user_id', $admin->id)
             ->delete();

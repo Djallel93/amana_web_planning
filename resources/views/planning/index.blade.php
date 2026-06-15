@@ -194,7 +194,6 @@
         }
 
         /* ── Bannière événement dans le bloc semaine ── */
-        /* Événement informatif (aucune tâche bloquée) */
         .event-banner-info {
             display: flex;
             align-items: center;
@@ -206,7 +205,6 @@
             color: #5b21b6;
         }
 
-        /* Événement bloquant (tâches partiellement ou totalement bloquées) */
         .event-banner-blocking {
             display: flex;
             align-items: center;
@@ -314,7 +312,6 @@
             font-size: 12px;
         }
 
-        /* Cellule bloquée par un événement */
         .task-cell-blocked {
             background: #fff8f0;
         }
@@ -336,7 +333,6 @@
             white-space: nowrap;
         }
 
-        /* Ligne entièrement bloquée */
         .day-row-blocked td {
             opacity: 0.55;
         }
@@ -641,11 +637,9 @@
             @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                 <a href="{{ route('planning.generate.form') }}" class="btn btn-primary">✨ Générer</a>
             @endif
-
         </div>
     </div>
 
-    {{-- Bannière mode historique --}}
     @if($historique)
         <div class="historique-banner">
             <span>📚</span>
@@ -673,8 +667,9 @@
                     @endif
                 </div>
                 @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
-                    <a href="{{ route('planning.generate.form') }}" class="btn btn-primary btn-lg" style="margin-top:16px;">✨
-                        Générer maintenant</a>
+                    <a href="{{ route('planning.generate.form') }}" class="btn btn-primary btn-lg" style="margin-top:16px;">
+                        ✨ Générer maintenant
+                    </a>
                 @endif
             </div>
         </div>
@@ -692,7 +687,6 @@
             krsort($allYears);
             ksort($allMonths);
 
-            // Mois courant et mois précédent pour filtre par défaut
             $currentMonth = (int) now()->format('n');
             $previousMonth = $currentMonth === 1 ? 12 : $currentMonth - 1;
         @endphp
@@ -715,7 +709,9 @@
                 <div class="filter-group" id="monthFilters">
                     @foreach($allMonths as $num => $name)
                         <span class="filter-chip {{ in_array($num, [$currentMonth, $previousMonth]) ? 'active' : '' }}"
-                            data-type="month" data-value="{{ $num }}" onclick="toggleFilter(this)">{{ ucfirst($name) }}</span>
+                            data-type="month" data-value="{{ $num }}" onclick="toggleFilter(this)">
+                            {{ ucfirst($name) }}
+                        </span>
                     @endforeach
                 </div>
             </div>
@@ -741,20 +737,19 @@
                     $weekYear = $first->date->year;
                     $weekMonth = $first->date->month;
                     $weekIds = $creneauxSemaine->pluck('id')->join(',');
-
                     $weekMonday = $first->date->copy()->subDays($first->date->isoWeekday() - 1)->startOfDay();
                     $weekSunday = $weekMonday->copy()->addDays(6)->endOfDay();
                     $existingDates = $creneauxSemaine->pluck('date')->map(fn($d) => $d->toDateString())->toJson();
 
-                    // Bannières pour cette semaine
                     $bannièresSemaine = $bannièresParSemaine[$semaineCle] ?? [];
 
-                    // Y a-t-il un événement qui bloque tout le créneau (toutes les tâches) ?
                     $nbTachesActives = $creneauxSemaine->first()?->taches->count() ?? 5;
-                    $evtToutBloque = collect($bannièresSemaine)->filter(function ($b) use ($nbTachesActives) {
-                        return !$b['informatif'] && $b['evenement']->tachesBloquees->count() >= $nbTachesActives;
-                    })->first();
+                    $evtToutBloque = collect($bannièresSemaine)->first(
+                        fn($b) => !$b['informatif']
+                        && $b['evenement']->tachesBloquees->count() >= $nbTachesActives
+                    );
                 @endphp
+
                 <div class="week-block" data-year="{{ $weekYear }}" data-month="{{ $weekMonth }}">
                     <div class="week-header">
                         <div class="week-label">
@@ -763,15 +758,14 @@
                             {{ $last->date->locale('fr')->isoFormat('D MMMM YYYY') }}
                             @if($evtToutBloque)
                                 <span style="
-                                                        background:rgba(225,29,72,0.25);
-                                                        border:1px solid rgba(225,29,72,0.5);
-                                                        color:#fda4af;
-                                                        padding:2px 10px;
-                                                        border-radius:20px;
-                                                        font-size:11px;
-                                                        font-weight:600;
-                                                        margin-left:6px;
-                                                    ">
+                                                                    background:rgba(225,29,72,0.25);
+                                                                    border:1px solid rgba(225,29,72,0.5);
+                                                                    color:#fda4af;
+                                                                    padding:2px 10px;
+                                                                    border-radius:20px;
+                                                                    font-size:11px;
+                                                                    font-weight:600;
+                                                                    margin-left:6px;">
                                     🚫 {{ $evtToutBloque['evenement']->nom }}
                                 </span>
                             @endif
@@ -780,12 +774,10 @@
                             <span class="week-dates">{{ $creneauxSemaine->count() }} créneaux</span>
                             @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                                 <button class="btn-add-creneau" onclick="openAddCreneauModal(
-                                                        '{{ $weekMonday->toDateString() }}',
-                                                        '{{ $weekSunday->toDateString() }}',
-                                                        {{ $existingDates }}
-                                                    )">
-                                    ➕ Créneau
-                                </button>
+                                                                    '{{ $weekMonday->toDateString() }}',
+                                                                    '{{ $weekSunday->toDateString() }}',
+                                                                    {{ $existingDates }}
+                                                                )">➕ Créneau</button>
                                 <button class="btn-delete-week" onclick="deleteWeek([{{ $weekIds }}], this)">
                                     🗑️ Supprimer la semaine
                                 </button>
@@ -795,7 +787,7 @@
 
                     <div class="week-body">
 
-                        {{-- Bannières événements de la semaine --}}
+                        {{-- Bannières événements --}}
                         @foreach($bannièresSemaine as $bannière)
                             @php
                                 $evt = $bannière['evenement'];
@@ -806,14 +798,12 @@
                             @endphp
 
                             @if($bannière['informatif'])
-                                {{-- Événement purement informatif --}}
                                 <div class="event-banner-info">
                                     <span class="event-banner-icon">📅</span>
                                     <span class="event-banner-name">{{ $evt->nom }}</span>
                                     <span class="event-banner-dates">— {{ $dateStr }}</span>
                                 </div>
                             @else
-                                {{-- Événement bloquant (partiel ou total) --}}
                                 <div class="event-banner-blocking">
                                     <span class="event-banner-icon">🚫</span>
                                     <span class="event-banner-name">{{ $evt->nom }}</span>
@@ -830,12 +820,14 @@
                                                 ];
                                                 $s = $tbColors[$tb->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink)'];
                                             @endphp
-                                            <span style="
-                                                                            display:inline-flex;align-items:center;
-                                                                            padding:2px 8px;border-radius:20px;
-                                                                            font-size:11px;font-weight:600;
-                                                                            background:{{ $s['bg'] }};color:{{ $s['color'] }};
-                                                                        ">{{ $tb->libelle }}</span>
+                                            <span
+                                                style="
+                                                                                                display:inline-flex;align-items:center;
+                                                                                                padding:2px 8px;border-radius:20px;
+                                                                                                font-size:11px;font-weight:600;
+                                                                                                background:{{ $s['bg'] }};color:{{ $s['color'] }};">
+                                                {{ $tb->libelle }}
+                                            </span>
                                         @endforeach
                                     </div>
                                 </div>
@@ -861,30 +853,21 @@
                                     @foreach($creneauxSemaine as $creneau)
                                         @php
                                             $tachesMap = $creneau->taches->keyBy(fn($t) => $t->tache?->code);
+                                            $tachesBloqueesCodes = $creneau->tachesBloqueesCodes();
 
-                                            // Construire les codes de tâches bloquées pour CE créneau
-                                            $tachesBloquéesCreneau = collect();
-                                            $nomEvenementsBloquants = [];
-                                            foreach ($creneau->evenements as $evtCreneau) {
-                                                foreach ($evtCreneau->tachesBloquees as $tb) {
-                                                    $tachesBloquéesCreneau->push($tb->code);
-                                                }
-                                                if ($evtCreneau->tachesBloquees->isNotEmpty()) {
-                                                    $nomEvenementsBloquants[$evtCreneau->nom] = $evtCreneau->nom;
-                                                }
-                                            }
-                                            $tachesBloquéesCreneau = $tachesBloquéesCreneau->unique();
+                                            // Nom(s) des événements bloquants pour affichage dans les cellules
+                                            $nomEvenementsBloquants = $creneau->evenements
+                                                ->filter(fn($e) => $e->tachesBloquees->isNotEmpty())
+                                                ->pluck('nom')
+                                                ->implode(', ');
 
-                                            // Nom de l'événement bloquant (pour affichage dans cellule)
-                                            $nomEvtBloquant = implode(', ', $nomEvenementsBloquants);
-
-                                            // Tout bloqué = toutes les tâches actives sont bloquées
                                             $nbTaches = $creneau->taches->count();
-                                            $toutBloque = $tachesBloquéesCreneau->count() >= $nbTaches
-                                                && $tachesBloquéesCreneau->isNotEmpty();
+                                            $toutBloque = $tachesBloqueesCodes->count() >= $nbTaches
+                                                && $tachesBloqueesCodes->isNotEmpty();
 
                                             $evtStr = $creneau->evenements->pluck('nom')->implode(', ');
                                         @endphp
+
                                         <tr class="{{ $toutBloque ? 'day-row-blocked' : '' }}" id="row-creneau-{{ $creneau->id }}">
 
                                             {{-- Jour + date --}}
@@ -898,7 +881,7 @@
                                                     </span>
                                                     @if($toutBloque)
                                                         <span class="badge badge-danger badge-dot" style="font-size:10px;">Bloqué</span>
-                                                    @elseif($tachesBloquéesCreneau->isNotEmpty())
+                                                    @elseif($tachesBloqueesCodes->isNotEmpty())
                                                         <span class="badge badge-warning badge-dot" style="font-size:10px;">Partiel</span>
                                                     @endif
                                                 </div>
@@ -910,7 +893,7 @@
                                                     $ct = $tachesMap->get($code);
                                                     $tacheId = $ct?->id_tache;
                                                     $personne = $ct?->personne;
-                                                    $estBloquee = $tachesBloquéesCreneau->contains($code);
+                                                    $estBloquee = $tachesBloqueesCodes->contains($code);
                                                 @endphp
                                                 <td class="task-cell {{ $estBloquee ? 'task-cell-blocked' : '' }}"
                                                     id="cell-{{ $creneau->id }}-{{ $code }}" data-creneau-id="{{ $creneau->id }}"
@@ -920,10 +903,9 @@
                                                     data-date="{{ $creneau->date->locale('fr')->isoFormat('D MMM YYYY') }}">
 
                                                     @if($estBloquee)
-                                                        {{-- Tâche bloquée : afficher le nom de l'événement --}}
                                                         <div class="task-cell-inner" style="cursor:default;">
-                                                            <span class="tache-blocked-label" title="{{ $nomEvtBloquant }}">
-                                                                🚫 {{ Str::limit($nomEvtBloquant, 20) }}
+                                                            <span class="tache-blocked-label" title="{{ $nomEvenementsBloquants }}">
+                                                                🚫 {{ Str::limit($nomEvenementsBloquants, 20) }}
                                                             </span>
                                                         </div>
                                                     @else
@@ -1058,7 +1040,6 @@
         const activeYears = new Set();
         const activeMonths = new Set();
 
-        // ── Init filtre par défaut : mois courant + mois précédent ──────────
         document.addEventListener('DOMContentLoaded', function () {
             const defaultChips = document.querySelectorAll('.filter-chip[data-type="month"].active');
             defaultChips.forEach(chip => activeMonths.add(parseInt(chip.dataset.value)));

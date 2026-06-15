@@ -16,6 +16,10 @@ use Symfony\Component\HttpFoundation\Response;
  * Vérifie que l'utilisateur connecté possède le rôle requis
  * dans l'application 'planning'.
  *
+ * Toutes les routes utilisant ce middleware sont déjà protégées par le
+ * middleware 'auth' (EnsureAuthenticated) — Auth::check() est donc
+ * garanti ici et n'est pas revérifié.
+ *
  * Hiérarchie des rôles :
  *   admin        → accès complet (peut tout faire)
  *   gestionnaire → accès planning + événements + absences + restrictions,
@@ -29,41 +33,22 @@ use Symfony\Component\HttpFoundation\Response;
  *   Route::middleware('role:admin')        → réservé aux admins uniquement
  *   Route::middleware('role:gestionnaire') → admins + gestionnaires
  *   Route::middleware('role:membre')       → admins + gestionnaires + membres
- *
- * Usage dans les contrôleurs :
- *   if (Auth::user()->isAdmin()) { ... }
- *   if (Auth::user()->isGestionnaire()) { ... }
- *   if (Auth::user()->isMembre()) { ... }
  */
 class EnsureRole
 {
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        // Vérifier que l'utilisateur est connecté
-        if (! Auth::check()) {
-            return redirect()->route('login')
-                ->with('error', 'Vous devez être connecté pour accéder à cette page.');
-        }
-
         /** @var \App\Models\Personne $personne */
         $personne = Auth::user();
 
-        // Vérifier le rôle requis avec hiérarchie
         $autorise = match ($role) {
-            // Route admin uniquement
             'admin' => $personne->isAdmin(),
-
-            // Route gestionnaire : admins ET gestionnaires y ont accès
             'gestionnaire' => $personne->isAdmin() || $personne->isGestionnaire(),
-
-            // Route membre : admins, gestionnaires ET membres y ont accès
             'membre' => $personne->isMembre(),
-
-            // Rôle inconnu : refus par défaut
             default => false,
         };
 
-        if (! $autorise) {
+        if (!$autorise) {
             return redirect()->route('planning.index')
                 ->with('error', 'Vous n\'avez pas les permissions nécessaires pour accéder à cette page.');
         }

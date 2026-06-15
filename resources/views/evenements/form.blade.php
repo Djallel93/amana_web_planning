@@ -6,6 +6,8 @@
 @section('content')
     @php $edit = isset($evenement); @endphp
 
+    @include('partials.tache-colors')
+
     <div class="page-header">
         <div class="page-header-left">
             <div class="page-title">{{ $edit ? 'Modifier l\'événement' : 'Créer un événement' }}</div>
@@ -73,7 +75,8 @@
                                 🚫 Tâches bloquées pendant cet événement
                             </div>
                             <div style="font-size:12.5px;color:var(--ink-muted);line-height:1.6;">
-                                Cochez les tâches qui <strong>ne seront pas assignées</strong> lors de la génération du planning
+                                Cochez les tâches qui <strong>ne seront pas assignées</strong> lors de la génération du
+                                planning
                                 pour les créneaux couverts par cet événement.<br>
                                 <span style="color:var(--amber);font-weight:600;">Si aucune tâche n'est cochée</span>,
                                 l'événement est purement informatif — il apparaîtra dans la bannière de la semaine
@@ -86,23 +89,19 @@
                                 ? $evenement->tachesBloquees->pluck('id')->toArray()
                                 : [];
                             $oldTaches = old('taches', $tachesBloquéesIds);
-
-                            $tacheColors = [
-                                'entree'     => ['bg' => '#eff6ff', 'color' => '#2563eb', 'icon' => '🚪'],
-                                'mektaba'    => ['bg' => '#ecfdf5', 'color' => '#059669', 'icon' => '📚'],
-                                'salle'      => ['bg' => '#fffbeb', 'color' => '#d97706', 'icon' => '🏛️'],
-                                'amana_food' => ['bg' => '#fff1f2', 'color' => '#e11d48', 'icon' => '🥪'],
-                                'cours'      => ['bg' => '#f5f3ff', 'color' => '#7c3aed', 'icon' => '🎓'],
-                            ];
                         @endphp
 
-                        <div style="background:var(--surface-2);border:1px solid var(--surface-border);border-radius:var(--radius);overflow:hidden;">
+                        <div
+                            style="background:var(--surface-2);border:1px solid var(--surface-border);border-radius:var(--radius);overflow:hidden;">
 
-                            {{-- Boutons tout cocher / tout décocher --}}
-                            <div style="padding:10px 16px;border-bottom:1px solid var(--surface-3);display:flex;align-items:center;gap:10px;">
-                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(true)">Tout bloquer</button>
-                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(false)">Tout libérer</button>
-                                <span id="blockedCount" style="margin-left:auto;font-size:12px;color:var(--ink-muted);"></span>
+                            <div
+                                style="padding:10px 16px;border-bottom:1px solid var(--surface-3);display:flex;align-items:center;gap:10px;">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(true)">Tout
+                                    bloquer</button>
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(false)">Tout
+                                    libérer</button>
+                                <span id="blockedCount"
+                                    style="margin-left:auto;font-size:12px;color:var(--ink-muted);"></span>
                             </div>
 
                             @foreach($taches as $tache)
@@ -110,42 +109,45 @@
                                     $style = $tacheColors[$tache->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink)', 'icon' => '•'];
                                     $checked = in_array($tache->id, (array) $oldTaches);
                                 @endphp
-                                <label class="tache-block-item {{ $checked ? 'checked' : '' }}"
-                                    id="label-{{ $tache->id }}"
+                                <label class="tache-block-item {{ $checked ? 'checked' : '' }}" id="label-{{ $tache->id }}"
                                     style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--surface-3);cursor:pointer;transition:background 0.15s;">
-                                    <input
-                                        type="checkbox"
-                                        name="taches[]"
-                                        value="{{ $tache->id }}"
-                                        id="tache_{{ $tache->id }}"
-                                        class="tache-checkbox"
-                                        {{ $checked ? 'checked' : '' }}
+                                    <input type="checkbox" name="taches[]" value="{{ $tache->id }}" id="tache_{{ $tache->id }}"
+                                        class="tache-checkbox" {{ $checked ? 'checked' : '' }}
                                         style="width:16px;height:16px;accent-color:var(--rose);cursor:pointer;flex-shrink:0;-webkit-appearance:auto;appearance:auto;">
                                     <div style="display:flex;align-items:center;gap:9px;flex:1;">
                                         <span style="
-                                            display:inline-flex;align-items:center;gap:5px;
-                                            padding:3px 11px;border-radius:20px;
-                                            font-size:12.5px;font-weight:600;
-                                            background:{{ $style['bg'] }};color:{{ $style['color'] }};
-                                        ">
+                                                    display:inline-flex;align-items:center;gap:5px;
+                                                    padding:3px 11px;border-radius:20px;
+                                                    font-size:12.5px;font-weight:600;
+                                                    background:{{ $style['bg'] }};color:{{ $style['color'] }};
+                                                ">
                                             {{ $style['icon'] }} {{ $tache->libelle }}
                                         </span>
                                     </div>
-                                    <span class="block-status" style="font-size:11.5px;font-weight:600;color:{{ $checked ? 'var(--rose)' : 'var(--emerald)' }};">
+                                    <span class="block-status"
+                                        style="font-size:11.5px;font-weight:600;color:{{ $checked ? 'var(--rose)' : 'var(--emerald)' }};">
                                         {{ $checked ? '🚫 Bloquée' : '✅ Libre' }}
                                     </span>
                                 </label>
                             @endforeach
 
-                            {{-- Dernière ligne sans border-bottom --}}
                             <style>
-                                .tache-block-item:last-of-type { border-bottom: none !important; }
-                                .tache-block-item:hover { background: var(--rose-bg) !important; }
-                                .tache-block-item.checked { background: #fff1f2; }
+                                .tache-block-item:last-of-type {
+                                    border-bottom: none !important;
+                                }
+
+                                .tache-block-item:hover {
+                                    background: var(--rose-bg) !important;
+                                }
+
+                                .tache-block-item.checked {
+                                    background: #fff1f2;
+                                }
                             </style>
                         </div>
 
-                        @error('taches')<span class="form-error" style="margin-top:6px;display:block;">{{ $message }}</span>@enderror
+                        @error('taches')<span class="form-error"
+                        style="margin-top:6px;display:block;">{{ $message }}</span>@enderror
                     </div>
 
                     <div style="display:flex;gap:11px;">
@@ -212,7 +214,6 @@
             cb.addEventListener('change', updateStatus);
         });
 
-        // Init
         updateStatus();
     </script>
 @endpush

@@ -6,19 +6,23 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Application;
 use App\Models\Personne;
 use App\Models\Role;
 use App\Notifications\CandidatureValideeNotification;
 use App\Notifications\CandidatureValideeDejaInscritNotification;
+use App\Services\RoleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 
 class CandidaturesController extends Controller
 {
+    public function __construct(
+        private readonly RoleService $roleService,
+    ) {
+    }
+
     public function index(): View
     {
         $candidatures = Personne::enAttente()
@@ -26,13 +30,8 @@ class CandidaturesController extends Controller
             ->orderBy('derniere_maj', 'desc')
             ->get();
 
-        $planningApp = Application::where('code', 'planning')->first();
-        $roles = $planningApp
-            ? Role::where('id_application', $planningApp->id)
-                ->whereIn('code', ['admin', 'gestionnaire', 'membre'])
-                ->orderByRaw("FIELD(code, 'admin', 'gestionnaire', 'membre')")
-                ->get()
-            : collect();
+        $roles = $this->roleService->planningRoles()
+            ->whereIn('code', ['admin', 'gestionnaire', 'membre']);
 
         return view('admin.candidatures.index', compact('candidatures', 'roles'));
     }
@@ -60,7 +59,7 @@ class CandidaturesController extends Controller
         $personne->date_debut_planning = now()->toDateString();
         $personne->save();
 
-        $this->attribuerRole($personne, $roleCode);
+        $this->roleService->syncRolePlanning($personne, $roleCode);
 
         $dejaMotDePasse = !empty($personne->password);
 
@@ -133,32 +132,5 @@ class CandidaturesController extends Controller
         ]);
 
         return redirect()->route('admin.candidatures.index')->with('success', $messageFlash);
-    }
-
-    private function attribuerRole(Personne $personne, string $roleCode): void
-    {
-        $planningApp = Application::where('code', 'planning')->first();
-        if (!$planningApp)
-            return;
-
-        $planningRoleIds = Role::where('id_application', $planningApp->id)->pluck('id')->toArray();
-        if (!empty($planningRoleIds)) {
-            DB::table('ref_personnes_roles')
-                ->where('id_personne', $personne->id)
-                ->whereIn('id_role', $planningRoleIds)
-                ->delete();
-        }
-
-        $role = Role::where('code', $roleCode)
-            ->where('id_application', $planningApp->id)
-            ->first();
-
-        if ($role) {
-            DB::table('ref_personnes_roles')->insert([
-                'id_personne' => $personne->id,
-                'id_role' => $role->id,
-                'date_attribution' => now()->toDateString(),
-            ]);
-        }
     }
 }

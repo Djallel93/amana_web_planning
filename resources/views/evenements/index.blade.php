@@ -4,6 +4,8 @@
 @section('title', 'Événements — AMANA')
 
 @section('content')
+    @include('partials.tache-colors')
+
     <div class="page-header">
         <div class="page-header-left">
             <div class="page-title">Événements organisationnels</div>
@@ -42,14 +44,6 @@
                             $actif = now()->between($evt->date_debut, $evt->date_fin);
                             $futur = now()->lt($evt->date_debut);
                             $nbBloquees = $evt->tachesBloquees->count();
-
-                            $tacheColors = [
-                                'entree' => ['bg' => '#eff6ff', 'color' => '#2563eb'],
-                                'mektaba' => ['bg' => '#ecfdf5', 'color' => '#059669'],
-                                'salle' => ['bg' => '#fffbeb', 'color' => '#d97706'],
-                                'amana_food' => ['bg' => '#fff1f2', 'color' => '#e11d48'],
-                                'cours' => ['bg' => '#f5f3ff', 'color' => '#7c3aed'],
-                            ];
                         @endphp
                         <tr>
                             <td>
@@ -59,8 +53,9 @@
                                                         background:{{ $nbBloquees > 0 ? 'var(--rose-bg)' : 'var(--amber-bg)' }};
                                                         border-radius:var(--radius-sm);
                                                         display:flex;align-items:center;justify-content:center;
-                                                        font-size:16px;flex-shrink:0;
-                                                    ">{{ $nbBloquees > 0 ? '🚫' : '📢' }}</div>
+                                                        font-size:16px;flex-shrink:0;">
+                                        {{ $nbBloquees > 0 ? '🚫' : '📢' }}
+                                    </div>
                                     <div>
                                         <div class="td-primary">{{ $evt->nom }}</div>
                                         @if($actif)
@@ -86,13 +81,16 @@
                                 @else
                                     <div style="display:flex;flex-wrap:wrap;gap:4px;">
                                         @foreach($evt->tachesBloquees as $tache)
-                                            @php $s = $tacheColors[$tache->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink)']; @endphp
+                                            @php
+                                                $s = $tacheColors[$tache->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink)'];
+                                            @endphp
                                             <span style="
                                                                                 display:inline-flex;align-items:center;
                                                                                 padding:2px 8px;border-radius:20px;
                                                                                 font-size:11px;font-weight:600;
-                                                                                background:{{ $s['bg'] }};color:{{ $s['color'] }};
-                                                                            ">{{ $tache->libelle }}</span>
+                                                                                background:{{ $s['bg'] }};color:{{ $s['color'] }};">
+                                                {{ $tache->libelle }}
+                                            </span>
                                         @endforeach
                                     </div>
                                 @endif

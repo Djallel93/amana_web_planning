@@ -7,73 +7,16 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Personnes\StorePersonneRequest;
 use App\Http\Requests\Personnes\UpdatePersonneRequest;
-use App\Models\Application;
 use App\Models\Personne;
-use App\Models\Role;
+use App\Services\RoleService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PersonnesController extends Controller
 {
-    // ── Helpers ───────────────────────────────────────────────────────────
-
-    private function planningApp(): ?Application
-    {
-        static $app = null;
-        return $app ??= Application::where('code', 'planning')->first();
-    }
-
-    private function planningRoles()
-    {
-        $app = $this->planningApp();
-        if (!$app)
-            return collect();
-
-        return Role::where('id_application', $app->id)
-            ->whereIn('code', ['admin', 'gestionnaire', 'membre', 'benevole'])
-            ->orderByRaw("FIELD(code, 'admin', 'gestionnaire', 'membre', 'benevole')")
-            ->get();
-    }
-
-    private function syncRolePlanning(Personne $personne, string $roleCode): void
-    {
-        $app = $this->planningApp();
-        if (!$app)
-            return;
-
-        $planningRoleIds = Role::where('id_application', $app->id)->pluck('id')->toArray();
-        if (!empty($planningRoleIds)) {
-            DB::table('ref_personnes_roles')
-                ->where('id_personne', $personne->id)
-                ->whereIn('id_role', $planningRoleIds)
-                ->delete();
-        }
-
-        $role = Role::where('code', $roleCode)
-            ->where('id_application', $app->id)
-            ->first();
-
-        if ($role) {
-            DB::table('ref_personnes_roles')->insert([
-                'id_personne' => $personne->id,
-                'id_role' => $role->id,
-                'date_attribution' => now()->toDateString(),
-            ]);
-        }
-    }
-
-    private function currentRoleCode(Personne $personne): ?string
-    {
-        $app = $this->planningApp();
-        if (!$app)
-            return null;
-
-        $role = $personne->roles()
-            ->whereHas('application', fn($q) => $q->where('code', 'planning'))
-            ->first();
-
-        return $role?->code;
+    public function __construct(
+        private readonly RoleService $roleService,
+    ) {
     }
 
     // ── CRUD ──────────────────────────────────────────────────────────────
@@ -95,7 +38,7 @@ class PersonnesController extends Controller
     public function create(): View
     {
         $statuts = ['En attente', 'Validé', 'Suspendu', 'Archivé'];
-        $roles = $this->planningRoles();
+        $roles = $this->roleService->planningRoles();
 
         return view('personnes.form', compact('statuts', 'roles'));
     }
@@ -107,7 +50,7 @@ class PersonnesController extends Controller
         unset($data['role']);
 
         $personne = Personne::create($data);
-        $this->syncRolePlanning($personne, $roleCode);
+        $this->roleService->syncRolePlanning($personne, $roleCode);
 
         audit('create', 'personnes', $personne->id, null, array_merge(
             $personne->toArray(),
@@ -122,8 +65,8 @@ class PersonnesController extends Controller
     {
         $personne = Personne::findOrFail($id);
         $statuts = ['En attente', 'Validé', 'Suspendu', 'Archivé'];
-        $roles = $this->planningRoles();
-        $currentRole = $this->currentRoleCode($personne);
+        $roles = $this->roleService->planningRoles();
+        $currentRole = $this->roleService->currentRoleCode($personne);
 
         return view('personnes.form', compact('personne', 'statuts', 'roles', 'currentRole'));
     }
@@ -138,7 +81,7 @@ class PersonnesController extends Controller
         unset($data['role']);
 
         $personne->update($data);
-        $this->syncRolePlanning($personne, $roleCode);
+        $this->roleService->syncRolePlanning($personne, $roleCode);
 
         audit('update', 'personnes', $personne->id, $avant, array_merge(
             $personne->fresh()->toArray(),
