@@ -26,3 +26,4 @@ npm-debug.log
 yarn-error.log
 todo*.md
 fix-perms.sh
+/database/database.sqlite
