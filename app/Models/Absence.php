@@ -20,7 +20,7 @@ class Absence extends Model
 
     protected $casts = [
         'date_debut' => 'date',
-        'date_fin'   => 'date',
+        'date_fin' => 'date',
     ];
 
     public function personne(): BelongsTo
@@ -32,7 +32,7 @@ class Absence extends Model
     public function scopeActiveALaDate($query, string $date)
     {
         return $query->where('date_debut', '<=', $date)
-                     ->where('date_fin', '>=', $date);
+            ->where('date_fin', '>=', $date);
     }
 
     /** Scope : absences futures */

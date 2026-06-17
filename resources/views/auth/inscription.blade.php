@@ -7,61 +7,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscription — AMANA Planning</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('css/base.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
     <style>
-        :root {
-            --app-accent: #0369a1;
-            --app-accent-dark: #0284c7;
-            --app-accent-glow: rgba(3, 105, 161, 0.18);
-            --app-sidebar-bg: #0c1e2e;
-            --ink: #0d1117;
-            --ink-light: #374151;
-            --ink-muted: #6b7280;
-            --ink-faint: #d1d5db;
-            --surface: #ffffff;
-            --surface-2: #f8f9fb;
-            --surface-3: #f0f2f5;
-            --surface-border: #e5e7eb;
-            --rose: #e11d48;
-            --radius: 10px;
-            --radius-lg: 14px;
-            --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
-            --font-heading: 'Sora', system-ui, sans-serif;
-        }
-        *, *::before, *::after { box-sizing: border-box; }
-        body { font-family: var(--font-body); background: var(--surface-2); color: var(--ink); margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
-        a { color: inherit; text-decoration: none; }
-        button { cursor: pointer; font-family: inherit; }
-        h1, h2, h3, h4 { font-family: var(--font-heading); margin: 0; }
-        p { margin: 0; }
+        /* ── Styles propres à la page d'inscription ──
+            Tokens, reset, fonts, .flash sont fournis par base.css.
+            .panel-*, .btn-submit, .form-group, .field-error sont fournis par auth.css.
+             Ici : uniquement la mise en page spécifique (topbar, cartes, tableau dispo). */
 
-        .topbar { background: var(--app-sidebar-bg); padding: 0 28px; height: 54px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        body {
+            display: block; /* surcharge le flex de auth.css : ici layout vertical classique */
+        }
+
+        .topbar {
+            background: var(--app-sidebar-bg);
+            padding: 0 28px;
+            height: 54px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
         .topbar-logo { display: flex; align-items: center; gap: 10px; }
         .topbar-logo-img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
         .topbar-logo-name { font-family: var(--font-heading); font-size: 15px; font-weight: 600; color: white; }
-        .topbar-link { font-size: 12.5px; color: rgba(255,255,255,0.55); padding: 6px 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius); transition: all 0.18s; }
+        .topbar-link {
+            font-size: 12.5px;
+            color: rgba(255,255,255,0.55);
+            padding: 6px 14px;
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: var(--radius);
+            transition: all 0.18s;
+        }
         .topbar-link:hover { color: white; border-color: rgba(255,255,255,0.4); }
 
         .main { max-width: 720px; margin: 0 auto; padding: 40px 24px 64px; }
         .page-title { font-family: var(--font-heading); font-size: 26px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
         .page-sub { font-size: 13.5px; color: var(--ink-muted); margin-bottom: 32px; line-height: 1.65; }
 
-        .flash { padding: 12px 16px; border-radius: var(--radius); margin-bottom: 20px; font-size: 13px; font-weight: 500; border: 1px solid; display: flex; align-items: flex-start; gap: 9px; }
-        .flash-error { background: #fff1f2; border-color: #fecdd3; color: #9f1239; }
-
-        .card { background: var(--surface); border-radius: var(--radius-lg); box-shadow: 0 2px 10px rgba(13,17,23,0.07); border: 1px solid var(--surface-border); overflow: hidden; margin-bottom: 18px; }
-        .card-header { display: flex; align-items: center; gap: 10px; padding: 15px 22px; border-bottom: 1px solid var(--surface-3); font-family: var(--font-heading); font-size: 14px; font-weight: 600; color: var(--ink); }
-        .card-header-icon { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 2px 10px rgba(13,17,23,0.07);
+            border: 1px solid var(--surface-border);
+            overflow: hidden;
+            margin-bottom: 18px;
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 22px;
+            border-bottom: 1px solid var(--surface-3);
+            font-family: var(--font-heading);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ink);
+        }
+        .card-header-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
         .card-body { padding: 22px; }
 
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        label { font-size: 12px; font-weight: 700; color: var(--ink); letter-spacing: 0.2px; display: block; }
-        label .req { color: var(--rose); margin-left: 2px; }
+
+        /* .form-group ici diffère légèrement de auth.css (gap au lieu de margin-bottom) :
+           on garde la version locale pour ce formulaire à deux colonnes. */
+        .form-grid .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 0; }
 
         input[type="text"], input[type="email"], input[type="tel"] {
             padding: 9px 13px; border: 1.5px solid var(--ink-faint); border-radius: var(--radius);
@@ -69,20 +89,40 @@
             transition: all 0.18s; width: 100%; outline: none; -webkit-appearance: none; appearance: none;
         }
         input:focus { border-color: var(--app-accent); box-shadow: 0 0 0 3px var(--app-accent-glow); font-size: 16px; }
-        .form-hint { font-size: 12px; color: var(--ink-muted); }
-        .form-error { color: var(--rose); font-size: 12px; }
 
-        .notice { background: var(--surface-2); border: 1px solid var(--surface-border); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; color: var(--ink-muted); margin-bottom: 18px; display: flex; align-items: flex-start; gap: 10px; line-height: 1.6; }
+        .notice {
+            background: var(--surface-2);
+            border: 1px solid var(--surface-border);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            font-size: 13px;
+            color: var(--ink-muted);
+            margin-bottom: 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            line-height: 1.6;
+        }
 
         .restrictions-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 380px; }
-        .restrictions-table th { padding: 9px 10px; text-align: center; font-size: 10.5px; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.7px; background: var(--surface-2); border-bottom: 1px solid var(--surface-3); font-family: var(--font-body); }
-        .restrictions-table th.jour-header { background: var(--app-accent); color: white; font-size: 12px; text-transform: none; letter-spacing: 0; font-weight: 600; }
+        .restrictions-table th {
+            padding: 9px 10px; text-align: center; font-size: 10.5px; font-weight: 700;
+            color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.7px;
+            background: var(--surface-2); border-bottom: 1px solid var(--surface-3); font-family: var(--font-body);
+        }
+        .restrictions-table th.jour-header {
+            background: var(--app-accent); color: white; font-size: 12px;
+            text-transform: none; letter-spacing: 0; font-weight: 600;
+        }
         .restrictions-table th.tache-col { text-align: left; padding-left: 16px; }
         .restrictions-table td { padding: 10px; text-align: center; border-bottom: 1px solid var(--surface-3); }
         .restrictions-table td:first-child { text-align: left; padding-left: 16px; font-weight: 600; color: var(--ink); }
         .restrictions-table tr:last-child td { border-bottom: none; }
         .restrictions-table tr:hover { background: var(--surface-2); }
-        .restrictions-table input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--app-accent); cursor: pointer; -webkit-appearance: auto; appearance: auto; }
+        .restrictions-table input[type="checkbox"] {
+            width: 16px; height: 16px; accent-color: var(--app-accent); cursor: pointer;
+            -webkit-appearance: auto; appearance: auto;
+        }
 
         .tache-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .chip-entree     { background: #eff6ff; color: #2563eb; }
@@ -96,11 +136,13 @@
         .restriction-card-header { padding: 10px 14px; background: var(--surface-2); font-weight: 700; font-size: 13px; color: var(--ink); }
         .restriction-card-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 9px; }
         .restriction-day-row { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink-light); }
-        .restriction-day-row input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--app-accent); cursor: pointer; flex-shrink: 0; -webkit-appearance: auto; appearance: auto; }
+        .restriction-day-row input[type="checkbox"] {
+            width: 15px; height: 15px; accent-color: var(--app-accent); cursor: pointer; flex-shrink: 0;
+            -webkit-appearance: auto; appearance: auto;
+        }
 
         .submit-zone { display: flex; align-items: center; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
-        .btn-submit { padding: 11px 28px; background: var(--app-accent); color: white; border: none; border-radius: var(--radius); font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font-body); transition: all 0.2s; box-shadow: 0 3px 14px rgba(3,105,161,0.35); }
-        .btn-submit:hover { background: var(--app-accent-dark); transform: translateY(-1px); }
+        .submit-zone .btn-submit { width: auto; padding: 11px 28px; margin-bottom: 0; }
         .submit-note { font-size: 12px; color: var(--ink-muted); line-height: 1.55; }
 
         .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -115,7 +157,7 @@
             .restrictions-table-wrap { display: none; }
             .restrictions-mobile { display: block; }
             .submit-zone { flex-direction: column; align-items: stretch; }
-            .btn-submit { width: 100%; text-align: center; }
+            .submit-zone .btn-submit { width: 100%; text-align: center; }
         }
     </style>
 </head>

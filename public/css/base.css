@@ -1,0 +1,162 @@
+/* ══════════════════════════════════════════════════════════════
+    public/css/base.css
+    Partagé par toutes les pages (auth + app).
+    Chargé en premier, avant auth.css ou app.css.
+══════════════════════════════════════════════════════════════ */
+
+/* ── Google Fonts ── */
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap");
+
+/* ── Design tokens ── */
+:root {
+    /* Accent */
+    --app-accent: #0369a1;
+    --app-accent-dark: #0284c7;
+    --app-accent-light: #0ea5e9;
+    --app-accent-glow: rgba(3, 105, 161, 0.25);
+    --app-accent-subtle: rgba(14, 165, 233, 0.15);
+    --app-sidebar-bg: #0c1e2e;
+    --app-sidebar-bg-2: #0f2740;
+
+    /* Encre */
+    --ink: #0d1117;
+    --ink-light: #374151;
+    --ink-muted: #6b7280;
+    --ink-faint: #d1d5db;
+
+    /* Surfaces */
+    --surface: #ffffff;
+    --surface-2: #f8f9fb;
+    --surface-3: #f0f2f5;
+    --surface-border: #e5e7eb;
+
+    /* Couleurs sémantiques */
+    --emerald: #059669;
+    --emerald-bg: #ecfdf5;
+    --emerald-border: #a7f3d0;
+
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
+    --amber-border: #fde68a;
+
+    --rose: #e11d48;
+    --rose-bg: #fff1f2;
+    --rose-border: #fecdd3;
+
+    --sky: #0284c7;
+    --sky-bg: #f0f9ff;
+    --sky-border: #bae6fd;
+
+    --violet: #7c3aed;
+    --violet-bg: #f5f3ff;
+    --violet-border: #ddd6fe;
+
+    /* Layout */
+    --sidebar-w: 252px;
+    --topbar-h: 56px;
+
+    /* Formes */
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 20px;
+
+    /* Ombres */
+    --shadow-sm:
+        0 1px 3px rgba(13, 17, 23, 0.07), 0 1px 2px rgba(13, 17, 23, 0.04);
+    --shadow:
+        0 4px 12px rgba(13, 17, 23, 0.08), 0 2px 4px rgba(13, 17, 23, 0.05);
+    --shadow-lg:
+        0 12px 32px rgba(13, 17, 23, 0.12), 0 4px 8px rgba(13, 17, 23, 0.06);
+    --shadow-glow: 0 0 0 3px var(--app-accent-glow);
+
+    /* Transitions */
+    --transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Typographie */
+    --font-body: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+    --font-heading: "Sora", system-ui, -apple-system, sans-serif;
+}
+
+/* ── Reset ── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 14px;
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: var(--font-body);
+    color: var(--ink);
+    line-height: 1.6;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+img,
+svg {
+    display: block;
+    max-width: 100%;
+}
+
+button {
+    cursor: pointer;
+    font-family: inherit;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-heading);
+    line-height: 1.25;
+    margin: 0;
+}
+
+p {
+    margin: 0;
+}
+
+/* ── Flash messages — base commune auth + app ── */
+/*
+    La version app (head.blade.php → app.css) étend ces classes
+    avec .flash-warning, .flash-info et .flash-close.
+    Ici on définit uniquement la structure et les variantes communes.
+*/
+.flash {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 13px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    font-weight: 500;
+    border: 1px solid;
+}
+
+.flash-success {
+    background: var(--emerald-bg);
+    border-color: var(--emerald-border);
+    color: #065f46;
+}
+
+.flash-error {
+    background: var(--rose-bg);
+    border-color: var(--rose-border);
+    color: #9f1239;
+}

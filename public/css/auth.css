@@ -1,65 +1,16 @@
 /* ══════════════════════════════════════════════════════════════
-   AUTH SHARED STYLES
-   Included by: login, forgot-password, reset-password, inscription
+   public/css/auth.css
+   Styles spécifiques aux pages d'authentification.
+   Chargé après base.css (qui fournit :root, reset, fonts, .flash).
 ══════════════════════════════════════════════════════════════ */
 
-:root {
-    --app-accent: #0369a1;
-    --app-accent-dark: #0284c7;
-    --app-accent-glow: rgba(3, 105, 161, 0.18);
-    --app-sidebar-bg: #0c1e2e;
-
-    --ink: #0d1117;
-    --ink-muted: #6b7280;
-    --surface: #ffffff;
-    --surface-2: #f8f9fb;
-    --border: #d1d5db;
-    --rose: #e11d48;
-    --emerald: #059669;
-
-    --radius: 10px;
-    --radius-lg: 14px;
-    --font-body: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-    --font-heading: "Sora", system-ui, -apple-system, sans-serif;
-}
-
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-}
-
-html {
-    -webkit-text-size-adjust: 100%;
-}
-
+/* ── Layout deux panneaux ── */
 body {
-    font-family: var(--font-body);
-    min-height: 100vh;
     display: flex;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
     background: var(--surface-2);
-    margin: 0;
-    padding: 0;
-    color: var(--ink);
 }
 
-img,
-svg {
-    display: block;
-    max-width: 100%;
-}
-button {
-    cursor: pointer;
-    font-family: inherit;
-}
-a {
-    color: inherit;
-    text-decoration: none;
-}
-
-/* ── Two-panel layout ── */
 .panel-left {
     flex: 1;
     background: var(--app-sidebar-bg);
@@ -71,6 +22,7 @@ a {
     position: relative;
     overflow: hidden;
 }
+
 .panel-left::before {
     content: "";
     position: absolute;
@@ -85,6 +37,7 @@ a {
     );
     pointer-events: none;
 }
+
 .panel-left::after {
     content: "";
     position: absolute;
@@ -116,6 +69,7 @@ a {
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
     flex-shrink: 0;
 }
+
 .big-logo img {
     width: 100%;
     height: 100%;
@@ -144,6 +98,7 @@ a {
     gap: 12px;
     text-align: left;
 }
+
 .feature-item {
     display: flex;
     align-items: center;
@@ -151,6 +106,7 @@ a {
     color: rgba(255, 255, 255, 0.6);
     font-size: 13.5px;
 }
+
 .feature-icon {
     width: 32px;
     height: 32px;
@@ -163,7 +119,7 @@ a {
     flex-shrink: 0;
 }
 
-/* ── Right panel (form) ── */
+/* ── Panneau droit (formulaire) ── */
 .panel-right {
     width: 480px;
     background: var(--surface);
@@ -187,6 +143,7 @@ a {
     margin-bottom: 6px;
     letter-spacing: -0.2px;
 }
+
 .auth-sub {
     font-size: 13.5px;
     color: var(--ink-muted);
@@ -194,30 +151,7 @@ a {
     line-height: 1.6;
 }
 
-/* ── Flash ── */
-.flash {
-    padding: 11px 15px;
-    border-radius: var(--radius);
-    font-size: 13px;
-    font-weight: 500;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: flex-start;
-    gap: 9px;
-    border: 1px solid;
-}
-.flash-success {
-    background: #ecfdf5;
-    border-color: #a7f3d0;
-    color: #065f46;
-}
-.flash-error {
-    background: #fff1f2;
-    border-color: #fecdd3;
-    color: #9f1239;
-}
-
-/* ── Form elements ── */
+/* ── Éléments de formulaire auth ── */
 .form-group {
     margin-bottom: 17px;
 }
@@ -236,7 +170,7 @@ a {
 .form-group textarea {
     width: 100%;
     padding: 10px 14px;
-    border: 1.5px solid var(--border);
+    border: 1.5px solid var(--ink-faint);
     border-radius: var(--radius);
     font-size: 13.5px;
     font-family: var(--font-body);
@@ -247,6 +181,7 @@ a {
     -webkit-appearance: none;
     appearance: none;
 }
+
 .form-group input[type="date"] {
     -webkit-appearance: auto;
     appearance: auto;
@@ -267,6 +202,7 @@ a {
     margin-top: 4px;
     display: block;
 }
+
 .field-hint {
     color: var(--ink-muted);
     font-size: 12px;
@@ -274,7 +210,7 @@ a {
     display: block;
 }
 
-/* ── Primary submit button ── */
+/* ── Bouton principal auth ── */
 .btn-submit {
     width: 100%;
     padding: 12px;
@@ -292,16 +228,18 @@ a {
     -webkit-tap-highlight-color: transparent;
     letter-spacing: 0.1px;
 }
+
 .btn-submit:hover {
     background: var(--app-accent-dark);
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(3, 105, 161, 0.45);
 }
+
 .btn-submit:active {
     transform: none;
 }
 
-/* ── Secondary / ghost link ── */
+/* ── Liens secondaires ── */
 .auth-link {
     display: block;
     text-align: center;
@@ -310,6 +248,7 @@ a {
     text-decoration: none;
     transition: color 0.15s;
 }
+
 .auth-link:hover {
     color: var(--app-accent);
 }
@@ -318,7 +257,7 @@ a {
     font-weight: 600;
 }
 
-/* ── Divider ── */
+/* ── Séparateur ── */
 .auth-divider {
     height: 1px;
     background: #f0f0f0;
@@ -326,7 +265,7 @@ a {
 }
 
 /* ══════════════════════════════════════════════════════════════
-    RESPONSIVE
+   RESPONSIVE
 ══════════════════════════════════════════════════════════════ */
 @media (max-width: 960px) {
     .panel-left {
@@ -348,15 +287,18 @@ a {
     body {
         flex-direction: column;
     }
+
     .panel-left {
         display: none;
     }
+
     .panel-right {
         width: 100%;
         flex: 1;
         padding: 40px 24px 32px;
         align-items: flex-start;
     }
+
     .auth-box {
         max-width: 100%;
     }

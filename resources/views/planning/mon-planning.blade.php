@@ -140,40 +140,8 @@
             flex-wrap: wrap;
         }
 
-        .tache-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .tache-chip.entree {
-            background: #eff6ff;
-            color: #2563eb;
-        }
-
-        .tache-chip.mektaba {
-            background: #ecfdf5;
-            color: #059669;
-        }
-
-        .tache-chip.salle {
-            background: #fffbeb;
-            color: #d97706;
-        }
-
-        .tache-chip.amana_food {
-            background: #fff1f2;
-            color: #e11d48;
-        }
-
-        .tache-chip.cours {
-            background: #f5f3ff;
-            color: #7c3aed;
-        }
+        /* .tache-chip (toutes variantes) est défini globalement dans app.css —
+               pas de redéfinition ici. */
 
         .semaine-badge {
             font-size: 11px;

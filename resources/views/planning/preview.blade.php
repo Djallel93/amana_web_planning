@@ -90,46 +90,8 @@
             box-shadow: var(--shadow);
         }
 
-        .tache-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .tache-chip.entree {
-            background: #eff6ff;
-            color: #2563eb;
-        }
-
-        .tache-chip.mektaba {
-            background: #ecfdf5;
-            color: #059669;
-        }
-
-        .tache-chip.salle {
-            background: #fffbeb;
-            color: #d97706;
-        }
-
-        .tache-chip.amana_food {
-            background: #fff1f2;
-            color: #e11d48;
-        }
-
-        .tache-chip.cours {
-            background: #f5f3ff;
-            color: #7c3aed;
-        }
-
-        .tache-vide {
-            color: var(--ink-faint);
-            font-style: italic;
-            font-size: 12px;
-        }
+        /* .tache-chip (toutes variantes) et .tache-vide sont définis
+                   globalement dans app.css — pas de redéfinition ici. */
 
         .tache-blocked {
             display: inline-flex;
@@ -294,18 +256,18 @@
 
     {{-- Bottom confirm strip --}}
     <div style="
-                background:var(--surface);
-                border:1.5px solid var(--amber-border);
-                border-radius:var(--radius-lg);
-                padding:18px 22px;
-                margin-top:8px;
-                display:flex;
-                align-items:center;
-                justify-content:space-between;
-                gap:16px;
-                flex-wrap:wrap;
-                box-shadow:var(--shadow-sm);
-            ">
+                        background:var(--surface);
+                        border:1.5px solid var(--amber-border);
+                        border-radius:var(--radius-lg);
+                        padding:18px 22px;
+                        margin-top:8px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:space-between;
+                        gap:16px;
+                        flex-wrap:wrap;
+                        box-shadow:var(--shadow-sm);
+                    ">
         <div>
             <div style="font-family:var(--font-heading);font-size:14px;font-weight:600;color:var(--ink);">
                 Ce planning vous convient ?
