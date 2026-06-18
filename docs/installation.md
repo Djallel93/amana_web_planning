@@ -17,7 +17,6 @@
 | PHP             | 8.2+             |
 | MySQL / MariaDB | 8.0+ / 10.4+     |
 | Composer        | 2.x              |
-| Node.js         | 18+              |
 | Git             | 2.x              |
 
 ---
@@ -51,20 +50,6 @@ curl -sS https://getcomposer.org/installer | php
 sudo mv composer.phar /usr/local/bin/composer
 
 # Windows : https://getcomposer.org/Composer-Setup.exe
-```
-
-#### Node.js
-
-```bash
-node -v
-npm -v
-
-# Si absent via nvm (Linux/macOS)
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-nvm install --lts
-nvm use --lts
-
-# Windows : https://nodejs.org (LTS recommandé)
 ```
 
 #### Git
@@ -166,15 +151,9 @@ Crée toutes les tables et le compte administrateur par défaut :
 php artisan storage:link
 ```
 
-### 9. Compiler les assets front-end
+### 9. Aucune compilation front-end nécessaire
 
-```bash
-npm install
-npm run build
-
-# En développement actif
-npm run dev
-```
+Le CSS et le JS de l'application sont des fichiers statiques sous `public/css/*.css` et `public/js/*.js`, chargés directement par le navigateur via `asset()`. Il n'y a ni npm, ni Vite, ni étape de build : modifier un fichier puis recharger la page suffit pour voir le changement.
 
 ### 10. Lancer le serveur
 
@@ -291,24 +270,9 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-### 9. Compiler les assets front-end
+### 9. Aucune compilation front-end nécessaire
 
-#### Option A — compiler sur le serveur
-
-```bash
-npm install
-npm run build
-```
-
-#### Option B — compiler en local et envoyer (recommandé)
-
-```bash
-# En local
-npm run build
-
-# Envoyer via SCP
-scp -r public/build/ votre-utilisateur@votre-serveur.ionos.fr:/var/www/vhosts/votredomaine.fr/httpdocs/public/
-```
+Comme en local, le CSS et le JS sont des fichiers statiques sous `public/css/` et `public/js/` — rien à compiler, rien à transférer séparément. Ils sont déjà inclus dans le dépôt cloné à l'étape 3.
 
 ### 10. Configurer le document root
 

@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 
-@include('layouts.partials.head')
+@include('partials.head')
 
 <body>
 

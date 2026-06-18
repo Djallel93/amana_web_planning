@@ -69,7 +69,7 @@ graph TD
 
 - **Backend :** Laravel 11 (PHP 8.2+)
 - **Base de données :** MySQL 8 / MariaDB 10.4+
-- **Frontend :** Blade + CSS custom (pas de framework JS)
+- **Frontend :** Blade + CSS/JS statiques — pas de framework JS, pas de build npm/Vite. Tout est servi directement depuis `public/css/` et `public/js/`, ce qui simplifie le déploiement sur l'hébergement partagé IONOS.
 - **PDF :** barryvdh/laravel-dompdf
 - **Queue :** Laravel Queue (driver `database` en prod, `sync` supporté en dev)
 - **Automatisation externe :** Make.com via webhook
