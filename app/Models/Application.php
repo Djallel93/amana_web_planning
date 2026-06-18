@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * cette base de données.
  *
  * @property int    $id
- * @property string $code    ex: planning, livraisons, tirelire
+ * @property string $code    ex: planning
  * @property string $libelle ex: AMANA Planning
  * @property bool   $actif
  */

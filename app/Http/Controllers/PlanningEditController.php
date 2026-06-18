@@ -195,7 +195,7 @@ class PlanningEditController extends Controller
      */
     private function dispatchWebhookForCreneau(int $creneauId): void
     {
-        if (empty(env('MAKE_WEBHOOK_URL'))) {
+        if (empty(config('MAKE_WEBHOOK_URL'))) {
             return;
         }
 

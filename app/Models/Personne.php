@@ -20,8 +20,6 @@ use Illuminate\Notifications\Notifiable;
 
 /**
  * Modèle principal — remplace User.php de Laravel.
- * Colonnes supprimées : id_vehicule, tirelire, date_inscription_benevole
- * (appartiennent aux modules livraisons/tirelire/bénévoles).
  */
 class Personne extends Model implements
     AuthenticatableContract,

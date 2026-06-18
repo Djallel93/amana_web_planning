@@ -10,8 +10,8 @@ $semaineCle, $creneauxSemaine, $bannièresParSemaine
     $weekYear = $first->date->year;
     $weekMonth = $first->date->month;
     $weekIds = $creneauxSemaine->pluck('id')->join(',');
-    $weekMonday = $first->date->copy()->subDays($first->date->isoWeekday() - 1)->startOfDay();
-    $weekSunday = $weekMonday->copy()->addDays(6)->endOfDay();
+    $weekMonday = $first->date->clone()->subDays($first->date->isoWeekday() - 1)->startOfDay();
+    $weekSunday = $weekMonday->clone()->addDays(6)->endOfDay();
     $existingDates = $creneauxSemaine->pluck('date')->map(fn($d) => $d->toDateString())->toJson();
 
     $bannièresSemaine = $bannièresParSemaine[$semaineCle] ?? [];
@@ -31,14 +31,14 @@ $semaineCle, $creneauxSemaine, $bannièresParSemaine
             {{ $last->date->locale('fr')->isoFormat('D MMMM YYYY') }}
             @if($evtToutBloque)
                 <span style="
-                            background:rgba(225,29,72,0.25);
-                            border:1px solid rgba(225,29,72,0.5);
-                            color:#fda4af;
-                            padding:2px 10px;
-                            border-radius:20px;
-                            font-size:11px;
-                            font-weight:600;
-                            margin-left:6px;">
+                                background:rgba(225,29,72,0.25);
+                                border:1px solid rgba(225,29,72,0.5);
+                                color:#fda4af;
+                                padding:2px 10px;
+                                border-radius:20px;
+                                font-size:11px;
+                                font-weight:600;
+                                margin-left:6px;">
                     🚫 {{ $evtToutBloque['evenement']->nom }}
                 </span>
             @endif
@@ -47,10 +47,10 @@ $semaineCle, $creneauxSemaine, $bannièresParSemaine
             <span class="week-dates">{{ $creneauxSemaine->count() }} créneaux</span>
             @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                 <button class="btn-add-creneau" onclick="openAddCreneauModal(
-                            '{{ $weekMonday->toDateString() }}',
-                            '{{ $weekSunday->toDateString() }}',
-                            {{ $existingDates }}
-                        )">➕ Créneau</button>
+                                '{{ $weekMonday->toDateString() }}',
+                                '{{ $weekSunday->toDateString() }}',
+                                {{ $existingDates }}
+                            )">➕ Créneau</button>
                 <button class="btn-delete-week" onclick="deleteWeek([{{ $weekIds }}], this)">
                     🗑️ Supprimer la semaine
                 </button>
@@ -94,10 +94,10 @@ $semaineCle, $creneauxSemaine, $bannièresParSemaine
                                 $s = $tbColors[$tb->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink)'];
                             @endphp
                             <span style="
-                                                            display:inline-flex;align-items:center;
-                                                            padding:2px 8px;border-radius:20px;
-                                                            font-size:11px;font-weight:600;
-                                                            background:{{ $s['bg'] }};color:{{ $s['color'] }};">
+                                                                        display:inline-flex;align-items:center;
+                                                                        padding:2px 8px;border-radius:20px;
+                                                                        font-size:11px;font-weight:600;
+                                                                        background:{{ $s['bg'] }};color:{{ $s['color'] }};">
                                 {{ $tb->libelle }}
                             </span>
                         @endforeach

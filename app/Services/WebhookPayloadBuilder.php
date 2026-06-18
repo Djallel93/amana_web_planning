@@ -32,7 +32,7 @@ class WebhookPayloadBuilder
         $lieu = Setting::get('lieu', 'planning') ?? '';
 
         $premier = DateHelper::premierVendredi($dateDebut);
-        $fin = $premier->copy()->addWeeks($semaines)->addDay();
+        $fin = $premier->clone()->addWeeks($semaines)->addDay();
 
         $creneaux = Creneau::with([
             'taches.tache',
@@ -268,8 +268,8 @@ class WebhookPayloadBuilder
         }
 
         $base = Carbon::createFromFormat('Y-m-d H:i', $date . ' ' . $heureCours);
-        $debut = $base->copy()->addMinutes((int) $offsetDebut)->format('H:i');
-        $fin = $base->copy()->addMinutes((int) $offsetFin)->format('H:i');
+        $debut = $base->clone()->addMinutes((int) $offsetDebut)->format('H:i');
+        $fin = $base->clone()->addMinutes((int) $offsetFin)->format('H:i');
 
         return [$debut, $fin];
     }

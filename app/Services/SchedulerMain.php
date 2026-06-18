@@ -69,8 +69,8 @@ class SchedulerMain
 
         try {
             for ($semaine = 0; $semaine < $semaines; $semaine++) {
-                $vendredi = $premiereDate->copy()->addWeeks($semaine);
-                $samedi = $vendredi->copy()->addDay();
+                $vendredi = $premiereDate->clone()->addWeeks($semaine);
+                $samedi = $vendredi->clone()->addDay();
 
                 [$nv, $naV, $propositionsV] = $this->generateDay($vendredi, 'Vendredi', $context, $dryRun);
                 $joursGeneres += $nv;

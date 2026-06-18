@@ -76,17 +76,17 @@ class PlanningController extends Controller
 
         foreach ($creneauxParSemaine as $semaineCle => $creneaux) {
             $first = $creneaux->first();
-            $weekStart = $first->date->copy()->subDays($first->date->isoWeekday() - 1)->startOfDay();
-            $weekEnd = $weekStart->copy()->addDays(6)->endOfDay();
+            $weekStart = $first->date->clone()->subDays($first->date->isoWeekday() - 1)->startOfDay();
+            $weekEnd = $weekStart->clone()->addDays(6)->endOfDay();
 
             foreach ($tousEvenements as $evenement) {
                 if ($evenement->date_debut->lte($weekEnd) && $evenement->date_fin->gte($weekStart)) {
                     $debutDansSemaine = $evenement->date_debut->lt($weekStart)
-                        ? $weekStart->copy()
-                        : $evenement->date_debut->copy();
+                        ? $weekStart->clone()
+                        : $evenement->date_debut->clone();
                     $finDansSemaine = $evenement->date_fin->gt($weekEnd)
-                        ? $weekEnd->copy()
-                        : $evenement->date_fin->copy();
+                        ? $weekEnd->clone()
+                        : $evenement->date_fin->clone();
 
                     $bannières[$semaineCle][] = [
                         'evenement' => $evenement,
@@ -214,7 +214,7 @@ class PlanningController extends Controller
     private function buildRollbackData(string $dateDebut, int $semaines): array
     {
         $date = DateHelper::premierVendredi($dateDebut);
-        $dateFin = $date->copy()->addWeeks($semaines)->addDay();
+        $dateFin = $date->clone()->addWeeks($semaines)->addDay();
 
         $creneaux = Creneau::whereBetween('date', [$date->toDateString(), $dateFin->toDateString()])
             ->orderBy('date')

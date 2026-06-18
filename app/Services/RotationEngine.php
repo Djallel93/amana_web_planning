@@ -274,7 +274,7 @@ class RotationEngine
             }
 
             // Mettre à jour lastWorkDate
-            $context['lastWorkDate'][$nom] = $date->copy();
+            $context['lastWorkDate'][$nom] = $date->clone();
 
             // Mettre à jour totalTasks
             $context['totalTasks'][$nom] = ($context['totalTasks'][$nom] ?? 0) + 1;

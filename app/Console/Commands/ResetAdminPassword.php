@@ -73,7 +73,6 @@ class ResetAdminPassword extends Command
             $admin->prenom = 'AMANA';
             $admin->statut = 'Validé';
             $admin->date_debut_planning = now()->toDateString();
-            $admin->tirelire = false;
             $admin->email_verified_at = now();
         }
 
