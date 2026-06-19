@@ -10,20 +10,21 @@
 6. [Algorithme de génération du planning](#algorithme-de-génération-du-planning)
 7. [Export PDF](#export-pdf)
 8. [Système de notifications](#système-de-notifications)
-9. [Intégration Make.com (Webhook)](#intégration-makecom-webhook)
+9. [Échanges de créneaux](#échanges-de-créneaux)
+10. [Intégration Make.com (Webhook)](#intégration-makecom-webhook)
 
 ## Documentation complémentaire
 
 | Document                                     | Description                                                                                               |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [docs/installation.md](docs/installation.md) | Prérequis, installation locale (Linux), déploiement IONOS, référence des routes, résolution des problèmes |
+| [docs/installation.md](docs/installation.md) | Prérequis, installation locale (XAMPP), déploiement IONOS, référence des routes, résolution des problèmes |
 | [docs/Schema_bdd.md](docs/Schema_bdd.md)     | Schéma complet de la base de données, diagramme des relations, description de chaque table                |
 
 ---
 
 > 📖 **Guides détaillés**
 >
-> - [**Guide d'installation**](docs/installation.md) — mise en place locale (Ubuntu 24.04) et production, référence complète des routes, résolution des problèmes courants
+> - [**Guide d'installation**](docs/installation.md) — mise en place locale et production, référence complète des routes, résolution des problèmes courants
 > - [**Schéma de la base de données**](docs/Schema_bdd.md) — description de chaque table, diagramme ERD, notes sur les fonctionnalités applicatives
 
 ---
@@ -57,22 +58,22 @@ Les tâches suivantes existent dans `ref_taches` mais ne sont **pas incluses dan
 
 ```mermaid
 graph TD
-    A[Navigateur] -->|HTTPS| B[Laravel 13]
+    A[Navigateur] -->|HTTPS| B[Laravel 11]
     B --> C[MySQL / MariaDB]
     B --> D[Queue Worker]
     D -->|Email| E[Serveur SMTP]
-    D -->|Webhook JSON| F[Make.com]
+    D -->|Webhook JSON planning/événements| F[Make.com]
     F -->|Événements Google Calendar| G[Google Calendar]
 ```
 
 **Stack :**
 
-- **Backend :** Laravel 13 (PHP 8.4+)
+- **Backend :** Laravel 11 (PHP 8.2+)
 - **Base de données :** MySQL 8 / MariaDB 10.4+
 - **Frontend :** Blade + CSS/JS statiques — pas de framework JS, pas de build npm/Vite. Tout est servi directement depuis `public/css/` et `public/js/`, ce qui simplifie le déploiement sur l'hébergement partagé IONOS.
 - **PDF :** barryvdh/laravel-dompdf
 - **Queue :** Laravel Queue (driver `database` en prod, `sync` supporté en dev)
-- **Automatisation externe :** Make.com via webhook
+- **Automatisation externe :** Make.com via webhook (planning **et** événements organisationnels)
 
 **Configuration dynamique :**
 
@@ -93,28 +94,33 @@ graph LR
 
 ### Tableau des accès
 
-| Fonctionnalité                            | Admin | Gestionnaire |    Membre    |
-| ----------------------------------------- | :---: | :----------: | :----------: |
-| Voir le planning                          |  ✅   |      ✅      |      ✅      |
-| Voir mon planning personnel               |  ✅   |      ✅      |      ✅      |
-| Voir les statistiques                     |  ✅   |      ✅      |      ✅      |
-| Export PDF                                |  ✅   |      ✅      |      ✅      |
-| Voir les absences                         |  ✅   |      ✅      |      ✅      |
-| Ajouter/supprimer ses absences            |  ✅   |      ✅      |      ✅      |
-| Ajouter/supprimer toutes les absences     |  ✅   |      ✅      |      ❌      |
-| Voir les disponibilités (grille complète) |  ✅   |      ✅      | ✅ (lecture) |
-| Modifier ses disponibilités               |  ✅   |      ✅      |      ✅      |
-| Modifier toutes les disponibilités        |  ✅   |      ✅      |      ❌      |
-| Générer le planning                       |  ✅   |      ✅      |      ❌      |
-| Prévisualiser le planning (dry-run)       |  ✅   |      ✅      |      ❌      |
-| Modifier le planning manuellement         |  ✅   |      ✅      |      ❌      |
-| Rollback (annuler une génération)         |  ✅   |      ✅      |      ❌      |
-| Créer / modifier les événements           |  ✅   |      ✅      |      ❌      |
-| Voir les événements                       |  ✅   |      ✅      |      ✅      |
-| Paramètres de l'application               |  ✅   | ✅ (partiel) |      ❌      |
-| Ouvrir / fermer les inscriptions          |  ✅   |      ❌      |      ❌      |
-| Gérer les personnes (CRUD)                |  ✅   |      ❌      |      ❌      |
-| Valider / refuser les candidatures        |  ✅   |      ❌      |      ❌      |
+| Fonctionnalité                                       | Admin | Gestionnaire |    Membre    |
+| ---------------------------------------------------- | :---: | :----------: | :----------: |
+| Voir le planning                                     |  ✅   |      ✅      |      ✅      |
+| Voir mon planning personnel                          |  ✅   |      ✅      |      ✅      |
+| Voir les statistiques                                |  ✅   |      ✅      |      ✅      |
+| Export PDF                                           |  ✅   |      ✅      |      ✅      |
+| Voir les absences                                    |  ✅   |      ✅      |      ✅      |
+| Ajouter/supprimer ses absences                       |  ✅   |      ✅      |      ✅      |
+| Ajouter/supprimer toutes les absences                |  ✅   |      ✅      |      ❌      |
+| Voir les disponibilités (grille complète)            |  ✅   |      ✅      | ✅ (lecture) |
+| Modifier ses disponibilités                          |  ✅   |      ✅      |      ✅      |
+| Modifier toutes les disponibilités                   |  ✅   |      ✅      |      ❌      |
+| Générer le planning                                  |  ✅   |      ✅      |      ❌      |
+| Prévisualiser le planning (dry-run)                  |  ✅   |      ✅      |      ❌      |
+| Modifier le planning manuellement                    |  ✅   |      ✅      |      ❌      |
+| Rollback (annuler une génération)                    |  ✅   |      ✅      |      ❌      |
+| Créer / modifier les événements                      |  ✅   |      ✅      |      ❌      |
+| Configurer la synchro Google Calendar d'un événement |  ✅   |      ✅      |      ❌      |
+| Voir les événements                                  |  ✅   |      ✅      |      ✅      |
+| Demander un échange de créneau                       |  ✅   |      ✅      |      ✅      |
+| Accepter/refuser un échange reçu                     |  ✅   |      ✅      |      ✅      |
+| Annuler sa propre demande d'échange                  |  ✅   |      ✅      |      ✅      |
+| Approuver/refuser n'importe quel échange (override)  |  ✅   |      ✅      |      ❌      |
+| Paramètres de l'application                          |  ✅   | ✅ (partiel) |      ❌      |
+| Ouvrir / fermer les inscriptions                     |  ✅   |      ❌      |      ❌      |
+| Gérer les personnes (CRUD)                           |  ✅   |      ❌      |      ❌      |
+| Valider / refuser les candidatures                   |  ✅   |      ❌      |      ❌      |
 
 > **Note :** Les gestionnaires peuvent accéder à la page Paramètres et modifier les horaires, le lieu, les offsets et les noms de calendriers. Le paramètre **Inscriptions ouvertes/fermées** est réservé aux administrateurs — les gestionnaires voient la section en lecture seule.
 
@@ -169,7 +175,9 @@ Vue personnelle filtrée pour le membre connecté. Accessible à tous les rôles
   - Date complète et nom de l'événement éventuel
   - Badge de statut : **À venir** (futur), **Aujourd'hui**, **Effectué** (passé)
 - Bandeau de statistiques rapides : total créneaux, nombre à venir, décompte par tâche
-- Vue en **lecture seule** — pas d'édition
+- **Bouton « 🔄 Échanger »** sur chaque créneau futur sans échange déjà en cours — ouvre une modale pour demander un échange avec un autre membre assigné à la même tâche (voir [Échanges de créneaux](#échanges-de-créneaux))
+- **Badge « ⏳ Échange en attente »** affiché sur les créneaux déjà impliqués dans une demande non résolue
+- Vue en **lecture seule** pour le reste — pas d'édition manuelle d'assignation (réservée à `/planning`)
 
 ---
 
@@ -192,6 +200,8 @@ Formulaire de génération automatique du planning.
 **Prévisualisation (dry-run)** : le bouton **« 👁 Aperçu »** soumet les paramètres à une route dédiée (`/planning/generer/apercu`) qui exécute l'algorithme complet **sans rien persister** (transaction rollbackée). Le résultat s'affiche dans une vue preview marquée « Aperçu — non enregistré » avec un filigrane. Depuis cette vue, deux boutons « Confirmer et générer » (haut et bas) soumettent la génération réelle.
 
 **Rollback** : après chaque génération, un panneau de rollback apparaît permettant d'annuler tout ou partie des créneaux générés (par semaine). La session de rollback est conservée jusqu'à fermeture explicite.
+
+> ⚠️ Une génération qui supprime des créneaux existants supprime **en cascade** (`onDelete('cascade')`) tout échange de créneau en cours impliquant ces créneaux. Vérifiez les échanges en attente (`/admin/echanges`) avant de régénérer une période contenant des demandes non résolues.
 
 ```mermaid
 flowchart TD
@@ -224,6 +234,8 @@ Tableau de bord de l'équité de la répartition.
 - Distribution Amana Food (min/max/moy)
 - Jours consécutifs maximum
 - Détail par personne : total, vendredis, samedis, chaque tâche, absences
+
+> Les statistiques sont calculées à partir de l'état **actuel** de `plan_creneaux_taches` — un échange de créneau accepté est donc immédiatement reflété dans les compteurs par personne, sans recalcul manuel.
 
 ---
 
@@ -262,7 +274,7 @@ Admin/gestionnaire voient la grille complète modifiable. Les membres voient la 
 
 ### 🎉 Événements (`/evenements`)
 
-Les événements organisationnels (vacances, Ramadan, conférences…) peuvent bloquer certaines tâches lors de la génération.
+Les événements organisationnels (vacances, Ramadan, conférences…) peuvent bloquer certaines tâches lors de la génération, et peuvent optionnellement être synchronisés avec Google Calendar.
 
 **Deux types :**
 
@@ -273,6 +285,37 @@ Les événements organisationnels (vacances, Ramadan, conférences…) peuvent b
 
 Les tâches bloquées sont gérées via la table pivot `ref_evenements_taches`. Les créneaux liés à un événement actif sont enregistrés dans `plan_creneaux_evenements`.
 
+**📆 Synchronisation Google Calendar (optionnelle) :**
+
+Le formulaire de création/modification d'un événement comporte un champ libre **« Nom du calendrier Google Calendar »**.
+
+- **Si renseigné** : chaque création, modification ou suppression de l'événement dispatche un job `EnvoyerWebhookMake` vers Make.com, qui crée/met à jour/supprime l'événement correspondant dans le calendrier Google Calendar indiqué.
+- **Si vide** : comportement inchangé — aucun webhook n'est envoyé pour cet événement.
+- Le nom du calendrier est stocké par événement (`ref_evenements.calendar_name`), indépendamment des clés `calendar_*` de `ref_settings` qui configurent les calendriers des **tâches** du planning (entree, mektaba…).
+- Le formulaire affiche un indicateur visuel **« ✓ Synchronisation active »** lorsque l'événement édité a déjà un `calendar_name` renseigné.
+
+```mermaid
+flowchart LR
+    A[Créer/Modifier/Supprimer\nun événement] --> B{calendar_name\nrenseigné ?}
+    B -->|Non| C[Aucun webhook]
+    B -->|Oui| D[WebhookEvenementPayloadBuilder]
+    D --> E[Job EnvoyerWebhookMake\naction: upsert ou delete]
+    E --> F[Make.com]
+    F --> G[Google Calendar mis à jour]
+```
+
+Voir [Intégration Make.com](#intégration-makecom-webhook) pour le format exact du payload.
+
+---
+
+### 🔄 Mes échanges (`/echanges`)
+
+Liste des demandes d'échange de créneau envoyées et reçues par le membre connecté. Accessible depuis la barre latérale (avec badge du nombre de demandes en attente) et depuis « Mon planning ».
+
+Chaque carte affiche les deux créneaux concernés (le sien et celui de l'autre membre), le statut (`en_attente`, `accepté`, `refusé`, `expiré`, `annulé`), et — si la personne connectée est le demandeur d'une demande encore en attente — un bouton pour l'annuler.
+
+Voir [Échanges de créneaux](#échanges-de-créneaux) pour le détail du fonctionnement.
+
 ---
 
 ### ⚙️ Paramètres (`/parametres`)
@@ -281,14 +324,16 @@ Configuration de l'application (admin/gestionnaire, avec restrictions selon le r
 
 **Sections :**
 
-| Section               | Modifiable par       | Description                                                       |
-| --------------------- | -------------------- | ----------------------------------------------------------------- |
-| Inscriptions ouvertes | Admin uniquement     | Active ou désactive le formulaire public `/inscription`           |
-| Heure du cours & Lieu | Admin + Gestionnaire | Heure de référence pour les horaires webhook ; adresse physique   |
-| Calendriers Google    | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement |
-| Décalages des tâches  | Admin + Gestionnaire | Offsets en minutes (positif = après le cours, négatif = avant)    |
+| Section               | Modifiable par       | Description                                                                  |
+| --------------------- | -------------------- | ---------------------------------------------------------------------------- |
+| Inscriptions ouvertes | Admin uniquement     | Active ou désactive le formulaire public `/inscription`                      |
+| Heure du cours & Lieu | Admin + Gestionnaire | Heure de référence pour les horaires webhook ; adresse physique              |
+| Calendriers Google    | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement (planning) |
+| Décalages des tâches  | Admin + Gestionnaire | Offsets en minutes (positif = après le cours, négatif = avant)               |
 
 > Tous ces paramètres sont stockés dans `ref_settings` et lus dynamiquement — il n'y a pas de valeur en `.env` pour ces réglages.
+>
+> Ne pas confondre avec le champ **« Nom du calendrier »** du formulaire d'un événement organisationnel individuel (`/evenements/creer`) — celui-ci est stocké directement sur l'événement (`ref_evenements.calendar_name`), pas dans `ref_settings`.
 
 ---
 
@@ -337,6 +382,19 @@ sequenceDiagram
 
 ---
 
+### 🔄 Gestion des échanges (`/admin/echanges`)
+
+Page réservée aux admins/gestionnaires listant **toutes** les demandes d'échange de créneau (tous membres confondus), triées avec les demandes `en_attente` en premier. Un badge dans la sidebar indique le nombre de demandes en attente.
+
+**Actions disponibles sur une demande en attente :**
+
+- **✅ Approuver** : exécute immédiatement l'échange, sans attendre la réponse de la personne cible. Cette action **prend le pas** sur le processus d'acceptation normal — si la personne cible clique ensuite sur son lien email, elle verra que l'échange n'est plus en attente.
+- **✕ Refuser** : refuse la demande, notifie le demandeur. Équivalent à un refus de la personne cible, mais initié par un admin/gestionnaire.
+
+Voir [Échanges de créneaux](#échanges-de-créneaux) pour le détail complet du flux.
+
+---
+
 ## Gestion des utilisateurs
 
 ### Création d'un compte (3 chemins possibles)
@@ -377,6 +435,20 @@ php artisan amana:reset-admin --email=mon@email.fr
 php artisan amana:reset-admin --email=mon@email.fr --password=NouveauMotDePasse!
 ```
 
+### Commande planifiée — expiration des échanges
+
+```bash
+# Exécutée automatiquement chaque jour à 01h00 via le scheduler Laravel
+# (routes/console.php : Schedule::command('amana:expire-echanges')->dailyAt('01:00'))
+php artisan amana:expire-echanges
+```
+
+Marque `expire` toute demande d'échange (`plan_echanges`) `en_attente` dont la date du créneau du demandeur est dépassée, et notifie le demandeur par email. Nécessite que le cron du scheduler Laravel tourne sur le serveur :
+
+```bash
+* * * * * cd /chemin/vers/app && php artisan schedule:run >> /dev/null 2>&1
+```
+
 ---
 
 ## Algorithme de génération du planning
@@ -398,6 +470,8 @@ flowchart TD
     H -->|Oui| I[Envoyer Webhook Make.com\nen arrière-plan]
     I --> J[Fin]
 ```
+
+> ⚠️ L'étape **D** (suppression des créneaux existants) supprime en cascade tout échange `plan_echanges` lié à ces créneaux, quel que soit son statut. Vérifier `/admin/echanges` avant une régénération qui couvre une période avec des échanges `en_attente`.
 
 ### Mode dry-run (prévisualisation)
 
@@ -495,6 +569,8 @@ Avant de générer, l'algorithme charge **tout l'historique** de la base de donn
 
 Cela garantit une continuité parfaite d'une génération à l'autre.
 
+> Un échange de créneau accepté (`plan_echanges.statut = accepte`) modifie directement `plan_creneaux_taches` — l'historique chargé à la prochaine génération reflète donc automatiquement le résultat de l'échange, sans logique additionnelle.
+
 ---
 
 ## Export PDF
@@ -513,19 +589,116 @@ Le PDF est généré à la demande via le formulaire `/planning/export`. Il util
 
 Toutes les notifications sont envoyées de manière **asynchrone** (via la queue) pour ne pas bloquer la réponse HTTP.
 
-| Déclencheur                           | Destinataire    | Email                                                    |
-| ------------------------------------- | --------------- | -------------------------------------------------------- |
-| Nouvelle inscription                  | Tous les admins | « Nouvelle candidature » avec fiche complète du candidat |
-| Candidature validée (nouveau membre)  | Le candidat     | « Bienvenue » + lien création mot de passe               |
-| Candidature validée (compte existant) | Le candidat     | « Votre accès est activé » + lien de connexion directe   |
+| Déclencheur                           | Destinataire                   | Email                                                    |
+| ------------------------------------- | ------------------------------ | -------------------------------------------------------- |
+| Nouvelle inscription                  | Tous les admins                | « Nouvelle candidature » avec fiche complète du candidat |
+| Candidature validée (nouveau membre)  | Le candidat                    | « Bienvenue » + lien création mot de passe               |
+| Candidature validée (compte existant) | Le candidat                    | « Votre accès est activé » + lien de connexion directe   |
+| Demande d'échange créée               | La personne cible (B)          | « Demande d'échange » + liens Accepter/Refuser tokenisés |
+| Échange accepté / exécuté             | Demandeur (A) **et** cible (B) | « Échange confirmé » avec récapitulatif avant/après      |
+| Échange refusé                        | Demandeur (A)                  | « Échange refusé »                                       |
+| Échange expiré (aucune réponse)       | Demandeur (A)                  | « Échange expiré »                                       |
+| Échange annulé par le demandeur       | Cible (B)                      | « Demande annulée »                                      |
+
+Toutes les notifications d'échange sont implémentées comme classes `App\Notifications\Echanges\*` (namespace dédié), chacune `ShouldQueue`.
+
+---
+
+## Échanges de créneaux
+
+### Vue d'ensemble
+
+Un membre assigné à un créneau futur peut demander à l'échanger avec celui d'un autre membre assigné à **la même tâche**. L'échange ne devient effectif qu'après acceptation de la personne cible (ou approbation d'un admin/gestionnaire qui prend le pas sur cette attente).
+
+```mermaid
+sequenceDiagram
+    participant A as Demandeur (A)
+    participant App as Application
+    participant B as Cible (B)
+    participant Adm as Admin/Gestionnaire
+
+    A->>App: Clique « 🔄 Échanger » sur son créneau (Mon planning)
+    App->>App: Liste les créneaux futurs de même tâche\nassignés à d'autres membres
+    A->>App: Choisit le créneau de B, envoie la demande
+    App->>App: Crée plan_echanges (statut: en_attente)\nGénère token_accept / token_refuse
+    App->>B: Email avec liens Accepter / Refuser
+
+    alt B accepte via le lien
+        B->>App: GET /echanges/{token_accept}/accepter
+        App->>App: Échange exécuté (transaction DB)\nstatut → accepte
+        App->>A: Email de confirmation
+        App->>B: Email de confirmation
+    else B refuse via le lien
+        B->>App: GET /echanges/{token_refuse}/refuser
+        App->>App: statut → refuse
+        App->>A: Email de refus
+    else Admin/gestionnaire approuve avant la réponse de B
+        Adm->>App: POST /admin/echanges/{id}/approuver
+        App->>App: Échange exécuté (override)\nstatut → accepte
+        App->>A: Email de confirmation
+        App->>B: Email de confirmation
+    else Aucune réponse avant la date du créneau de A
+        App->>App: Commande planifiée quotidienne\nstatut → expire
+        App->>A: Email d'expiration
+    end
+```
+
+### Règles métier
+
+- **Slots échangeables** : seuls les créneaux **futurs**, déjà assignés, sur la **même tâche** (même `code` dans `ref_taches`), appartenant à une personne différente du demandeur, et non déjà impliqués dans un autre échange `en_attente`, sont proposés.
+- **Expiration** : la date limite de réponse correspond à la **date du créneau du demandeur** (fin de journée). Passé ce délai sans réponse, la demande expire automatiquement (commande planifiée `amana:expire-echanges`, exécutée quotidiennement).
+- **Override admin/gestionnaire** : à tout moment pendant qu'une demande est `en_attente`, un admin ou gestionnaire peut l'approuver ou la refuser directement depuis `/admin/echanges`, sans attendre la réponse de la personne cible. L'approbation admin **prend le pas** sur l'attente de B.
+- **Tokens à usage unique** : une fois l'échange dans un statut terminal (`accepte`, `refuse`, `expire`, `annule`), les liens email ne déclenchent plus aucune action — ils affichent une page indiquant que la demande n'est plus valide.
+- **Pas de réutilisation de lien pour un nouvel échange** : si B souhaite à son tour échanger (y compris un swap retour vers A), il doit initier une **nouvelle demande** depuis son propre « Mon planning » — exactement le même processus que A a suivi.
+- **Annulation par le demandeur** : A peut annuler sa propre demande tant qu'elle est `en_attente`, depuis `/echanges`. B est alors notifié que la demande a été annulée.
+- **Audit** : chaque changement de statut (création, acceptation, refus, expiration, annulation) génère une entrée dans `audit_logs` (module `echanges`).
+- **Hors scope** : si la personne cible B n'a **aucun créneau futur généré** sur la même tâche, il n'y a rien à échanger — aucune demande ne peut être créée dans ce cas. Une fonctionnalité de « priorité de réassignation à la prochaine génération » serait une feature distincte, non couverte ici.
+
+### Tables et composants techniques
+
+| Composant                                | Rôle                                                                                                                                            |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plan_echanges` (table)                  | Stocke chaque demande d'échange et son cycle de vie complet (voir [Schema_bdd.md](docs/Schema_bdd.md))                                          |
+| `App\Models\Echange`                     | Modèle Eloquent, relations vers `Personne`, `Creneau`, `Tache`                                                                                  |
+| `App\Services\EchangeService`            | Toute la logique métier : calcul des slots échangeables, création, acceptation/refus par token, approbation/refus admin, annulation, expiration |
+| `App\Http\Controllers\EchangeController` | Routes membres, routes tokenisées publiques, routes admin/gestionnaire                                                                          |
+| `App\Console\Commands\ExpirerEchanges`   | Commande `amana:expire-echanges`, planifiée quotidiennement                                                                                     |
+| `App\Notifications\Echanges\*`           | 5 notifications queued (demande, accepté, refusé, expiré, annulé)                                                                               |
+
+### Routes
+
+| Méthode | URL                              | Accès                  | Description                      |
+| ------- | -------------------------------- | ---------------------- | -------------------------------- |
+| GET     | `/echanges`                      | Membre connecté        | Mes échanges (envoyés + reçus)   |
+| GET     | `/echanges/slots-disponibles`    | Membre connecté (AJAX) | Liste des slots échangeables     |
+| POST    | `/echanges`                      | Membre connecté        | Créer une demande d'échange      |
+| DELETE  | `/echanges/{id}`                 | Demandeur uniquement   | Annuler sa propre demande        |
+| GET     | `/echanges/{token}/accepter`     | Public (lien email)    | B accepte l'échange              |
+| GET     | `/echanges/{token}/refuser`      | Public (lien email)    | B refuse l'échange               |
+| GET     | `/admin/echanges`                | Admin / Gestionnaire   | Liste de toutes les demandes     |
+| POST    | `/admin/echanges/{id}/approuver` | Admin / Gestionnaire   | Approuver (override) une demande |
+| POST    | `/admin/echanges/{id}/refuser`   | Admin / Gestionnaire   | Refuser une demande              |
+
+> Les routes tokenisées sont **hors du middleware `auth`** car la personne cible clique sur le lien directement depuis son client email, sans être nécessairement connectée.
 
 ---
 
 ## Intégration Make.com (Webhook)
 
-Après chaque génération de planning (ou après toute modification manuelle d'une assignation), l'application envoie un payload JSON à Make.com via un job asynchrone (`EnvoyerWebhookMake`). Make.com peut alors créer automatiquement des événements Google Calendar pour les rappels et notifications de l'équipe.
+Make.com reçoit deux types de payloads JSON distincts, distingués par la clé `type` à la racine :
 
-> Le webhook n'est **pas** dispatché lors d'une prévisualisation dry-run.
+| Type de payload         | Déclencheur                                                                         | Clé racine  |
+| ----------------------- | ----------------------------------------------------------------------------------- | ----------- |
+| **Planning** (existant) | Génération du planning, modification manuelle d'une assignation                     | `creneaux`  |
+| **Événement** (nouveau) | Création, modification ou suppression d'un événement avec `calendar_name` renseigné | `evenement` |
+
+Les deux types sont envoyés via le même job asynchrone `EnvoyerWebhookMake` (`ShouldQueue`) vers la même URL configurée dans `.env` (`MAKE_WEBHOOK_URL` / `config('services.make.webhook_url')`). Le scénario Make.com doit donc **router selon la présence de la clé `creneaux` ou `evenement`**.
+
+> Le webhook n'est **pas** dispatché lors d'une prévisualisation dry-run, ni lorsqu'un événement n'a pas de `calendar_name` renseigné.
+
+---
+
+### Payload planning (existant, inchangé)
 
 **Variable `.env` concernée :**
 
@@ -638,12 +811,70 @@ MAKE_WEBHOOK_URL=https://hook.make.com/votre-identifiant
 }
 ```
 
-**Notes importantes sur le payload :**
+**Notes importantes sur le payload planning :**
 
 - Les horaires (`heure_debut`, `heure_fin`) sont calculés en ajoutant les offsets configurés dans **Paramètres** à l'heure du cours stockée en base.
 - `rappel_sandwich` a un horaire fixe (08:00–08:15) indépendant des offsets.
 - Si une tâche est **bloquée par un événement** sur ce créneau, elle est **absente** du payload (ni dans `taches`, ni dans `evenements_speciaux`).
 - `rappel_sandwich` utilise la personne assignée à `amana_food` ; `assistance_amana_food` utilise la personne assignée à `entree`.
 - `evenements_sociaux` (`annonce_cours`, `message_general`) n'ont pas de `nom_complet` ni d'`email` — ce sont des événements automatisés sans assignation personnelle.
-- `calendar_name` correspond au nom exact du calendrier Google Calendar cible, configuré dans **Paramètres → Calendriers**. S'il est vide, Make.com utilise son calendrier par défaut.
+- `calendar_name` (dans `taches`/`evenements_speciaux`/`evenements_sociaux`) correspond au nom exact du calendrier Google Calendar cible, configuré dans **Paramètres → Calendriers**. S'il est vide, Make.com utilise son calendrier par défaut. **Ne pas confondre** avec `ref_evenements.calendar_name`, propre aux événements organisationnels (voir ci-dessous).
 - Le champ `evenements` au niveau du créneau est une chaîne avec les noms des événements organisationnels actifs ce jour-là (ex : `"Ramadan"`) ou `null`.
+
+---
+
+### Payload événement organisationnel (nouveau)
+
+**Méthode appelée :** `WebhookEvenementPayloadBuilder::buildUpsert()` ou `::buildDelete()`, depuis `EvenementsController::store()`, `update()` et `destroy()`.
+
+**Déclencheurs :**
+
+| Action                      | Condition de déclenchement                     | `action` envoyé |
+| --------------------------- | ---------------------------------------------- | --------------- |
+| Création d'un événement     | `calendar_name` renseigné dans le formulaire   | `"upsert"`      |
+| Modification d'un événement | `calendar_name` renseigné (après modification) | `"upsert"`      |
+| Suppression d'un événement  | L'événement avait un `calendar_name` renseigné | `"delete"`      |
+
+**Structure du payload — création/modification (`action: "upsert"`) :**
+
+```json
+{
+    "type": "evenement",
+    "action": "upsert",
+    "genere_le": "2026-06-18T10:00:00+02:00",
+    "evenement": {
+        "id": 12,
+        "nom": "Ramadan",
+        "date_debut": "2025-03-01",
+        "date_fin": "2025-03-30",
+        "description": "Adaptation des horaires pendant le mois sacré",
+        "calendar_name": "AMANA - Événements",
+        "taches_bloquees": ["amana_food", "entree"],
+        "informatif": false
+    }
+}
+```
+
+**Structure du payload — suppression (`action: "delete"`) :**
+
+```json
+{
+    "type": "evenement",
+    "action": "delete",
+    "genere_le": "2026-06-18T10:05:00+02:00",
+    "evenement": {
+        "id": 12,
+        "nom": "Ramadan",
+        "date_debut": "2025-03-01",
+        "date_fin": "2025-03-30",
+        "calendar_name": "AMANA - Événements"
+    }
+}
+```
+
+**Notes importantes sur le payload événement :**
+
+- `taches_bloquees` est un tableau des **codes** de tâches bloquées (`ref_taches.code`) — absent du payload de suppression, qui ne contient que les champs nécessaires pour retrouver l'événement Google Calendar à supprimer.
+- `informatif` vaut `true` si l'événement ne bloque aucune tâche (purement informatif dans le planning), `false` sinon. Absent du payload de suppression.
+- Si `calendar_name` est vide ou absent au moment de l'action, **aucun webhook n'est dispatché** — qu'il s'agisse d'une création, modification ou suppression.
+- Le scénario Make.com doit créer/mettre à jour/supprimer un événement dans le calendrier Google Calendar nommé exactement `calendar_name`. Si ce calendrier n'existe pas côté Google, le comportement dépend de la configuration du scénario Make.com (non géré côté application).
