@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\CandidaturesController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\EchangeController;
 use App\Http\Controllers\MonPlanningController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\PlanningEditController;
@@ -45,6 +46,19 @@ Route::post('/inscription', [AuthController::class, 'inscription'])
     ->name('inscription.submit')
     ->middleware('throttle:5,1');
 
+// ── Tokens échanges (liens email, pas de connexion requise) ───────────────
+// Ces routes DOIVENT être hors du middleware auth car B clique sur le lien
+// depuis son email sans forcément être connecté.
+Route::get('/echanges/{token}/accepter', [EchangeController::class, 'accepter'])
+    ->name('echanges.accepter')
+    ->middleware('throttle:10,1')
+    ->where('token', '[a-zA-Z0-9]{64}');
+
+Route::get('/echanges/{token}/refuser', [EchangeController::class, 'refuser'])
+    ->name('echanges.refuser')
+    ->middleware('throttle:10,1')
+    ->where('token', '[a-zA-Z0-9]{64}');
+
 /*
 |--------------------------------------------------------------------------
 | Routes protégées — nécessitent une connexion
@@ -55,6 +69,16 @@ Route::middleware('auth')->group(function () {
 
     // ── Mon planning (vue personnelle) — tous les membres connectés ────────
     Route::get('/mon-planning', [MonPlanningController::class, 'index'])->name('mon-planning');
+
+    // ── Échanges — tous les membres connectés ─────────────────────────────
+    Route::prefix('echanges')->name('echanges.')->group(function () {
+        Route::get('/', [EchangeController::class, 'index'])->name('index');
+        Route::get('/slots-disponibles', [EchangeController::class, 'slotsDisponibles'])->name('slots');
+        Route::post('/', [EchangeController::class, 'store'])->name('store');
+        Route::delete('/{id}', [EchangeController::class, 'destroy'])
+            ->name('destroy')
+            ->where('id', '[0-9]+');
+    });
 
     // ── Planning ───────────────────────────────────────────────────────────
     Route::prefix('planning')->name('planning.')->group(function () {
@@ -72,7 +96,6 @@ Route::middleware('auth')->group(function () {
             Route::post('/generer/apercu', [PlanningController::class, 'preview'])->name('preview');
             Route::post('/rollback', [PlanningController::class, 'rollback'])->name('rollback');
             Route::post('/rollback/dismiss', [PlanningController::class, 'rollbackDismiss'])->name('rollback.dismiss');
-            // Clear the pending overlap confirmation from session
             Route::post('/overlap/cancel', function () {
                 session()->forget('pending_generation');
                 return redirect()->route('planning.generate.form');
@@ -81,22 +104,17 @@ Route::middleware('auth')->group(function () {
 
         // ── Édition manuelle AJAX — gestionnaire + admin ──────────────────
         Route::middleware('role:gestionnaire')->group(function () {
-
             Route::get('/personnes-actives', [PlanningEditController::class, 'personnes'])
                 ->name('edit.personnes');
-
             Route::patch('/creneau/{creneauId}/tache/{tacheId}', [PlanningEditController::class, 'patchAssignation'])
                 ->name('edit.assignation')
                 ->where(['creneauId' => '[0-9]+', 'tacheId' => '[0-9]+']);
-
             Route::delete('/creneau/{creneauId}/tache/{tacheId}', [PlanningEditController::class, 'unassignTache'])
                 ->name('edit.unassign')
                 ->where(['creneauId' => '[0-9]+', 'tacheId' => '[0-9]+']);
-
             Route::delete('/creneau/{id}', [PlanningEditController::class, 'deleteCreneau'])
                 ->name('edit.delete-creneau')
                 ->where('id', '[0-9]+');
-
             Route::post('/creneau', [PlanningEditController::class, 'createCreneau'])
                 ->name('edit.create-creneau');
         });
@@ -155,4 +173,18 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/renvoyer-invitation', [CandidaturesController::class, 'renvoyerInvitation'])->name('renvoyer-invitation')->where('id', '[0-9]+');
         });
     });
+
+    // ── Échanges admin/gestionnaire ────────────────────────────────────────
+    Route::middleware('role:gestionnaire')
+        ->prefix('admin/echanges')
+        ->name('admin.echanges.')
+        ->group(function () {
+            Route::get('/', [EchangeController::class, 'adminIndex'])->name('index');
+            Route::post('/{id}/approuver', [EchangeController::class, 'adminApprouver'])
+                ->name('approuver')
+                ->where('id', '[0-9]+');
+            Route::post('/{id}/refuser', [EchangeController::class, 'adminRefuser'])
+                ->name('refuser')
+                ->where('id', '[0-9]+');
+        });
 });

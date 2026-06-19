@@ -16,14 +16,14 @@
 
 | Document                                     | Description                                                                                               |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [docs/installation.md](docs/installation.md) | Prérequis, installation locale (XAMPP), déploiement IONOS, référence des routes, résolution des problèmes |
+| [docs/installation.md](docs/installation.md) | Prérequis, installation locale (Linux), déploiement IONOS, référence des routes, résolution des problèmes |
 | [docs/Schema_bdd.md](docs/Schema_bdd.md)     | Schéma complet de la base de données, diagramme des relations, description de chaque table                |
 
 ---
 
 > 📖 **Guides détaillés**
 >
-> - [**Guide d'installation**](docs/installation.md) — mise en place locale et production, référence complète des routes, résolution des problèmes courants
+> - [**Guide d'installation**](docs/installation.md) — mise en place locale (Ubuntu 24.04) et production, référence complète des routes, résolution des problèmes courants
 > - [**Schéma de la base de données**](docs/Schema_bdd.md) — description de chaque table, diagramme ERD, notes sur les fonctionnalités applicatives
 
 ---
@@ -57,7 +57,7 @@ Les tâches suivantes existent dans `ref_taches` mais ne sont **pas incluses dan
 
 ```mermaid
 graph TD
-    A[Navigateur] -->|HTTPS| B[Laravel 11]
+    A[Navigateur] -->|HTTPS| B[Laravel 13]
     B --> C[MySQL / MariaDB]
     B --> D[Queue Worker]
     D -->|Email| E[Serveur SMTP]
@@ -67,7 +67,7 @@ graph TD
 
 **Stack :**
 
-- **Backend :** Laravel 11 (PHP 8.2+)
+- **Backend :** Laravel 13 (PHP 8.4+)
 - **Base de données :** MySQL 8 / MariaDB 10.4+
 - **Frontend :** Blade + CSS/JS statiques — pas de framework JS, pas de build npm/Vite. Tout est servi directement depuis `public/css/` et `public/js/`, ce qui simplifie le déploiement sur l'hébergement partagé IONOS.
 - **PDF :** barryvdh/laravel-dompdf

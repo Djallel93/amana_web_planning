@@ -49,10 +49,24 @@
             <span class="nav-text">Planning</span>
         </a>
 
-        <a href="{{ route('mon-planning') }}" class="nav-item {{ request()->routeIs('mon-planning') ? 'active' : '' }}"
-            onclick="closeSidebar()">
+        <a href="{{ route('mon-planning') }}"
+            class="nav-item {{ request()->routeIs('mon-planning') ? 'active' : '' }}" onclick="closeSidebar()">
             <span class="nav-icon">🙋</span>
             <span class="nav-text">Mon planning</span>
+        </a>
+
+        <a href="{{ route('echanges.index') }}"
+            class="nav-item {{ request()->routeIs('echanges.index') ? 'active' : '' }}" onclick="closeSidebar()">
+            <span class="nav-icon">🔄</span>
+            <span class="nav-text">Mes échanges</span>
+            @php
+                $nbEchangesMembre = \App\Models\Echange::enAttente()
+                    ->impliquant(auth()->id())
+                    ->count();
+            @endphp
+            @if($nbEchangesMembre > 0)
+                <span class="nav-badge">{{ $nbEchangesMembre }}</span>
+            @endif
         </a>
 
         <a href="{{ route('planning.statistics') }}"
@@ -70,8 +84,8 @@
         {{-- Mes données --}}
         <div class="sidebar-label">Mes données</div>
 
-        <a href="{{ route('absences.index') }}" class="nav-item {{ request()->routeIs('absences.*') ? 'active' : '' }}"
-            onclick="closeSidebar()">
+        <a href="{{ route('absences.index') }}"
+            class="nav-item {{ request()->routeIs('absences.*') ? 'active' : '' }}" onclick="closeSidebar()">
             <span class="nav-icon">🏖️</span>
             <span class="nav-text">Absences</span>
         </a>
@@ -100,9 +114,20 @@
                     <span class="nav-text">Événements</span>
                 </a>
 
+                {{-- Admin échanges with pending badge --}}
+                @php $nbEchangesAdmin = \App\Models\Echange::enAttente()->count(); @endphp
+                <a href="{{ route('admin.echanges.index') }}"
+                    class="nav-item {{ request()->routeIs('admin.echanges.*') ? 'active' : '' }}" onclick="closeSidebar()">
+                    <span class="nav-icon">🔄</span>
+                    <span class="nav-text">Échanges</span>
+                    @if($nbEchangesAdmin > 0)
+                        <span class="nav-badge">{{ $nbEchangesAdmin }}</span>
+                    @endif
+                </a>
+
                 @if(Route::has('settings.index'))
-                    <a href="{{ route('settings.index') }}" class="nav-item {{ request()->routeIs('settings.*') ? 'active' : '' }}"
-                        onclick="closeSidebar()">
+                    <a href="{{ route('settings.index') }}"
+                        class="nav-item {{ request()->routeIs('settings.*') ? 'active' : '' }}" onclick="closeSidebar()">
                         <span class="nav-icon">⚙️</span>
                         <span class="nav-text">Paramètres</span>
                     </a>
@@ -133,9 +158,9 @@
             @endif
         @endauth
 
-    </div>{{-- /.sidebar-section --}}
+    </div>
 
-    {{-- Pied de sidebar : utilisateur connecté + déconnexion --}}
+    {{-- Footer --}}
     <div class="sidebar-footer">
         <div class="sidebar-user">
             <div class="user-avatar">

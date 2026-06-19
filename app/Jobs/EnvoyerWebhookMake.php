@@ -15,7 +15,13 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Job asynchrone : envoie le payload webhook vers Make.com.
- * Dispatché après la génération du planning pour ne pas bloquer la réponse HTTP.
+ * Dispatché après la génération du planning, une modification manuelle
+ * d'assignation, ou la création/modification/suppression d'un événement
+ * synchronisé avec Google Calendar.
+ *
+ * Le payload peut être de deux types, distingués par la clé `type` :
+ *   - absente ou "planning" : payload de créneaux (WebhookPayloadBuilder)
+ *   - "evenement"            : payload d'événement (WebhookEvenementPayloadBuilder)
  */
 class EnvoyerWebhookMake implements ShouldQueue
 {
@@ -46,10 +52,20 @@ class EnvoyerWebhookMake implements ShouldQueue
             return;
         }
 
-        Log::info('[WebhookMake] Envoi du webhook vers Make.com', [
-            'url' => $url,
-            'nb_creneaux' => count($this->payload['creneaux'] ?? []),
-        ]);
+        $type = $this->payload['type'] ?? 'planning';
+
+        if ($type === 'evenement') {
+            Log::info('[WebhookMake] Envoi du webhook événement vers Make.com', [
+                'url'    => $url,
+                'action' => $this->payload['action'] ?? null,
+                'nom'    => $this->payload['evenement']['nom'] ?? null,
+            ]);
+        } else {
+            Log::info('[WebhookMake] Envoi du webhook planning vers Make.com', [
+                'url'         => $url,
+                'nb_creneaux' => count($this->payload['creneaux'] ?? []),
+            ]);
+        }
 
         $response = Http::timeout(30)
             ->withHeaders(['Content-Type' => 'application/json'])
@@ -58,18 +74,21 @@ class EnvoyerWebhookMake implements ShouldQueue
         if ($response->successful()) {
             Log::info('[WebhookMake] Webhook envoyé avec succès.', [
                 'status' => $response->status(),
+                'type'   => $type,
             ]);
 
             audit('webhook', 'planning', null, null, [
-                'url' => $url,
-                'status' => $response->status(),
+                'url'         => $url,
+                'status'      => $response->status(),
+                'type'        => $type,
                 'nb_creneaux' => count($this->payload['creneaux'] ?? []),
-                'genere_le' => $this->payload['genere_le'] ?? null,
+                'genere_le'   => $this->payload['genere_le'] ?? null,
             ]);
         } else {
             Log::error('[WebhookMake] Échec de l\'envoi du webhook.', [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'body'   => $response->body(),
+                'type'   => $type,
             ]);
 
             // Déclenche une nouvelle tentative automatique

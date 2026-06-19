@@ -15,11 +15,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * Si aucune tâche n'est liée → événement purement informatif (s'affiche dans
  * la bannière de semaine sans affecter les assignations).
  *
- * @property int    $id
- * @property string $nom
+ * Si calendar_name est renseigné, un webhook Make.com est déclenché lors
+ * de la création, modification ou suppression de l'événement pour synchroniser
+ * Google Calendar.
+ *
+ * @property int         $id
+ * @property string      $nom
  * @property \Carbon\Carbon $date_debut
  * @property \Carbon\Carbon $date_fin
  * @property string|null $description
+ * @property string|null $calendar_name
  */
 class Evenement extends Model
 {
@@ -31,11 +36,12 @@ class Evenement extends Model
         'date_debut',
         'date_fin',
         'description',
+        'calendar_name',
     ];
 
     protected $casts = [
         'date_debut' => 'date',
-        'date_fin' => 'date',
+        'date_fin'   => 'date',
     ];
 
     // ── Relations ──────────────────────────────────────────────────────────
@@ -79,23 +85,28 @@ class Evenement extends Model
 
     /**
      * Retourne true si cet événement bloque toutes les tâches actives.
-     * Utilisé pour l'affichage du badge "Bloqué" dans le planning.
      */
     public function bloqueTout(int $nbTachesActives): bool
     {
         return $this->tachesBloquees->count() >= $nbTachesActives;
     }
 
+    /**
+     * Retourne true si une synchronisation calendrier est configurée.
+     */
+    public function hasCalendarSync(): bool
+    {
+        return !empty($this->calendar_name);
+    }
+
     // ── Scopes ─────────────────────────────────────────────────────────────
 
-    /** Scope : événements actifs à une date donnée */
     public function scopeActifALaDate($query, string $date)
     {
         return $query->where('date_debut', '<=', $date)
             ->where('date_fin', '>=', $date);
     }
 
-    /** Scope : événements futurs ou en cours */
     public function scopeFutursOuEnCours($query)
     {
         return $query->where('date_fin', '>=', now()->toDateString());
