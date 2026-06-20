@@ -606,8 +606,6 @@ Toutes les notifications d'échange sont implémentées comme classes `App\Notif
 
 ## Échanges de créneaux
 
-### Vue d'ensemble
-
 Un membre assigné à un créneau futur peut demander à l'échanger avec celui d'un autre membre assigné à **la même tâche**. L'échange ne devient effectif qu'après acceptation de la personne cible (ou approbation d'un admin/gestionnaire qui prend le pas sur cette attente).
 
 ```mermaid
@@ -685,196 +683,237 @@ sequenceDiagram
 
 ## Intégration Make.com (Webhook)
 
-Make.com reçoit deux types de payloads JSON distincts, distingués par la clé `type` à la racine :
+Après chaque génération de planning, modification manuelle d'une assignation, création/suppression d'un créneau, ou création/modification/suppression d'un événement synchronisé, l'application envoie un payload JSON à Make.com via un job asynchrone (`EnvoyerWebhookMake`). Make.com crée/modifie/supprime alors les événements Google Calendar correspondants.
 
-| Type de payload         | Déclencheur                                                                         | Clé racine  |
-| ----------------------- | ----------------------------------------------------------------------------------- | ----------- |
-| **Planning** (existant) | Génération du planning, modification manuelle d'une assignation                     | `creneaux`  |
-| **Événement** (nouveau) | Création, modification ou suppression d'un événement avec `calendar_name` renseigné | `evenement` |
+> Le webhook n'est **pas** dispatché lors d'une prévisualisation dry-run.
 
-Les deux types sont envoyés via le même job asynchrone `EnvoyerWebhookMake` (`ShouldQueue`) vers la même URL configurée dans `.env` (`MAKE_WEBHOOK_URL` / `config('services.make.webhook_url')`). Le scénario Make.com doit donc **router selon la présence de la clé `creneaux` ou `evenement`**.
-
-> Le webhook n'est **pas** dispatché lors d'une prévisualisation dry-run, ni lorsqu'un événement n'a pas de `calendar_name` renseigné.
-
----
-
-### Payload planning (existant, inchangé)
-
-**Variable `.env` concernée :**
+**Variables `.env` concernées :**
 
 ```dotenv
 MAKE_WEBHOOK_URL=https://hook.make.com/votre-identifiant
+MAKE_WEBHOOK_APIKEY=votre-cle-api
 ```
 
-> L'heure du cours n'est **plus** lue depuis `.env`. Elle est stockée dans `ref_settings` (clé `heure_cours`) et modifiable via la page Paramètres. La variable `HEURE_COURS` présente dans certains anciens fichiers `.env.example` est obsolète.
+Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doivent être configurées, sinon l'envoi est silencieusement ignoré (log d'avertissement).
 
-**Déclencheurs du webhook :**
+> L'heure du cours n'est **plus** lue depuis `.env`. Elle est stockée dans `ref_settings` (clé `heure_cours`) et modifiable via la page Paramètres.
 
-| Action                                  | Méthode appelée                            | Contenu                         |
-| --------------------------------------- | ------------------------------------------ | ------------------------------- |
-| Génération d'un planning                | `WebhookPayloadBuilder::build()`           | Tous les créneaux de la période |
-| Modification manuelle d'une assignation | `WebhookPayloadBuilder::buildForCreneau()` | Le créneau modifié uniquement   |
+**Verbes HTTP par action :**
 
-**Structure complète du payload :**
+| Action                               | Verbe    | Builder                                          |
+| ------------------------------------ | -------- | ------------------------------------------------ |
+| Génération complète du planning      | `POST`   | `WebhookPayloadBuilder::build()`                 |
+| Création manuelle d'un créneau vide  | `POST`   | `WebhookPayloadBuilder::buildForCreation()`      |
+| Réassignation d'une tâche            | `PATCH`  | `WebhookPayloadBuilder::buildForReassignation()` |
+| Désassignation d'une tâche           | `DELETE` | `WebhookPayloadBuilder::buildForUnassignation()` |
+| Suppression d'un créneau entier      | `DELETE` | `WebhookPayloadBuilder::buildForDeleteCreneau()` |
+| Événement organisationnel créé       | `POST`   | `WebhookEvenementPayloadBuilder::buildUpsert()`  |
+| Événement organisationnel modifié    | `PATCH`  | `WebhookEvenementPayloadBuilder::buildUpsert()`  |
+| Événement organisationnel supprimé   | `DELETE` | `WebhookEvenementPayloadBuilder::buildDelete()`  |
+| Exécution d'un échange (swap validé) | `PATCH`  | `WebhookPayloadBuilder::buildForEchange()`       |
+
+**Structure du payload planning** — racine strictement limitée à `lieu` + `creneaux` :
 
 ```json
 {
-    "genere_le": "2025-06-06T20:00:00+02:00",
-    "heure_cours": "20:00",
     "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
     "creneaux": [
         {
-            "date": "2025-06-06",
-            "jour": "Vendredi",
-            "semaine": 23,
-            "evenements": null,
-            "taches": {
-                "entree": {
-                    "nom_complet": "Prénom Nom",
+            "date": "2026-08-06",
+            "evenements": [{ "nom": "Ramadan", "description": "" }],
+            "taches": [
+                {
+                    "nom": "Entrée",
+                    "assigne": "Prénom Nom",
                     "email": "personne@exemple.fr",
                     "heure_debut": "19:30",
                     "heure_fin": "20:30",
                     "calendar_name": "AMANA - Planning",
                     "description": ""
-                },
-                "mektaba": {
-                    "nom_complet": "Prénom Nom",
-                    "email": "personne@exemple.fr",
-                    "heure_debut": "19:40",
-                    "heure_fin": "21:40",
-                    "calendar_name": "AMANA - Planning",
-                    "description": ""
-                },
-                "salle": {
-                    "nom_complet": "Prénom Nom",
-                    "email": "personne@exemple.fr",
-                    "heure_debut": "20:00",
-                    "heure_fin": "21:30",
-                    "calendar_name": "AMANA - Planning",
-                    "description": ""
-                },
-                "amana_food": {
-                    "nom_complet": "Prénom Nom",
-                    "email": "personne@exemple.fr",
-                    "heure_debut": "20:30",
-                    "heure_fin": "21:30",
-                    "calendar_name": "AMANA - Planning",
-                    "description": ""
-                },
-                "cours": {
-                    "nom_complet": "Prénom Nom",
-                    "email": "personne@exemple.fr",
-                    "heure_debut": "20:00",
-                    "heure_fin": "21:00",
-                    "calendar_name": "AMANA - Planning",
-                    "description": "Animation du cours"
                 }
-            },
-            "evenements_speciaux": {
-                "rappel_sandwich": {
-                    "nom_complet": "Prénom Nom",
+            ],
+            "evenements_speciaux": [
+                {
+                    "nom": "Rappel Sandwich",
+                    "assigne": "Prénom Nom",
                     "email": "personne@exemple.fr",
                     "heure_debut": "08:00",
                     "heure_fin": "08:15",
                     "calendar_name": "AMANA - Planning",
                     "description": ""
-                },
-                "assistance_amana_food": {
-                    "nom_complet": "Prénom Nom",
-                    "email": "personne@exemple.fr",
-                    "heure_debut": "20:30",
-                    "heure_fin": "21:30",
-                    "calendar_name": "AMANA - Planning",
-                    "description": ""
                 }
-            },
-            "evenements_sociaux": {
-                "annonce_cours": {
-                    "nom_complet": null,
+            ],
+            "evenements_sociaux": [
+                {
+                    "nom": "Annonce Cours",
+                    "assigne": null,
                     "email": null,
                     "heure_debut": "14:00",
                     "heure_fin": "14:15",
                     "calendar_name": "AMANA - Communications",
                     "description": ""
-                },
-                "message_general": {
-                    "nom_complet": null,
-                    "email": null,
-                    "heure_debut": "19:30",
-                    "heure_fin": "20:00",
-                    "calendar_name": "AMANA - Communications",
-                    "description": ""
                 }
-            }
+            ]
         }
     ]
 }
 ```
 
-**Notes importantes sur le payload planning :**
-
-- Les horaires (`heure_debut`, `heure_fin`) sont calculés en ajoutant les offsets configurés dans **Paramètres** à l'heure du cours stockée en base.
-- `rappel_sandwich` a un horaire fixe (08:00–08:15) indépendant des offsets.
-- Si une tâche est **bloquée par un événement** sur ce créneau, elle est **absente** du payload (ni dans `taches`, ni dans `evenements_speciaux`).
-- `rappel_sandwich` utilise la personne assignée à `amana_food` ; `assistance_amana_food` utilise la personne assignée à `entree`.
-- `evenements_sociaux` (`annonce_cours`, `message_general`) n'ont pas de `nom_complet` ni d'`email` — ce sont des événements automatisés sans assignation personnelle.
-- `calendar_name` (dans `taches`/`evenements_speciaux`/`evenements_sociaux`) correspond au nom exact du calendrier Google Calendar cible, configuré dans **Paramètres → Calendriers**. S'il est vide, Make.com utilise son calendrier par défaut. **Ne pas confondre** avec `ref_evenements.calendar_name`, propre aux événements organisationnels (voir ci-dessous).
-- Le champ `evenements` au niveau du créneau est une chaîne avec les noms des événements organisationnels actifs ce jour-là (ex : `"Ramadan"`) ou `null`.
-
----
-
-### Payload événement organisationnel (nouveau)
-
-**Méthode appelée :** `WebhookEvenementPayloadBuilder::buildUpsert()` ou `::buildDelete()`, depuis `EvenementsController::store()`, `update()` et `destroy()`.
-
-**Déclencheurs :**
-
-| Action                      | Condition de déclenchement                     | `action` envoyé |
-| --------------------------- | ---------------------------------------------- | --------------- |
-| Création d'un événement     | `calendar_name` renseigné dans le formulaire   | `"upsert"`      |
-| Modification d'un événement | `calendar_name` renseigné (après modification) | `"upsert"`      |
-| Suppression d'un événement  | L'événement avait un `calendar_name` renseigné | `"delete"`      |
-
-**Structure du payload — création/modification (`action: "upsert"`) :**
+**PATCH (réassignation d'une tâche)** — ne contient que la tâche modifiée (et l'événement spécial dépendant, le cas échéant) :
 
 ```json
 {
-    "type": "evenement",
-    "action": "upsert",
-    "genere_le": "2026-06-18T10:00:00+02:00",
-    "evenement": {
-        "id": 12,
-        "nom": "Ramadan",
-        "date_debut": "2025-03-01",
-        "date_fin": "2025-03-30",
-        "description": "Adaptation des horaires pendant le mois sacré",
-        "calendar_name": "AMANA - Événements",
-        "taches_bloquees": ["amana_food", "entree"],
-        "informatif": false
-    }
+    "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
+    "creneaux": [
+        {
+            "date": "2026-08-06",
+            "taches": [
+                {
+                    "nom": "Entrée",
+                    "assigne": "Nouveau Nom",
+                    "email": "nouveau@exemple.fr",
+                    "heure_debut": "19:30",
+                    "heure_fin": "20:30",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
+                }
+            ],
+            "evenements_speciaux": [
+                {
+                    "nom": "Assistance Amana Food",
+                    "assigne": "Nouveau Nom",
+                    "email": "nouveau@exemple.fr",
+                    "heure_debut": "20:30",
+                    "heure_fin": "21:30",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
+                }
+            ]
+        }
+    ]
 }
 ```
 
-**Structure du payload — suppression (`action: "delete"`) :**
+**PATCH (exécution d'un échange)** — toujours deux entrées `creneaux` (une par date), même si l'une des deux dates est désormais passée :
 
 ```json
 {
-    "type": "evenement",
-    "action": "delete",
-    "genere_le": "2026-06-18T10:05:00+02:00",
-    "evenement": {
-        "id": 12,
-        "nom": "Ramadan",
-        "date_debut": "2025-03-01",
-        "date_fin": "2025-03-30",
-        "calendar_name": "AMANA - Événements"
-    }
+    "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
+    "creneaux": [
+        {
+            "date": "2026-08-06",
+            "taches": [
+                { "nom": "Entrée", "assigne": "Alice Dupont", "email": "alice@exemple.fr", "heure_debut": "19:30", "heure_fin": "20:30", "calendar_name": "AMANA - Planning", "description": "" }
+            ]
+        },
+        {
+            "date": "2026-08-13",
+            "taches": [
+                { "nom": "Entrée", "assigne": "Bob Martin", "email": "bob@exemple.fr", "heure_debut": "19:30", "heure_fin": "20:30", "calendar_name": "AMANA - Planning", "description": "" }
+            ]
+        }
+    ]
 }
 ```
 
-**Notes importantes sur le payload événement :**
+**DELETE (désassignation d'une tâche)** — pas de `assigne`/`email`, uniquement de quoi localiser l'événement calendrier à supprimer :
 
-- `taches_bloquees` est un tableau des **codes** de tâches bloquées (`ref_taches.code`) — absent du payload de suppression, qui ne contient que les champs nécessaires pour retrouver l'événement Google Calendar à supprimer.
-- `informatif` vaut `true` si l'événement ne bloque aucune tâche (purement informatif dans le planning), `false` sinon. Absent du payload de suppression.
-- Si `calendar_name` est vide ou absent au moment de l'action, **aucun webhook n'est dispatché** — qu'il s'agisse d'une création, modification ou suppression.
-- Le scénario Make.com doit créer/mettre à jour/supprimer un événement dans le calendrier Google Calendar nommé exactement `calendar_name`. Si ce calendrier n'existe pas côté Google, le comportement dépend de la configuration du scénario Make.com (non géré côté application).
+```json
+{
+    "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
+    "creneaux": [
+        {
+            "date": "2026-08-06",
+            "taches": [
+                {
+                    "nom": "Entrée",
+                    "heure_debut": "19:30",
+                    "heure_fin": "20:30",
+                    "calendar_name": "AMANA - Planning"
+                }
+            ]
+        }
+    ]
+}
+```
+
+**DELETE (suppression d'un créneau entier)** — toutes les tâches/événements spéciaux/sociaux du jour, pour un nettoyage complet en un seul appel :
+
+```json
+{
+    "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
+    "creneaux": [
+        {
+            "date": "2026-08-06",
+            "taches": [
+                {
+                    "nom": "Entrée",
+                    "heure_debut": "19:30",
+                    "heure_fin": "20:30",
+                    "calendar_name": "AMANA - Planning"
+                },
+                {
+                    "nom": "Mektaba",
+                    "heure_debut": "19:40",
+                    "heure_fin": "21:40",
+                    "calendar_name": "AMANA - Planning"
+                },
+                {
+                    "nom": "Salle",
+                    "heure_debut": "20:00",
+                    "heure_fin": "21:30",
+                    "calendar_name": "AMANA - Planning"
+                },
+                {
+                    "nom": "Amana Food",
+                    "heure_debut": "20:30",
+                    "heure_fin": "21:30",
+                    "calendar_name": "AMANA - Planning"
+                },
+                {
+                    "nom": "Cours",
+                    "heure_debut": "20:00",
+                    "heure_fin": "21:00",
+                    "calendar_name": "AMANA - Planning"
+                }
+            ],
+            "evenements_speciaux": [
+                {
+                    "nom": "Rappel Sandwich",
+                    "heure_debut": "08:00",
+                    "heure_fin": "08:15",
+                    "calendar_name": "AMANA - Planning"
+                },
+                {
+                    "nom": "Assistance Amana Food",
+                    "heure_debut": "20:30",
+                    "heure_fin": "21:30",
+                    "calendar_name": "AMANA - Planning"
+                }
+            ],
+            "evenements_sociaux": [
+                {
+                    "nom": "Annonce Cours",
+                    "heure_debut": "14:00",
+                    "heure_fin": "14:15",
+                    "calendar_name": "AMANA - Communications"
+                },
+                {
+                    "nom": "Message Général",
+                    "heure_debut": "19:30",
+                    "heure_fin": "20:00",
+                    "calendar_name": "AMANA - Communications"
+                }
+            ]
+        }
+    ]
+}
+```
+
+**Notes importantes sur le payload :**
+
+- `taches`, `evenements_speciaux` et `evenements_sociaux` sont des **tableaux** (et non plus des objets indexés par code).
+- `evenements` (niveau créneau) liste les événements organisationnels actifs ce jour-là (`nom` + `description` uniquement — pas d'horaires, un événement type Ramadan couvrant des jours entiers).
+- Si une tâche est **bloquée par un événement**, elle est absente du payload (POST/PATCH/DELETE).
+- `rappel_sandwich` a un horaire fixe (08:00–08:15) ; `assistance_amana_food` suit l'assigné de `entree` ; `rappel_sandwich` suit l'assigné de `amana_food` — ces dépendances sont propagées automatiquement dans les payloads PATCH/DELETE d'une réassignation/désassignation de `entree` ou `amana_food`.
+- `calendar_name` correspond au nom exact du calendrier Google Calendar cible (Paramètres → Calendriers). S'il est vide, Make.com utilise son calendrier par défaut.

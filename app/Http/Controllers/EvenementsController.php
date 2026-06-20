@@ -19,7 +19,8 @@ use Illuminate\View\View;
  * Contrôleur CRUD pour les événements organisationnels.
  *
  * Chaque opération create/update/delete déclenche un webhook Make.com
- * si l'événement a un calendar_name configuré.
+ * si l'événement a un calendar_name configuré, avec le verbe HTTP
+ * correspondant (POST / PATCH / DELETE).
  */
 class EvenementsController extends Controller
 {
@@ -45,7 +46,7 @@ class EvenementsController extends Controller
 
     public function store(StoreEvenementRequest $request): RedirectResponse
     {
-        $data    = $request->validated();
+        $data = $request->validated();
         $tacheIds = $data['taches'] ?? [];
         unset($data['taches']);
 
@@ -57,7 +58,7 @@ class EvenementsController extends Controller
             ['taches_bloquees' => $tacheIds]
         ));
 
-        $this->dispatchWebhookUpsert($evenement);
+        $this->dispatchWebhookUpsert($evenement, 'post');
 
         return redirect()->route('evenements.index')
             ->with('success', "Événement « {$evenement->nom} » créé.");
@@ -66,16 +67,16 @@ class EvenementsController extends Controller
     public function edit(int $id): View
     {
         $evenement = Evenement::with('tachesBloquees')->findOrFail($id);
-        $taches    = Tache::actif()->orderBy('id')->get();
+        $taches = Tache::actif()->orderBy('id')->get();
         return view('evenements.form', compact('evenement', 'taches'));
     }
 
     public function update(UpdateEvenementRequest $request, int $id): RedirectResponse
     {
         $evenement = Evenement::findOrFail($id);
-        $avant     = $evenement->toArray();
+        $avant = $evenement->toArray();
 
-        $data     = $request->validated();
+        $data = $request->validated();
         $tacheIds = $data['taches'] ?? [];
         unset($data['taches']);
 
@@ -87,7 +88,7 @@ class EvenementsController extends Controller
             ['taches_bloquees' => $tacheIds]
         ));
 
-        $this->dispatchWebhookUpsert($evenement->fresh()->load('tachesBloquees'));
+        $this->dispatchWebhookUpsert($evenement->fresh()->load('tachesBloquees'), 'patch');
 
         return redirect()->route('evenements.index')
             ->with('success', "Événement « {$evenement->nom} » mis à jour.");
@@ -96,8 +97,8 @@ class EvenementsController extends Controller
     public function destroy(int $id): RedirectResponse
     {
         $evenement = Evenement::findOrFail($id);
-        $avant     = $evenement->toArray();
-        $nom       = $evenement->nom;
+        $avant = $evenement->toArray();
+        $nom = $evenement->nom;
 
         // Construire le payload delete AVANT la suppression (on a encore les données)
         $this->dispatchWebhookDelete($evenement);
@@ -114,8 +115,10 @@ class EvenementsController extends Controller
 
     /**
      * Dispatche un webhook upsert si le calendar_name est configuré.
+     *
+     * @param string $method 'post' (création) ou 'patch' (modification)
      */
-    private function dispatchWebhookUpsert(Evenement $evenement): void
+    private function dispatchWebhookUpsert(Evenement $evenement, string $method): void
     {
         if (!$evenement->hasCalendarSync()) {
             return;
@@ -127,11 +130,15 @@ class EvenementsController extends Controller
 
         try {
             $payload = $this->webhookBuilder->buildUpsert($evenement);
-            EnvoyerWebhookMake::dispatch($payload);
-            Log::info('[EvenementsController] Webhook upsert dispatché', ['id' => $evenement->id, 'nom' => $evenement->nom]);
+            EnvoyerWebhookMake::dispatch($payload, $method);
+            Log::info('[EvenementsController] Webhook dispatché', [
+                'id' => $evenement->id,
+                'nom' => $evenement->nom,
+                'method' => strtoupper($method),
+            ]);
         } catch (\Throwable $e) {
             Log::error('[EvenementsController] Échec dispatch webhook upsert', [
-                'id'    => $evenement->id,
+                'id' => $evenement->id,
                 'error' => $e->getMessage(),
             ]);
         }
@@ -152,11 +159,11 @@ class EvenementsController extends Controller
 
         try {
             $payload = $this->webhookBuilder->buildDelete($evenement);
-            EnvoyerWebhookMake::dispatch($payload);
-            Log::info('[EvenementsController] Webhook delete dispatché', ['id' => $evenement->id, 'nom' => $evenement->nom]);
+            EnvoyerWebhookMake::dispatch($payload, 'delete');
+            Log::info('[EvenementsController] Webhook DELETE dispatché', ['id' => $evenement->id, 'nom' => $evenement->nom]);
         } catch (\Throwable $e) {
             Log::error('[EvenementsController] Échec dispatch webhook delete', [
-                'id'    => $evenement->id,
+                'id' => $evenement->id,
                 'error' => $e->getMessage(),
             ]);
         }

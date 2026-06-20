@@ -173,9 +173,9 @@ class PlanningController extends Controller
                 $payload = app(\App\Services\WebhookPayloadBuilder::class)
                     ->build($dateDebut, $semaines);
 
-                \App\Jobs\EnvoyerWebhookMake::dispatch($payload);
+                \App\Jobs\EnvoyerWebhookMake::dispatch($payload, 'post');
 
-                Log::info('[PlanningController] Webhook Make.com dispatché en queue.');
+                Log::info('[PlanningController] Webhook Make.com dispatché en queue (POST).');
             }
 
             return redirect()->route('planning.generate.form')

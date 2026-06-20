@@ -15,13 +15,15 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Job asynchrone : envoie le payload webhook vers Make.com.
- * Dispatché après la génération du planning, une modification manuelle
- * d'assignation, ou la création/modification/suppression d'un événement
- * synchronisé avec Google Calendar.
  *
- * Le payload peut être de deux types, distingués par la clé `type` :
- *   - absente ou "planning" : payload de créneaux (WebhookPayloadBuilder)
- *   - "evenement"            : payload d'événement (WebhookEvenementPayloadBuilder)
+ * Le verbe HTTP ($method) reflète la nature de l'action :
+ *   - post   : création (génération complète, créneau créé manuellement, nouvel événement)
+ *   - patch  : modification (réassignation d'une tâche, événement modifié)
+ *   - delete : suppression (désassignation d'une tâche, créneau supprimé, événement supprimé)
+ *
+ * Chaque appel inclut le header `x-make-apikey` (config services.make.api_key)
+ * en plus de l'URL configurée dans services.make.webhook_url. Les deux doivent
+ * être renseignées, sinon l'envoi est ignoré (avec un log d'avertissement).
  */
 class EnvoyerWebhookMake implements ShouldQueue
 {
@@ -33,67 +35,80 @@ class EnvoyerWebhookMake implements ShouldQueue
     /** Délai entre les tentatives (secondes) */
     public int $backoff = 60;
 
+    private const METHODES_AUTORISEES = ['post', 'patch', 'delete'];
+
     public function __construct(
-        private readonly array $payload
+        private readonly array $payload,
+        private readonly string $method = 'post',
     ) {
     }
 
     /**
-     * Exécution du job : envoi HTTP POST vers Make.com.
+     * Exécution du job : envoi HTTP vers Make.com avec le verbe approprié.
      */
     public function handle(): void
     {
         // config() fonctionne correctement après php artisan config:cache,
         // contrairement à env() qui retourne null en production.
         $url = config('services.make.webhook_url');
+        $apiKey = config('services.make.api_key');
+        $methode = in_array($this->method, self::METHODES_AUTORISEES, true) ? $this->method : 'post';
 
         if (empty($url)) {
             Log::warning('[WebhookMake] services.make.webhook_url non configurée — envoi ignoré.');
             return;
         }
 
-        $type = $this->payload['type'] ?? 'planning';
-
-        if ($type === 'evenement') {
-            Log::info('[WebhookMake] Envoi du webhook événement vers Make.com', [
-                'url'    => $url,
-                'action' => $this->payload['action'] ?? null,
-                'nom'    => $this->payload['evenement']['nom'] ?? null,
-            ]);
-        } else {
-            Log::info('[WebhookMake] Envoi du webhook planning vers Make.com', [
-                'url'         => $url,
-                'nb_creneaux' => count($this->payload['creneaux'] ?? []),
-            ]);
+        if (empty($apiKey)) {
+            Log::warning('[WebhookMake] services.make.api_key non configurée — envoi ignoré.');
+            return;
         }
 
-        $response = Http::timeout(30)
-            ->withHeaders(['Content-Type' => 'application/json'])
-            ->post($url, $this->payload);
+        $type = $this->payload['type'] ?? 'planning';
+
+        Log::info('[WebhookMake] Envoi du webhook vers Make.com', [
+            'url' => $url,
+            'method' => strtoupper($methode),
+            'type' => $type,
+            'nb_creneaux' => count($this->payload['creneaux'] ?? []),
+        ]);
+
+        $request = Http::timeout(30)->withHeaders([
+            'Content-Type' => 'application/json',
+            'x-make-apikey' => $apiKey,
+        ]);
+
+        $response = match ($methode) {
+            'patch' => $request->patch($url, $this->payload),
+            'delete' => $request->delete($url, $this->payload),
+            default => $request->post($url, $this->payload),
+        };
 
         if ($response->successful()) {
             Log::info('[WebhookMake] Webhook envoyé avec succès.', [
                 'status' => $response->status(),
-                'type'   => $type,
+                'method' => strtoupper($methode),
+                'type' => $type,
             ]);
 
             audit('webhook', 'planning', null, null, [
-                'url'         => $url,
-                'status'      => $response->status(),
-                'type'        => $type,
+                'url' => $url,
+                'method' => strtoupper($methode),
+                'status' => $response->status(),
+                'type' => $type,
                 'nb_creneaux' => count($this->payload['creneaux'] ?? []),
-                'genere_le'   => $this->payload['genere_le'] ?? null,
             ]);
         } else {
             Log::error('[WebhookMake] Échec de l\'envoi du webhook.', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
-                'type'   => $type,
+                'body' => $response->body(),
+                'method' => strtoupper($methode),
+                'type' => $type,
             ]);
 
             // Déclenche une nouvelle tentative automatique
             $this->fail(new \RuntimeException(
-                "Webhook Make.com échoué : HTTP {$response->status()}"
+                "Webhook Make.com échoué : HTTP {$response->status()} ({$methode})"
             ));
         }
     }

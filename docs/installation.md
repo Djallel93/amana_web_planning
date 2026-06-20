@@ -450,6 +450,7 @@ MAIL_FROM_NAME="AMANA Planning"
 MAIL_SCHEME=tls
 
 MAKE_WEBHOOK_URL=https://hook.make.com/votre-webhook
+MAKE_WEBHOOK_APIKEY=****
 ```
 
 > **`SESSION_DRIVER=database`** : plus fiable sur hébergement partagé IONOS où les permissions du dossier `storage/framework/sessions` peuvent être instables. Nécessite que la table `sessions` existe en base (créée par les migrations).
@@ -498,7 +499,7 @@ RewriteEngine On
 RewriteRule ^(.*)$ public/$1 [L]
 ```
 
-### 11. Permissions des dossiers
+### 11. Permissions
 
 ```bash
 chmod -R 755 storage bootstrap/cache

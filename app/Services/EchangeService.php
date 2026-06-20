@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Jobs\EnvoyerWebhookMake;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Echange;
@@ -18,6 +19,7 @@ use App\Notifications\Echanges\EchangeRefuseNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -30,9 +32,15 @@ use Illuminate\Support\Str;
  *   - Approbation admin/gestionnaire
  *   - Annulation par le demandeur
  *   - Expiration des demandes en attente
+ *   - Dispatch du webhook Make.com (PATCH) une fois l'échange exécuté
  */
 class EchangeService
 {
+    public function __construct(
+        private readonly WebhookPayloadBuilder $webhookBuilder,
+    ) {
+    }
+
     /**
      * Retourne les slots futurs échangeables pour un slot donné (A).
      *
@@ -109,10 +117,10 @@ class EchangeService
             ->where(function ($q) use ($creneauAId, $tacheAId, $creneauBId, $tacheBId) {
                 $q->where(function ($q2) use ($creneauAId, $tacheAId) {
                     $q2->where('id_creneau_demandeur', $creneauAId)
-                       ->where('id_tache_demandeur', $tacheAId);
+                        ->where('id_tache_demandeur', $tacheAId);
                 })->orWhere(function ($q2) use ($creneauBId, $tacheBId) {
                     $q2->where('id_creneau_cible', $creneauBId)
-                       ->where('id_tache_cible', $tacheBId);
+                        ->where('id_tache_cible', $tacheBId);
                 });
             })->exists();
 
@@ -122,16 +130,16 @@ class EchangeService
 
         $echange = Echange::create([
             'id_personne_demandeur' => $personneAId,
-            'id_creneau_demandeur'  => $creneauAId,
-            'id_tache_demandeur'    => $tacheAId,
-            'id_personne_cible'     => $personneBId,
-            'id_creneau_cible'      => $creneauBId,
-            'id_tache_cible'        => $tacheBId,
-            'statut'                => Echange::STATUT_EN_ATTENTE,
-            'token_accept'          => Str::random(64),
-            'token_refuse'          => Str::random(64),
+            'id_creneau_demandeur' => $creneauAId,
+            'id_tache_demandeur' => $tacheAId,
+            'id_personne_cible' => $personneBId,
+            'id_creneau_cible' => $creneauBId,
+            'id_tache_cible' => $tacheBId,
+            'statut' => Echange::STATUT_EN_ATTENTE,
+            'token_accept' => Str::random(64),
+            'token_refuse' => Str::random(64),
             // Expire à la date du créneau du demandeur (à minuit)
-            'expires_at'            => Carbon::parse($slotA->creneau->date)->endOfDay(),
+            'expires_at' => Carbon::parse($slotA->creneau->date)->endOfDay(),
         ]);
 
         audit('create', 'echanges', $echange->id, null, $echange->toArray());
@@ -220,12 +228,12 @@ class EchangeService
 
         $avant = $echange->toArray();
         $echange->update([
-            'statut'       => Echange::STATUT_REFUSE,
+            'statut' => Echange::STATUT_REFUSE,
             'approuve_par' => $adminId,
         ]);
 
         audit('update', 'echanges', $echange->id, $avant, [
-            'statut'       => Echange::STATUT_REFUSE,
+            'statut' => Echange::STATUT_REFUSE,
             'approuve_par' => $adminId,
         ]);
 
@@ -306,14 +314,14 @@ class EchangeService
                 ->update(['id_personne' => $echange->id_personne_cible]);
 
             $echange->update([
-                'statut'       => Echange::STATUT_ACCEPTE,
+                'statut' => Echange::STATUT_ACCEPTE,
                 'approuve_par' => $approuvePar,
             ]);
 
             audit('update', 'echanges', $echange->id, $avant, [
-                'statut'       => Echange::STATUT_ACCEPTE,
+                'statut' => Echange::STATUT_ACCEPTE,
                 'approuve_par' => $approuvePar,
-                'action'       => 'swap_executed',
+                'action' => 'swap_executed',
             ]);
         });
 
@@ -324,6 +332,43 @@ class EchangeService
         $echange->demandeur->notify(new EchangeAccepteNotification($echange, 'demandeur'));
         $echange->cible->notify(new EchangeAccepteNotification($echange, 'cible'));
 
+        // ── Webhook Make.com : PATCH avec les deux créneaux affectés ────────
+        $this->dispatchWebhookEchange($echange);
+
         return $echange;
+    }
+
+    /**
+     * Dispatche un webhook PATCH pour les deux créneaux touchés par l'échange.
+     * Silencieux en cas d'erreur (ne doit pas faire échouer l'échange lui-même).
+     *
+     * Les deux slots sont toujours envoyés, même si l'un est désormais dans
+     * le passé — l'échange ayant réellement été exécuté en base.
+     */
+    private function dispatchWebhookEchange(Echange $echange): void
+    {
+        if (empty(config('services.make.webhook_url'))) {
+            return;
+        }
+
+        try {
+            $payload = $this->webhookBuilder->buildForEchange(
+                $echange->creneauCible,
+                $echange->tacheCible,
+                $echange->creneauDemandeur,
+                $echange->tacheDemandeur,
+            );
+
+            EnvoyerWebhookMake::dispatch($payload, 'patch');
+
+            Log::info('[EchangeService] Webhook PATCH dispatché (échange exécuté)', [
+                'echange_id' => $echange->id,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[EchangeService] Échec dispatch webhook PATCH (échange)', [
+                'echange_id' => $echange->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
