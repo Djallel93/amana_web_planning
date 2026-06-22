@@ -37,12 +37,13 @@ deploy:
       - php artisan down
     # commands that are executed at the real webspace NOT at build servers AFTER copying new files
     post-deployment-remote-commands:
-      - find $(pwd) -type f -not -path "$(pwd)/logs/*" -exec chmod 664 {} \;
-      - find $(pwd) -type d -not -name "logs" -exec chmod 775 {} \;
-      - chmod -R o+w storage bootstrap/cache
+      - php artisan down
+      - find $(pwd) -type f -not -path "$(pwd)/storage/*" -exec chmod 644 {} \;
+      - find $(pwd) -type d -not -path "$(pwd)/storage" -not -path "$(pwd)/storage/*" -exec chmod 755 {} \;
+      - chmod -R ug+rwX storage bootstrap/cache
+      - chmod -R o-w storage bootstrap/cache # retire world-write pour la sécurité
       - php artisan migrate --force
       - php artisan optimize:clear
-      - php artisan migrate --force -n
       - php artisan storage:link
       - php artisan optimize
       - php artisan up
