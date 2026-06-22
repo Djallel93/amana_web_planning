@@ -502,8 +502,9 @@ RewriteRule ^(.*)$ public/$1 [L]
 ### 11. Permissions
 
 ```bash
-chmod -R 755 storage bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
+find . -type f -not -path "./storage/logs/*" -exec chmod 664 {} \;
+find . -type d -not -name "logs" -exec chmod 775 {} \;
+chmod -R o+w storage bootstrap/cache
 # Adapter l'utilisateur selon la config IONOS
 ```
 
