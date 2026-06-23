@@ -7,7 +7,7 @@ des badges de tâches colorés (evenements/form, evenements/index, etc.)
 Usage :
 @include('partials.tache-colors')
 {{-- $tacheColors est maintenant disponible --}}
---}}
+
 @php
     $tacheColors = [
         'entree' => ['bg' => '#eff6ff', 'color' => '#2563eb', 'icon' => '🚪'],

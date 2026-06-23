@@ -248,7 +248,7 @@
         @csrf
 
         {{-- ══════════════════════════════════════════════════════════════
-             SECTION 1 — Inscription publique (admin uniquement)
+            SECTION 1 — Inscription publique (admin uniquement)
         ══════════════════════════════════════════════════════════════ --}}
         <div class="card" style="margin-bottom:20px;">
             <div class="card-header">
@@ -338,7 +338,7 @@
         </div>
 
         {{-- ══════════════════════════════════════════════════════════════
-             SECTION 2 — Horaires & Lieu
+            SECTION 2 — Horaires & Lieu
         ══════════════════════════════════════════════════════════════ --}}
         <div class="card" style="margin-bottom:20px;">
             <div class="card-header">
@@ -388,7 +388,7 @@
         </div>
 
         {{-- ══════════════════════════════════════════════════════════════
-             SECTION 3 — Calendriers Google Calendar
+            SECTION 3 — Calendriers Google Calendar
         ══════════════════════════════════════════════════════════════ --}}
         <div class="card" style="margin-bottom:20px;">
             <div class="card-header">
@@ -443,7 +443,7 @@
         </div>
 
         {{-- ══════════════════════════════════════════════════════════════
-             SECTION 4 — Décalages des tâches
+            SECTION 4 — Décalages des tâches
         ══════════════════════════════════════════════════════════════ --}}
         <div class="card" style="margin-bottom:24px;">
             <div class="card-header">
