@@ -5,7 +5,10 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\CandidaturesController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CalendriersController;
+use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EchangeController;
+use App\Http\Controllers\EmergencyController;
 use App\Http\Controllers\MonPlanningController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\PlanningEditController;
@@ -23,6 +26,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', fn() => redirect()->route('planning.index'));
+
+// ── Outil d'urgence post-déploiement — génère un hash bcrypt (désactivé si APP_EMERGENCY_KEY vide) ──
+Route::get('/urgence-hash', [EmergencyController::class, 'show'])->name('emergency.hash.show');
+Route::post('/urgence-hash', [EmergencyController::class, 'generate'])->name('emergency.hash.generate');
 
 // ── Authentification ──────────────────────────────────────────────────────
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -69,6 +76,15 @@ Route::middleware('auth')->group(function () {
 
     // ── Mon planning (vue personnelle) — tous les membres connectés ────────
     Route::get('/mon-planning', [MonPlanningController::class, 'index'])->name('mon-planning');
+
+    // ── API interne — liste des calendriers Make.com (tous rôles) ─────────
+    Route::get('/api/calendriers', [CalendriersController::class, 'index'])->name('calendriers.index');
+
+    // ── Diagnostic SMTP — admin uniquement ────────────────────────────────
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/diagnostic-mail', [DiagnosticController::class, 'index'])->name('diagnostic.mail.index');
+        Route::post('/diagnostic-mail', [DiagnosticController::class, 'tester'])->name('diagnostic.mail.tester');
+    });
 
     // ── Échanges — tous les membres connectés ─────────────────────────────
     Route::prefix('echanges')->name('echanges.')->group(function () {

@@ -12,6 +12,7 @@
 8. [Système de notifications](#système-de-notifications)
 9. [Échanges de créneaux](#échanges-de-créneaux)
 10. [Intégration Make.com (Webhook)](#intégration-makecom-webhook)
+11. [Déploiement IONOS — post-déploiement](#déploiement-ionos--post-déploiement)
 
 ## Documentation complémentaire
 
@@ -410,10 +411,10 @@ flowchart TD
     F --> G[Email invitation\ncréation mot de passe]
 
     C --> H[Statut : Validé\ndirectement]
-    H --> I[Admin envoie\nlien reset manualmente]
+    H --> I[Admin envoie\nlien reset via formulaire\nmot de passe oublié]
 
-    D --> J[php artisan\namana:reset-admin\n--email=...]
-    J --> K[Mot de passe temporaire\naffiché dans le terminal]
+    D --> J[Outil d'urgence\n/urgence-hash]
+    J --> K[Hash bcrypt généré\n→ coller dans phpMyAdmin]
 
     G --> L[Membre se connecte ✅]
     I --> L
@@ -422,17 +423,63 @@ flowchart TD
 
 > Le formulaire public `/inscription` peut être désactivé par un administrateur via **Paramètres → Inscriptions ouvertes**. Lorsqu'il est fermé, la page affiche une redirection vers la connexion.
 
-### Commande de secours
+### Réinitialisation du mot de passe — cas normaux
+
+En fonctionnement normal (emails SMTP opérationnels) :
+
+1. L'utilisateur clique sur **Mot de passe oublié** depuis la page de connexion.
+2. Il reçoit un lien de réinitialisation valable **60 minutes**.
+3. Il définit son nouveau mot de passe via le formulaire `/nouveau-mot-de-passe/{token}`.
+
+Pour renvoyer manuellement un lien à un utilisateur depuis l'interface admin, aller dans **Candidatures → Renvoyer l'invitation**.
+
+### Outil d'urgence post-déploiement — `/urgence-hash`
+
+Sur IONOS Deploy Now, il n'y a **pas de SSH interactif** et `php artisan tinker` (mode interactif) est inaccessible. Si les emails ne fonctionnent pas encore au premier déploiement, il est impossible de recevoir un lien de réinitialisation. L'outil `/urgence-hash` résout ce problème.
+
+#### Principe
+
+L'outil génère un **hash bcrypt** à partir d'un mot de passe saisi dans le navigateur, puis affiche la requête SQL prête à exécuter dans **phpMyAdmin**. Il ne modifie rien en base de données — c'est l'administrateur qui applique la requête manuellement.
+
+#### Activation
+
+Ajouter la variable suivante dans le `.env` sur IONOS (via le panneau Deploy Now ou SFTP) :
+
+```env
+APP_EMERGENCY_KEY=une-cle-secrete-tres-longue-et-aleatoire
+```
+
+La route est **entièrement désactivée** (retourne HTTP 404) si `APP_EMERGENCY_KEY` est absent ou vide. Elle ne nécessite aucune authentification — la clé secrète dans l'URL en tient lieu.
+
+#### Utilisation
+
+1. Visiter `https://votredomaine.com/urgence-hash?key=une-cle-secrete-tres-longue-et-aleatoire`
+2. Saisir le nouveau mot de passe (8 caractères minimum) et le confirmer.
+3. Cliquer sur **Générer le hash bcrypt**.
+4. La page affiche le hash et la requête SQL suivante (cliquer pour copier) :
+
+```sql
+UPDATE ref_personnes
+SET password = '$2y$12$...(hash généré)...'
+WHERE email = 'votre@email.com';
+```
+
+1. Exécuter cette requête dans **phpMyAdmin** sur la base de données de production.
+2. Se connecter normalement sur `/login`.
+
+#### Désactivation après usage
+
+⚠️ **Retirer la clé après utilisation** pour fermer la trappe d'urgence :
+
+```env
+# Supprimer ou vider cette ligne dans le .env IONOS :
+APP_EMERGENCY_KEY=
+```
+
+Puis redéployer ou vider le cache de configuration :
 
 ```bash
-# Réinitialiser/créer un compte admin via SSH
-php artisan amana:reset-admin
-
-# Avec un email spécifique
-php artisan amana:reset-admin --email=mon@email.fr
-
-# Avec un mot de passe prédéfini
-php artisan amana:reset-admin --email=mon@email.fr --password=NouveauMotDePasse!
+php artisan config:cache
 ```
 
 ### Commande planifiée — expiration des échanges
@@ -803,13 +850,29 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doive
         {
             "date": "2026-08-06",
             "taches": [
-                { "nom": "Entrée", "assigne": "Alice Dupont", "email": "alice@exemple.fr", "heure_debut": "19:30", "heure_fin": "20:30", "calendar_name": "AMANA - Planning", "description": "" }
+                {
+                    "nom": "Entrée",
+                    "assigne": "Alice Dupont",
+                    "email": "alice@exemple.fr",
+                    "heure_debut": "19:30",
+                    "heure_fin": "20:30",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
+                }
             ]
         },
         {
             "date": "2026-08-13",
             "taches": [
-                { "nom": "Entrée", "assigne": "Bob Martin", "email": "bob@exemple.fr", "heure_debut": "19:30", "heure_fin": "20:30", "calendar_name": "AMANA - Planning", "description": "" }
+                {
+                    "nom": "Entrée",
+                    "assigne": "Bob Martin",
+                    "email": "bob@exemple.fr",
+                    "heure_debut": "19:30",
+                    "heure_fin": "20:30",
+                    "calendar_name": "AMANA - Planning",
+                    "description": ""
+                }
             ]
         }
     ]
@@ -917,3 +980,79 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doive
 - Si une tâche est **bloquée par un événement**, elle est absente du payload (POST/PATCH/DELETE).
 - `rappel_sandwich` a un horaire fixe (08:00–08:15) ; `assistance_amana_food` suit l'assigné de `entree` ; `rappel_sandwich` suit l'assigné de `amana_food` — ces dépendances sont propagées automatiquement dans les payloads PATCH/DELETE d'une réassignation/désassignation de `entree` ou `amana_food`.
 - `calendar_name` correspond au nom exact du calendrier Google Calendar cible (Paramètres → Calendriers). S'il est vide, Make.com utilise son calendrier par défaut.
+
+---
+
+## Déploiement IONOS — post-déploiement
+
+### Variables `.env` requises en production
+
+```env
+APP_NAME="AMANA Planning"
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://votredomaine.com
+APP_KEY=base64:...
+
+DB_CONNECTION=mysql
+DB_HOST=...
+DB_PORT=3306
+DB_DATABASE=...
+DB_USERNAME=...
+DB_PASSWORD=...
+
+MAIL_MAILER=smtp
+MAIL_SCHEME=                        # Laisser VIDE (pas "null") pour STARTTLS sur le port 587
+MAIL_HOST=smtp.ionos.fr
+MAIL_PORT=587
+MAIL_USERNAME=no-reply@...
+MAIL_PASSWORD=...
+MAIL_FROM_ADDRESS=no-reply@...
+MAIL_FROM_NAME="${APP_NAME}"
+
+QUEUE_CONNECTION=sync               # Obligatoire sur hébergement partagé (pas de worker)
+
+MAKE_WEBHOOK_URL=https://hook.eu2.make.com/...
+MAKE_WEBHOOK_APIKEY=...
+
+# Outil d'urgence — retirer après usage
+APP_EMERGENCY_KEY=
+```
+
+> ⚠️ **`MAIL_SCHEME=null`** (la chaîne littérale) est une erreur fréquente. Sur IONOS avec le port 587 (STARTTLS), la valeur doit être **vide** (`MAIL_SCHEME=`) ou absente du `.env`. La valeur `null` en texte perturbe Symfony Mailer et bloque silencieusement l'envoi des emails.
+
+### Checklist premier déploiement
+
+| Étape | Action                                               | Vérification                                                                             |
+| ----- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 1     | Déployer via GitHub Actions (push sur `main`)        | Pipeline vert dans GitHub                                                                |
+| 2     | Vérifier que la migration s'est exécutée             | Aller dans phpMyAdmin — les tables existent                                              |
+| 3     | Définir le mot de passe du premier admin             | Voir [Outil d'urgence `/urgence-hash`](#outil-durgence-post-déploiement----urgence-hash) |
+| 4     | Se connecter et aller sur **Diagnostic SMTP**        | Sidebar → 🔧 Diagnostic SMTP                                                             |
+| 5     | Envoyer un email de test depuis le diagnostic        | Vérifier la réception + `laravel.log`                                                    |
+| 6     | Configurer les paramètres (heure, lieu, calendriers) | `/parametres`                                                                            |
+| 7     | Retirer `APP_EMERGENCY_KEY` du `.env`                | Redéployer ou `php artisan config:cache`                                                 |
+
+### Diagnostic SMTP — `/diagnostic-mail`
+
+Accessible depuis la sidebar (section **Administration**, admins uniquement). Permet de :
+
+- Voir la configuration SMTP active lue depuis le cache de config (pas depuis `.env` directement).
+- Détecter des problèmes courants comme `MAIL_SCHEME=null`.
+- Envoyer un email de test vers n'importe quelle adresse et voir le résultat immédiatement.
+- Consulter `storage/logs/laravel.log` pour le détail de chaque tentative.
+
+### Sélection des calendriers Google Calendar
+
+Les champs **Calendriers** dans `/parametres` et dans le formulaire de création/modification d'événement ne sont plus des champs texte libres. Ils affichent désormais un **dropdown avec barre de recherche** qui récupère la liste des calendriers disponibles directement depuis Make.com (GET sur le webhook configuré dans `MAKE_WEBHOOK_URL`).
+
+La liste est mise en cache côté navigateur pendant la durée de la session. En cas d'échec de l'appel Make.com (webhook non configuré, timeout), un message d'erreur s'affiche dans le dropdown — les valeurs déjà enregistrées restent inchangées.
+
+### Contraintes de l'hébergement partagé IONOS
+
+| Contrainte                                | Impact                                                  | Contournement                                              |
+| ----------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------- |
+| Pas de SSH interactif                     | `php artisan tinker` inaccessible                       | Outil `/urgence-hash` pour les hash bcrypt                 |
+| Pas de worker de queue                    | Les jobs `ShouldQueue` doivent s'exécuter immédiatement | `QUEUE_CONNECTION=sync` dans `.env`                        |
+| Logs serveur séparés de Laravel           | `access.log.*` ≠ `laravel.log`                          | Lire `storage/logs/laravel.log` via SFTP ou phpMyAdmin     |
+| `storage/` exclu du déploiement récurrent | Le dossier est préservé entre déploiements              | Ne pas inclure `storage/` dans les `excludes` du bootstrap |

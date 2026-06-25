@@ -4,236 +4,236 @@
 @section('title', 'Paramètres — AMANA')
 
 @push('styles')
-<style>
-    .settings-section-title {
-        font-family: var(--font-heading);
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--ink);
-        margin-bottom: 4px;
-        display: flex;
-        align-items: center;
-        gap: 9px;
-    }
+    <style>
+        .settings-section-title {
+            font-family: var(--font-heading);
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
 
-    .settings-section-sub {
-        font-size: 12.5px;
-        color: var(--ink-muted);
-        margin-bottom: 20px;
-    }
+        .settings-section-sub {
+            font-size: 12.5px;
+            color: var(--ink-muted);
+            margin-bottom: 20px;
+        }
 
-    /* ── Tableau décalages ── */
-    .offsets-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13.5px;
-    }
+        /* ── Tableau décalages ── */
+        .offsets-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13.5px;
+        }
 
-    .offsets-table thead th {
-        padding: 9px 14px;
-        text-align: left;
-        font-size: 10.5px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.7px;
-        color: var(--ink-muted);
-        background: var(--surface-2);
-        border-bottom: 1px solid var(--surface-3);
-        white-space: nowrap;
-        font-family: var(--font-body);
-    }
+        .offsets-table thead th {
+            padding: 9px 14px;
+            text-align: left;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            color: var(--ink-muted);
+            background: var(--surface-2);
+            border-bottom: 1px solid var(--surface-3);
+            white-space: nowrap;
+            font-family: var(--font-body);
+        }
 
-    .offsets-table thead th.col-num {
-        text-align: center;
-        width: 140px;
-    }
+        .offsets-table thead th.col-num {
+            text-align: center;
+            width: 140px;
+        }
 
-    .offsets-table tbody td {
-        padding: 11px 14px;
-        border-bottom: 1px solid var(--surface-3);
-        vertical-align: middle;
-    }
+        .offsets-table tbody td {
+            padding: 11px 14px;
+            border-bottom: 1px solid var(--surface-3);
+            vertical-align: middle;
+        }
 
-    .offsets-table tbody tr:last-child td { border-bottom: none; }
-    .offsets-table tbody tr:hover { background: var(--surface-2); }
-    .offsets-table td.col-num { text-align: center; }
+        .offsets-table tbody tr:last-child td { border-bottom: none; }
+        .offsets-table tbody tr:hover { background: var(--surface-2); }
+        .offsets-table td.col-num { text-align: center; }
 
-    .offset-input {
-        width: 90px;
-        padding: 7px 11px;
-        border: 1.5px solid var(--ink-faint);
-        border-radius: var(--radius);
-        font-size: 13px;
-        font-family: var(--font-body);
-        color: var(--ink);
-        background: var(--surface);
-        text-align: center;
-        transition: var(--transition);
-        outline: none;
-        -webkit-appearance: none;
-        appearance: none;
-    }
+        .offset-input {
+            width: 90px;
+            padding: 7px 11px;
+            border: 1.5px solid var(--ink-faint);
+            border-radius: var(--radius);
+            font-size: 13px;
+            font-family: var(--font-body);
+            color: var(--ink);
+            background: var(--surface);
+            text-align: center;
+            transition: var(--transition);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
 
-    .offset-input:focus {
-        border-color: var(--app-accent);
-        box-shadow: var(--shadow-glow);
-    }
+        .offset-input:focus {
+            border-color: var(--app-accent);
+            box-shadow: var(--shadow-glow);
+        }
 
-    .offset-unit {
-        font-size: 11px;
-        color: var(--ink-muted);
-        margin-top: 3px;
-    }
+        .offset-unit {
+            font-size: 11px;
+            color: var(--ink-muted);
+            margin-top: 3px;
+        }
 
-    /* ── Chip tâche ── */
-    .tache-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 3px 11px;
-        border-radius: 20px;
-        font-size: 12.5px;
-        font-weight: 600;
-    }
+        /* ── Chip tâche ── */
+        .tache-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 11px;
+            border-radius: 20px;
+            font-size: 12.5px;
+            font-weight: 600;
+        }
 
-    .chip-entree                { background: #eff6ff; color: #2563eb; }
-    .chip-mektaba               { background: #ecfdf5; color: #059669; }
-    .chip-salle                 { background: #fffbeb; color: #d97706; }
-    .chip-amana_food            { background: #fff1f2; color: #e11d48; }
-    .chip-cours                 { background: #f5f3ff; color: #7c3aed; }
-    .chip-rappel_sandwich       { background: var(--sky-bg);    color: #0369a1; }
-    .chip-assistance_amana_food { background: var(--emerald-bg);color: #065f46; }
-    .chip-annonce_cours         { background: var(--amber-bg);  color: #92400e; }
-    .chip-message_bot           { background: var(--surface-3); color: var(--ink-muted); }
+        .chip-entree                { background: #eff6ff; color: #2563eb; }
+        .chip-mektaba               { background: #ecfdf5; color: #059669; }
+        .chip-salle                 { background: #fffbeb; color: #d97706; }
+        .chip-amana_food            { background: #fff1f2; color: #e11d48; }
+        .chip-cours                 { background: #f5f3ff; color: #7c3aed; }
+        .chip-rappel_sandwich       { background: var(--sky-bg);    color: #0369a1; }
+        .chip-assistance_amana_food { background: var(--emerald-bg);color: #065f46; }
+        .chip-annonce_cours         { background: var(--amber-bg);  color: #92400e; }
+        .chip-message_bot           { background: var(--surface-3); color: var(--ink-muted); }
 
-    /* ── Horaires form ── */
-    .horaires-grid {
-        display: grid;
-        grid-template-columns: 1fr 2fr;
-        gap: 18px;
-    }
+        /* ── Horaires form ── */
+        .horaires-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 18px;
+        }
 
-    /* ── Toggle switch for boolean ── */
-    .toggle-wrap {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-    }
+        /* ── Toggle switch for boolean ── */
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
 
-    .toggle-switch {
-        position: relative;
-        width: 48px;
-        height: 26px;
-        flex-shrink: 0;
-    }
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+        }
 
-    .toggle-switch input[type="checkbox"] {
-        opacity: 0;
-        width: 0;
-        height: 0;
-        position: absolute;
-    }
+        .toggle-switch input[type="checkbox"] {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+        }
 
-    .toggle-slider {
-        position: absolute;
-        inset: 0;
-        background: var(--ink-faint);
-        border-radius: 26px;
-        cursor: pointer;
-        transition: var(--transition);
-    }
+        .toggle-slider {
+            position: absolute;
+            inset: 0;
+            background: var(--ink-faint);
+            border-radius: 26px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
 
-    .toggle-slider::before {
-        content: '';
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        left: 3px;
-        top: 3px;
-        background: white;
-        border-radius: 50%;
-        transition: var(--transition);
-        box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-    }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            left: 3px;
+            top: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: var(--transition);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
 
-    .toggle-switch input:checked + .toggle-slider {
-        background: var(--emerald);
-    }
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--emerald);
+        }
 
-    .toggle-switch input:checked + .toggle-slider::before {
-        transform: translateX(22px);
-    }
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(22px);
+        }
 
-    /* Disabled state for non-admin */
-    .toggle-switch input:disabled + .toggle-slider {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
+        /* Disabled state for non-admin */
+        .toggle-switch input:disabled + .toggle-slider {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
-    .toggle-label {
-        font-size: 13.5px;
-        color: var(--ink-light);
-        font-weight: 500;
-    }
+        .toggle-label {
+            font-size: 13.5px;
+            color: var(--ink-light);
+            font-weight: 500;
+        }
 
-    /* ── Calendriers grid ── */
-    .calendriers-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 14px;
-    }
+        /* ── Calendriers grid ── */
+        .calendriers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 14px;
+        }
 
-    /* ── Info note ── */
-    .info-note {
-        background: var(--sky-bg);
-        border: 1px solid var(--sky-border);
-        border-radius: var(--radius);
-        padding: 11px 15px;
-        font-size: 12.5px;
-        color: #0c4a6e;
-        display: flex;
-        align-items: flex-start;
-        gap: 9px;
-        margin-bottom: 22px;
-    }
+        /* ── Info note ── */
+        .info-note {
+            background: var(--sky-bg);
+            border: 1px solid var(--sky-border);
+            border-radius: var(--radius);
+            padding: 11px 15px;
+            font-size: 12.5px;
+            color: #0c4a6e;
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            margin-bottom: 22px;
+        }
 
-    /* ── Warning note ── */
-    .warn-note {
-        background: var(--rose-bg);
-        border: 1px solid var(--rose-border);
-        border-radius: var(--radius);
-        padding: 11px 15px;
-        font-size: 12.5px;
-        color: #9f1239;
-        display: flex;
-        align-items: flex-start;
-        gap: 9px;
-        margin-bottom: 0;
-        margin-top: 14px;
-    }
+        /* ── Warning note ── */
+        .warn-note {
+            background: var(--rose-bg);
+            border: 1px solid var(--rose-border);
+            border-radius: var(--radius);
+            padding: 11px 15px;
+            font-size: 12.5px;
+            color: #9f1239;
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            margin-bottom: 0;
+            margin-top: 14px;
+        }
 
-    /* ── Admin-only badge ── */
-    .admin-only-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 8px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 600;
-        background: var(--rose-bg);
-        color: #9f1239;
-        border: 1px solid var(--rose-border);
-        margin-left: 8px;
-        vertical-align: middle;
-    }
+        /* ── Admin-only badge ── */
+        .admin-only-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--rose-bg);
+            color: #9f1239;
+            border: 1px solid var(--rose-border);
+            margin-left: 8px;
+            vertical-align: middle;
+        }
 
-    @media (max-width: 768px) {
-        .horaires-grid { grid-template-columns: 1fr; }
-        .offset-input  { width: 75px; }
-        .calendriers-grid { grid-template-columns: 1fr; }
-    }
-</style>
+        @media (max-width: 768px) {
+            .horaires-grid { grid-template-columns: 1fr; }
+            .offset-input  { width: 75px; }
+            .calendriers-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -405,15 +405,15 @@
 
                 @php
                     $calendarChips = [
-                        'calendar_entree'                => ['libelle' => 'Entrée',                 'chip' => 'entree'],
-                        'calendar_mektaba'               => ['libelle' => 'Mektaba',                'chip' => 'mektaba'],
-                        'calendar_salle'                 => ['libelle' => 'Salle',                  'chip' => 'salle'],
-                        'calendar_amana_food'            => ['libelle' => 'Amana Food',             'chip' => 'amana_food'],
-                        'calendar_cours'                 => ['libelle' => 'Cours',                  'chip' => 'cours'],
-                        'calendar_rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',        'chip' => 'rappel_sandwich'],
-                        'calendar_assistance_amana_food' => ['libelle' => 'Assistance Amana Food',  'chip' => 'assistance_amana_food'],
-                        'calendar_annonce_cours'         => ['libelle' => 'Annonce Cours',          'chip' => 'annonce_cours'],
-                        'calendar_message_bot'           => ['libelle' => 'Message Bot',            'chip' => 'message_bot'],
+                        'calendar_entree' => ['libelle' => 'Entrée', 'chip' => 'entree'],
+                        'calendar_mektaba' => ['libelle' => 'Mektaba', 'chip' => 'mektaba'],
+                        'calendar_salle' => ['libelle' => 'Salle', 'chip' => 'salle'],
+                        'calendar_amana_food' => ['libelle' => 'Amana Food', 'chip' => 'amana_food'],
+                        'calendar_cours' => ['libelle' => 'Cours', 'chip' => 'cours'],
+                        'calendar_rappel_sandwich' => ['libelle' => 'Rappel Sandwich', 'chip' => 'rappel_sandwich'],
+                        'calendar_assistance_amana_food' => ['libelle' => 'Assistance Amana Food', 'chip' => 'assistance_amana_food'],
+                        'calendar_annonce_cours' => ['libelle' => 'Annonce Cours', 'chip' => 'annonce_cours'],
+                        'calendar_message_bot' => ['libelle' => 'Message Bot', 'chip' => 'message_bot'],
                     ];
                 @endphp
 
@@ -422,19 +422,30 @@
                         @if(isset($calendriers[$cle]))
                             @php $cal = $calendriers[$cle]; @endphp
                             <div class="form-group">
-                                <label for="{{ $cle }}">
+                                <label>
                                     <span class="tache-chip chip-{{ $meta['chip'] }}" style="font-size:11px;padding:1px 8px;">
                                         {{ $meta['libelle'] }}
                                     </span>
                                 </label>
-                                <input
-                                    type="text"
+
+                                {{-- Input caché qui reçoit la valeur sélectionnée --}}
+                                <input type="hidden"
                                     id="{{ $cle }}"
                                     name="settings[{{ $cle }}]"
-                                    value="{{ $cal['valeur_raw'] }}"
-                                    maxlength="200"
-                                    placeholder="Nom du calendrier…"
-                                    style="margin-top:6px;">
+                                    value="{{ $cal['valeur_raw'] }}">
+
+                                {{-- Bouton déclencheur --}}
+                                <div style="position:relative;margin-top:6px;">
+                                    <button type="button"
+                                        id="{{ $cle }}_trigger"
+                                        class="cs-trigger"
+                                        aria-haspopup="listbox">
+                                        <span class="cs-trigger-text {{ $cal['valeur_raw'] ? '' : 'placeholder' }}">
+                                            {{ $cal['valeur_raw'] ?: 'Sélectionner…' }}
+                                        </span>
+                                        <span class="cs-trigger-arrow">▼</span>
+                                    </button>
+                                </div>
                             </div>
                         @endif
                     @endforeach
@@ -536,13 +547,13 @@
                                             @php
                                                 $heureCours = $horaires['heure_cours']['valeur_raw'] ?? '20:00';
                                                 [$h, $m] = explode(':', $heureCours);
-                                                $baseMin  = (int)$h * 60 + (int)$m;
-                                                $debutMin = $baseMin + (int)($groupe['debut']['valeur_raw'] ?? 0);
-                                                $finMin   = $baseMin + (int)($groupe['fin']['valeur_raw'] ?? 60);
-                                                $debutH   = intdiv((($debutMin % 1440) + 1440) % 1440, 60);
-                                                $debutM   = ((($debutMin % 1440) + 1440) % 1440) % 60;
-                                                $finH     = intdiv((($finMin % 1440) + 1440) % 1440, 60);
-                                                $finM     = ((($finMin % 1440) + 1440) % 1440) % 60;
+                                                $baseMin = (int) $h * 60 + (int) $m;
+                                                $debutMin = $baseMin + (int) ($groupe['debut']['valeur_raw'] ?? 0);
+                                                $finMin = $baseMin + (int) ($groupe['fin']['valeur_raw'] ?? 60);
+                                                $debutH = intdiv((($debutMin % 1440) + 1440) % 1440, 60);
+                                                $debutM = ((($debutMin % 1440) + 1440) % 1440) % 60;
+                                                $finH = intdiv((($finMin % 1440) + 1440) % 1440, 60);
+                                                $finM = ((($finMin % 1440) + 1440) % 1440) % 60;
                                             @endphp
                                             <span
                                                 class="horaire-preview"
@@ -578,40 +589,60 @@
 @endsection
 
 @push('scripts')
-<script>
-function updateInscriptionStatus(checkbox) {
-    const label = document.getElementById('inscriptionLabel');
-    if (label) {
-        label.textContent = checkbox.checked
-            ? '✅ Inscriptions ouvertes'
-            : '🔒 Inscriptions fermées';
-    }
-}
-
-(function () {
-    function addMinutes(hhmm, minutes) {
-        const [h, m] = hhmm.split(':').map(Number);
-        const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440;
-        return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+    <script>
+    function updateInscriptionStatus(checkbox) {
+        const label = document.getElementById('inscriptionLabel');
+        if (label) {
+            label.textContent = checkbox.checked
+                ? '✅ Inscriptions ouvertes'
+                : '🔒 Inscriptions fermées';
+        }
     }
 
-    function updatePreviews() {
-        const heureCoursInput = document.getElementById('heure_cours');
-        const heureCours = heureCoursInput ? heureCoursInput.value : '20:00';
+    (function () {
+        function addMinutes(hhmm, minutes) {
+            const [h, m] = hhmm.split(':').map(Number);
+            const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440;
+            return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+        }
 
-        document.querySelectorAll('.horaire-preview').forEach(function (span) {
-            const debutName = span.dataset.debutInput;
-            const finName   = span.dataset.finInput;
-            const debutEl   = document.querySelector('[name="' + debutName + '"]');
-            const finEl     = document.querySelector('[name="' + finName + '"]');
-            if (!debutEl || !finEl) return;
-            const offsetDebut = parseInt(debutEl.value, 10) || 0;
-            const offsetFin   = parseInt(finEl.value,   10) || 0;
-            span.textContent  = addMinutes(heureCours, offsetDebut) + ' → ' + addMinutes(heureCours, offsetFin);
-        });
-    }
+        function updatePreviews() {
+            const heureCoursInput = document.getElementById('heure_cours');
+            const heureCours = heureCoursInput ? heureCoursInput.value : '20:00';
 
-    document.getElementById('settingsForm').addEventListener('input', updatePreviews);
-})();
-</script>
+            document.querySelectorAll('.horaire-preview').forEach(function (span) {
+                const debutName = span.dataset.debutInput;
+                const finName   = span.dataset.finInput;
+                const debutEl   = document.querySelector('[name="' + debutName + '"]');
+                const finEl     = document.querySelector('[name="' + finName + '"]');
+                if (!debutEl || !finEl) return;
+                const offsetDebut = parseInt(debutEl.value, 10) || 0;
+                const offsetFin   = parseInt(finEl.value,   10) || 0;
+                span.textContent  = addMinutes(heureCours, offsetDebut) + ' → ' + addMinutes(heureCours, offsetFin);
+            });
+        }
+
+        document.getElementById('settingsForm').addEventListener('input', updatePreviews);
+    })();
+    </script>
+
+    <script src="{{ asset('js/calendar-select.js') }}"></script>
+    <script>
+    (function () {
+        const apiUrl = '{{ route("calendriers.index") }}';
+
+        // Initialiser un dropdown pour chaque champ calendrier présent dans la page
+        @foreach($calendarChips as $cle => $meta)
+            @if(isset($calendriers[$cle]))
+                @php $cal = $calendriers[$cle]; @endphp
+                CalendarSelect.init({
+                    inputId      : '{{ $cle }}',
+                    triggerId    : '{{ $cle }}_trigger',
+                    apiUrl       : apiUrl,
+                    currentValue : '{{ addslashes($cal['valeur_raw']) }}',
+                });
+            @endif
+        @endforeach
+    })();
+    </script>
 @endpush

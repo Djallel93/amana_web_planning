@@ -10,6 +10,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Notification envoyée à tous les admins planning
@@ -40,6 +41,15 @@ class NouveauMembreNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
+        Log::info('[NouveauMembreNotification] Préparation email', [
+            'destinataire' => $notifiable->email,
+            'candidat_id' => $this->candidat->id,
+            'candidat_email' => $this->candidat->email,
+            'mailer' => config('mail.default'),
+            'host' => config('mail.mailers.' . config('mail.default') . '.host'),
+            'port' => config('mail.mailers.' . config('mail.default') . '.port'),
+        ]);
+
         return (new MailMessage)
             ->subject(
                 'Nouvelle candidature — '
@@ -49,15 +59,27 @@ class NouveauMembreNotification extends Notification implements ShouldQueue
             ->view(
                 'emails.nouveau-membre',
                 [
-                    // Admin receiving the email
+                    // Admin recevant l'email
                     'adminPrenom' => $notifiable->prenom,
 
-                    // The new candidat (with relations eager-loaded in the controller)
+                    // Le nouveau candidat (relations eager-loaded dans le contrôleur)
                     'candidat' => $this->candidat,
 
-                    // Link to the candidatures management page
+                    // Lien vers la gestion des candidatures
                     'urlValidation' => route('admin.candidatures.index'),
                 ]
             );
+    }
+
+    /**
+     * Appelé par Laravel quand le job de notification échoue définitivement.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('[NouveauMembreNotification] Échec définitif envoi email', [
+            'candidat_id' => $this->candidat->id,
+            'erreur' => $exception->getMessage(),
+            'classe' => get_class($exception),
+        ]);
     }
 }

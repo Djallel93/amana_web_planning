@@ -49,8 +49,8 @@
             <span class="nav-text">Planning</span>
         </a>
 
-        <a href="{{ route('mon-planning') }}"
-            class="nav-item {{ request()->routeIs('mon-planning') ? 'active' : '' }}" onclick="closeSidebar()">
+        <a href="{{ route('mon-planning') }}" class="nav-item {{ request()->routeIs('mon-planning') ? 'active' : '' }}"
+            onclick="closeSidebar()">
             <span class="nav-icon">🙋</span>
             <span class="nav-text">Mon planning</span>
         </a>
@@ -84,8 +84,8 @@
         {{-- Mes données --}}
         <div class="sidebar-label">Mes données</div>
 
-        <a href="{{ route('absences.index') }}"
-            class="nav-item {{ request()->routeIs('absences.*') ? 'active' : '' }}" onclick="closeSidebar()">
+        <a href="{{ route('absences.index') }}" class="nav-item {{ request()->routeIs('absences.*') ? 'active' : '' }}"
+            onclick="closeSidebar()">
             <span class="nav-icon">🏖️</span>
             <span class="nav-text">Absences</span>
         </a>
@@ -126,8 +126,8 @@
                 </a>
 
                 @if(Route::has('settings.index'))
-                    <a href="{{ route('settings.index') }}"
-                        class="nav-item {{ request()->routeIs('settings.*') ? 'active' : '' }}" onclick="closeSidebar()">
+                    <a href="{{ route('settings.index') }}" class="nav-item {{ request()->routeIs('settings.*') ? 'active' : '' }}"
+                        onclick="closeSidebar()">
                         <span class="nav-icon">⚙️</span>
                         <span class="nav-text">Paramètres</span>
                     </a>
@@ -154,6 +154,12 @@
                     @if($nbCandidatures > 0)
                         <span class="nav-badge">{{ $nbCandidatures }}</span>
                     @endif
+                </a>
+
+                <a href="{{ route('diagnostic.mail.index') }}"
+                    class="nav-item {{ request()->routeIs('diagnostic.mail.*') ? 'active' : '' }}" onclick="closeSidebar()">
+                    <span class="nav-icon">🔧</span>
+                    <span class="nav-text">Diagnostic SMTP</span>
                 </a>
             @endif
         @endauth

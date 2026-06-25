@@ -70,16 +70,25 @@
             krsort($allYears);
             ksort($allMonths);
 
-            $currentMonth = (int) now()->format('n');
-            $previousMonth = $currentMonth === 1 ? 12 : $currentMonth - 1;
+            $currentMonth  = (int) now()->format('n');
+            $currentYear   = (int) now()->format('Y');
+            $previousMonth = $currentMonth === 1  ? 12 : $currentMonth - 1;
+            $nextMonth     = $currentMonth === 12 ? 1  : $currentMonth + 1;
+            // Années auxquelles appartiennent mois-1 et mois+1 (gestion des bords janvier/décembre)
+            $previousMonthYear = $currentMonth === 1  ? $currentYear - 1 : $currentYear;
+            $nextMonthYear     = $currentMonth === 12 ? $currentYear + 1 : $currentYear;
         @endphp
 
         @include('planning.partials._filter-bar', [
-            'allYears' => $allYears,
-            'allMonths' => $allMonths,
-            'currentMonth' => $currentMonth,
-            'previousMonth' => $previousMonth,
-            'historique' => $historique,
+            'allYears'          => $allYears,
+            'allMonths'         => $allMonths,
+            'currentMonth'      => $currentMonth,
+            'currentYear'       => $currentYear,
+            'previousMonth'     => $previousMonth,
+            'previousMonthYear' => $previousMonthYear,
+            'nextMonth'         => $nextMonth,
+            'nextMonthYear'     => $nextMonthYear,
+            'historique'        => $historique,
         ])
 
         {{-- Semaines --}}

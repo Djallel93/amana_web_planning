@@ -9,6 +9,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Notification envoyée au membre quand un admin valide sa candidature,
@@ -34,6 +35,13 @@ class CandidatureValideeDejaInscritNotification extends Notification implements 
 
     public function toMail(object $notifiable): MailMessage
     {
+        Log::info('[CandidatureValideeDejaInscritNotification] Préparation email', [
+            'destinataire' => $notifiable->email,
+            'mailer' => config('mail.default'),
+            'host' => config('mail.mailers.' . config('mail.default') . '.host'),
+            'port' => config('mail.mailers.' . config('mail.default') . '.port'),
+        ]);
+
         return (new MailMessage)
             ->subject('Votre accès AMANA Planning est activé')
             ->view(
@@ -43,5 +51,16 @@ class CandidatureValideeDejaInscritNotification extends Notification implements 
                     'loginUrl' => $this->loginUrl,
                 ]
             );
+    }
+
+    /**
+     * Appelé par Laravel quand le job de notification échoue définitivement.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('[CandidatureValideeDejaInscritNotification] Échec définitif envoi email', [
+            'erreur' => $exception->getMessage(),
+            'classe' => get_class($exception),
+        ]);
     }
 }

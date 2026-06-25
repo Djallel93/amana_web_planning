@@ -74,9 +74,11 @@
                     {{-- ── Synchronisation Google Calendar ──────────────────────────── --}}
                     <div style="margin-bottom:24px;">
                         <div style="margin-bottom:10px;">
-                            <div style="font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:4px;display:flex;align-items:center;gap:8px;">
+                            <div
+                                style="font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:4px;display:flex;align-items:center;gap:8px;">
                                 📆 Synchronisation Google Calendar
-                                <span style="font-size:11px;font-weight:500;color:var(--ink-muted);background:var(--surface-3);padding:2px 8px;border-radius:20px;">optionnel</span>
+                                <span
+                                    style="font-size:11px;font-weight:500;color:var(--ink-muted);background:var(--surface-3);padding:2px 8px;border-radius:20px;">optionnel</span>
                             </div>
                             <div style="font-size:12.5px;color:var(--ink-muted);line-height:1.6;">
                                 Si vous renseignez un nom de calendrier, un événement sera automatiquement créé
@@ -86,17 +88,26 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="calendar_name">Nom du calendrier Google Calendar</label>
-                            <input
-                                type="text"
-                                id="calendar_name"
-                                name="calendar_name"
-                                value="{{ old('calendar_name', $evenement->calendar_name ?? '') }}"
-                                maxlength="200"
-                                placeholder="Ex : AMANA - Événements, AMANA - Planning…"
-                                autocomplete="off">
-                            <span class="form-hint">
-                                Doit correspondre exactement au nom du calendrier dans Google Calendar.
+                            <label>Nom du calendrier Google Calendar</label>
+
+                            {{-- Input caché qui reçoit la valeur sélectionnée --}}
+                            <input type="hidden" id="calendar_name" name="calendar_name"
+                                value="{{ old('calendar_name', $evenement->calendar_name ?? '') }}">
+
+                            {{-- Bouton déclencheur du dropdown --}}
+                            <div style="position:relative;">
+                                <button type="button" id="calendar_name_trigger" class="cs-trigger" aria-haspopup="listbox"
+                                    aria-expanded="false">
+                                    <span
+                                        class="cs-trigger-text {{ old('calendar_name', $evenement->calendar_name ?? '') ? '' : 'placeholder' }}">
+                                        {{ old('calendar_name', $evenement->calendar_name ?? '') ?: 'Sélectionner un calendrier…' }}
+                                    </span>
+                                    <span class="cs-trigger-arrow">▼</span>
+                                </button>
+                            </div>
+
+                            <span class="form-hint" style="margin-top:6px;display:block;">
+                                Sélectionnez le calendrier Google Calendar cible dans la liste.
                                 @if($edit && $evenement->calendar_name)
                                     <strong style="color:var(--emerald);">✓ Synchronisation active</strong>
                                 @endif
@@ -107,16 +118,16 @@
                         {{-- Visual indicator when calendar sync is active --}}
                         @if($edit && $evenement->calendar_name)
                             <div style="
-                                background:var(--emerald-bg);
-                                border:1px solid var(--emerald-border);
-                                border-radius:var(--radius);
-                                padding:10px 14px;
-                                font-size:12.5px;
-                                color:#065f46;
-                                display:flex;
-                                align-items:center;
-                                gap:9px;
-                                margin-top:10px;">
+                                                background:var(--emerald-bg);
+                                                border:1px solid var(--emerald-border);
+                                                border-radius:var(--radius);
+                                                padding:10px 14px;
+                                                font-size:12.5px;
+                                                color:#065f46;
+                                                display:flex;
+                                                align-items:center;
+                                                gap:9px;
+                                                margin-top:10px;">
                                 <span style="flex-shrink:0;">📅</span>
                                 <span>
                                     Cet événement est synchronisé avec le calendrier
@@ -151,11 +162,16 @@
                             $oldTaches = old('taches', $tachesBloquéesIds);
                         @endphp
 
-                        <div style="background:var(--surface-2);border:1px solid var(--surface-border);border-radius:var(--radius);overflow:hidden;">
-                            <div style="padding:10px 16px;border-bottom:1px solid var(--surface-3);display:flex;align-items:center;gap:10px;">
-                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(true)">Tout bloquer</button>
-                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(false)">Tout libérer</button>
-                                <span id="blockedCount" style="margin-left:auto;font-size:12px;color:var(--ink-muted);"></span>
+                        <div
+                            style="background:var(--surface-2);border:1px solid var(--surface-border);border-radius:var(--radius);overflow:hidden;">
+                            <div
+                                style="padding:10px 16px;border-bottom:1px solid var(--surface-3);display:flex;align-items:center;gap:10px;">
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(true)">Tout
+                                    bloquer</button>
+                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(false)">Tout
+                                    libérer</button>
+                                <span id="blockedCount"
+                                    style="margin-left:auto;font-size:12px;color:var(--ink-muted);"></span>
                             </div>
 
                             @foreach($taches as $tache)
@@ -170,11 +186,11 @@
                                         style="width:16px;height:16px;accent-color:var(--rose);cursor:pointer;flex-shrink:0;-webkit-appearance:auto;appearance:auto;">
                                     <div style="display:flex;align-items:center;gap:9px;flex:1;">
                                         <span style="
-                                            display:inline-flex;align-items:center;gap:5px;
-                                            padding:3px 11px;border-radius:20px;
-                                            font-size:12.5px;font-weight:600;
-                                            background:{{ $style['bg'] }};color:{{ $style['color'] }};
-                                        ">
+                                                            display:inline-flex;align-items:center;gap:5px;
+                                                            padding:3px 11px;border-radius:20px;
+                                                            font-size:12.5px;font-weight:600;
+                                                            background:{{ $style['bg'] }};color:{{ $style['color'] }};
+                                                        ">
                                             {{ $style['icon'] }} {{ $tache->libelle }}
                                         </span>
                                     </div>
@@ -186,13 +202,22 @@
                             @endforeach
 
                             <style>
-                                .tache-block-item:last-of-type { border-bottom: none !important; }
-                                .tache-block-item:hover { background: var(--rose-bg) !important; }
-                                .tache-block-item.checked { background: #fff1f2; }
+                                .tache-block-item:last-of-type {
+                                    border-bottom: none !important;
+                                }
+
+                                .tache-block-item:hover {
+                                    background: var(--rose-bg) !important;
+                                }
+
+                                .tache-block-item.checked {
+                                    background: #fff1f2;
+                                }
                             </style>
                         </div>
 
-                        @error('taches')<span class="form-error" style="margin-top:6px;display:block;">{{ $message }}</span>@enderror
+                        @error('taches')<span class="form-error"
+                        style="margin-top:6px;display:block;">{{ $message }}</span>@enderror
                     </div>
 
                     <div style="display:flex;gap:11px;">
@@ -260,5 +285,15 @@
         });
 
         updateStatus();
+    </script>
+
+    <script src="{{ asset('js/calendar-select.js') }}"></script>
+    <script>
+        CalendarSelect.init({
+            inputId: 'calendar_name',
+            triggerId: 'calendar_name_trigger',
+            apiUrl: '{{ route("calendriers.index") }}',
+            currentValue: '{{ addslashes(old("calendar_name", $evenement->calendar_name ?? "")) }}',
+        });
     </script>
 @endpush

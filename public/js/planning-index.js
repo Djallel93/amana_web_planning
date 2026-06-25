@@ -15,9 +15,28 @@ const activeYears = new Set();
 const activeMonths = new Set();
 
 document.addEventListener('DOMContentLoaded', function () {
-    const defaultChips = document.querySelectorAll('.filter-chip[data-type="month"].active');
-    defaultChips.forEach(chip => activeMonths.add(parseInt(chip.dataset.value)));
-    if (activeMonths.size > 0) applyFilters();
+    const fd = window.PlanningFilterDefaults;
+
+    // Activer l'année courante par défaut
+    const yearChip = document.querySelector(
+        '.filter-chip[data-type="year"][data-value="' + fd.currentYear + '"]'
+    );
+    if (yearChip) { yearChip.classList.add('active'); activeYears.add(fd.currentYear); }
+
+    // Activer mois-1, mois courant, mois+1
+    [fd.previousMonth, fd.currentMonth, fd.nextMonth].forEach(function (m) {
+        const chip = document.querySelector(
+            '.filter-chip[data-type="month"][data-value="' + m + '"]'
+        );
+        if (chip) { chip.classList.add('active'); activeMonths.add(m); }
+    });
+
+    // Si mois-1 ou mois+1 appartient à une autre année, on l'ajoute aussi
+    // aux années actives pour que ces semaines restent visibles.
+    if (fd.previousMonthYear !== fd.currentYear) activeYears.add(fd.previousMonthYear);
+    if (fd.nextMonthYear !== fd.currentYear) activeYears.add(fd.nextMonthYear);
+
+    applyFilters();
 });
 
 /* ══ FILTERS ══════════════════════════════════════════════════════ */
@@ -38,15 +57,26 @@ function clearFilters() {
 
 function applyFilters() {
     let visible = 0;
-    document.querySelectorAll('.week-block').forEach(block => {
-        const y = activeYears.size === 0 || activeYears.has(parseInt(block.dataset.year));
-        const m = activeMonths.size === 0 || activeMonths.has(parseInt(block.dataset.month));
-        block.style.display = (y && m) ? '' : 'none';
-        if (y && m) visible++;
+    document.querySelectorAll('.week-block').forEach(function (block) {
+        const blockYear = parseInt(block.dataset.year);
+        const blockMonth = parseInt(block.dataset.month);
+
+        const yearOk = activeYears.size === 0 || activeYears.has(blockYear);
+        const monthOk = activeMonths.size === 0 || activeMonths.has(blockMonth);
+
+        // Une semaine est visible si elle passe BOTH les filtres actifs.
+        // Cas particulier : si une année hors de l'année courante est activée
+        // uniquement à cause d'un mois de bord (jan/déc), on filtre aussi sur
+        // le mois pour ne pas afficher toute cette année.
+        const show = yearOk && monthOk;
+
+        block.style.display = show ? '' : 'none';
+        if (show) visible++;
     });
+
     const el = document.getElementById('resultsCount');
     if (el) el.textContent = (activeYears.size || activeMonths.size)
-        ? `${visible} semaine${visible !== 1 ? 's' : ''} affichée${visible !== 1 ? 's' : ''}`
+        ? visible + ' semaine' + (visible !== 1 ? 's' : '') + ' affichée' + (visible !== 1 ? 's' : '')
         : '';
 }
 
