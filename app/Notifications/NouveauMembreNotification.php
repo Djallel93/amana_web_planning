@@ -6,8 +6,6 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\Personne;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
@@ -16,70 +14,49 @@ use Illuminate\Support\Facades\Log;
  * Notification envoyée à tous les admins planning
  * quand un nouveau membre soumet sa candidature.
  *
- * Utilise le template HTML brandé AMANA (emails/nouveau-membre.blade.php).
- * Implémente ShouldQueue pour ne pas bloquer la réponse HTTP.
+ * ShouldQueue retiré intentionnellement : sur IONOS shared hosting, il n'y a
+ * pas de worker de queue persistant. Même avec QUEUE_CONNECTION=sync, le bus
+ * de job encapsule les exceptions et les avale silencieusement, rendant le
+ * diagnostic impossible. L'envoi synchrone direct est plus fiable et les
+ * exceptions remontent normalement au contrôleur.
  */
-class NouveauMembreNotification extends Notification implements ShouldQueue
+class NouveauMembreNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         private readonly Personne $candidat
     ) {
     }
 
-    /**
-     * Canal de notification : email uniquement.
-     */
     public function via(object $notifiable): array
     {
         return ['mail'];
     }
 
-    /**
-     * Contenu de l'email — rendu via le template Blade brandé AMANA.
-     */
     public function toMail(object $notifiable): MailMessage
     {
-        Log::info('[NouveauMembreNotification] Préparation email', [
+        // Recharger les relations au cas où le modèle a été instancié sans elles
+        $candidat = $this->candidat->relationLoaded('restrictions')
+            ? $this->candidat
+            : $this->candidat->load(['restrictions.tache']);
+
+        Log::info('[NouveauMembreNotification] Envoi email', [
             'destinataire' => $notifiable->email,
-            'candidat_id' => $this->candidat->id,
-            'candidat_email' => $this->candidat->email,
+            'candidat_id' => $candidat->id,
+            'candidat_email' => $candidat->email,
             'mailer' => config('mail.default'),
             'host' => config('mail.mailers.' . config('mail.default') . '.host'),
-            'port' => config('mail.mailers.' . config('mail.default') . '.port'),
         ]);
 
         return (new MailMessage)
             ->subject(
                 'Nouvelle candidature — '
-                . $this->candidat->prenom . ' '
-                . strtoupper($this->candidat->nom)
+                . $candidat->prenom . ' '
+                . strtoupper($candidat->nom)
             )
-            ->view(
-                'emails.nouveau-membre',
-                [
-                    // Admin recevant l'email
-                    'adminPrenom' => $notifiable->prenom,
-
-                    // Le nouveau candidat (relations eager-loaded dans le contrôleur)
-                    'candidat' => $this->candidat,
-
-                    // Lien vers la gestion des candidatures
-                    'urlValidation' => route('admin.candidatures.index'),
-                ]
-            );
-    }
-
-    /**
-     * Appelé par Laravel quand le job de notification échoue définitivement.
-     */
-    public function failed(\Throwable $exception): void
-    {
-        Log::error('[NouveauMembreNotification] Échec définitif envoi email', [
-            'candidat_id' => $this->candidat->id,
-            'erreur' => $exception->getMessage(),
-            'classe' => get_class($exception),
-        ]);
+            ->view('emails.nouveau-membre', [
+                'adminPrenom' => $notifiable->prenom,
+                'candidat' => $candidat,
+                'urlValidation' => route('admin.candidatures.index'),
+            ]);
     }
 }

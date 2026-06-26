@@ -6,17 +6,17 @@ declare(strict_types=1);
 namespace App\Notifications\Echanges;
 
 use App\Models\Echange;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+
+
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Notification envoyée à A quand la demande expire sans réponse de B.
  */
-class EchangeExpireNotification extends Notification implements ShouldQueue
+class EchangeExpireNotification extends Notification
 {
-    use Queueable;
 
     public function __construct(
         private readonly Echange $echange,
@@ -33,8 +33,8 @@ class EchangeExpireNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Échange de créneau expiré — AMANA Planning')
             ->view('emails.echanges.expire', [
-                'echange'     => $this->echange,
-                'notifiable'  => $notifiable,
+                'echange' => $this->echange,
+                'notifiable' => $notifiable,
                 'urlPlanning' => route('mon-planning'),
             ]);
     }

@@ -6,18 +6,18 @@ declare(strict_types=1);
 namespace App\Notifications\Echanges;
 
 use App\Models\Echange;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+
+
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Notification envoyée aux deux parties quand un échange est accepté/exécuté.
  * Le rôle ('demandeur' ou 'cible') adapte le contenu de l'email.
  */
-class EchangeAccepteNotification extends Notification implements ShouldQueue
+class EchangeAccepteNotification extends Notification
 {
-    use Queueable;
 
     public function __construct(
         private readonly Echange $echange,
@@ -35,9 +35,9 @@ class EchangeAccepteNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Échange de créneau confirmé — AMANA Planning')
             ->view('emails.echanges.accepte', [
-                'echange'    => $this->echange,
+                'echange' => $this->echange,
                 'notifiable' => $notifiable,
-                'role'       => $this->role,
+                'role' => $this->role,
                 'urlPlanning' => route('mon-planning'),
             ]);
     }

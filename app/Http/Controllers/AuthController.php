@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -270,7 +271,19 @@ class AuthController extends Controller
         $admins = Personne::adminsPlanning()->get();
 
         if ($admins->isNotEmpty()) {
-            Notification::send($admins, new NouveauMembreNotification($personne));
+            try {
+                Notification::send($admins, new NouveauMembreNotification($personne));
+                Log::info('[AuthController] Notification nouvelle candidature envoyée', [
+                    'candidat_id' => $personne->id,
+                    'nb_admins' => $admins->count(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('[AuthController] Échec notification nouvelle candidature', [
+                    'candidat_id' => $personne->id,
+                    'erreur' => $e->getMessage(),
+                    'fichier' => $e->getFile() . ':' . $e->getLine(),
+                ]);
+            }
         }
 
         audit('create', 'inscription', $personne->id, null, [

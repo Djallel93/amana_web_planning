@@ -13,6 +13,7 @@ use App\Notifications\CandidatureValideeDejaInscritNotification;
 use App\Services\RoleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 
@@ -64,12 +65,30 @@ class CandidaturesController extends Controller
         $dejaMotDePasse = !empty($personne->password);
 
         if ($dejaMotDePasse) {
-            $personne->notify(new CandidatureValideeDejaInscritNotification(route('login')));
+            try {
+                $personne->notify(new CandidatureValideeDejaInscritNotification(route('login')));
+                Log::info('[CandidaturesController] Email connexion directe envoyé', ['id' => $personne->id]);
+            } catch (\Throwable $e) {
+                Log::error('[CandidaturesController] Échec email connexion directe', [
+                    'id' => $personne->id,
+                    'erreur' => $e->getMessage(),
+                    'fichier' => $e->getFile() . ':' . $e->getLine(),
+                ]);
+            }
             $messageFlash = "Candidature de {$personne->prenom} {$personne->nom} validée (rôle : {$roleCode}). Email de connexion directe envoyé.";
         } else {
             $token = Password::broker('personnes')->createToken($personne);
             $resetUrl = route('password.reset', ['token' => $token, 'email' => $personne->email]);
-            $personne->notify(new CandidatureValideeNotification($resetUrl));
+            try {
+                $personne->notify(new CandidatureValideeNotification($resetUrl));
+                Log::info('[CandidaturesController] Email invitation envoyé', ['id' => $personne->id]);
+            } catch (\Throwable $e) {
+                Log::error('[CandidaturesController] Échec email invitation', [
+                    'id' => $personne->id,
+                    'erreur' => $e->getMessage(),
+                    'fichier' => $e->getFile() . ':' . $e->getLine(),
+                ]);
+            }
             $messageFlash = "Candidature de {$personne->prenom} {$personne->nom} validée (rôle : {$roleCode}). Email d'invitation envoyé.";
         }
 
@@ -117,12 +136,30 @@ class CandidaturesController extends Controller
         $dejaMotDePasse = !empty($personne->password);
 
         if ($dejaMotDePasse) {
-            $personne->notify(new CandidatureValideeDejaInscritNotification(route('login')));
+            try {
+                $personne->notify(new CandidatureValideeDejaInscritNotification(route('login')));
+                Log::info('[CandidaturesController] Email renvoi connexion directe', ['id' => $personne->id]);
+            } catch (\Throwable $e) {
+                Log::error('[CandidaturesController] Échec email renvoi connexion directe', [
+                    'id' => $personne->id,
+                    'erreur' => $e->getMessage(),
+                    'fichier' => $e->getFile() . ':' . $e->getLine(),
+                ]);
+            }
             $messageFlash = "Email de connexion renvoyé à {$personne->prenom} {$personne->nom}.";
         } else {
             $token = Password::broker('personnes')->createToken($personne);
             $resetUrl = route('password.reset', ['token' => $token, 'email' => $personne->email]);
-            $personne->notify(new CandidatureValideeNotification($resetUrl));
+            try {
+                $personne->notify(new CandidatureValideeNotification($resetUrl));
+                Log::info('[CandidaturesController] Email renvoi invitation', ['id' => $personne->id]);
+            } catch (\Throwable $e) {
+                Log::error('[CandidaturesController] Échec email renvoi invitation', [
+                    'id' => $personne->id,
+                    'erreur' => $e->getMessage(),
+                    'fichier' => $e->getFile() . ':' . $e->getLine(),
+                ]);
+            }
             $messageFlash = "Invitation renvoyée à {$personne->prenom} {$personne->nom}.";
         }
 

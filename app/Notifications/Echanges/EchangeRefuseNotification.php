@@ -6,17 +6,17 @@ declare(strict_types=1);
 namespace App\Notifications\Echanges;
 
 use App\Models\Echange;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+
+
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Notification envoyée à A quand B refuse l'échange.
  */
-class EchangeRefuseNotification extends Notification implements ShouldQueue
+class EchangeRefuseNotification extends Notification
 {
-    use Queueable;
 
     public function __construct(
         private readonly Echange $echange,
@@ -33,8 +33,8 @@ class EchangeRefuseNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Échange de créneau refusé — AMANA Planning')
             ->view('emails.echanges.refuse', [
-                'echange'     => $this->echange,
-                'notifiable'  => $notifiable,
+                'echange' => $this->echange,
+                'notifiable' => $notifiable,
                 'urlPlanning' => route('mon-planning'),
             ]);
     }

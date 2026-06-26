@@ -6,18 +6,18 @@ declare(strict_types=1);
 namespace App\Notifications\Echanges;
 
 use App\Models\Echange;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
+
+
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Notification envoyée à B quand A demande un échange.
  * Contient les liens accept/refuse tokenisés.
  */
-class EchangeDemandeNotification extends Notification implements ShouldQueue
+class EchangeDemandeNotification extends Notification
 {
-    use Queueable;
 
     public function __construct(
         private readonly Echange $echange,
@@ -34,10 +34,10 @@ class EchangeDemandeNotification extends Notification implements ShouldQueue
         return (new MailMessage)
             ->subject('Demande d\'échange de créneau — AMANA Planning')
             ->view('emails.echanges.demande', [
-                'echange'    => $this->echange,
+                'echange' => $this->echange,
                 'notifiable' => $notifiable,
-                'urlAccept'  => route('echanges.accepter', $this->echange->token_accept),
-                'urlRefuse'  => route('echanges.refuser', $this->echange->token_refuse),
+                'urlAccept' => route('echanges.accepter', $this->echange->token_accept),
+                'urlRefuse' => route('echanges.refuser', $this->echange->token_refuse),
             ]);
     }
 }
