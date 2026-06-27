@@ -4,24 +4,23 @@
     <div class="hadith-card">
         <div class="hadith-arabic">
             <p class="arabic">
-                عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ:
-                قَالَ رَسُولُ اللَّهِ ﷺ&nbsp;:<br>
-                « مَنْ نَفَّسَ عَنْ مُؤْمِنٍ كُرْبَةً مِنْ كُرَبِ الدُّنْيَا،
-                نَفَّسَ اللَّهُ عَنْهُ كُرْبَةً مِنْ كُرَبِ يَوْمِ الْقِيَامَةِ،
-                وَمَنْ يَسَّرَ عَلَى مُعْسِرٍ، يَسَّرَ اللَّهُ عَلَيْهِ فِي الدُّنْيَا وَالآخِرَةِ »
+                عن جابر بن عبد الله، رَضِيَ الله عَنْهُمَا، قَالَ : قال رَسُولُ اللهِ ﷺ : <br>
+                « خَيْرُ النَّاسِ أَنْفَعُهُمْ لِلنَّاسِ »
             </p>
         </div>
         <div class="hadith-french">
             <p class="serif">
-                D'après Abou Houreira (qu'Allah l'agrée), le Prophète (ﷺ) a dit&nbsp;:
-                « Celui qui soulage un croyant d'une des peines de ce monde,
-                Allah le soulagera d'une des peines du Jour de la Résurrection.
-                Et celui qui facilite les choses à une personne dans la gêne,
-                Allah lui facilitera les choses dans ce monde et dans l'au-delà »
+                D'après Jâbir ibn 'Abd Allah (qu'Allah soit satisfait de lui et de son père),
+                le Messager d'Allah ﷺ a dit :
+                <br>
+                « Les meilleures personnes sont celles qui sont les plus utiles aux autres. »
             </p>
         </div>
         <div class="hadith-source">
-            <p>&#9679;&nbsp; Rapporté par <strong>Muslim</strong> — Sahîh Muslim, n°&nbsp;2699</p>
+            <p>
+                &#9679;&nbsp; Rapporté par <strong>At-Tabarânî</strong> — authentifié par
+                <strong>Al-Albânî</strong>, <em>Sahîh al-Jâmi‘</em>, n°&nbsp;176
+            </p>
         </div>
     </div>
 </div>
