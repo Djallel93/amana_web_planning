@@ -1,0 +1,141 @@
+/*
+ * public/css/custom.css
+ * Styles résiduels non couverts par Tailwind utilitaire.
+ * Chargé après le CDN Tailwind Play dans partials/head.blade.php.
+ *
+ * Contient uniquement :
+ *  - Animations @keyframes
+ *  - Scrollbar personnalisée
+ *  - Pseudo-éléments complexes (sidebar ::before)
+ *  - Chips tâches (couleurs sémantiques AMANA)
+ *  - Sidebar active indicator (::before barre gauche)
+ *  - Hamburger transform states
+ *  - Pulse badge animation
+ *  - Touch / mobile overrides fins
+ */
+
+/* ── Animations ── */
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-badge {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.6; }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+* { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
+
+/* ── Sidebar radial glow (::before pseudo-element) ── */
+#mainSidebar::before {
+    content: "";
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(14,165,233,0.18) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── Nav active indicator (barre gauche) ── */
+.nav-item-active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 56%;
+    background: #38bdf8;
+    border-radius: 0 3px 3px 0;
+}
+
+/* ── Nav badge pulse ── */
+.nav-badge {
+    animation: pulse-badge 2s infinite;
+}
+
+/* ── Flash messages ── */
+.flash-enter {
+    animation: slideIn 0.22s ease forwards;
+}
+
+/* ── Hamburger ── */
+.hamburger-bar {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 2px;
+    transition: transform 0.18s cubic-bezier(0.4,0,0.2,1),
+                opacity  0.18s cubic-bezier(0.4,0,0.2,1);
+    transform-origin: center;
+}
+.hamburger-open .hamburger-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger-open .hamburger-bar:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger-open .hamburger-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Chips couleurs tâches ── */
+.chip-entree    { background:#eff6ff; color:#2563eb; }
+.chip-mektaba   { background:#ecfdf5; color:#059669; }
+.chip-salle     { background:#fffbeb; color:#d97706; }
+.chip-amana_food{ background:#fff1f2; color:#e11d48; }
+.chip-cours     { background:#f5f3ff; color:#7c3aed; }
+
+/* ── Table restrictions : colonnes tâches colorées ── */
+.sub-entree     { color:#2563eb; }
+.sub-mektaba    { color:#059669; }
+.sub-salle      { color:#d97706; }
+.sub-amana_food { color:#e11d48; }
+
+/* ── Tâches vides ── */
+.tache-vide { color:#d1d5db; font-style:italic; font-size:0.75rem; }
+
+/* ── Ligne "moi" dans les tables ── */
+.my-row { background: #f0f9ff !important; }
+.my-row:hover { background: #e0f2fe !important; }
+.my-row td:first-child::after {
+    content: ' (moi)';
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: #0369a1;
+    margin-left: 5px;
+}
+
+/* ── Séparateur jour (restrictions table) ── */
+.jour-separator { border-left: 2px solid #0369a1 !important; }
+
+/* ── Input mobile : évite le zoom iOS ── */
+@media (max-width: 768px) {
+    input, select, textarea { font-size: 16px !important; }
+}
+
+/* ── Tap highlight suppression ── */
+a, button { -webkit-tap-highlight-color: transparent; }
+
+/* ── Touch target minimum 44px ── */
+.btn-touch { min-height: 44px; min-width: 44px; }
+
+/* ── Filter chips planning (état actif géré par JS via classList 'active') ── */
+.filter-chip.active {
+    background: #0369a1 !important;
+    color: #ffffff !important;
+    border-color: #0369a1 !important;
+}
+
+/* ── Sidebar overlay transition ── */
+#sidebarOverlay {
+    transition: opacity 0.25s;
+}

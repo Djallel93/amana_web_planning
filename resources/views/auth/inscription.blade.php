@@ -1,185 +1,36 @@
 {{-- resources/views/auth/inscription.blade.php --}}
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscription — AMANA Planning</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
-    <link rel="stylesheet" href="{{ asset('css/base.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
-    <style>
-        /* ── Styles propres à la page d'inscription ──
-            Tokens, reset, fonts, .flash sont fournis par base.css.
-            .panel-*, .btn-submit, .form-group, .field-error sont fournis par auth.css.
-             Ici : uniquement la mise en page spécifique (topbar, cartes, tableau dispo). */
-
-        body {
-            display: block; /* surcharge le flex de auth.css : ici layout vertical classique */
-        }
-
-        .topbar {
-            background: var(--app-sidebar-bg);
-            padding: 0 28px;
-            height: 54px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .topbar-logo { display: flex; align-items: center; gap: 10px; }
-        .topbar-logo-img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; }
-        .topbar-logo-name { font-family: var(--font-heading); font-size: 15px; font-weight: 600; color: white; }
-        .topbar-link {
-            font-size: 12.5px;
-            color: rgba(255,255,255,0.55);
-            padding: 6px 14px;
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: var(--radius);
-            transition: all 0.18s;
-        }
-        .topbar-link:hover { color: white; border-color: rgba(255,255,255,0.4); }
-
-        .main { max-width: 720px; margin: 0 auto; padding: 40px 24px 64px; }
-        .page-title { font-family: var(--font-heading); font-size: 26px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
-        .page-sub { font-size: 13.5px; color: var(--ink-muted); margin-bottom: 32px; line-height: 1.65; }
-
-        .card {
-            background: var(--surface);
-            border-radius: var(--radius-lg);
-            box-shadow: 0 2px 10px rgba(13,17,23,0.07);
-            border: 1px solid var(--surface-border);
-            overflow: hidden;
-            margin-bottom: 18px;
-        }
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 15px 22px;
-            border-bottom: 1px solid var(--surface-3);
-            font-family: var(--font-heading);
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--ink);
-        }
-        .card-header-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-        }
-        .card-body { padding: 22px; }
-
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-
-        /* .form-group ici diffère légèrement de auth.css (gap au lieu de margin-bottom) :
-           on garde la version locale pour ce formulaire à deux colonnes. */
-        .form-grid .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 0; }
-
-        input[type="text"], input[type="email"], input[type="tel"] {
-            padding: 9px 13px; border: 1.5px solid var(--ink-faint); border-radius: var(--radius);
-            font-size: 13.5px; font-family: var(--font-body); color: var(--ink); background: var(--surface);
-            transition: all 0.18s; width: 100%; outline: none; -webkit-appearance: none; appearance: none;
-        }
-        input:focus { border-color: var(--app-accent); box-shadow: 0 0 0 3px var(--app-accent-glow); font-size: 16px; }
-
-        .notice {
-            background: var(--surface-2);
-            border: 1px solid var(--surface-border);
-            border-radius: var(--radius);
-            padding: 12px 16px;
-            font-size: 13px;
-            color: var(--ink-muted);
-            margin-bottom: 18px;
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            line-height: 1.6;
-        }
-
-        .restrictions-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 380px; }
-        .restrictions-table th {
-            padding: 9px 10px; text-align: center; font-size: 10.5px; font-weight: 700;
-            color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.7px;
-            background: var(--surface-2); border-bottom: 1px solid var(--surface-3); font-family: var(--font-body);
-        }
-        .restrictions-table th.jour-header {
-            background: var(--app-accent); color: white; font-size: 12px;
-            text-transform: none; letter-spacing: 0; font-weight: 600;
-        }
-        .restrictions-table th.tache-col { text-align: left; padding-left: 16px; }
-        .restrictions-table td { padding: 10px; text-align: center; border-bottom: 1px solid var(--surface-3); }
-        .restrictions-table td:first-child { text-align: left; padding-left: 16px; font-weight: 600; color: var(--ink); }
-        .restrictions-table tr:last-child td { border-bottom: none; }
-        .restrictions-table tr:hover { background: var(--surface-2); }
-        .restrictions-table input[type="checkbox"] {
-            width: 16px; height: 16px; accent-color: var(--app-accent); cursor: pointer;
-            -webkit-appearance: auto; appearance: auto;
-        }
-
-        .tache-chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }
-        .chip-entree     { background: #eff6ff; color: #2563eb; }
-        .chip-mektaba    { background: #ecfdf5; color: #059669; }
-        .chip-salle      { background: #fffbeb; color: #d97706; }
-        .chip-amana_food { background: #fff1f2; color: #e11d48; }
-        .chip-cours      { background: #f5f3ff; color: #7c3aed; }
-
-        .restrictions-mobile { display: none; }
-        .restriction-card { border: 1px solid var(--surface-border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
-        .restriction-card-header { padding: 10px 14px; background: var(--surface-2); font-weight: 700; font-size: 13px; color: var(--ink); }
-        .restriction-card-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 9px; }
-        .restriction-day-row { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink-light); }
-        .restriction-day-row input[type="checkbox"] {
-            width: 15px; height: 15px; accent-color: var(--app-accent); cursor: pointer; flex-shrink: 0;
-            -webkit-appearance: auto; appearance: auto;
-        }
-
-        .submit-zone { display: flex; align-items: center; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
-        .submit-zone .btn-submit { width: auto; padding: 11px 28px; margin-bottom: 0; }
-        .submit-note { font-size: 12px; color: var(--ink-muted); line-height: 1.55; }
-
-        .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-        @media (max-width: 680px) {
-            .topbar { padding: 0 16px; }
-            .topbar-logo-name { display: none; }
-            .main { padding: 20px 16px 48px; }
-            .page-title { font-size: 22px; }
-            .form-grid { grid-template-columns: 1fr; gap: 13px; }
-            .card-body { padding: 16px; }
-            .restrictions-table-wrap { display: none; }
-            .restrictions-mobile { display: block; }
-            .submit-zone { flex-direction: column; align-items: stretch; }
-            .submit-zone .btn-submit { width: 100%; text-align: center; }
-        }
-    </style>
+        @vite(['resources/css/app.css'])
 </head>
 
-<body>
-    <header class="topbar">
-        <a href="{{ route('login') }}" class="topbar-logo">
-            <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="topbar-logo-img">
-            <span class="topbar-logo-name">AMANA Planning</span>
+<body class="bg-surface-2 font-body text-ink antialiased">
+
+    {{-- Topbar --}}
+    <header class="sticky top-0 z-50 bg-sidebar h-[54px] flex items-center justify-between px-4 sm:px-7">
+        <a href="{{ route('login') }}" class="flex items-center gap-2.5 no-underline">
+            <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-7 h-7 rounded-md object-cover">
+            <span class="font-heading text-[15px] font-semibold text-white hidden sm:block">AMANA Planning</span>
         </a>
-        <a href="{{ route('login') }}" class="topbar-link">← Connexion</a>
+        <a href="{{ route('login') }}"
+           class="text-[12.5px] text-white/55 border border-white/15 px-3.5 py-1.5 rounded-lg hover:text-white hover:border-white/40 transition-colors no-underline min-h-[44px] flex items-center">
+            ← Connexion
+        </a>
     </header>
 
-    <div class="main">
-        <h1 class="page-title">Rejoindre AMANA Planning</h1>
-        <p class="page-sub">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 py-10 pb-16">
+        <h1 class="font-heading text-2xl sm:text-[26px] font-semibold text-ink mb-1.5">Rejoindre AMANA Planning</h1>
+        <p class="text-[13.5px] text-ink-muted mb-8 leading-relaxed">
             Remplissez ce formulaire pour soumettre votre candidature.<br>
             Un administrateur la validera et vous recevrez un email pour créer votre mot de passe.
         </p>
 
         @if($errors->any())
-            <div class="flash flash-error">
+            <div class="flex items-start gap-2.5 px-4 py-3 rounded-lg mb-6 text-[13px] font-medium bg-rose-50 border border-rose-200 text-rose-800">
                 ❌ Veuillez corriger les erreurs ci-dessous avant de soumettre.
             </div>
         @endif
@@ -188,74 +39,100 @@
             @csrf
 
             {{-- Informations personnelles --}}
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-header-icon" style="background:#f5f3ff;">👤</div>
-                    Informations personnelles
+            <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
+                <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+                    <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">👤</div>
+                    <span class="font-heading text-[14px] font-semibold text-ink">Informations personnelles</span>
                 </div>
-                <div class="card-body">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="prenom">Prénom <span class="req">*</span></label>
-                            <input type="text" id="prenom" name="prenom" value="{{ old('prenom') }}" required maxlength="100" placeholder="Votre prénom">
-                            @error('prenom')<span class="form-error">{{ $message }}</span>@enderror
+                <div class="p-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="prenom" class="text-xs font-bold text-ink tracking-[0.2px]">
+                                Prénom <span class="text-rose-500 ml-0.5">*</span>
+                            </label>
+                            <input type="text" id="prenom" name="prenom" value="{{ old('prenom') }}"
+                                   required maxlength="100" placeholder="Votre prénom"
+                                   class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                          focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                            @error('prenom')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                         </div>
-                        <div class="form-group">
-                            <label for="nom">Nom <span class="req">*</span></label>
-                            <input type="text" id="nom" name="nom" value="{{ old('nom') }}" required maxlength="100" placeholder="Votre nom de famille">
-                            @error('nom')<span class="form-error">{{ $message }}</span>@enderror
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="nom" class="text-xs font-bold text-ink tracking-[0.2px]">
+                                Nom <span class="text-rose-500 ml-0.5">*</span>
+                            </label>
+                            <input type="text" id="nom" name="nom" value="{{ old('nom') }}"
+                                   required maxlength="100" placeholder="Votre nom de famille"
+                                   class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                          focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                            @error('nom')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                         </div>
-                        <div class="form-group">
-                            <label for="email">Adresse email <span class="req">*</span></label>
-                            <input type="email" id="email" name="email" value="{{ old('email') }}" required maxlength="255" placeholder="votre@email.fr">
-                            <span class="form-hint">Ce sera votre identifiant de connexion</span>
-                            @error('email')<span class="form-error">{{ $message }}</span>@enderror
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="email" class="text-xs font-bold text-ink tracking-[0.2px]">
+                                Adresse email <span class="text-rose-500 ml-0.5">*</span>
+                            </label>
+                            <input type="email" id="email" name="email" value="{{ old('email') }}"
+                                   required maxlength="255" placeholder="votre@email.fr"
+                                   class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                          focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                            <span class="text-xs text-ink-muted">Ce sera votre identifiant de connexion</span>
+                            @error('email')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                         </div>
-                        <div class="form-group">
-                            <label for="telephone">Téléphone</label>
-                            <input type="tel" id="telephone" name="telephone" value="{{ old('telephone') }}" maxlength="20" placeholder="+33 6 00 00 00 00">
-                            @error('telephone')<span class="form-error">{{ $message }}</span>@enderror
+
+                        <div class="flex flex-col gap-1.5">
+                            <label for="telephone" class="text-xs font-bold text-ink tracking-[0.2px]">Téléphone</label>
+                            <input type="tel" id="telephone" name="telephone" value="{{ old('telephone') }}"
+                                   maxlength="20" placeholder="+33 6 00 00 00 00"
+                                   class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                          focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                            @error('telephone')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                         </div>
+
                     </div>
                 </div>
             </div>
 
             {{-- Disponibilités --}}
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-header-icon" style="background:#ecfdf5;">📋</div>
-                    Mes disponibilités par tâche
+            <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
+                <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+                    <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
+                    <span class="font-heading text-[14px] font-semibold text-ink">Mes disponibilités par tâche</span>
                 </div>
-                <div class="card-body">
-                    <div class="notice">
-                        <span style="font-size:16px;flex-shrink:0;">ℹ️</span>
-                        <span>Cochez les tâches que vous <strong>pouvez effectuer</strong> chaque jour. Vous pourrez modifier ces disponibilités à tout moment depuis votre espace.</span>
+                <div class="p-5">
+                    <div class="flex items-start gap-2.5 bg-surface-2 border border-surface-border rounded-lg px-4 py-3 mb-5 text-[13px] text-ink-muted leading-relaxed">
+                        <span class="text-base flex-shrink-0 mt-0.5">ℹ️</span>
+                        <span>Cochez les tâches que vous <strong class="text-ink-light">pouvez effectuer</strong> chaque jour. Vous pourrez modifier ces disponibilités à tout moment depuis votre espace.</span>
                     </div>
 
-                    {{-- Desktop table --}}
-                    <div class="restrictions-table-wrap table-scroll">
-                        <table class="restrictions-table">
+                    {{-- Table desktop (≥ sm) --}}
+                    <div class="hidden sm:block overflow-x-auto -webkit-overflow-scrolling-touch">
+                        <table class="w-full border-collapse text-[13px] min-w-[380px]">
                             <thead>
                                 <tr>
-                                    <th class="tache-col" rowspan="2" style="vertical-align:middle;">Tâche</th>
+                                    <th class="text-left pl-4 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 font-body">Tâche</th>
                                     @foreach($jours as $jour)
-                                        <th class="jour-header">{{ $jour }}</th>
+                                        <th class="text-center py-2.5 px-3 bg-accent text-white text-xs font-semibold border-b border-surface-3">{{ $jour }}</th>
                                     @endforeach
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($taches as $tache)
-                                    <tr>
-                                        <td>
-                                            <span class="tache-chip chip-{{ $tache->code }}">{{ $tache->libelle }}</span>
+                                    <tr class="border-b border-surface-3 last:border-0 hover:bg-surface-2 transition-colors">
+                                        <td class="pl-4 py-2.5 font-semibold text-ink">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $tache->code }}">
+                                                {{ $tache->libelle }}
+                                            </span>
                                         </td>
                                         @foreach($jours as $jour)
-                                            <td>
+                                            <td class="text-center py-2.5 px-3">
                                                 <input type="checkbox"
-                                                    name="restrictions[{{ $tache->id }}][{{ $jour }}]"
-                                                    value="1"
-                                                    title="{{ $tache->libelle }} — {{ $jour }}"
-                                                    {{ old('restrictions.' . $tache->id . '.' . $jour) ? 'checked' : '' }}>
+                                                       name="restrictions[{{ $tache->id }}][{{ $jour }}]"
+                                                       value="1"
+                                                       title="{{ $tache->libelle }} — {{ $jour }}"
+                                                       {{ old('restrictions.' . $tache->id . '.' . $jour) ? 'checked' : '' }}
+                                                       class="w-4 h-4 accent-accent cursor-pointer">
                                             </td>
                                         @endforeach
                                     </tr>
@@ -264,23 +141,27 @@
                         </table>
                     </div>
 
-                    {{-- Mobile cards --}}
-                    <div class="restrictions-mobile">
+                    {{-- Cartes mobile (< sm) --}}
+                    <div class="sm:hidden flex flex-col gap-3">
                         @foreach($taches as $tache)
-                            <div class="restriction-card">
-                                <div class="restriction-card-header">
-                                    <span class="tache-chip chip-{{ $tache->code }}">{{ $tache->libelle }}</span>
+                            <div class="border border-surface-border rounded-lg overflow-hidden">
+                                <div class="px-4 py-2.5 bg-surface-2 font-semibold text-[13px] text-ink flex items-center">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $tache->code }}">
+                                        {{ $tache->libelle }}
+                                    </span>
                                 </div>
-                                <div class="restriction-card-body">
+                                <div class="px-4 py-3 flex flex-col gap-2.5">
                                     @foreach($jours as $jour)
-                                        <div class="restriction-day-row">
+                                        <label for="mob_{{ $tache->id }}_{{ $jour }}"
+                                               class="flex items-center gap-2.5 text-[13px] text-ink-light cursor-pointer min-h-[44px]">
                                             <input type="checkbox"
-                                                id="mob_{{ $tache->id }}_{{ $jour }}"
-                                                name="restrictions[{{ $tache->id }}][{{ $jour }}]"
-                                                value="1"
-                                                {{ old('restrictions.' . $tache->id . '.' . $jour) ? 'checked' : '' }}>
-                                            <label for="mob_{{ $tache->id }}_{{ $jour }}">{{ $jour }}</label>
-                                        </div>
+                                                   id="mob_{{ $tache->id }}_{{ $jour }}"
+                                                   name="restrictions[{{ $tache->id }}][{{ $jour }}]"
+                                                   value="1"
+                                                   {{ old('restrictions.' . $tache->id . '.' . $jour) ? 'checked' : '' }}
+                                                   class="w-4 h-4 accent-accent cursor-pointer flex-shrink-0">
+                                            {{ $jour }}
+                                        </label>
                                     @endforeach
                                 </div>
                             </div>
@@ -289,14 +170,22 @@
                 </div>
             </div>
 
-            <div class="submit-zone">
-                <button type="submit" class="btn-submit">✉️ Soumettre ma candidature</button>
-                <p class="submit-note">
+            {{-- Submit --}}
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <button type="submit"
+                        class="min-h-[48px] px-7 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-sm rounded-lg
+                               shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
+                               hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer text-center">
+                    ✉️ Soumettre ma candidature
+                </button>
+                <p class="text-xs text-ink-muted leading-relaxed">
                     En soumettant ce formulaire, vous acceptez que vos informations<br>
                     soient utilisées dans le cadre du bénévolat AMANA.
                 </p>
             </div>
+
         </form>
     </div>
+
 </body>
 </html>

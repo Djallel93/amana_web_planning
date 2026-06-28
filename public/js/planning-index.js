@@ -128,12 +128,21 @@ async function openEditModal(td) {
         }
     }
 
-    document.getElementById('editModalBackdrop').classList.add('open');
+    const bd = document.getElementById('editModalBackdrop');
+    bd.classList.remove('opacity-0', 'pointer-events-none');
+    bd.classList.add('opacity-100');
+    bd.querySelector('#editModal').classList.remove('scale-95');
+    bd.querySelector('#editModal').classList.add('scale-100');
     document.body.style.overflow = 'hidden';
 }
 
 function closeModal() {
-    document.getElementById('editModalBackdrop')?.classList.remove('open');
+    const bd = document.getElementById('editModalBackdrop');
+    if (!bd) return;
+    bd.classList.add('opacity-0', 'pointer-events-none');
+    bd.classList.remove('opacity-100');
+    bd.querySelector('#editModal').classList.add('scale-95');
+    bd.querySelector('#editModal').classList.remove('scale-100');
     document.body.style.overflow = '';
     currentCell = null;
 }
@@ -284,13 +293,22 @@ function openAddCreneauModal(weekMin, weekMax, existingDates) {
         hint.textContent = 'Choisissez n\'importe quel jour de cette semaine.';
     }
 
-    document.getElementById('addCreneauBackdrop').classList.add('open');
+    const bd2 = document.getElementById('addCreneauBackdrop');
+    bd2.classList.remove('opacity-0', 'pointer-events-none');
+    bd2.classList.add('opacity-100');
+    bd2.querySelector('#addCreneauModal').classList.remove('scale-95');
+    bd2.querySelector('#addCreneauModal').classList.add('scale-100');
     document.body.style.overflow = 'hidden';
     setTimeout(() => dateInput.focus(), 220);
 }
 
 function closeAddCreneauModal() {
-    document.getElementById('addCreneauBackdrop')?.classList.remove('open');
+    const bd2 = document.getElementById('addCreneauBackdrop');
+    if (!bd2) return;
+    bd2.classList.add('opacity-0', 'pointer-events-none');
+    bd2.classList.remove('opacity-100');
+    bd2.querySelector('#addCreneauModal').classList.add('scale-95');
+    bd2.querySelector('#addCreneauModal').classList.remove('scale-100');
     document.body.style.overflow = '';
 }
 

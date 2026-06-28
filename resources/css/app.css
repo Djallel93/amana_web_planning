@@ -1,0 +1,19 @@
+/* resources/css/app.css
+ * Point d'entrée Vite — compilé vers public/build/assets/app-[hash].css
+ *
+ * Ordre :
+ *   1. Google Fonts
+ *   2. Directives Tailwind (base, components, utilities)
+ *   3. Styles résiduels AMANA (custom.css)
+ */
+
+/* ── Google Fonts ── */
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap");
+
+/* ── Styles résiduels (animations, chips, sidebar, hamburger…) ── */
+@import "../../public/css/custom.css";
+
+/* ── Tailwind ── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -3,533 +3,191 @@
 
 @section('title', 'Statistiques — AMANA')
 
-@push('styles')
-    <style>
-        .fairness-band {
-            background: var(--app-sidebar-bg);
-            border-radius: var(--radius-xl);
-            padding: 26px 30px;
-            margin-bottom: 22px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .fairness-band::before {
-            content: '';
-            position: absolute;
-            top: -60px;
-            right: -60px;
-            width: 220px;
-            height: 220px;
-            background: radial-gradient(circle, rgba(3, 105, 161, 0.35) 0%, transparent 65%);
-            pointer-events: none;
-        }
-
-        .fairness-band::after {
-            content: '';
-            position: absolute;
-            bottom: -40px;
-            left: 40px;
-            width: 160px;
-            height: 160px;
-            background: radial-gradient(circle, rgba(14, 165, 233, 0.18) 0%, transparent 65%);
-            pointer-events: none;
-        }
-
-        .fairness-top {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            margin-bottom: 22px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .fairness-title {
-            font-family: var(--font-heading);
-            font-size: 20px;
-            font-weight: 600;
-            color: white;
-            margin-bottom: 4px;
-        }
-
-        .fairness-sub {
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .fairness-score-wrap {
-            text-align: right;
-        }
-
-        .fairness-score {
-            font-family: var(--font-heading);
-            font-size: 48px;
-            font-weight: 700;
-            color: white;
-            line-height: 1;
-            letter-spacing: -2px;
-        }
-
-        .fairness-score-label {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.4);
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            margin-top: 4px;
-        }
-
-        .fairness-metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .f-metric {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: var(--radius);
-            padding: 12px 14px;
-        }
-
-        .f-metric-label {
-            font-size: 10.5px;
-            color: rgba(255, 255, 255, 0.4);
-            text-transform: uppercase;
-            letter-spacing: 0.7px;
-            margin-bottom: 6px;
-        }
-
-        .f-metric-value {
-            font-family: var(--font-heading);
-            font-size: 20px;
-            font-weight: 700;
-            color: white;
-            line-height: 1;
-        }
-
-        .f-metric-sub {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.3);
-            margin-top: 3px;
-        }
-
-        .score-bar-wrap {
-            margin-top: 18px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .score-bar-bg {
-            height: 5px;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, 0.1);
-            overflow: hidden;
-            margin-bottom: 5px;
-        }
-
-        .score-bar-fill {
-            height: 100%;
-            border-radius: 3px;
-            background: var(--app-accent-light);
-            transition: width 1s ease;
-        }
-
-        .score-bar-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 10.5px;
-            color: rgba(255, 255, 255, 0.25);
-        }
-
-        .stats-table .col-num {
-            text-align: right;
-        }
-
-        .high-val {
-            color: var(--rose);
-            font-weight: 700;
-        }
-
-        /* ── Explanations card ── */
-        .explain-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 14px;
-        }
-
-        .explain-item {
-            background: var(--surface-2);
-            border: 1px solid var(--surface-border);
-            border-radius: var(--radius);
-            padding: 14px 16px;
-        }
-
-        .explain-term {
-            font-family: var(--font-heading);
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--ink);
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .explain-def {
-            font-size: 12.5px;
-            color: var(--ink-muted);
-            line-height: 1.65;
-        }
-
-        .explain-def strong {
-            color: var(--ink-light);
-            font-weight: 600;
-        }
-
-        .explain-example {
-            margin-top: 6px;
-            font-size: 11.5px;
-            color: var(--app-accent);
-            font-style: italic;
-        }
-
-        @media (max-width: 768px) {
-            .explain-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-@endpush
-
 @section('content')
-    <div class="page-header">
-        <div class="page-header-left">
-            <div class="page-title">Statistiques</div>
-            @if($stats['dateDebut'] && $stats['dateFin'])
-                <div class="page-subtitle">
-                    Du {{ \Carbon\Carbon::parse($stats['dateDebut'])->locale('fr')->isoFormat('D MMM YYYY') }}
-                    au {{ \Carbon\Carbon::parse($stats['dateFin'])->locale('fr')->isoFormat('D MMM YYYY') }}
-                    — {{ $stats['totalDays'] }} créneaux
-                </div>
+
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="font-heading text-2xl font-semibold text-ink tracking-tight">Statistiques</h1>
+        @if($stats['dateDebut'] && $stats['dateFin'])
+            <p class="text-[13px] text-ink-muted mt-1">
+                Du {{ \Carbon\Carbon::parse($stats['dateDebut'])->locale('fr')->isoFormat('D MMM YYYY') }}
+                au {{ \Carbon\Carbon::parse($stats['dateFin'])->locale('fr')->isoFormat('D MMM YYYY') }}
+                — {{ $stats['totalDays'] }} créneaux
+            </p>
+        @endif
+    </div>
+    <a href="{{ route('planning.index') }}"
+       class="inline-flex items-center gap-1.5 px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors no-underline min-h-[44px]">
+        ← Planning
+    </a>
+</div>
+
+@if(empty($stats['personnes']))
+    <div class="bg-white rounded-xl border border-surface-border shadow-sm">
+        <div class="text-center py-16 px-8">
+            <div class="text-5xl mb-3 opacity-40">📊</div>
+            <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucune donnée</h3>
+            <p class="text-ink-muted text-[13.5px] mb-6">Générez d'abord un planning pour voir les statistiques.</p>
+            @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
+                <a href="{{ route('planning.generate.form') }}"
+                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg transition-colors no-underline min-h-[44px]">
+                    ✨ Générer un planning
+                </a>
             @endif
         </div>
-        <a href="{{ route('planning.index') }}" class="btn btn-secondary">← Planning</a>
+    </div>
+@else
+
+    {{-- KPIs --}}
+    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
+        @foreach([
+            ['value' => $stats['totalTasks'],        'label' => 'Total assignations',    'color' => 'text-accent'],
+            ['value' => $stats['nbPersonnes'],        'label' => 'Personnes actives',     'color' => 'text-sky-500'],
+            ['value' => $stats['moyenneTaches'],      'label' => 'Moyenne / personne',    'color' => 'text-emerald-600'],
+            ['value' => $stats['maxConsecutif'],      'label' => 'Max jours consécutifs', 'color' => 'text-amber-500'],
+            ['value' => $stats['tauxUtilisation'].'%','label' => "Taux d'utilisation",   'color' => 'text-violet-600'],
+            ['value' => $stats['totalAbsenceDays'],   'label' => "Jours d'absence",       'color' => 'text-rose-500'],
+        ] as $kpi)
+            <div class="bg-white rounded-xl border border-surface-border shadow-sm p-4 flex flex-col gap-1">
+                <div class="font-heading text-2xl font-bold {{ $kpi['color'] }}">{{ $kpi['value'] }}</div>
+                <div class="text-[11px] font-bold uppercase tracking-[0.6px] text-ink-muted">{{ $kpi['label'] }}</div>
+            </div>
+        @endforeach
     </div>
 
-    @if(empty($stats['personnes']))
-        <div class="card">
-            <div class="empty-state">
-                <div class="empty-icon">📊</div>
-                <div class="empty-title">Aucune donnée</div>
-                <div class="empty-desc">Générez d'abord un planning pour voir les statistiques.</div>
-                @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
-                    <a href="{{ route('planning.generate.form') }}" class="btn btn-primary">✨ Générer un planning</a>
-                @endif
-            </div>
-        </div>
-    @else
+    {{-- Fairness band --}}
+    <div class="relative bg-sidebar rounded-xl overflow-hidden p-6 sm:p-7 mb-5">
+        {{-- Glows --}}
+        <div class="absolute -top-14 -right-14 w-56 h-56 rounded-full bg-accent/35 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-10 left-10 w-40 h-40 rounded-full bg-sky-400/20 blur-3xl pointer-events-none"></div>
 
-        {{-- Key metrics --}}
-        <div class="stat-grid">
-            <div class="stat-card color-primary">
-                <div class="stat-value" style="color:var(--app-accent);">{{ $stats['totalTasks'] }}</div>
-                <div class="stat-label">Total assignations</div>
+        <div class="relative z-10 flex items-start justify-between mb-5 gap-4 flex-wrap">
+            <div>
+                <h2 class="font-heading text-xl font-semibold text-white mb-1">
+                    Score d'équité
+                    @if($stats['fairnessScore'] >= 90) 🏆
+                    @elseif($stats['fairnessScore'] >= 70) 👍
+                    @else ⚠️
+                    @endif
+                </h2>
+                <p class="text-[13px] text-white/50">
+                    @if($stats['fairnessScore'] >= 90) Excellent — distribution très équilibrée
+                    @elseif($stats['fairnessScore'] >= 70) Bon — quelques déséquilibres mineurs
+                    @else À améliorer — distribution déséquilibrée
+                    @endif
+                </p>
             </div>
-            <div class="stat-card color-sky">
-                <div class="stat-value" style="color:var(--sky);">{{ $stats['nbPersonnes'] }}</div>
-                <div class="stat-label">Personnes actives</div>
-            </div>
-            <div class="stat-card color-emerald">
-                <div class="stat-value" style="color:var(--emerald);">{{ $stats['moyenneTaches'] }}</div>
-                <div class="stat-label">Moyenne / personne</div>
-            </div>
-            <div class="stat-card color-amber">
-                <div class="stat-value" style="color:var(--amber);">{{ $stats['maxConsecutif'] }}</div>
-                <div class="stat-label">Max jours consécutifs</div>
-            </div>
-            <div class="stat-card color-violet">
-                <div class="stat-value" style="color:var(--violet);">{{ $stats['tauxUtilisation'] }}%</div>
-                <div class="stat-label">Taux d'utilisation</div>
-            </div>
-            <div class="stat-card color-rose">
-                <div class="stat-value" style="color:var(--rose);">{{ $stats['totalAbsenceDays'] }}</div>
-                <div class="stat-label">Jours d'absence</div>
-                <div class="stat-sub">{{ $stats['nbPersonnesAbsentes'] }} personne(s)</div>
+            <div class="text-right">
+                <div class="font-heading text-5xl font-bold text-white leading-none tracking-tight">{{ $stats['fairnessScore'] }}</div>
+                <div class="text-[11px] text-white/40 uppercase tracking-[0.8px] mt-1">/ 100</div>
             </div>
         </div>
 
-        {{-- Fairness band --}}
-        <div class="fairness-band">
-            <div class="fairness-top">
-                <div>
-                    <div class="fairness-title">
-                        Score d'équité
-                        @if($stats['fairnessScore'] >= 90) 🏆
-                        @elseif($stats['fairnessScore'] >= 70) 👍
-                        @else ⚠️
-                        @endif
-                    </div>
-                    <div class="fairness-sub">
-                        @if($stats['fairnessScore'] >= 90) Excellent — distribution très équilibrée
-                        @elseif($stats['fairnessScore'] >= 70) Bon — quelques déséquilibres mineurs
-                        @else À améliorer — distribution déséquilibrée
-                        @endif
-                    </div>
+        <div class="relative z-10 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2.5 mb-4">
+            @foreach([
+                ['label' => 'Écart-type',        'value' => $stats['ecartType'],             'sub' => 'Plus bas = meilleur'],
+                ['label' => 'Coeff. variation',  'value' => $stats['coefficientVariation'].'%','sub' => 'Écart relatif'],
+                ['label' => 'Déséq. Ven./Sam.',  'value' => $stats['desequilibreMoyen'],     'sub' => 'Moy. par personne'],
+                ['label' => 'Amana Food',         'value' => $stats['minAmanaFood'].'-'.$stats['maxAmanaFood'],'sub' => 'Moy. '.$stats['avgAmanaFood']],
+                ['label' => 'Plage distrib.',    'value' => $stats['minTaches'].'-'.$stats['maxTaches'],'sub' => 'Écart '.($stats['maxTaches']-$stats['minTaches'])],
+                ['label' => 'Jours consécutifs', 'value' => $stats['persAvecHautConsec'],    'sub' => 'Pers. > 2 jours'],
+            ] as $m)
+                <div class="bg-white/[0.06] border border-white/[0.08] rounded-lg p-3">
+                    <div class="text-[10px] font-bold uppercase tracking-[0.7px] text-white/40 mb-1.5">{{ $m['label'] }}</div>
+                    <div class="font-heading text-xl font-bold text-white leading-none">{{ $m['value'] }}</div>
+                    <div class="text-[11px] text-white/30 mt-1">{{ $m['sub'] }}</div>
                 </div>
-                <div class="fairness-score-wrap">
-                    <div class="fairness-score">{{ $stats['fairnessScore'] }}</div>
-                    <div class="fairness-score-label">/ 100</div>
-                </div>
-            </div>
-
-            <div class="fairness-metrics">
-                <div class="f-metric">
-                    <div class="f-metric-label">Écart-type</div>
-                    <div class="f-metric-value">{{ $stats['ecartType'] }}</div>
-                    <div class="f-metric-sub">Plus bas = meilleur</div>
-                </div>
-                <div class="f-metric">
-                    <div class="f-metric-label">Coeff. variation</div>
-                    <div class="f-metric-value">{{ $stats['coefficientVariation'] }}%</div>
-                    <div class="f-metric-sub">Écart relatif</div>
-                </div>
-                <div class="f-metric">
-                    <div class="f-metric-label">Déséq. Ven./Sam.</div>
-                    <div class="f-metric-value">{{ $stats['desequilibreMoyen'] }}</div>
-                    <div class="f-metric-sub">Moy. par personne</div>
-                </div>
-                <div class="f-metric">
-                    <div class="f-metric-label">Amana Food</div>
-                    <div class="f-metric-value">{{ $stats['minAmanaFood'] }}–{{ $stats['maxAmanaFood'] }}</div>
-                    <div class="f-metric-sub">Moy. {{ $stats['avgAmanaFood'] }}</div>
-                </div>
-                <div class="f-metric">
-                    <div class="f-metric-label">Plage distrib.</div>
-                    <div class="f-metric-value">{{ $stats['minTaches'] }}–{{ $stats['maxTaches'] }}</div>
-                    <div class="f-metric-sub">Écart {{ $stats['maxTaches'] - $stats['minTaches'] }}</div>
-                </div>
-                <div class="f-metric">
-                    <div class="f-metric-label">Jours consécutifs</div>
-                    <div class="f-metric-value">{{ $stats['persAvecHautConsec'] }}</div>
-                    <div class="f-metric-sub">Pers. &gt; 2 jours</div>
-                </div>
-            </div>
-
-            <div class="score-bar-wrap">
-                <div class="score-bar-bg">
-                    <div class="score-bar-fill" style="width:{{ $stats['fairnessScore'] }}%"></div>
-                </div>
-                <div class="score-bar-labels">
-                    <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
-                </div>
-            </div>
+            @endforeach
         </div>
 
-        {{-- Detail table --}}
-        <div class="card" style="margin-bottom:22px;">
-            <div class="card-header">
-                <div class="card-title">
-                    <div class="card-title-icon" style="background:var(--sky-bg);">📋</div>
-                    Détail par personne
-                </div>
+        <div class="relative z-10">
+            <div class="h-[5px] rounded-full bg-white/10 overflow-hidden mb-1.5">
+                <div class="h-full rounded-full bg-sky-400 transition-all" style="width:{{ $stats['fairnessScore'] }}%"></div>
             </div>
-            <div class="table-wrap">
-                <table class="stats-table">
-                    <thead>
-                        <tr>
-                            <th>Personne</th>
-                            <th class="col-num">Total</th>
-                            <th class="col-num">Vendredis</th>
-                            <th class="col-num">Samedis</th>
-                            <th class="col-num" style="color:#2563eb;">Entrée</th>
-                            <th class="col-num" style="color:#059669;">Mektaba</th>
-                            <th class="col-num" style="color:#d97706;">Salle</th>
-                            <th class="col-num" style="color:#e11d48;">Amana Food</th>
-                            <th class="col-num" style="color:#7c3aed;">Cours</th>
-                            <th class="col-num">Consécutifs</th>
-                            <th class="col-num">Absences</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($stats['personnes'] as $nom)
-                            @php
-                                $total = $stats['taskCounts'][$nom] ?? 0;
-                                $dc = $stats['dayCounts'][$nom] ?? ['vendredis' => 0, 'samedis' => 0];
-                                $tp = $stats['tasksByPerson'][$nom] ?? [];
-                                $consec = $stats['consecutiveDays'][$nom] ?? 0;
-                                $abs = $stats['absenceDays'][$nom] ?? 0;
-                            @endphp
-                            <tr>
-                                <td class="td-primary">{{ $nom }}</td>
-                                <td class="col-num" style="font-weight:700;color:var(--ink);">{{ $total }}</td>
-                                <td class="col-num">{{ $dc['vendredis'] }}</td>
-                                <td class="col-num">{{ $dc['samedis'] }}</td>
-                                <td class="col-num">{{ $tp['entree'] ?? 0 }}</td>
-                                <td class="col-num">{{ $tp['mektaba'] ?? 0 }}</td>
-                                <td class="col-num">{{ $tp['salle'] ?? 0 }}</td>
-                                <td class="col-num">{{ $tp['amana_food'] ?? 0 }}</td>
-                                <td class="col-num">{{ $tp['cours'] ?? 0 }}</td>
-                                <td class="col-num {{ $consec > 2 ? 'high-val' : '' }}">{{ $consec }}</td>
-                                <td class="col-num" style="color:{{ $abs > 0 ? 'var(--amber)' : 'var(--ink-faint)' }};">
-                                    {{ $abs ?: '—' }}
-                                </td>
-                            </tr>
+            <div class="flex justify-between text-[10.5px] text-white/25">
+                <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- Table détail --}}
+    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
+        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
+            <span class="font-heading text-[14px] font-semibold text-ink">Détail par personne</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-[13px]">
+                <thead>
+                    <tr>
+                        <th class="text-left px-5 py-2.5 text-[10px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 whitespace-nowrap font-body">Personne</th>
+                        @foreach([
+                            ['Total',''],['Vendredis',''],['Samedis',''],
+                            ['Entrée','text-[#2563eb]'],['Mektaba','text-[#059669]'],['Salle','text-[#d97706]'],
+                            ['Amana Food','text-[#e11d48]'],['Cours','text-[#7c3aed]'],
+                            ['Consécutifs',''],['Absences',''],
+                        ] as [$col, $cls])
+                            <th class="text-right px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 whitespace-nowrap font-body {{ $cls ?: 'text-ink-muted' }}">{{ $col }}</th>
                         @endforeach
-                    </tbody>
-                </table>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($stats['personnes'] as $nom)
+                        @php
+                            $total  = $stats['taskCounts'][$nom] ?? 0;
+                            $dc     = $stats['dayCounts'][$nom] ?? ['vendredis'=>0,'samedis'=>0];
+                            $tp     = $stats['tasksByPerson'][$nom] ?? [];
+                            $consec = $stats['consecutiveDays'][$nom] ?? 0;
+                            $abs    = $stats['absenceDays'][$nom] ?? 0;
+                        @endphp
+                        <tr class="border-b border-surface-3 last:border-0 hover:bg-surface-2 transition-colors">
+                            <td class="px-5 py-2.5 font-semibold text-ink whitespace-nowrap">{{ $nom }}</td>
+                            <td class="px-4 py-2.5 text-right font-bold text-ink">{{ $total }}</td>
+                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ $dc['vendredis'] }}</td>
+                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ $dc['samedis'] }}</td>
+                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ $tp['entree'] ?? 0 }}</td>
+                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ $tp['mektaba'] ?? 0 }}</td>
+                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ $tp['salle'] ?? 0 }}</td>
+                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ $tp['amana_food'] ?? 0 }}</td>
+                            <td class="px-4 py-2.5 text-right text-ink-muted">{{ $tp['cours'] ?? 0 }}</td>
+                            <td class="px-4 py-2.5 text-right {{ $consec > 2 ? 'text-rose-600 font-bold' : 'text-ink-muted' }}">{{ $consec }}</td>
+                            <td class="px-4 py-2.5 text-right {{ $abs > 0 ? 'text-amber-600' : 'text-ink-faint' }}">{{ $abs ?: '—' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- Explications --}}
+    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+            <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📖</div>
+            <span class="font-heading text-[14px] font-semibold text-ink">Comment lire ces statistiques</span>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                @foreach([
+                    ['📊 Total assignations', 'Nombre total de fois qu\'une personne a été assignée à une tâche. C\'est l\'indicateur brut de charge de travail.', 'Toutes les personnes devraient avoir un total proche de la moyenne.'],
+                    ['➗ Moyenne / personne', 'Nombre moyen d\'assignations par personne. Sert de référence pour évaluer si une personne est sur- ou sous-chargée.', 'Toute valeur très éloignée de '.$stats['moyenneTaches'].' signale un déséquilibre.'],
+                    ['📉 Écart-type', 'Mesure la dispersion des totaux autour de la moyenne. Plus il est faible, plus la distribution est homogène.', 'Valeur actuelle : '.$stats['ecartType'].'. En dessous de 2 = très bonne équité ; au-dessus de 4 = déséquilibre notable.'],
+                    ['📐 Coefficient de variation', 'L\'écart-type en % de la moyenne. Permet de comparer l\'équité quelle que soit la durée. En dessous de 15% = équité satisfaisante.', 'Valeur actuelle : '.$stats['coefficientVariation'].'%. Intervient directement dans le score d\'équité (−30 pts max).'],
+                    ['⚖️ Déséquilibre Ven./Sam.', 'Différence moyenne par personne entre vendredis et samedis travaillés. Proche de 0 = bonne alternance.', 'Valeur actuelle : '.$stats['desequilibreMoyen'].'.'],
+                    ['🔢 Plage de distribution', 'Fourchette entre la personne la moins et la plus assignée. Un écart faible indique une bonne équité globale.', 'Actuel : '.$stats['minTaches'].' à '.$stats['maxTaches'].' (écart de '.($stats['maxTaches']-$stats['minTaches']).').'],
+                    ['🥪 Distribution Amana Food', 'Répartition spécifique suivant une rotation stricte par cycle global. Min / Max / Moyenne indiquent à quel point le cycle est respecté.', 'Actuel : min '.$stats['minAmanaFood'].', max '.$stats['maxAmanaFood'].', moy. '.$stats['avgAmanaFood'].'. Un écart min–max ≤ 1 confirme que le cycle tourne correctement.'],
+                    ['📅 Jours consécutifs', 'Nombre maximum de créneaux consécutifs travaillés d\'affilée. Une valeur supérieure à 2 est signalée (fatigue potentielle).', 'Le score d\'équité est pénalisé de 5 pts par personne dans cette situation (−20 pts max).'],
+                    ['📈 Taux d\'utilisation', 'Pourcentage de slots effectivement assignés parmi tous les slots disponibles. Un taux bas signale des tâches non assignées.', 'Actuel : '.$stats['tauxUtilisation'].'%. En dessous de 85%, vérifier les restrictions et absences.'],
+                    ['🏆 Score d\'équité', 'Score composite sur 100 calculé à partir du coefficient de variation (−30 pts), jours consécutifs (−20 pts) et déséquilibre Ven./Sam. (−20 pts).', '90–100 = excellent · 70–89 = bon · <70 = à améliorer.'],
+                ] as [$term, $def, $ex])
+                    <div class="bg-surface-2 border border-surface-border rounded-lg p-4">
+                        <div class="font-heading text-[13px] font-semibold text-ink mb-1.5">{{ $term }}</div>
+                        <p class="text-[12.5px] text-ink-muted leading-relaxed mb-1.5">{{ $def }}</p>
+                        <p class="text-[11.5px] text-accent italic">{{ $ex }}</p>
+                    </div>
+                @endforeach
             </div>
         </div>
+    </div>
 
-        {{-- ── Explanations card ─────────────────────────────────────────── --}}
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <div class="card-title-icon" style="background:var(--violet-bg);">📖</div>
-                    Comment lire ces statistiques
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="explain-grid">
-
-                    <div class="explain-item">
-                        <div class="explain-term">📊 Total assignations</div>
-                        <div class="explain-def">
-                            Nombre total de fois qu'une personne a été assignée à une tâche sur toute la période.
-                            C'est l'indicateur brut de charge de travail.
-                        </div>
-                        <div class="explain-example">
-                            Idéalement, toutes les personnes devraient avoir un total proche de la <strong>moyenne</strong>.
-                        </div>
-                    </div>
-
-                    <div class="explain-item">
-                        <div class="explain-term">➗ Moyenne / personne</div>
-                        <div class="explain-def">
-                            Nombre moyen d'assignations par personne sur la période.
-                            Sert de référence pour évaluer si une personne est sur- ou sous-chargée.
-                        </div>
-                        <div class="explain-example">
-                            Ex : moyenne de <strong>{{ $stats['moyenneTaches'] }}</strong> — toute valeur très éloignée de ce
-                            chiffre signale un déséquilibre.
-                        </div>
-                    </div>
-
-                    <div class="explain-item">
-                        <div class="explain-term">📉 Écart-type</div>
-                        <div class="explain-def">
-                            Mesure la dispersion des totaux autour de la moyenne.
-                            <strong>Plus il est faible, plus la distribution est homogène.</strong>
-                            Un écart-type élevé indique que certaines personnes travaillent beaucoup plus que d'autres.
-                        </div>
-                        <div class="explain-example">
-                            Valeur actuelle : <strong>{{ $stats['ecartType'] }}</strong>.
-                            En dessous de 2 = très bonne équité ; au-dessus de 4 = déséquilibre notable.
-                        </div>
-                    </div>
-
-                    <div class="explain-item">
-                        <div class="explain-term">📐 Coefficient de variation</div>
-                        <div class="explain-def">
-                            L'écart-type exprimé en pourcentage de la moyenne.
-                            Permet de comparer l'équité quelle que soit la durée de la période.
-                            <strong>En dessous de 15% = équité satisfaisante.</strong>
-                        </div>
-                        <div class="explain-example">
-                            Valeur actuelle : <strong>{{ $stats['coefficientVariation'] }}%</strong>.
-                            Ce chiffre intervient directement dans le calcul du score d'équité (−30 pts max).
-                        </div>
-                    </div>
-
-                    <div class="explain-item">
-                        <div class="explain-term">⚖️ Déséquilibre Vendredi / Samedi</div>
-                        <div class="explain-def">
-                            Différence moyenne, par personne, entre le nombre de vendredis et de samedis travaillés.
-                            <strong>Proche de 0 = bonne alternance</strong> entre les deux jours.
-                        </div>
-                        <div class="explain-example">
-                            Valeur actuelle : <strong>{{ $stats['desequilibreMoyen'] }}</strong>.
-                            Une valeur de 3 signifie qu'en moyenne chaque personne a 3 jours d'écart entre ses vendredis et ses
-                            samedis.
-                        </div>
-                    </div>
-
-                    <div class="explain-item">
-                        <div class="explain-term">🔢 Plage de distribution</div>
-                        <div class="explain-def">
-                            Fourchette entre la personne la moins assignée et la plus assignée.
-                            <strong>Un écart faible indique une bonne équité globale.</strong>
-                        </div>
-                        <div class="explain-example">
-                            Actuel : <strong>{{ $stats['minTaches'] }}</strong> à <strong>{{ $stats['maxTaches'] }}</strong>
-                            (écart de {{ $stats['maxTaches'] - $stats['minTaches'] }}).
-                        </div>
-                    </div>
-
-                    <div class="explain-item">
-                        <div class="explain-term">🥪 Distribution Amana Food</div>
-                        <div class="explain-def">
-                            Répartition spécifique de la tâche Amana Food, qui suit une <strong>rotation stricte par cycle
-                                global</strong>
-                            indépendante du score d'équilibrage des autres tâches.
-                            Min / Max / Moyenne indiquent à quel point ce cycle est respecté.
-                        </div>
-                        <div class="explain-example">
-                            Actuel : min <strong>{{ $stats['minAmanaFood'] }}</strong>,
-                            max <strong>{{ $stats['maxAmanaFood'] }}</strong>,
-                            moy. <strong>{{ $stats['avgAmanaFood'] }}</strong>.
-                            Un écart min–max ≤ 1 confirme que le cycle tourne correctement.
-                        </div>
-                    </div>
-
-                    <div class="explain-item">
-                        <div class="explain-term">📅 Jours consécutifs</div>
-                        <div class="explain-def">
-                            Nombre maximum de créneaux consécutifs (vendredi + samedi comptent chacun pour 1)
-                            travaillés d'affilée par une personne.
-                            <strong>Une valeur supérieure à 2 est surlignée en rouge</strong> car elle signale une fatigue
-                            potentielle.
-                        </div>
-                        <div class="explain-example">
-                            Ex : 3 consécutifs = vendredi, samedi, vendredi suivant sans interruption.
-                            Le score d'équité est pénalisé de 5 pts par personne dans cette situation (−20 pts max).
-                        </div>
-                    </div>
-
-                    <div class="explain-item">
-                        <div class="explain-term">📈 Taux d'utilisation</div>
-                        <div class="explain-def">
-                            Pourcentage de slots de tâches effectivement assignés parmi tous les slots disponibles
-                            (nombre de créneaux × nombre de tâches actives).
-                            <strong>Un taux bas signale des tâches non assignées</strong>, souvent dû à des absences
-                            ou à un manque de membres disponibles.
-                        </div>
-                        <div class="explain-example">
-                            Actuel : <strong>{{ $stats['tauxUtilisation'] }}%</strong>.
-                            En dessous de 85%, vérifier les restrictions et les absences enregistrées.
-                        </div>
-                    </div>
-
-                    <div class="explain-item">
-                        <div class="explain-term">🏆 Score d'équité</div>
-                        <div class="explain-def">
-                            Score composite sur 100 calculé à partir de trois pénalités :
-                            <strong>coefficient de variation</strong> (−30 pts max),
-                            <strong>jours consécutifs</strong> (−20 pts max) et
-                            <strong>déséquilibre vendredi/samedi</strong> (−20 pts max).
-                            Il résume en un seul chiffre la qualité globale de la rotation.
-                        </div>
-                        <div class="explain-example">
-                            90–100 = excellent · 70–89 = bon · &lt;70 = à améliorer.
-                            Relancer la génération sur une période plus longue améliore généralement ce score.
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-    @endif
+@endif
 @endsection

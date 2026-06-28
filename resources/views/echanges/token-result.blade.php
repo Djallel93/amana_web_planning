@@ -13,157 +13,38 @@
         @endif
         — AMANA Planning
     </title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
-    <link rel="stylesheet" href="{{ asset('css/base.css') }}">
-    <style>
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: var(--surface-2);
-            padding: 24px;
-        }
-
-        .result-card {
-            background: var(--surface);
-            border-radius: 20px;
-            box-shadow: 0 8px 40px rgba(13, 17, 23, 0.1);
-            border: 1px solid var(--surface-border);
-            padding: 48px 44px;
-            max-width: 480px;
-            width: 100%;
-            text-align: center;
-        }
-
-        .result-icon {
-            font-size: 56px;
-            margin-bottom: 20px;
-            display: block;
-        }
-
-        .result-title {
-            font-family: var(--font-heading);
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 10px;
-            letter-spacing: -0.3px;
-        }
-
-        .result-sub {
-            font-size: 14.5px;
-            color: var(--ink-muted);
-            line-height: 1.7;
-            margin-bottom: 30px;
-        }
-
-        .swap-summary {
-            background: var(--surface-2);
-            border: 1px solid var(--surface-border);
-            border-radius: 12px;
-            padding: 18px 20px;
-            margin-bottom: 28px;
-            text-align: left;
-        }
-
-        .swap-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13.5px;
-            color: var(--ink-light);
-            padding: 6px 0;
-            border-bottom: 1px solid var(--surface-3);
-        }
-
-        .swap-row:last-child { border-bottom: none; }
-
-        .swap-row-label {
-            font-size: 10.5px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            color: var(--ink-muted);
-            width: 90px;
-            flex-shrink: 0;
-        }
-
-        .btn-login {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 28px;
-            background: var(--app-accent);
-            color: white;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            text-decoration: none;
-            box-shadow: 0 4px 16px rgba(3,105,161,0.3);
-            transition: all 0.18s;
-        }
-
-        .btn-login:hover {
-            background: #0284c7;
-            transform: translateY(-1px);
-        }
-
-        .amana-brand {
-            margin-bottom: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .amana-brand-logo {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            object-fit: cover;
-        }
-
-        .amana-brand-name {
-            font-family: var(--font-heading);
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--ink);
-        }
-
-        @media (max-width: 520px) {
-            .result-card { padding: 32px 20px; }
-            .result-title { font-size: 20px; }
-        }
-    </style>
+        @vite(['resources/css/app.css'])
 </head>
-<body>
-    <div class="result-card">
-        <div class="amana-brand">
-            <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="amana-brand-logo">
-            <span class="amana-brand-name">AMANA Planning</span>
+
+<body class="min-h-screen bg-surface-2 font-body antialiased flex items-center justify-center p-6">
+
+    <div class="bg-white rounded-2xl shadow-lg border border-surface-border p-10 sm:p-12 max-w-md w-full text-center">
+
+        {{-- Brand --}}
+        <div class="flex items-center justify-center gap-2.5 mb-8">
+            <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-9 h-9 rounded-lg object-cover">
+            <span class="font-heading text-[16px] font-semibold text-ink">AMANA Planning</span>
         </div>
 
         @if($success && $action === 'accepte')
-            <span class="result-icon">✅</span>
-            <div class="result-title">Échange confirmé&nbsp;!</div>
-            <div class="result-sub">
+            <div class="text-[56px] mb-5">✅</div>
+            <h1 class="font-heading text-[22px] font-bold text-ink mb-3 tracking-tight">Échange confirmé&nbsp;!</h1>
+            <p class="text-[14.5px] text-ink-muted leading-relaxed mb-6">
                 L'échange a bien été effectué. Les deux membres ont été notifiés par email
                 et leurs plannings ont été mis à jour.
-            </div>
-
+            </p>
             @if(isset($echange))
-                <div class="swap-summary">
-                    <div class="swap-row">
-                        <span class="swap-row-label">Créneau A</span>
-                        <span>
+                <div class="bg-surface-2 border border-surface-border rounded-xl p-4 mb-7 text-left">
+                    <div class="flex items-start gap-3 py-2.5 border-b border-surface-3">
+                        <span class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted w-20 flex-shrink-0 pt-0.5">Créneau A</span>
+                        <span class="text-[13.5px] text-ink-light">
                             {{ $echange->creneauDemandeur->date->locale('fr')->isoFormat('ddd D MMM YYYY') }}
                             · {{ $echange->tacheDemandeur->libelle }}
                         </span>
                     </div>
-                    <div class="swap-row">
-                        <span class="swap-row-label">Créneau B</span>
-                        <span>
+                    <div class="flex items-start gap-3 py-2.5">
+                        <span class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted w-20 flex-shrink-0 pt-0.5">Créneau B</span>
+                        <span class="text-[13.5px] text-ink-light">
                             {{ $echange->creneauCible->date->locale('fr')->isoFormat('ddd D MMM YYYY') }}
                             · {{ $echange->tacheCible->libelle }}
                         </span>
@@ -172,28 +53,31 @@
             @endif
 
         @elseif($success && $action === 'refuse')
-            <span class="result-icon">✕</span>
-            <div class="result-title">Échange refusé</div>
-            <div class="result-sub">
+            <div class="text-[56px] mb-5">✕</div>
+            <h1 class="font-heading text-[22px] font-bold text-ink mb-3 tracking-tight">Échange refusé</h1>
+            <p class="text-[14.5px] text-ink-muted leading-relaxed mb-7">
                 Vous avez refusé la demande d'échange.
                 @if(isset($echange))
-                    <strong>{{ $echange->demandeur->prenom }} {{ $echange->demandeur->nom }}</strong>
+                    <strong class="text-ink-light">{{ $echange->demandeur->prenom }} {{ $echange->demandeur->nom }}</strong>
                     a été notifié.
                 @endif
                 Votre planning reste inchangé.
-            </div>
+            </p>
 
         @else
-            <span class="result-icon">⚠️</span>
-            <div class="result-title">Lien invalide</div>
-            <div class="result-sub">
+            <div class="text-[56px] mb-5">⚠️</div>
+            <h1 class="font-heading text-[22px] font-bold text-ink mb-3 tracking-tight">Lien invalide</h1>
+            <p class="text-[14.5px] text-ink-muted leading-relaxed mb-7">
                 {{ $message ?? 'Ce lien est invalide, a déjà été utilisé, ou a expiré.' }}
-            </div>
+            </p>
         @endif
 
-        <a href="{{ $urlLogin }}" class="btn-login">
+        <a href="{{ $urlLogin }}"
+           class="inline-flex items-center justify-center gap-2 min-h-[48px] px-7 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-[14px] rounded-xl
+                  shadow-[0_4px_16px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all no-underline w-full">
             🔐 Accéder à mon planning
         </a>
     </div>
+
 </body>
 </html>

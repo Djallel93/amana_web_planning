@@ -3,185 +3,214 @@
 
 @section('title', 'Gestion des échanges — AMANA')
 
-@push('styles')
-<style>
-    .echange-row-attente { background: var(--amber-bg) !important; }
-    .echange-row-attente:hover { background: #fef3c7 !important; }
-
-    .slot-compact {
-        display: inline-flex;
-        flex-direction: column;
-        gap: 1px;
-    }
-    .slot-compact-date  { font-weight: 600; color: var(--ink); font-size: 12.5px; }
-    .slot-compact-tache { color: var(--ink-muted); font-size: 11.5px; }
-
-    .statut-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 3px 10px;
-        border-radius: 20px;
-        font-size: 11px;
-        font-weight: 700;
-        border: 1px solid;
-        white-space: nowrap;
-    }
-    .statut-en_attente { background: var(--amber-bg);   color: #92400e; border-color: var(--amber-border); }
-    .statut-accepte    { background: var(--emerald-bg); color: #065f46; border-color: var(--emerald-border); }
-    .statut-refuse     { background: var(--rose-bg);    color: #9f1239; border-color: var(--rose-border); }
-    .statut-expire     { background: var(--surface-3);  color: var(--ink-muted); border-color: var(--ink-faint); }
-    .statut-annule     { background: var(--surface-3);  color: var(--ink-muted); border-color: var(--ink-faint); }
-</style>
-@endpush
-
 @section('content')
-<div class="page-header">
-    <div class="page-header-left">
-        <div class="page-title">Gestion des échanges</div>
-        <div class="page-subtitle">Approuvez ou refusez les demandes d'échange en attente</div>
+
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="font-heading text-2xl font-semibold text-ink tracking-tight">Gestion des échanges</h1>
+        <p class="text-[13px] text-ink-muted mt-1">Approuvez ou refusez les demandes d'échange en attente</p>
     </div>
 </div>
 
 @if($nbEnAttente > 0)
-    <div class="flash flash-warning" style="margin-bottom:20px;">
+    <div class="flex items-center gap-3 px-4 py-3 mb-5 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-800">
         <span>⏳</span>
         <span>{{ $nbEnAttente }} demande{{ $nbEnAttente > 1 ? 's' : '' }} en attente de décision.</span>
     </div>
 @endif
 
-<div class="card">
-    <div class="card-header">
-        <div class="card-title">
-            <div class="card-title-icon" style="background:var(--amber-bg);">🔄</div>
-            Toutes les demandes d'échange
-        </div>
+<div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+    <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+        <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔄</div>
+        <span class="font-heading text-[14px] font-semibold text-ink">Toutes les demandes d'échange</span>
     </div>
-    <div class="table-wrap">
-        <table>
+
+    {{-- Table desktop (≥ lg) --}}
+    <div class="hidden lg:block overflow-x-auto">
+        <table class="w-full border-collapse text-[13px]">
             <thead>
                 <tr>
-                    <th>Date demande</th>
-                    <th>Demandeur</th>
-                    <th>Son créneau</th>
-                    <th style="text-align:center;">⇄</th>
-                    <th>Cible</th>
-                    <th>Créneau cible</th>
-                    <th>Statut</th>
-                    <th>Expire le</th>
-                    <th></th>
+                    @foreach(['Date', 'Demandeur', 'Son créneau', '⇄', 'Cible', 'Créneau cible', 'Statut', 'Expire le', ''] as $col)
+                        <th class="text-left px-4 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px]
+                                   bg-surface-2 border-b border-surface-3 font-body whitespace-nowrap
+                                   {{ $col === '⇄' ? 'text-center' : '' }}">
+                            {{ $col }}
+                        </th>
+                    @endforeach
                 </tr>
             </thead>
             <tbody>
                 @forelse($echanges as $echange)
-                    <tr class="{{ $echange->statut === 'en_attente' ? 'echange-row-attente' : '' }}">
-                        <td style="font-size:12px;color:var(--ink-muted);white-space:nowrap;">
+                    @php
+                        $isAttente = $echange->statut === 'en_attente';
+                        $statutConfig = [
+                            'en_attente' => ['icon' => '⏳', 'label' => 'En attente', 'badge' => 'bg-amber-50 text-amber-800 border-amber-200'],
+                            'accepte'    => ['icon' => '✅', 'label' => 'Accepté',    'badge' => 'bg-emerald-50 text-emerald-800 border-emerald-200'],
+                            'refuse'     => ['icon' => '✕',  'label' => 'Refusé',    'badge' => 'bg-rose-50 text-rose-800 border-rose-200'],
+                            'expire'     => ['icon' => '⌛', 'label' => 'Expiré',    'badge' => 'bg-surface-3 text-ink-muted border-surface-border'],
+                            'annule'     => ['icon' => '✗',  'label' => 'Annulé',    'badge' => 'bg-surface-3 text-ink-muted border-surface-border'],
+                        ];
+                        $sc = $statutConfig[$echange->statut] ?? $statutConfig['expire'];
+                    @endphp
+                    <tr class="border-b border-surface-3 last:border-0 transition-colors {{ $isAttente ? 'bg-amber-50 hover:bg-amber-100/70' : 'hover:bg-surface-2' }}">
+                        <td class="px-4 py-3 text-[12px] text-ink-muted whitespace-nowrap">
                             {{ $echange->created_at->locale('fr')->isoFormat('D MMM HH:mm') }}
                         </td>
-                        <td>
-                            <div style="font-weight:600;color:var(--ink);font-size:13px;">
-                                {{ $echange->demandeur?->prenom }} {{ $echange->demandeur?->nom }}
-                            </div>
+                        <td class="px-4 py-3 font-semibold text-ink text-[13px]">
+                            {{ $echange->demandeur?->prenom }} {{ $echange->demandeur?->nom }}
                         </td>
-                        <td>
-                            <div class="slot-compact">
-                                <span class="slot-compact-date">
+                        <td class="px-4 py-3">
+                            <div class="flex flex-col gap-0.5">
+                                <span class="font-semibold text-[12.5px] text-ink">
                                     {{ $echange->creneauDemandeur?->date?->locale('fr')->isoFormat('ddd D MMM YYYY') ?? '—' }}
                                 </span>
-                                <span class="slot-compact-tache">
-                                    {{ $echange->tacheDemandeur?->libelle ?? '—' }}
-                                </span>
+                                <span class="text-ink-muted text-[11.5px]">{{ $echange->tacheDemandeur?->libelle ?? '—' }}</span>
                             </div>
                         </td>
-                        <td style="text-align:center;color:var(--app-accent);font-size:18px;">⇄</td>
-                        <td>
-                            <div style="font-weight:600;color:var(--ink);font-size:13px;">
-                                {{ $echange->cible?->prenom }} {{ $echange->cible?->nom }}
-                            </div>
+                        <td class="px-4 py-3 text-center text-accent text-xl">⇄</td>
+                        <td class="px-4 py-3 font-semibold text-ink text-[13px]">
+                            {{ $echange->cible?->prenom }} {{ $echange->cible?->nom }}
                         </td>
-                        <td>
-                            <div class="slot-compact">
-                                <span class="slot-compact-date">
+                        <td class="px-4 py-3">
+                            <div class="flex flex-col gap-0.5">
+                                <span class="font-semibold text-[12.5px] text-ink">
                                     {{ $echange->creneauCible?->date?->locale('fr')->isoFormat('ddd D MMM YYYY') ?? '—' }}
                                 </span>
-                                <span class="slot-compact-tache">
-                                    {{ $echange->tacheCible?->libelle ?? '—' }}
-                                </span>
+                                <span class="text-ink-muted text-[11.5px]">{{ $echange->tacheCible?->libelle ?? '—' }}</span>
                             </div>
                         </td>
-                        <td>
-                            @php
-                                $labels = [
-                                    'en_attente' => ['⏳', 'En attente'],
-                                    'accepte'    => ['✅', 'Accepté'],
-                                    'refuse'     => ['✕',  'Refusé'],
-                                    'expire'     => ['⌛', 'Expiré'],
-                                    'annule'     => ['✗',  'Annulé'],
-                                ];
-                                [$icon, $label] = $labels[$echange->statut] ?? ['?', $echange->statut];
-                            @endphp
-                            <span class="statut-badge statut-{{ $echange->statut }}">
-                                {{ $icon }} {{ $label }}
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border whitespace-nowrap {{ $sc['badge'] }}">
+                                {{ $sc['icon'] }} {{ $sc['label'] }}
                             </span>
                             @if($echange->approuve_par && $echange->approbateur)
-                                <div style="font-size:11px;color:var(--ink-muted);margin-top:3px;">
-                                    par {{ $echange->approbateur->prenom }}
-                                </div>
+                                <div class="text-[11px] text-ink-muted mt-0.5">par {{ $echange->approbateur->prenom }}</div>
                             @endif
                         </td>
-                        <td style="font-size:12px;color:var(--ink-muted);white-space:nowrap;">
-                            @if($echange->statut === 'en_attente')
+                        <td class="px-4 py-3 text-[12px] text-ink-muted whitespace-nowrap">
+                            @if($isAttente)
                                 {{ $echange->expires_at->locale('fr')->isoFormat('D MMM YYYY') }}
                                 @if($echange->expires_at->isPast())
-                                    <span style="color:var(--rose);font-weight:600;"> (passée)</span>
+                                    <span class="text-rose-500 font-semibold"> (passée)</span>
                                 @endif
                             @else
                                 —
                             @endif
                         </td>
-                        <td>
-                            @if($echange->statut === 'en_attente')
-                                <div class="actions">
-                                    <form action="{{ route('admin.echanges.approuver', $echange->id) }}"
-                                        method="POST" class="form-delete"
-                                        onsubmit="return confirm('Approuver et exécuter cet échange immédiatement ?')">
+                        <td class="px-4 py-3">
+                            @if($isAttente)
+                                <div class="flex gap-1.5 flex-wrap">
+                                    <form action="{{ route('admin.echanges.approuver', $echange->id) }}" method="POST"
+                                          onsubmit="return confirm('Approuver et exécuter cet échange immédiatement ?')">
                                         @csrf
-                                        <button type="submit" class="btn btn-success btn-sm">
+                                        <button type="submit"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px]
+                                                       bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100">
                                             ✅ Approuver
                                         </button>
                                     </form>
-                                    <form action="{{ route('admin.echanges.refuser', $echange->id) }}"
-                                        method="POST" class="form-delete"
-                                        onsubmit="return confirm('Refuser cet échange ? Le demandeur sera notifié.')">
+                                    <form action="{{ route('admin.echanges.refuser', $echange->id) }}" method="POST"
+                                          onsubmit="return confirm('Refuser cet échange ? Le demandeur sera notifié.')">
                                         @csrf
-                                        <button type="submit" class="btn btn-danger btn-sm">
+                                        <button type="submit"
+                                                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px]
+                                                       bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100">
                                             ✕ Refuser
                                         </button>
                                     </form>
                                 </div>
                             @else
-                                <span style="color:var(--ink-faint);font-size:12px;">—</span>
+                                <span class="text-ink-faint text-xs">—</span>
                             @endif
                         </td>
                     </tr>
                 @empty
-                    <tr>
-                        <td colspan="9">
-                            <div class="empty-state" style="padding:36px;">
-                                <div class="empty-icon">🔄</div>
-                                <div class="empty-title">Aucune demande d'échange</div>
-                                <div class="empty-desc">Les demandes d'échange des membres apparaîtront ici.</div>
-                            </div>
-                        </td>
-                    </tr>
+                    <tr><td colspan="9">
+                        <div class="text-center py-12 px-8">
+                            <div class="text-4xl mb-2 opacity-40">🔄</div>
+                            <p class="font-heading text-sm font-semibold text-ink mb-1">Aucune demande d'échange</p>
+                            <p class="text-ink-muted text-[13px]">Les demandes apparaîtront ici.</p>
+                        </div>
+                    </td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+
+    {{-- Cartes mobile (< lg) --}}
+    <div class="lg:hidden divide-y divide-surface-3">
+        @forelse($echanges as $echange)
+            @php
+                $isAttente = $echange->statut === 'en_attente';
+                $statutConfig = [
+                    'en_attente' => ['icon' => '⏳', 'label' => 'En attente', 'card' => 'border-l-amber-400',  'badge' => 'bg-amber-50 text-amber-800 border-amber-200'],
+                    'accepte'    => ['icon' => '✅', 'label' => 'Accepté',    'card' => 'border-l-emerald-400', 'badge' => 'bg-emerald-50 text-emerald-800 border-emerald-200'],
+                    'refuse'     => ['icon' => '✕',  'label' => 'Refusé',    'card' => 'border-l-rose-400',    'badge' => 'bg-rose-50 text-rose-800 border-rose-200'],
+                    'expire'     => ['icon' => '⌛', 'label' => 'Expiré',    'card' => 'border-l-ink-faint',   'badge' => 'bg-surface-3 text-ink-muted border-surface-border'],
+                    'annule'     => ['icon' => '✗',  'label' => 'Annulé',    'card' => 'border-l-ink-faint',   'badge' => 'bg-surface-3 text-ink-muted border-surface-border'],
+                ];
+                $sc = $statutConfig[$echange->statut] ?? $statutConfig['expire'];
+            @endphp
+            <div class="px-4 py-4 border-l-[3px] {{ $sc['card'] }} {{ $isAttente ? 'bg-amber-50/60' : '' }}">
+                <div class="flex items-start justify-between gap-2 mb-2.5">
+                    <div>
+                        <p class="font-semibold text-[13px] text-ink">
+                            {{ $echange->demandeur?->prenom }} {{ $echange->demandeur?->nom }}
+                            <span class="text-ink-muted font-normal text-[12px]">→ {{ $echange->cible?->prenom }} {{ $echange->cible?->nom }}</span>
+                        </p>
+                        <p class="text-[11.5px] text-ink-muted mt-0.5">{{ $echange->created_at->locale('fr')->isoFormat('D MMM HH:mm') }}</p>
+                    </div>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border flex-shrink-0 {{ $sc['badge'] }}">
+                        {{ $sc['icon'] }} {{ $sc['label'] }}
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap p-2.5 bg-white border border-surface-border rounded-lg mb-2.5 text-[12px]">
+                    <div class="flex flex-col gap-0.5 flex-1 min-w-[110px]">
+                        <span class="font-semibold text-ink">{{ $echange->creneauDemandeur?->date?->locale('fr')->isoFormat('D MMM YYYY') ?? '—' }}</span>
+                        <span class="text-ink-muted text-[11px]">{{ $echange->tacheDemandeur?->libelle ?? '—' }}</span>
+                    </div>
+                    <span class="text-accent font-bold">⇄</span>
+                    <div class="flex flex-col gap-0.5 flex-1 min-w-[110px]">
+                        <span class="font-semibold text-ink">{{ $echange->creneauCible?->date?->locale('fr')->isoFormat('D MMM YYYY') ?? '—' }}</span>
+                        <span class="text-ink-muted text-[11px]">{{ $echange->tacheCible?->libelle ?? '—' }}</span>
+                    </div>
+                </div>
+
+                @if($isAttente)
+                    <div class="flex gap-2 flex-wrap">
+                        <form action="{{ route('admin.echanges.approuver', $echange->id) }}" method="POST"
+                              onsubmit="return confirm('Approuver cet échange ?')">
+                            @csrf
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1 px-3 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px]
+                                           bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100">
+                                ✅ Approuver
+                            </button>
+                        </form>
+                        <form action="{{ route('admin.echanges.refuser', $echange->id) }}" method="POST"
+                              onsubmit="return confirm('Refuser cet échange ?')">
+                            @csrf
+                            <button type="submit"
+                                    class="inline-flex items-center gap-1 px-3 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px]
+                                           bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100">
+                                ✕ Refuser
+                            </button>
+                        </form>
+                    </div>
+                @endif
+            </div>
+        @empty
+            <div class="text-center py-12 px-8">
+                <div class="text-4xl mb-2 opacity-40">🔄</div>
+                <p class="text-ink-muted text-[13px]">Aucune demande d'échange.</p>
+            </div>
+        @endforelse
+    </div>
+
     @if($echanges->hasPages())
-        <div style="padding:16px 22px;border-top:1px solid var(--surface-3);">
-            {{ $echanges->links() }}
-        </div>
+        <div class="px-5 py-4 border-t border-surface-3">{{ $echanges->links() }}</div>
     @endif
 </div>
+
 @endsection

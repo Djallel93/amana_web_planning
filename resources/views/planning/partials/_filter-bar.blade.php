@@ -3,62 +3,71 @@
 Variables attendues :
 $allYears, $allMonths, $currentMonth, $currentYear,
 $previousMonth, $previousMonthYear, $nextMonth, $nextMonthYear, $historique
-
-Filtre par défaut : année courante + (mois-1, mois courant, mois+1).
-Les bords janvier/décembre sont gérés via *MonthYear : si mois-1 ou mois+1
-appartient à une autre année, seul le mois de cette autre année est activé
-(pas l'année entière), afin de ne pas afficher trop de données.
 --}}
-<div class="filter-bar">
-    <span class="filter-label">Filtrer</span>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span class="filter-label" style="font-size:10px;">Année</span>
-        <div class="filter-group" id="yearFilters">
+<div class="flex flex-wrap items-center gap-2.5 px-4 py-3 mb-5 bg-white border border-surface-border rounded-xl shadow-sm">
+
+    <span class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.8px]">Filtrer</span>
+
+    {{-- Années --}}
+    <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-[9.5px] font-bold text-ink-faint uppercase tracking-[0.8px]">Année</span>
+        <div class="flex gap-1 flex-wrap" id="yearFilters">
             @foreach($allYears as $year)
-                <span class="filter-chip {{ $year === $currentYear ? 'active' : '' }}" data-type="year"
-                    data-value="{{ $year }}" onclick="toggleFilter(this)">{{ $year }}</span>
+                <span class="filter-chip px-2.5 py-1 rounded-md text-[12px] font-semibold cursor-pointer select-none transition-colors border
+                             {{ $year === $currentYear
+                                 ? 'bg-accent text-white border-accent'
+                                 : 'bg-surface-2 text-ink-muted border-surface-border hover:border-accent hover:text-accent' }}"
+                      data-type="year" data-value="{{ $year }}"
+                      onclick="toggleFilter(this)">{{ $year }}</span>
             @endforeach
         </div>
     </div>
-    <div class="filter-divider"></div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <span class="filter-label" style="font-size:10px;">Mois</span>
-        <div class="filter-group" id="monthFilters">
+
+    <div class="w-px h-5 bg-surface-border flex-shrink-0"></div>
+
+    {{-- Mois --}}
+    <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-[9.5px] font-bold text-ink-faint uppercase tracking-[0.8px]">Mois</span>
+        <div class="flex gap-1 flex-wrap" id="monthFilters">
             @foreach($allMonths as $num => $name)
-                <span class="filter-chip {{ in_array($num, [$currentMonth, $previousMonth, $nextMonth]) ? 'active' : '' }}"
-                    data-type="month" data-value="{{ $num }}" onclick="toggleFilter(this)">
-                    {{ ucfirst($name) }}
-                </span>
+                <span class="filter-chip px-2.5 py-1 rounded-md text-[12px] font-semibold cursor-pointer select-none transition-colors border
+                             {{ in_array($num, [$currentMonth, $previousMonth, $nextMonth])
+                                 ? 'bg-accent text-white border-accent'
+                                 : 'bg-surface-2 text-ink-muted border-surface-border hover:border-accent hover:text-accent' }}"
+                      data-type="month" data-value="{{ $num }}"
+                      onclick="toggleFilter(this)">{{ ucfirst($name) }}</span>
             @endforeach
         </div>
     </div>
-    <div class="filter-divider"></div>
-    <button class="filter-clear" onclick="clearFilters()">✕ Effacer</button>
+
+    <div class="w-px h-5 bg-surface-border flex-shrink-0"></div>
+
+    <button onclick="clearFilters()"
+            class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md hover:border-rose-300 hover:text-rose-500 transition-colors bg-transparent cursor-pointer min-h-[44px]">
+        ✕ Effacer
+    </button>
+
     @if(!$historique)
         <a href="{{ route('planning.index', ['historique' => 1]) }}"
-            style="font-size:12px;color:var(--ink-muted);white-space:nowrap;text-decoration:none;padding:4px 10px;border-radius:var(--radius-sm);border:1.5px solid var(--ink-faint);transition:var(--transition);"
-            onmouseover="this.style.color='var(--app-accent)';this.style.borderColor='var(--app-accent)'"
-            onmouseout="this.style.color='var(--ink-muted)';this.style.borderColor='var(--ink-faint)'">
+           class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md hover:border-accent hover:text-accent transition-colors no-underline min-h-[44px] inline-flex items-center whitespace-nowrap">
             📚 Historique complet
         </a>
     @endif
-    <span class="results-count" id="resultsCount"></span>
+
+    <span class="ml-auto text-[11.5px] text-ink-muted italic" id="resultsCount"></span>
 </div>
 
 @once
     @push('scripts')
-        <script>
-            // Fenêtre par défaut : année courante + mois-1/mois/mois+1.
-            // On stocke aussi l'année de chaque mois de bord pour que applyFilters()
-            // puisse filtrer année ET mois simultanément avec cohérence.
-            window.PlanningFilterDefaults = {
-                currentYear: {{ $currentYear }},
-                currentMonth: {{ $currentMonth }},
-                previousMonth: {{ $previousMonth }},
-                previousMonthYear: {{ $previousMonthYear }},
-                nextMonth: {{ $nextMonth }},
-                nextMonthYear: {{ $nextMonthYear }},
-            };
-        </script>
+    <script>
+        window.PlanningFilterDefaults = {
+            currentYear:        {{ $currentYear }},
+            currentMonth:       {{ $currentMonth }},
+            previousMonth:      {{ $previousMonth }},
+            previousMonthYear:  {{ $previousMonthYear }},
+            nextMonth:          {{ $nextMonth }},
+            nextMonthYear:      {{ $nextMonthYear }},
+        };
+    </script>
     @endpush
 @endonce

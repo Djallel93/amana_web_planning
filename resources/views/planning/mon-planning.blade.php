@@ -3,759 +3,314 @@
 
 @section('title', 'Mon planning — AMANA')
 
-@push('styles')
-    <style>
-        /* ── Timeline layout ── */
-        .timeline-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 28px;
-        }
-
-        .month-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
-        .month-label {
-            font-family: var(--font-heading);
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: var(--ink-muted);
-        }
-
-        .month-divider {
-            flex: 1;
-            height: 1px;
-            background: var(--surface-border);
-        }
-
-        .month-count {
-            font-size: 11px;
-            color: var(--ink-faint);
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        /* ── Cards ── */
-        .creneau-cards {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .creneau-card {
-            background: var(--surface);
-            border: 1px solid var(--surface-border);
-            border-radius: var(--radius-lg);
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            box-shadow: var(--shadow-sm);
-            transition: var(--transition);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .creneau-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
-        .creneau-card.is-future { border-left: 3px solid var(--app-accent); }
-        .creneau-card.is-past   { opacity: 0.72; }
-        .creneau-card.is-today  { border-left: 3px solid var(--emerald); background: var(--emerald-bg); }
-
-        /* Has a pending swap */
-        .creneau-card.has-echange {
-            border-left: 3px solid var(--amber);
-        }
-
-        .echange-pending-badge {
-            position: absolute;
-            top: 10px;
-            right: 14px;
-            font-size: 10.5px;
-            font-weight: 700;
-            color: #92400e;
-            background: var(--amber-bg);
-            border: 1px solid var(--amber-border);
-            padding: 2px 8px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* Left: date block */
-        .date-block {
-            flex-shrink: 0;
-            width: 56px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1px;
-        }
-
-        .date-day-num {
-            font-family: var(--font-heading);
-            font-size: 26px;
-            font-weight: 700;
-            line-height: 1;
-            color: var(--ink);
-        }
-
-        .date-month-str {
-            font-size: 10.5px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.7px;
-            color: var(--ink-muted);
-        }
-
-        .date-jour-str {
-            font-size: 10px;
-            color: var(--ink-faint);
-            margin-top: 2px;
-            font-weight: 600;
-        }
-
-        .card-sep {
-            width: 1px;
-            height: 44px;
-            background: var(--surface-3);
-            flex-shrink: 0;
-        }
-
-        /* Middle: task info */
-        .task-info {
-            flex: 1;
-            min-width: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .task-main {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-            flex-wrap: wrap;
-        }
-
-        .semaine-badge {
-            font-size: 11px;
-            color: var(--ink-muted);
-            background: var(--surface-2);
-            border: 1px solid var(--surface-border);
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-
-        .task-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .evt-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 11.5px;
-            color: var(--amber);
-            background: var(--amber-bg);
-            border: 1px solid var(--amber-border);
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-
-        /* Right: status + action col */
-        .status-col {
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 7px;
-        }
-
-        .badge-futur  { background:var(--sky-bg);    color:var(--sky);     border:1px solid var(--sky-border);     padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
-        .badge-passe  { background:var(--surface-3); color:var(--ink-faint);border:1px solid var(--ink-faint);    padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
-        .badge-today  { background:var(--emerald-bg);color:var(--emerald); border:1px solid var(--emerald-border);padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:4px; }
-
-        .btn-swap {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 12px;
-            border-radius: var(--radius-sm);
-            font-size: 11.5px;
-            font-weight: 600;
-            font-family: var(--font-body);
-            cursor: pointer;
-            border: 1.5px solid var(--app-accent);
-            color: var(--app-accent);
-            background: transparent;
-            transition: var(--transition);
-            white-space: nowrap;
-        }
-
-        .btn-swap:hover {
-            background: var(--sky-bg);
-        }
-
-        /* ── Stats strip ── */
-        .stats-strip {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 26px;
-        }
-
-        .stat-pill {
-            background: var(--surface);
-            border: 1px solid var(--surface-border);
-            border-radius: var(--radius-lg);
-            padding: 13px 18px;
-            box-shadow: var(--shadow-sm);
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            min-width: 110px;
-        }
-
-        .stat-pill-value {
-            font-family: var(--font-heading);
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--ink);
-            line-height: 1;
-        }
-
-        .stat-pill-label {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            color: var(--ink-muted);
-        }
-
-        /* ── Swap modal ── */
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background: rgba(13,17,23,0.5);
-            backdrop-filter: blur(3px);
-            -webkit-backdrop-filter: blur(3px);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.2s;
-        }
-
-        .modal-backdrop.open {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .modal {
-            background: var(--surface);
-            border-radius: var(--radius-xl);
-            box-shadow: var(--shadow-lg);
-            width: 100%;
-            max-width: 520px;
-            overflow: hidden;
-            transform: translateY(14px) scale(0.98);
-            transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
-            border: 1px solid var(--surface-border);
-        }
-
-        .modal-backdrop.open .modal {
-            transform: translateY(0) scale(1);
-        }
-
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--surface-3);
-        }
-
-        .modal-title {
-            font-family: var(--font-heading);
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--ink);
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: var(--ink-muted);
-            font-size: 18px;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: var(--radius-sm);
-            transition: var(--transition);
-            line-height: 1;
-        }
-
-        .modal-close:hover { background: var(--surface-2); color: var(--ink); }
-
-        .modal-body { padding: 20px; }
-
-        .my-slot-preview {
-            background: var(--sky-bg);
-            border: 1.5px solid var(--sky-border);
-            border-radius: var(--radius);
-            padding: 13px 16px;
-            margin-bottom: 18px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .my-slot-preview-icon {
-            font-size: 22px;
-            flex-shrink: 0;
-        }
-
-        .my-slot-info-date { font-weight: 700; color: var(--ink); font-size: 14px; }
-        .my-slot-info-tache { font-size: 12.5px; color: var(--ink-muted); margin-top: 2px; }
-
-        .slots-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 320px;
-            overflow-y: auto;
-        }
-
-        .slot-option {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 11px 14px;
-            border: 1.5px solid var(--surface-border);
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .slot-option:hover {
-            border-color: var(--app-accent);
-            background: var(--sky-bg);
-        }
-
-        .slot-option.selected {
-            border-color: var(--app-accent);
-            background: var(--sky-bg);
-            box-shadow: 0 0 0 3px var(--app-accent-glow);
-        }
-
-        .slot-option input[type="radio"] {
-            accent-color: var(--app-accent);
-            width: 15px;
-            height: 15px;
-            flex-shrink: 0;
-            -webkit-appearance: auto;
-            appearance: auto;
-        }
-
-        .slot-option-date { font-weight: 700; color: var(--ink); font-size: 13px; }
-        .slot-option-meta { font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
-
-        .slots-loading {
-            text-align: center;
-            padding: 32px;
-            color: var(--ink-muted);
-            font-size: 13.5px;
-        }
-
-        .slots-empty {
-            text-align: center;
-            padding: 28px;
-            color: var(--ink-muted);
-            font-size: 13.5px;
-            background: var(--surface-2);
-            border-radius: var(--radius);
-            border: 1px solid var(--surface-border);
-        }
-
-        .toast-container {
-            position: fixed;
-            bottom: 22px;
-            right: 22px;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            gap: 9px;
-        }
-
-        .toast {
-            background: var(--ink);
-            color: white;
-            padding: 11px 16px;
-            border-radius: var(--radius-lg);
-            font-size: 13px;
-            font-weight: 500;
-            box-shadow: var(--shadow-lg);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 240px;
-            animation: toastIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
-        }
-
-        .toast.success { border-left: 3px solid var(--emerald); }
-        .toast.error   { border-left: 3px solid var(--rose); }
-
-        @keyframes toastIn {
-            from { opacity:0; transform:translateX(16px); }
-            to   { opacity:1; transform:translateX(0); }
-        }
-        @keyframes toastOut {
-            from { opacity:1; transform:translateX(0); }
-            to   { opacity:0; transform:translateX(16px); }
-        }
-
-        @media (max-width: 600px) {
-            .creneau-card { flex-wrap: wrap; gap: 12px; }
-            .card-sep { display: none; }
-            .status-col { margin-left: auto; }
-        }
-    </style>
-@endpush
-
 @section('content')
 
-    <div class="page-header">
-        <div class="page-header-left">
-            <div class="page-title">Mon planning</div>
-            <div class="page-subtitle">Vos permanences — un an glissant + futur</div>
-        </div>
-        <div class="page-header-actions">
-            <a href="{{ route('echanges.index') }}" class="btn btn-secondary">🔄 Mes échanges</a>
-            <a href="{{ route('planning.index') }}" class="btn btn-secondary">📅 Planning complet</a>
-        </div>
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="font-heading text-2xl font-semibold text-ink tracking-tight">Mon planning</h1>
+        <p class="text-[13px] text-ink-muted mt-1">Vos permanences — un an glissant + futur</p>
     </div>
-
-    {{-- Stats strip --}}
-    <div class="stats-strip">
-        <div class="stat-pill">
-            <div class="stat-pill-value">{{ $total }}</div>
-            <div class="stat-pill-label">Total créneaux</div>
-        </div>
-        <div class="stat-pill">
-            <div class="stat-pill-value" style="color:var(--app-accent);">{{ $futures }}</div>
-            <div class="stat-pill-label">À venir</div>
-        </div>
-        @php
-            $tacheLabels = [
-                'entree'     => ['Entrée',     '🚪'],
-                'mektaba'    => ['Mektaba',    '📚'],
-                'salle'      => ['Salle',      '🏛️'],
-                'amana_food' => ['Amana Food', '🥪'],
-                'cours'      => ['Cours',      '🎓'],
-            ];
-        @endphp
-        @foreach($parTache as $code => $count)
-            @if(isset($tacheLabels[$code]))
-                <div class="stat-pill">
-                    <div class="stat-pill-value">{{ $count }}</div>
-                    <div class="stat-pill-label">{{ $tacheLabels[$code][1] }} {{ $tacheLabels[$code][0] }}</div>
-                </div>
-            @endif
-        @endforeach
+    <div class="flex flex-wrap gap-2">
+        <a href="{{ route('echanges.index') }}"
+           class="inline-flex items-center gap-1.5 px-3.5 py-2 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors no-underline min-h-[44px]">
+            🔄 Mes échanges
+        </a>
+        <a href="{{ route('planning.index') }}"
+           class="inline-flex items-center gap-1.5 px-3.5 py-2 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors no-underline min-h-[44px]">
+            📅 Planning complet
+        </a>
     </div>
+</div>
 
-    @if($parMois->isEmpty())
-        <div class="card">
-            <div class="empty-state">
-                <div class="empty-icon">📭</div>
-                <div class="empty-title">Aucune permanence</div>
-                <div class="empty-desc">
-                    Vous n'avez pas encore été assigné à des créneaux sur les 12 derniers mois.
+{{-- Stats strip --}}
+@php
+    $tachesMeta = [
+        'entree'     => ['Entrée',     '🚪'],
+        'mektaba'    => ['Mektaba',    '📚'],
+        'salle'      => ['Salle',      '🏛️'],
+        'amana_food' => ['Amana Food', '🥪'],
+        'cours'      => ['Cours',      '🎓'],
+    ];
+@endphp
+<div class="flex flex-wrap gap-2.5 mb-6">
+    <div class="bg-white border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col gap-0.5 min-w-[90px]">
+        <div class="font-heading text-2xl font-bold text-ink">{{ $total }}</div>
+        <div class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted">Total</div>
+    </div>
+    <div class="bg-white border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col gap-0.5 min-w-[90px]">
+        <div class="font-heading text-2xl font-bold text-accent">{{ $futures }}</div>
+        <div class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted">À venir</div>
+    </div>
+    @foreach($parTache as $code => $count)
+        @if(isset($tachesMeta[$code]))
+            <div class="bg-white border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col gap-0.5 min-w-[90px]">
+                <div class="font-heading text-2xl font-bold text-ink">{{ $count }}</div>
+                <div class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted">
+                    {{ $tachesMeta[$code][1] }} {{ $tachesMeta[$code][0] }}
                 </div>
             </div>
+        @endif
+    @endforeach
+</div>
+
+@if($parMois->isEmpty())
+    <div class="bg-white rounded-xl border border-surface-border shadow-sm">
+        <div class="text-center py-16 px-8">
+            <div class="text-5xl mb-3 opacity-40">📭</div>
+            <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucune permanence</h3>
+            <p class="text-ink-muted text-[13.5px]">Vous n'avez pas encore été assigné à des créneaux sur les 12 derniers mois.</p>
         </div>
-    @else
-        <div class="timeline-wrapper">
-            @foreach($parMois as $moisKey => $lignes)
-                @php
-                    $firstDate = $lignes->first()->creneau->date;
-                    $moisLabel = ucfirst($firstDate->locale('fr')->isoFormat('MMMM YYYY'));
-                @endphp
+    </div>
+@else
+    <div class="flex flex-col gap-7">
+        @foreach($parMois as $moisKey => $lignes)
+            @php
+                $firstDate = $lignes->first()->creneau->date;
+                $moisLabel = ucfirst($firstDate->locale('fr')->isoFormat('MMMM YYYY'));
+            @endphp
+            <div>
+                {{-- En-tête mois --}}
+                <div class="flex items-center gap-3 mb-3.5">
+                    <span class="font-heading text-[13px] font-bold uppercase tracking-[1.2px] text-ink-muted">{{ $moisLabel }}</span>
+                    <div class="flex-1 h-px bg-surface-border"></div>
+                    <span class="text-[11px] text-ink-faint font-semibold whitespace-nowrap">
+                        {{ $lignes->count() }} créneau{{ $lignes->count() > 1 ? 'x' : '' }}
+                    </span>
+                </div>
 
-                <div class="month-section">
-                    <div class="month-header">
-                        <div class="month-label">{{ $moisLabel }}</div>
-                        <div class="month-divider"></div>
-                        <div class="month-count">{{ $lignes->count() }} créneau{{ $lignes->count() > 1 ? 'x' : '' }}</div>
-                    </div>
+                {{-- Cartes créneaux --}}
+                <div class="flex flex-col gap-2.5">
+                    @foreach($lignes as $ligne)
+                        @php
+                            $creneau  = $ligne->creneau;
+                            $tache    = $ligne->tache;
+                            $date     = $creneau->date;
+                            $isToday  = $date->isToday();
+                            $isFuture = $date->isFuture() && !$isToday;
+                            $isPast   = $date->isPast() && !$isToday;
+                            $evtStr   = $creneau->evenements?->pluck('nom')->implode(', ');
+                            $echangeEnAttente = $echangesEnAttente->first(fn($e) =>
+                                ($e->id_creneau_demandeur === $creneau->id && $e->id_tache_demandeur === $tache?->id)
+                                || ($e->id_creneau_cible === $creneau->id && $e->id_tache_cible === $tache?->id)
+                            );
+                            $borderColor = $isToday ? 'border-l-emerald-400' : ($isFuture ? 'border-l-accent' : 'border-l-surface-3');
+                            $bgColor     = $isToday ? 'bg-emerald-50' : 'bg-white';
+                            $icons = ['entree'=>'🚪','mektaba'=>'📚','salle'=>'🏛️','amana_food'=>'🥪','cours'=>'🎓'];
+                        @endphp
 
-                    <div class="creneau-cards">
-                        @foreach($lignes as $ligne)
-                            @php
-                                $creneau = $ligne->creneau;
-                                $tache   = $ligne->tache;
-                                $date    = $creneau->date;
+                        <div class="relative flex items-center gap-4 sm:gap-5 px-4 py-3.5 {{ $bgColor }} rounded-xl border border-surface-border border-l-[3px] {{ $borderColor }} shadow-sm
+                                    {{ $isPast ? 'opacity-70' : '' }} {{ $isFuture ? 'hover:shadow transition-shadow' : '' }}">
 
-                                $isToday  = $date->isToday();
-                                $isFuture = $date->isFuture() && !$isToday;
-                                $isPast   = $date->isPast() && !$isToday;
+                            @if($echangeEnAttente)
+                                <span class="absolute top-2.5 right-3.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-50 border border-amber-200 text-amber-800">
+                                    ⏳ Échange en attente
+                                </span>
+                            @endif
 
-                                $cardClass = $isToday ? 'is-today' : ($isFuture ? 'is-future' : 'is-past');
+                            {{-- Date --}}
+                            <div class="flex-shrink-0 w-14 text-center">
+                                <div class="font-heading text-[26px] font-bold text-ink leading-none">{{ $date->format('d') }}</div>
+                                <div class="text-[10.5px] font-bold uppercase tracking-[0.7px] text-ink-muted">{{ $date->locale('fr')->isoFormat('MMM') }}</div>
+                                <div class="text-[10px] text-ink-faint font-semibold mt-0.5">{{ $creneau->jour }}</div>
+                            </div>
 
-                                $evtStr = $creneau->evenements?->pluck('nom')->implode(', ');
+                            <div class="w-px h-11 bg-surface-3 flex-shrink-0 hidden sm:block"></div>
 
-                                // Check for pending swap on this slot
-                                $echangeEnAttente = $echangesEnAttente
-                                    ->first(fn($e) =>
-                                        ($e->id_creneau_demandeur === $creneau->id && $e->id_tache_demandeur === $tache?->id)
-                                        || ($e->id_creneau_cible === $creneau->id && $e->id_tache_cible === $tache?->id)
-                                    );
-                            @endphp
+                            {{-- Infos --}}
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap mb-1">
+                                    @if($tache)
+                                        <span class="chip-{{ $tache->code }} inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-semibold">
+                                            {{ $icons[$tache->code] ?? '' }} {{ $tache->libelle }}
+                                        </span>
+                                    @endif
+                                    <span class="text-[11px] text-ink-muted bg-surface-2 border border-surface-border px-2 py-0.5 rounded-full font-semibold">
+                                        S{{ $creneau->semaine }}
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 flex-wrap text-[12px] text-ink-muted">
+                                    <span>{{ $date->locale('fr')->isoFormat('dddd D MMMM YYYY') }}</span>
+                                    @if($evtStr)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 border border-amber-200 text-amber-700">
+                                            🎉 {{ $evtStr }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
 
-                            <div class="creneau-card {{ $cardClass }} {{ $echangeEnAttente ? 'has-echange' : '' }}">
-
-                                @if($echangeEnAttente)
-                                    <div class="echange-pending-badge">⏳ Échange en attente</div>
+                            {{-- Statut + action --}}
+                            <div class="flex-shrink-0 flex flex-col items-end gap-2">
+                                @if($isToday)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">● Aujourd'hui</span>
+                                @elseif($isFuture)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-50 border border-sky-200 text-sky-700">→ À venir</span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-surface-3 border border-surface-border text-ink-muted">✓ Effectué</span>
                                 @endif
 
-                                {{-- Date block --}}
-                                <div class="date-block">
-                                    <div class="date-day-num">{{ $date->format('d') }}</div>
-                                    <div class="date-month-str">{{ $date->locale('fr')->isoFormat('MMM') }}</div>
-                                    <div class="date-jour-str">{{ $creneau->jour }}</div>
-                                </div>
-
-                                <div class="card-sep"></div>
-
-                                {{-- Task info --}}
-                                <div class="task-info">
-                                    <div class="task-main">
-                                        @if($tache)
-                                            <span class="tache-chip {{ $tache->code }}">
-                                                @php $icons = ['entree'=>'🚪','mektaba'=>'📚','salle'=>'🏛️','amana_food'=>'🥪','cours'=>'🎓']; @endphp
-                                                {{ $icons[$tache->code] ?? '' }} {{ $tache->libelle }}
-                                            </span>
-                                        @endif
-                                        <span class="semaine-badge">S{{ $creneau->semaine }}</span>
-                                    </div>
-                                    <div class="task-meta">
-                                        <span style="font-size:12px;color:var(--ink-muted);">
-                                            {{ $date->locale('fr')->isoFormat('dddd D MMMM YYYY') }}
-                                        </span>
-                                        @if($evtStr)
-                                            <span class="evt-badge">🎉 {{ $evtStr }}</span>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                {{-- Status + swap action --}}
-                                <div class="status-col">
-                                    @if($isToday)
-                                        <span class="badge-today">● Aujourd'hui</span>
-                                    @elseif($isFuture)
-                                        <span class="badge-futur">→ À venir</span>
-                                    @else
-                                        <span class="badge-passe">✓ Effectué</span>
-                                    @endif
-
-                                    {{-- Swap button: only for future slots without pending swap --}}
-                                    @if($isFuture && !$echangeEnAttente && $tache)
-                                        <button class="btn-swap"
+                                @if($isFuture && !$echangeEnAttente && $tache)
+                                    <button class="inline-flex items-center gap-1 px-3 py-1.5 border-[1.5px] border-accent text-accent hover:bg-sky-50 text-[11.5px] font-semibold rounded-lg cursor-pointer transition-colors bg-transparent min-h-[44px]"
                                             data-creneau-id="{{ $creneau->id }}"
                                             data-tache-id="{{ $tache->id }}"
                                             data-tache-libelle="{{ $tache->libelle }}"
                                             data-date="{{ $date->locale('fr')->isoFormat('dddd D MMMM YYYY') }}"
                                             onclick="openSwapModal(this)">
-                                            🔄 Échanger
-                                        </button>
-                                    @endif
-                                </div>
-
+                                        🔄 Échanger
+                                    </button>
+                                @endif
                             </div>
-                        @endforeach
-                    </div>
+                        </div>
+                    @endforeach
                 </div>
-            @endforeach
-        </div>
-    @endif
-
-    {{-- ── Swap Modal ── --}}
-    <div class="modal-backdrop" id="swapModalBackdrop" onclick="closeSwapOnBackdrop(event)">
-        <div class="modal" id="swapModal">
-            <div class="modal-header">
-                <div class="modal-title">
-                    <div style="width:28px;height:28px;background:var(--sky-bg);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">🔄</div>
-                    Demander un échange de créneau
-                </div>
-                <button class="modal-close" onclick="closeSwapModal()">×</button>
             </div>
-            <div class="modal-body">
+        @endforeach
+    </div>
+@endif
 
-                {{-- My slot preview --}}
-                <div class="my-slot-preview">
-                    <div class="my-slot-preview-icon">📅</div>
-                    <div>
-                        <div class="my-slot-info-date" id="swapMyDate">—</div>
-                        <div class="my-slot-info-tache" id="swapMyTache">—</div>
-                    </div>
+{{-- Modale échange --}}
+<div class="fixed inset-0 bg-black/45 backdrop-blur-sm z-[400] flex items-center justify-center p-4
+            opacity-0 pointer-events-none transition-opacity duration-200"
+     id="swapModalBackdrop"
+     onclick="closeSwapOnBackdrop(event)">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-md transform scale-95 transition-transform duration-200"
+         id="swapModal">
+        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔄</div>
+            <span class="font-heading text-[14px] font-semibold text-ink flex-1">Demander un échange de créneau</span>
+            <button onclick="closeSwapModal()"
+                    class="w-8 h-8 flex items-center justify-center rounded-md text-ink-muted hover:bg-surface-3 hover:text-ink transition-colors bg-transparent border-0 cursor-pointer text-lg leading-none min-h-[44px] min-w-[44px]">
+                ×
+            </button>
+        </div>
+        <div class="p-5 flex flex-col gap-4">
+            <div class="flex items-center gap-3 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg">
+                <span class="text-xl flex-shrink-0">📅</span>
+                <div>
+                    <div class="font-bold text-[13.5px] text-ink" id="swapMyDate">—</div>
+                    <div class="text-[12.5px] text-ink-muted mt-0.5" id="swapMyTache">—</div>
                 </div>
+            </div>
 
-                <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--ink-muted);margin-bottom:10px;">
-                    Choisir le créneau avec lequel échanger
-                </div>
-
+            <div>
+                <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2">Choisir le créneau avec lequel échanger</p>
                 <div id="slotsContainer">
-                    <div class="slots-loading">⏳ Chargement des créneaux disponibles…</div>
+                    <div class="text-center py-8 text-[13.5px] text-ink-muted">⏳ Chargement des créneaux disponibles…</div>
                 </div>
+            </div>
 
-                <div style="display:flex;gap:9px;margin-top:16px;">
-                    <button class="btn btn-primary" style="flex:1;justify-content:center;"
-                        id="swapConfirmBtn" onclick="submitSwap()" disabled>
-                        🔄 Envoyer la demande
-                    </button>
-                    <button class="btn btn-secondary" onclick="closeSwapModal()">Annuler</button>
-                </div>
+            <div class="flex gap-2">
+                <button id="swapConfirmBtn" onclick="submitSwap()" disabled
+                        class="flex-1 min-h-[48px] px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg
+                               shadow-[0_3px_12px_rgba(3,105,161,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5
+                               disabled:opacity-40 disabled:cursor-not-allowed">
+                    🔄 Envoyer la demande
+                </button>
+                <button onclick="closeSwapModal()"
+                        class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer bg-transparent min-h-[48px]">
+                    Annuler
+                </button>
             </div>
         </div>
     </div>
+</div>
 
-    <div class="toast-container" id="toastContainer"></div>
+<div class="fixed bottom-5 right-5 z-[500] flex flex-col gap-2 pointer-events-none" id="toastContainer"></div>
 
 @endsection
 
 @push('scripts')
 <script>
-const CSRF  = document.querySelector('meta[name="csrf-token"]').content;
-const ROUTE_SLOTS  = '{{ route("echanges.slots") }}';
-const ROUTE_STORE  = '{{ route("echanges.store") }}';
+const CSRF        = document.querySelector('meta[name="csrf-token"]').content;
+const ROUTE_SLOTS = '{{ route("echanges.slots") }}';
+const ROUTE_STORE = '{{ route("echanges.store") }}';
 
-let swapCreneauId = null;
-let swapTacheId   = null;
-let selectedSlot  = null;
+let swapCreneauId = null, swapTacheId = null, selectedSlot = null;
 
-// ── Open modal ──────────────────────────────────────────────────────────────
+function openModal()  {
+    const bd = document.getElementById('swapModalBackdrop');
+    bd.classList.remove('opacity-0','pointer-events-none');
+    bd.querySelector('#swapModal').classList.remove('scale-95');
+    bd.querySelector('#swapModal').classList.add('scale-100');
+    document.body.style.overflow = 'hidden';
+}
+function closeSwapModal() {
+    const bd = document.getElementById('swapModalBackdrop');
+    bd.classList.add('opacity-0','pointer-events-none');
+    bd.querySelector('#swapModal').classList.add('scale-95');
+    bd.querySelector('#swapModal').classList.remove('scale-100');
+    document.body.style.overflow = '';
+    swapCreneauId = swapTacheId = selectedSlot = null;
+}
+function closeSwapOnBackdrop(e) {
+    if (e.target === document.getElementById('swapModalBackdrop')) closeSwapModal();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSwapModal(); });
+
 async function openSwapModal(btn) {
     swapCreneauId = btn.dataset.creneauId;
     swapTacheId   = btn.dataset.tacheId;
     selectedSlot  = null;
-
     document.getElementById('swapMyDate').textContent  = btn.dataset.date;
     document.getElementById('swapMyTache').textContent = '🔄 Tâche : ' + btn.dataset.tacheLibelle;
     document.getElementById('swapConfirmBtn').disabled = true;
     document.getElementById('slotsContainer').innerHTML =
-        '<div class="slots-loading">⏳ Chargement des créneaux disponibles…</div>';
-
-    document.getElementById('swapModalBackdrop').classList.add('open');
-    document.body.style.overflow = 'hidden';
-
+        '<div class="text-center py-8 text-[13.5px] text-ink-muted">⏳ Chargement des créneaux disponibles…</div>';
+    openModal();
     await loadSlots();
 }
 
-function closeSwapModal() {
-    document.getElementById('swapModalBackdrop').classList.remove('open');
-    document.body.style.overflow = '';
-    swapCreneauId = null;
-    swapTacheId   = null;
-    selectedSlot  = null;
-}
-
-function closeSwapOnBackdrop(e) {
-    if (e.target === document.getElementById('swapModalBackdrop')) closeSwapModal();
-}
-
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSwapModal(); });
-
-// ── Load available slots via AJAX ────────────────────────────────────────────
 async function loadSlots() {
     try {
-        const url = ROUTE_SLOTS + '?creneau_id=' + swapCreneauId + '&tache_id=' + swapTacheId;
-        const res  = await fetch(url, {
-            headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' }
-        });
+        const url  = ROUTE_SLOTS + '?creneau_id=' + swapCreneauId + '&tache_id=' + swapTacheId;
+        const res  = await fetch(url, { headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
         const slots = await res.json();
-
         if (!slots.length) {
-            document.getElementById('slotsContainer').innerHTML = `
-                <div class="slots-empty">
-                    😕 Aucun créneau disponible pour cet échange.<br>
-                    <span style="font-size:12px;margin-top:4px;display:block;">
-                        Il faut qu'un autre membre soit assigné à la même tâche dans le futur.
-                    </span>
-                </div>`;
+            document.getElementById('slotsContainer').innerHTML =
+                '<div class="text-center py-8 px-4 text-[13.5px] text-ink-muted bg-surface-2 rounded-lg border border-surface-border">😕 Aucun créneau disponible pour cet échange.</div>';
             return;
         }
-
         const list = document.createElement('div');
-        list.className = 'slots-list';
-
+        list.className = 'flex flex-col gap-2 max-h-[280px] overflow-y-auto';
         slots.forEach((slot, i) => {
             const item = document.createElement('label');
-            item.className = 'slot-option';
+            item.className = 'flex items-center gap-3 px-4 py-3 border-[1.5px] border-surface-border rounded-lg cursor-pointer transition-colors hover:border-accent hover:bg-sky-50';
             item.innerHTML = `
                 <input type="radio" name="slot_choice" value="${i}"
-                    data-creneau-id="${slot.creneau_id}"
-                    data-tache-id="${slot.tache_id}"
-                    data-personne-id="${slot.personne_id}"
-                    onchange="onSlotSelect(this, ${JSON.stringify(slot).replace(/"/g, '&quot;')})">
-                <div style="flex:1;">
-                    <div class="slot-option-date">${slot.date_label}</div>
-                    <div class="slot-option-meta">
-                        ${slot.tache_libelle} · avec <strong>${slot.personne_nom}</strong>
-                    </div>
+                    data-creneau-id="${slot.creneau_id}" data-tache-id="${slot.tache_id}" data-personne-id="${slot.personne_id}"
+                    onchange="onSlotSelect(this, ${JSON.stringify(slot).replace(/"/g,'&quot;')})"
+                    class="w-4 h-4 accent-accent flex-shrink-0">
+                <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-[13px] text-ink">${slot.date_label}</div>
+                    <div class="text-[12px] text-ink-muted mt-0.5">${slot.tache_libelle} · avec <strong>${slot.personne_nom}</strong></div>
                 </div>`;
             list.appendChild(item);
         });
-
         document.getElementById('slotsContainer').innerHTML = '';
         document.getElementById('slotsContainer').appendChild(list);
-
-    } catch (err) {
+    } catch {
         document.getElementById('slotsContainer').innerHTML =
-            '<div class="slots-empty" style="color:var(--rose);">❌ Erreur lors du chargement.</div>';
+            '<div class="text-center py-6 text-rose-600 text-[13px]">❌ Erreur lors du chargement.</div>';
     }
 }
 
 function onSlotSelect(radio, slot) {
     selectedSlot = slot;
     document.getElementById('swapConfirmBtn').disabled = false;
-    document.querySelectorAll('.slot-option').forEach(el => el.classList.remove('selected'));
-    radio.closest('.slot-option').classList.add('selected');
+    document.querySelectorAll('#slotsContainer label').forEach(el => {
+        el.classList.toggle('border-accent', false);
+        el.classList.toggle('bg-sky-50', false);
+    });
+    radio.closest('label').classList.add('border-accent','bg-sky-50');
 }
 
-// ── Submit swap request ──────────────────────────────────────────────────────
 async function submitSwap() {
     if (!selectedSlot) return;
-
     const btn = document.getElementById('swapConfirmBtn');
-    btn.disabled = true;
-    btn.textContent = '⏳ Envoi…';
-
+    btn.disabled = true; btn.textContent = '⏳ Envoi…';
     try {
         const res = await fetch(ROUTE_STORE, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': CSRF,
-                'Accept': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
             body: JSON.stringify({
                 creneau_demandeur_id: parseInt(swapCreneauId),
                 tache_demandeur_id:   parseInt(swapTacheId),
@@ -764,37 +319,29 @@ async function submitSwap() {
                 personne_cible_id:    selectedSlot.personne_id,
             }),
         });
-
         const data = await res.json();
-
         if (data.success) {
             closeSwapModal();
             showToast(data.message, 'success');
-            // Reload after a moment so the "pending" badge appears
             setTimeout(() => window.location.reload(), 2500);
         } else {
             showToast(data.message || 'Erreur lors de la demande.', 'error');
-            btn.disabled = false;
-            btn.textContent = '🔄 Envoyer la demande';
+            btn.disabled = false; btn.textContent = '🔄 Envoyer la demande';
         }
     } catch {
         showToast('Erreur réseau.', 'error');
-        btn.disabled = false;
-        btn.textContent = '🔄 Envoyer la demande';
+        btn.disabled = false; btn.textContent = '🔄 Envoyer la demande';
     }
 }
 
-// ── Toasts ───────────────────────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
     const c = document.getElementById('toastContainer');
     const t = document.createElement('div');
-    t.className = `toast ${type}`;
+    const colorClass = type === 'success' ? 'border-l-emerald-400' : 'border-l-rose-400';
+    t.className = `pointer-events-auto flex items-center gap-2.5 bg-ink text-white px-4 py-3 rounded-xl shadow-lg border-l-[3px] ${colorClass} text-[13px] font-medium min-w-[240px]`;
     t.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span><span>${msg}</span>`;
     c.appendChild(t);
-    setTimeout(() => {
-        t.style.animation = 'toastOut 0.3s ease forwards';
-        setTimeout(() => t.remove(), 300);
-    }, 4000);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 4000);
 }
 </script>
 @endpush

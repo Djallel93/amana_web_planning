@@ -18,7 +18,7 @@
 
 | Document                                     | Description                                                                                               |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| [docs/installation.md](docs/installation.md) | Prérequis, installation locale (XAMPP), déploiement IONOS, référence des routes, résolution des problèmes |
+| [docs/installation.md](docs/installation.md) | Prérequis, installation locale, déploiement IONOS, référence des routes, résolution des problèmes |
 | [docs/Schema_bdd.md](docs/Schema_bdd.md)     | Schéma complet de la base de données, diagramme des relations, description de chaque table                |
 
 ---

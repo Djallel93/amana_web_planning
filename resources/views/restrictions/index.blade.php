@@ -3,439 +3,237 @@
 
 @section('title', 'Disponibilités — AMANA')
 
-@push('styles')
-    <style>
-        .restrictions-table th.jour-header {
-            text-align: center;
-            background: var(--app-accent);
-            color: white;
-            font-size: 12px;
-            text-transform: none;
-            letter-spacing: 0;
-            font-weight: 600;
-            padding: 10px 8px;
-        }
-
-        /* Left border separator between Vendredi and Samedi groups */
-        .restrictions-table .jour-separator {
-            border-left: 2px solid var(--app-accent) !important;
-        }
-
-        .restrictions-table th.sub-header {
-            text-align: center;
-            font-size: 10.5px;
-            padding: 7px 4px;
-            background: var(--surface-2);
-            white-space: nowrap;
-            font-weight: 700;
-            letter-spacing: 0.3px;
-        }
-
-        .restrictions-table td {
-            text-align: center;
-            padding: 9px 6px;
-        }
-
-        .restrictions-table td:first-child {
-            text-align: left;
-            padding-left: 18px;
-            font-weight: 600;
-            white-space: nowrap;
-            color: var(--ink);
-        }
-
-        .restrictions-table input[type="checkbox"] {
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-            accent-color: var(--app-accent);
-            -webkit-appearance: auto;
-            appearance: auto;
-        }
-
-        .restrictions-table input[type="checkbox"]:disabled {
-            cursor: not-allowed;
-            opacity: 0.45;
-        }
-
-        .sub-entree {
-            color: #2563eb;
-        }
-
-        .sub-mektaba {
-            color: #059669;
-        }
-
-        .sub-salle {
-            color: #d97706;
-        }
-
-        .sub-amana_food {
-            color: #e11d48;
-        }
-
-        .my-row {
-            background: var(--sky-bg) !important;
-        }
-
-        .my-row:hover {
-            background: #e0f2fe !important;
-        }
-
-        .my-row td:first-child::after {
-            content: ' (moi)';
-            font-size: 11px;
-            font-weight: 400;
-            color: var(--app-accent);
-            margin-left: 5px;
-        }
-
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 18px;
-            padding-top: 18px;
-            border-top: 1px solid var(--surface-3);
-            flex-wrap: wrap;
-        }
-
-        .hint-text {
-            margin-left: auto;
-            font-size: 12px;
-            color: var(--ink-muted);
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .hint-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .member-section {
-            background: var(--sky-bg);
-            border: 1.5px solid var(--sky-border);
-            border-radius: var(--radius-lg);
-            padding: 20px 22px;
-            margin-bottom: 22px;
-        }
-
-        .member-section-title {
-            font-family: var(--font-heading);
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--ink);
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .member-section-sub {
-            font-size: 13px;
-            color: var(--ink-muted);
-            margin-bottom: 18px;
-            line-height: 1.55;
-        }
-
-        .member-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-
-        .member-tache-card {
-            background: var(--surface);
-            border: 1.5px solid var(--surface-border);
-            border-radius: var(--radius);
-            padding: 13px 15px;
-            transition: var(--transition);
-        }
-
-        .member-tache-card:hover {
-            border-color: var(--app-accent);
-        }
-
-        .member-tache-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--ink);
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .member-tache-checks {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .member-check-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: var(--ink-light);
-            cursor: pointer;
-        }
-
-        .member-check-item input[type="checkbox"] {
-            width: 15px;
-            height: 15px;
-            accent-color: var(--app-accent);
-            cursor: pointer;
-            flex-shrink: 0;
-            -webkit-appearance: auto;
-            appearance: auto;
-        }
-
-        /* Ces .chip-* (préfixe distinct des .tache-chip.{code} de app.css)
-               sont propres à cette vue — pas de duplication, pas de retrait. */
-        .tache-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 2px 9px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .chip-entree {
-            background: #eff6ff;
-            color: #2563eb;
-        }
-
-        .chip-mektaba {
-            background: #ecfdf5;
-            color: #059669;
-        }
-
-        .chip-salle {
-            background: #fffbeb;
-            color: #d97706;
-        }
-
-        .chip-amana_food {
-            background: #fff1f2;
-            color: #e11d48;
-        }
-    </style>
-@endpush
-
 @section('content')
-    <div class="page-header">
-        <div class="page-header-left">
-            <div class="page-title">
-                {{ ($user->isAdmin() || $user->isGestionnaire()) ? 'Restrictions de disponibilité' : 'Mes disponibilités' }}
-            </div>
-            <div class="page-subtitle">Case cochée ✓ = la personne peut effectuer la tâche ce jour-là</div>
+
+{{-- En-tête page --}}
+<div class="flex flex-wrap items-start justify-between gap-4 mb-7">
+    <div>
+        <h1 class="font-heading text-2xl font-semibold text-ink tracking-tight">
+            {{ ($user->isAdmin() || $user->isGestionnaire()) ? 'Restrictions de disponibilité' : 'Mes disponibilités' }}
+        </h1>
+        <p class="text-[13px] text-ink-muted mt-1">Case cochée ✓ = la personne peut effectuer la tâche ce jour-là</p>
+    </div>
+</div>
+
+{{-- ── État vide ── --}}
+@if($personnes->isEmpty())
+    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+        <div class="text-center py-16 px-8">
+            <div class="text-5xl mb-3 opacity-40">🔒</div>
+            <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucun membre actif</h3>
+            <p class="text-ink-muted text-[13.5px] mb-6">Ajoutez des personnes avec statut "Validé" et une date de début planning.</p>
+            @if($user->isAdmin())
+                <a href="{{ route('personnes.create') }}"
+                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg transition-colors no-underline min-h-[44px]">
+                    + Ajouter une personne
+                </a>
+            @endif
         </div>
     </div>
 
-    @if($personnes->isEmpty())
-        <div class="card">
-            <div class="empty-state">
-                <div class="empty-icon">🔒</div>
-                <div class="empty-title">Aucun membre actif</div>
-                <div class="empty-desc">Ajoutez des personnes avec statut "Validé" et une date de début planning.</div>
-                @if($user->isAdmin())
-                    <a href="{{ route('personnes.create') }}" class="btn btn-primary">+ Ajouter une personne</a>
-                @endif
-            </div>
-        </div>
+{{-- ── Vue membre ── --}}
+@elseif(!$user->isAdmin() && !$user->isGestionnaire())
 
-    @elseif(!$user->isAdmin() && !$user->isGestionnaire())
+    {{-- Formulaire d'édition personnelle --}}
+    <div class="bg-sky-50 border-[1.5px] border-sky-200 rounded-xl p-5 sm:p-6 mb-5">
+        <h2 class="font-heading text-[15px] font-semibold text-ink flex items-center gap-2 mb-1">
+            🔧 Modifier mes disponibilités
+        </h2>
+        <p class="text-[13px] text-ink-muted mb-5 leading-relaxed">
+            Cochez les tâches que vous <strong class="text-ink-light">pouvez effectuer</strong> chaque jour.
+            Ces informations sont prises en compte lors de la génération du planning.
+        </p>
 
-        {{-- Member: personal edit form --}}
-        <div class="member-section">
-            <div class="member-section-title">🔧 Modifier mes disponibilités</div>
-            <div class="member-section-sub">
-                Cochez les tâches que vous <strong>pouvez effectuer</strong> chaque jour.
-                Ces informations sont prises en compte lors de la génération du planning.
-            </div>
-
-            <form action="{{ route('restrictions.update') }}" method="POST" id="memberForm">
-                @csrf
-                <div class="member-grid">
-                    @foreach($taches as $tache)
-                        <div class="member-tache-card">
-                            <div class="member-tache-title">
-                                <span class="tache-chip chip-{{ $tache->code }}">{{ $tache->libelle }}</span>
-                            </div>
-                            <div class="member-tache-checks">
-                                @foreach(['Vendredi', 'Samedi'] as $jour)
-                                    @php $autorise = $restrictionsMap[$user->id][$tache->id][$jour] ?? true; @endphp
-                                    <label class="member-check-item">
-                                        <input type="checkbox" name="checkboxes[{{ $user->id }}][{{ $tache->id }}][{{ $jour }}]"
-                                            value="1" {{ $autorise ? 'checked' : '' }}>
-                                        <span>{{ $jour }}</span>
-                                    </label>
-                                @endforeach
-                            </div>
+        <form action="{{ route('restrictions.update') }}" method="POST" id="memberForm">
+            @csrf
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                @foreach($taches as $tache)
+                    <div class="bg-white border-[1.5px] border-surface-border rounded-lg p-3.5 hover:border-accent transition-colors">
+                        <div class="text-[13px] font-bold text-ink mb-2.5 flex items-center gap-1.5">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $tache->code }}">
+                                {{ $tache->libelle }}
+                            </span>
                         </div>
-                    @endforeach
-                </div>
-                <button type="submit" class="btn btn-primary">💾 Enregistrer mes disponibilités</button>
-            </form>
+                        <div class="flex flex-col gap-2">
+                            @foreach(['Vendredi', 'Samedi'] as $jour)
+                                @php $autorise = $restrictionsMap[$user->id][$tache->id][$jour] ?? true; @endphp
+                                <label class="flex items-center gap-2 text-[13px] text-ink-light cursor-pointer min-h-[44px] sm:min-h-0">
+                                    <input type="checkbox"
+                                           name="checkboxes[{{ $user->id }}][{{ $tache->id }}][{{ $jour }}]"
+                                           value="1"
+                                           {{ $autorise ? 'checked' : '' }}
+                                           class="w-4 h-4 accent-accent cursor-pointer flex-shrink-0">
+                                    <span>{{ $jour }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg
+                           shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[44px]">
+                💾 Enregistrer mes disponibilités
+            </button>
+        </form>
+    </div>
+
+    {{-- Grille lecture seule : vue équipe --}}
+    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">👀</div>
+            <span class="font-heading text-[14px] font-semibold text-ink">Disponibilités de l'équipe</span>
         </div>
 
-        {{-- Member: read-only full grid --}}
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <div class="card-title-icon" style="background:var(--sky-bg);">👀</div>
-                    Disponibilités de l'équipe
-                </div>
-            </div>
-            <div class="card-body" style="padding:0;">
-                <div
-                    style="background:var(--sky-bg);border-bottom:1px solid var(--sky-border);padding:11px 20px;font-size:12.5px;color:#0c4a6e;display:flex;align-items:center;gap:8px;">
-                    <span>ℹ️</span>
-                    <span>Vue en lecture seule — vous pouvez consulter les disponibilités de toute l'équipe.</span>
-                </div>
-                <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-                    <table class="restrictions-table" style="min-width:680px;">
-                        <thead>
-                            <tr>
-                                <th rowspan="2"
-                                    style="vertical-align:middle;min-width:160px;text-align:left;padding-left:18px;background:var(--surface-2);">
-                                    Personne</th>
-                                @foreach(['Vendredi', 'Samedi'] as $jour)
-                                    <th colspan="{{ $taches->count() }}"
-                                        class="jour-header{{ $loop->last ? ' jour-separator' : '' }}">{{ $jour }}</th>
-                                @endforeach
-                            </tr>
-                            <tr>
-                                @foreach(['Vendredi', 'Samedi'] as $jour)
+        <div class="flex items-center gap-2 bg-sky-50 border-b border-sky-100 px-5 py-2.5 text-[12.5px] text-sky-900">
+            <span>ℹ️</span>
+            <span>Vue en lecture seule — vous pouvez consulter les disponibilités de toute l'équipe.</span>
+        </div>
+
+        {{-- Table desktop (≥ md) --}}
+        <div class="hidden md:block overflow-x-auto">
+            @include('restrictions.partials._table', [
+                'editable'   => false,
+                'formId'     => null,
+                'personnes'  => $personnes,
+                'taches'     => $taches,
+                'restrictionsMap' => $restrictionsMap,
+                'user'       => $user,
+            ])
+        </div>
+
+        {{-- Cartes mobile (< md) --}}
+        <div class="md:hidden divide-y divide-surface-3">
+            @foreach($personnes as $personne)
+                @php $isMe = $personne->id === $user->id; @endphp
+                <div class="px-4 py-3 {{ $isMe ? 'bg-sky-50' : '' }}">
+                    <div class="flex items-center gap-2.5 mb-2.5">
+                        <div class="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                            {{ strtoupper(substr($personne->prenom, 0, 1)) }}
+                        </div>
+                        <span class="font-semibold text-[13px] text-ink">
+                            {{ $personne->prenom }} {{ $personne->nom }}
+                            @if($isMe)<span class="text-[11px] font-normal text-accent ml-1">(moi)</span>@endif
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        @foreach(['Vendredi', 'Samedi'] as $jour)
+                            <div>
+                                <p class="text-[10px] font-bold text-ink-muted uppercase tracking-wide mb-1.5 px-1">{{ $jour }}</p>
+                                <div class="flex flex-col gap-1">
                                     @foreach($taches as $tache)
-                                        <th
-                                            class="sub-header sub-{{ $tache->code }}{{ ($jour === 'Samedi' && $loop->first) ? ' jour-separator' : '' }}">
-                                            {{ $tache->libelle }}</th>
-                                    @endforeach
-                                @endforeach
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($personnes as $personne)
-                                <tr class="{{ $personne->id === $user->id ? 'my-row' : '' }}">
-                                    <td>
-                                        <div style="display:flex;align-items:center;gap:9px;">
-                                            <div
-                                                style="width:26px;height:26px;background:var(--app-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;flex-shrink:0;">
-                                                {{ strtoupper(substr($personne->prenom, 0, 1)) }}
-                                            </div>
-                                            {{ $personne->prenom }} {{ $personne->nom }}
+                                        @php $autorise = $restrictionsMap[$personne->id][$tache->id][$jour] ?? true; @endphp
+                                        <div class="flex items-center gap-1.5 text-[12px] px-1">
+                                            <span class="{{ $autorise ? 'text-emerald-600' : 'text-rose-400 opacity-50' }}">
+                                                {{ $autorise ? '✓' : '✗' }}
+                                            </span>
+                                            <span class="chip-{{ $tache->code }} inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                                                {{ $tache->libelle }}
+                                            </span>
                                         </div>
-                                    </td>
-                                    @foreach(['Vendredi', 'Samedi'] as $jour)
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+{{-- ── Vue admin / gestionnaire ── --}}
+@else
+    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+        <form action="{{ route('restrictions.update') }}" method="POST" id="restrictionsForm">
+            @csrf
+
+            {{-- Table desktop (≥ md) --}}
+            <div class="hidden md:block overflow-x-auto">
+                @include('restrictions.partials._table', [
+                    'editable'   => true,
+                    'formId'     => 'restrictionsForm',
+                    'personnes'  => $personnes,
+                    'taches'     => $taches,
+                    'restrictionsMap' => $restrictionsMap,
+                    'user'       => $user,
+                ])
+            </div>
+
+            {{-- Cartes mobile éditables (< md) --}}
+            <div class="md:hidden divide-y divide-surface-3">
+                @foreach($personnes as $personne)
+                    @php $isMe = $personne->id === $user->id; @endphp
+                    <div class="px-4 py-3 {{ $isMe ? 'bg-sky-50' : '' }}">
+                        <div class="flex items-center gap-2.5 mb-3">
+                            <div class="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                                {{ strtoupper(substr($personne->prenom, 0, 1)) }}
+                            </div>
+                            <span class="font-semibold text-[13px] text-ink">
+                                {{ $personne->prenom }} {{ $personne->nom }}
+                                @if($isMe)<span class="text-[11px] font-normal text-accent ml-1">(moi)</span>@endif
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            @foreach(['Vendredi', 'Samedi'] as $jour)
+                                <div>
+                                    <p class="text-[10px] font-bold text-ink-muted uppercase tracking-wide mb-2 px-1">{{ $jour }}</p>
+                                    <div class="flex flex-col gap-1">
                                         @foreach($taches as $tache)
                                             @php $autorise = $restrictionsMap[$personne->id][$tache->id][$jour] ?? true; @endphp
-                                            <td class="{{ ($jour === 'Samedi' && $loop->first) ? 'jour-separator' : '' }}">
-                                                <input type="checkbox" {{ $autorise ? 'checked' : '' }} disabled
-                                                    title="{{ $personne->prenom }} — {{ $tache->libelle }} — {{ $jour }}">
-                                            </td>
+                                            <label class="flex items-center gap-2 min-h-[44px] sm:min-h-0 px-1 cursor-pointer">
+                                                <input type="checkbox"
+                                                       name="checkboxes[{{ $personne->id }}][{{ $tache->id }}][{{ $jour }}]"
+                                                       value="1"
+                                                       {{ $autorise ? 'checked' : '' }}
+                                                       class="w-4 h-4 accent-accent cursor-pointer flex-shrink-0">
+                                                <span class="chip-{{ $tache->code }} inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold">
+                                                    {{ $tache->libelle }}
+                                                </span>
+                                            </label>
                                         @endforeach
-                                    @endforeach
-                                </tr>
+                                    </div>
+                                </div>
                             @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-    @else
-        {{-- Admin / Gestionnaire: editable grid --}}
-        <div class="card">
-            <div class="card-body" style="padding:0;">
-                <form action="{{ route('restrictions.update') }}" method="POST" id="restrictionsForm">
-                    @csrf
-                    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-                        <table class="restrictions-table" style="min-width:680px;">
-                            <thead>
-                                <tr>
-                                    <th rowspan="2"
-                                        style="vertical-align:middle;min-width:160px;text-align:left;padding-left:18px;">
-                                        Personne</th>
-                                    @foreach(['Vendredi', 'Samedi'] as $jour)
-                                        <th colspan="{{ $taches->count() }}"
-                                            class="jour-header{{ $loop->last ? ' jour-separator' : '' }}">{{ $jour }}</th>
-                                    @endforeach
-                                </tr>
-                                <tr>
-                                    @foreach(['Vendredi', 'Samedi'] as $jour)
-                                        @foreach($taches as $tache)
-                                            <th
-                                                class="sub-header sub-{{ $tache->code }}{{ ($jour === 'Samedi' && $loop->first) ? ' jour-separator' : '' }}">
-                                                {{ $tache->libelle }}</th>
-                                        @endforeach
-                                    @endforeach
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($personnes as $personne)
-                                    <tr class="{{ $personne->id === $user->id ? 'my-row' : '' }}">
-                                        <td>
-                                            <div style="display:flex;align-items:center;gap:9px;">
-                                                <div
-                                                    style="width:26px;height:26px;background:var(--app-accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;flex-shrink:0;">
-                                                    {{ strtoupper(substr($personne->prenom, 0, 1)) }}
-                                                </div>
-                                                {{ $personne->prenom }} {{ $personne->nom }}
-                                            </div>
-                                        </td>
-                                        @foreach(['Vendredi', 'Samedi'] as $jour)
-                                            @foreach($taches as $tache)
-                                                @php $autorise = $restrictionsMap[$personne->id][$tache->id][$jour] ?? true; @endphp
-                                                <td class="{{ ($jour === 'Samedi' && $loop->first) ? 'jour-separator' : '' }}"> <input
-                                                        type="checkbox"
-                                                        name="checkboxes[{{ $personne->id }}][{{ $tache->id }}][{{ $jour }}]" value="1"
-                                                        title="{{ $personne->prenom }} — {{ $tache->libelle }} — {{ $jour }}" {{ $autorise ? 'checked' : '' }}> </td>
-                                            @endforeach
-                                        @endforeach
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div style="padding:18px 22px;">
-                        <div class="toolbar">
-                            <button type="submit" class="btn btn-primary">💾 Enregistrer toutes les restrictions</button>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAll(true)">Tout cocher</button>
-                            <button type="button" class="btn btn-ghost btn-sm" onclick="toggleAll(false)">Tout décocher</button>
-                            <div class="hint-text">
-                                <div class="hint-item">
-                                    <input type="checkbox" checked disabled
-                                        style="width:13px;height:13px;accent-color:var(--app-accent);-webkit-appearance:auto;appearance:auto;">
-                                    <span>Disponible</span>
-                                </div>
-                                <div class="hint-item">
-                                    <input type="checkbox" disabled
-                                        style="width:13px;height:13px;-webkit-appearance:auto;appearance:auto;">
-                                    <span>Indisponible</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
-                </form>
+                @endforeach
             </div>
-        </div>
-    @endif
+
+            {{-- Toolbar --}}
+            <div class="flex flex-wrap items-center gap-2.5 px-5 py-4 border-t border-surface-3">
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg
+                               shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[44px]">
+                    💾 Enregistrer toutes les restrictions
+                </button>
+                <button type="button" onclick="toggleAll(true)"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-xs font-semibold rounded-lg transition-colors cursor-pointer bg-transparent min-h-[44px]">
+                    Tout cocher
+                </button>
+                <button type="button" onclick="toggleAll(false)"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-xs font-semibold rounded-lg transition-colors cursor-pointer bg-transparent min-h-[44px]">
+                    Tout décocher
+                </button>
+                <div class="ml-auto flex items-center gap-4 text-[12px] text-ink-muted">
+                    <div class="flex items-center gap-1.5">
+                        <input type="checkbox" checked disabled class="w-3.5 h-3.5 accent-accent"> Disponible
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <input type="checkbox" disabled class="w-3.5 h-3.5"> Indisponible
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+@endif
+
 @endsection
 
 @push('scripts')
-    <script>
-        function toggleAll(state) {
-            document.querySelectorAll('#restrictionsForm input[type="checkbox"]')
-                .forEach(cb => cb.checked = state);
-        }
-    </script>
+<script>
+    function toggleAll(state) {
+        document.querySelectorAll('#restrictionsForm input[type="checkbox"]')
+            .forEach(cb => cb.checked = state);
+    }
+</script>
 @endpush

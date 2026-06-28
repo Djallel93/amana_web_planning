@@ -1,4 +1,8 @@
-{{-- resources/views/layouts/partials/head.blade.php --}}
+{{-- resources/views/partials/head.blade.php --}}
+{{--
+    Head partagé (alias de layouts/partials/head.blade.php).
+    CSS compilé via Vite + Tailwind.
+--}}
 
 <head>
     <meta charset="UTF-8">
@@ -6,12 +10,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'AMANA Planning')</title>
 
-    {{-- ── Normalize.css ── --}}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
-
-    {{-- ── Styles partagés + layout principal ── --}}
-    <link rel="stylesheet" href="{{ asset('css/base.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+    @vite(['resources/css/app.css'])
 
     @stack('styles')
 </head>
