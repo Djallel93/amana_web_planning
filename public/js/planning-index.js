@@ -248,8 +248,13 @@ function updateCell(td, personne) {
     const code = td.dataset.tacheCode;
     const chip = document.getElementById(`chip-${td.dataset.creneauId}-${code}`);
     if (!chip) return;
-    if (personne) { chip.className = `tache-chip ${code}`; chip.textContent = personne.label; }
-    else { chip.className = 'tache-vide'; chip.textContent = '—'; }
+    if (personne) {
+        chip.className = `chip-${code} inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold`;
+        chip.textContent = personne.label;
+    } else {
+        chip.className = 'tache-vide text-ink-faint italic text-xs';
+        chip.textContent = '—';
+    }
 }
 
 function checkEmptyWeeks() {

@@ -48,12 +48,12 @@
                         {{-- Toggle switch en Tailwind pur --}}
                         <label class="relative inline-flex items-center cursor-pointer min-h-[44px]">
                             <input type="checkbox"
-                                   name="settings[inscription_ouverte]"
-                                   value="1"
-                                   id="inscriptionToggle"
-                                   {{ $io['valeur'] ? 'checked' : '' }}
-                                   onchange="updateInscriptionStatus(this)"
-                                   class="sr-only peer">
+                                name="settings[inscription_ouverte]"
+                                value="1"
+                                id="inscriptionToggle"
+                                {{ $io['valeur'] ? 'checked' : '' }}
+                                onchange="updateInscriptionStatus(this)"
+                                class="sr-only peer">
                             <div class="w-12 h-6 bg-ink-faint peer-checked:bg-emerald-500 rounded-full relative transition-colors duration-200
                                         after:content-[''] after:absolute after:top-[3px] after:left-[3px]
                                         after:bg-white after:rounded-full after:w-[18px] after:h-[18px]
@@ -120,12 +120,12 @@
                             {{ $hc['libelle'] }} <span class="text-rose-500">*</span>
                         </label>
                         <input type="time"
-                               id="heure_cours"
-                               name="settings[heure_cours]"
-                               value="{{ $hc['valeur_raw'] }}"
-                               required
-                               class="w-full max-w-[160px] px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                      focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                            id="heure_cours"
+                            name="settings[heure_cours]"
+                            value="{{ $hc['valeur_raw'] }}"
+                            required
+                            class="w-full max-w-[160px] px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                    focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         <span class="text-[11.5px] text-ink-muted">Format 24h — ex : 20:00</span>
                     </div>
                 @endif
@@ -137,13 +137,13 @@
                             {{ $lieu['libelle'] }} <span class="text-rose-500">*</span>
                         </label>
                         <input type="text"
-                               id="lieu"
-                               name="settings[lieu]"
-                               value="{{ $lieu['valeur_raw'] }}"
-                               maxlength="500"
-                               placeholder="Adresse complète"
-                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                      focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                            id="lieu"
+                            name="settings[lieu]"
+                            value="{{ $lieu['valeur_raw'] }}"
+                            maxlength="500"
+                            placeholder="Adresse complète"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                    focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         <span class="text-[11.5px] text-ink-muted">Adresse envoyée dans les événements Google Calendar</span>
                     </div>
                 @endif
@@ -155,7 +155,7 @@
     {{-- ═══════════════════════════════════════
         SECTION 3 — Calendriers Google Calendar
     ════════════════════════════════════════ --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
+    <div class="bg-white rounded-xl border border-surface-border shadow-sm mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Calendriers Google Calendar</span>
@@ -191,9 +191,9 @@
                                 </span>
                             </label>
                             <input type="hidden"
-                                   id="{{ $cle }}"
-                                   name="settings[{{ $cle }}]"
-                                   value="{{ $cal['valeur_raw'] }}">
+                                id="{{ $cle }}"
+                                name="settings[{{ $cle }}]"
+                                value="{{ $cal['valeur_raw'] }}">
                             <div style="position:relative;margin-top:2px;">
                                 <button type="button"
                                         id="{{ $cle }}_trigger"
@@ -284,13 +284,13 @@
                             <label class="text-[10.5px] font-bold text-ink-muted uppercase tracking-wide">Début (min)</label>
                             @if($groupe['debut'])
                                 <input type="number"
-                                       name="settings[{{ $groupe['debut']['cle'] }}]"
-                                       value="{{ $groupe['debut']['valeur_raw'] }}"
-                                       step="1" min="-999" max="999"
-                                       {{ $isSandwich ? 'disabled' : '' }}
-                                       class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
-                                              focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
-                                              disabled:opacity-50 disabled:cursor-not-allowed">
+                                    name="settings[{{ $groupe['debut']['cle'] }}]"
+                                    value="{{ $groupe['debut']['valeur_raw'] }}"
+                                    step="1" min="-999" max="999"
+                                    {{ $isSandwich ? 'disabled' : '' }}
+                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
+                                            focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                            disabled:opacity-50 disabled:cursor-not-allowed">
                                 @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
                             @else
                                 <span class="text-ink-faint text-sm">—</span>
@@ -300,13 +300,13 @@
                             <label class="text-[10.5px] font-bold text-ink-muted uppercase tracking-wide">Fin (min)</label>
                             @if($groupe['fin'])
                                 <input type="number"
-                                       name="settings[{{ $groupe['fin']['cle'] }}]"
-                                       value="{{ $groupe['fin']['valeur_raw'] }}"
-                                       step="1" min="-999" max="999"
-                                       {{ $isSandwich ? 'disabled' : '' }}
-                                       class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
-                                              focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
-                                              disabled:opacity-50 disabled:cursor-not-allowed">
+                                    name="settings[{{ $groupe['fin']['cle'] }}]"
+                                    value="{{ $groupe['fin']['valeur_raw'] }}"
+                                    step="1" min="-999" max="999"
+                                    {{ $isSandwich ? 'disabled' : '' }}
+                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
+                                            focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                            disabled:opacity-50 disabled:cursor-not-allowed">
                                 @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
                             @else
                                 <span class="text-ink-faint text-sm">—</span>
@@ -322,12 +322,12 @@
     <div class="flex flex-wrap gap-3 items-center">
         <button type="submit"
                 class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-[13.5px] rounded-lg
-                       shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
-                       hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[48px]">
+                    shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
+                    hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[48px]">
             💾 Enregistrer les paramètres
         </button>
         <a href="{{ route('planning.index') }}"
-           class="inline-flex items-center gap-2 px-6 py-3 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink font-semibold text-[13.5px] rounded-lg transition-colors no-underline min-h-[48px]">
+            class="inline-flex items-center gap-2 px-6 py-3 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink font-semibold text-[13.5px] rounded-lg transition-colors no-underline min-h-[48px]">
             Annuler
         </a>
     </div>
@@ -359,8 +359,8 @@ function updateInscriptionStatus(checkbox) {
             const finEl   = document.querySelector('[name="' + span.dataset.finInput + '"]');
             if (!debutEl || !finEl) return;
             span.textContent = addMinutes(heureCours, parseInt(debutEl.value, 10) || 0)
-                             + ' → '
-                             + addMinutes(heureCours, parseInt(finEl.value,   10) || 0);
+                + ' → '
+                + addMinutes(heureCours, parseInt(finEl.value,   10) || 0);
         });
     }
 
