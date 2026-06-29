@@ -23,8 +23,9 @@
 </div>
 
 {{-- ── Sidebar ── --}}
-<aside id="mainSidebar" class="w-sidebar min-h-screen bg-sidebar flex flex-col fixed top-0 left-0 bottom-0 z-[200] overflow-hidden transition-transform duration-300
-            max-sm:-translate-x-full max-sm:top-0" aria-label="Navigation principale">
+<aside id="mainSidebar"
+    class="w-sidebar min-h-screen bg-sidebar flex flex-col fixed top-0 left-0 bottom-0 z-[200] overflow-hidden sidebar-hidden"
+    aria-label="Navigation principale">
 
     {{-- Brand --}}
     <div class="px-5 py-[22px] pb-[18px] border-b border-white/[0.06] relative z-10">
@@ -47,19 +48,19 @@
             @if(auth()->user()->isAdmin())
                 <div
                     class="mx-1 mb-2.5 px-[11px] py-[7px] rounded-sm text-[11px] font-semibold flex items-center gap-1.5
-                                                                                bg-rose-500/[0.14] text-rose-300 border border-rose-500/[0.22]">
+                                                                                        bg-rose-500/[0.14] text-rose-300 border border-rose-500/[0.22]">
                     🛡️ Administrateur
                 </div>
             @elseif(auth()->user()->isGestionnaire())
                 <div
                     class="mx-1 mb-2.5 px-[11px] py-[7px] rounded-sm text-[11px] font-semibold flex items-center gap-1.5
-                                                                                bg-amber-500/[0.14] text-amber-300 border border-amber-500/[0.22]">
+                                                                                        bg-amber-500/[0.14] text-amber-300 border border-amber-500/[0.22]">
                     ⚙️ Gestionnaire
                 </div>
             @else
                 <div
                     class="mx-1 mb-2.5 px-[11px] py-[7px] rounded-sm text-[11px] font-semibold flex items-center gap-1.5
-                                                                                bg-sky-500/[0.14] text-sky-300 border border-sky-500/[0.22]">
+                                                                                        bg-sky-500/[0.14] text-sky-300 border border-sky-500/[0.22]">
                     👤 Membre
                 </div>
             @endif
@@ -145,7 +146,7 @@
 
                 <a href="{{ route('planning.generate.form') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                {{ request()->routeIs('planning.generate*') || request()->routeIs('planning.preview') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                        {{ request()->routeIs('planning.generate*') || request()->routeIs('planning.preview') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">✨</span>
                     <span class="flex-1">Générer</span>
@@ -153,7 +154,7 @@
 
                 <a href="{{ route('evenements.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                {{ request()->routeIs('evenements.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                        {{ request()->routeIs('evenements.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">🎉</span>
                     <span class="flex-1">Événements</span>
@@ -162,7 +163,7 @@
                 @php $nbEchangesAdmin = \App\Models\Echange::enAttente()->count(); @endphp
                 <a href="{{ route('admin.echanges.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                {{ request()->routeIs('admin.echanges.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                        {{ request()->routeIs('admin.echanges.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">🔄</span>
                     <span class="flex-1">Échanges</span>
@@ -176,7 +177,7 @@
                 @if(Route::has('settings.index'))
                     <a href="{{ route('settings.index') }}"
                         class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                {{ request()->routeIs('settings.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                            {{ request()->routeIs('settings.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                         onclick="closeSidebar()">
                         <span class="text-sm w-[18px] text-center flex-shrink-0">⚙️</span>
                         <span class="flex-1">Paramètres</span>
@@ -192,7 +193,7 @@
 
                 <a href="{{ route('personnes.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                {{ request()->routeIs('personnes.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                        {{ request()->routeIs('personnes.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">👥</span>
                     <span class="flex-1">Personnes</span>
@@ -201,7 +202,7 @@
                 @php $nbCandidatures = \App\Models\Personne::enAttente()->count(); @endphp
                 <a href="{{ route('admin.candidatures.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                {{ request()->routeIs('admin.candidatures*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                        {{ request()->routeIs('admin.candidatures*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">📥</span>
                     <span class="flex-1">Candidatures</span>
@@ -214,7 +215,7 @@
 
                 <a href="{{ route('diagnostic.mail.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                            {{ request()->routeIs('diagnostic.mail.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                    {{ request()->routeIs('diagnostic.mail.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">🔧</span>
                     <span class="flex-1">Diagnostic SMTP</span>

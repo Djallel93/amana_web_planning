@@ -9,7 +9,8 @@
     @include('layouts.partials.sidebar')
 
     {{-- ── Contenu principal ── --}}
-    <div id="mainWrapper" class="flex-1 flex flex-col min-w-0 ml-sidebar transition-all duration-300 max-sm:ml-0 max-sm:pt-topbar">
+    <div id="mainWrapper"
+        class="flex-1 flex flex-col min-w-0 ml-sidebar transition-all duration-300 max-sm:ml-0 max-sm:pt-topbar">
         <main class="flex-1 p-8 max-w-screen-xl w-full max-lg:p-7 max-sm:px-4 max-sm:py-5">
 
             @include('layouts.partials.flash')
@@ -21,12 +22,14 @@
 
     {{-- ── Script sidebar mobile ── --}}
     <script>
-        const sidebar  = document.getElementById('mainSidebar');
-        const overlay  = document.getElementById('sidebarOverlay');
+        const sidebar = document.getElementById('mainSidebar');
+        const overlay = document.getElementById('sidebarOverlay');
         const hamburger = document.getElementById('hamburgerBtn');
 
+        function isMobile() { return window.innerWidth < 640; }
+
         function openSidebar() {
-            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.remove('sidebar-hidden');
             sidebar.classList.add('shadow-lg');
             overlay.classList.remove('opacity-0', 'pointer-events-none');
             overlay.classList.add('opacity-100');
@@ -36,7 +39,9 @@
         }
 
         function closeSidebar() {
-            sidebar.classList.add('-translate-x-full');
+            // Sur desktop la sidebar est toujours visible — ne rien faire
+            if (!isMobile()) return;
+            sidebar.classList.add('sidebar-hidden');
             sidebar.classList.remove('shadow-lg');
             overlay.classList.add('opacity-0', 'pointer-events-none');
             overlay.classList.remove('opacity-100');
@@ -46,15 +51,16 @@
         }
 
         function toggleSidebar() {
-            sidebar.classList.contains('-translate-x-full') ? openSidebar() : closeSidebar();
+            sidebar.classList.contains('sidebar-hidden') ? openSidebar() : closeSidebar();
         }
 
         hamburger.addEventListener('click', toggleSidebar);
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
-        window.addEventListener('resize', () => { if (window.innerWidth > 640) closeSidebar(); });
+        window.addEventListener('resize', () => { if (!isMobile()) closeSidebar(); });
     </script>
 
     @stack('scripts')
 
 </body>
+
 </html>
