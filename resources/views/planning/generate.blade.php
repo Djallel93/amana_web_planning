@@ -5,6 +5,13 @@
 
 @section('content')
 
+{{--
+    Point de montage GeneratePreview.vue — gère l'aperçu de génération,
+    le spinner du bouton submit, le formulaire d'aperçu caché, et toutes
+    les interactions du panneau de rollback (type, checklist, confirmations).
+--}}
+<div id="vue-generate-preview"></div>
+
 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
     <div>
         <h1 class="font-heading text-2xl font-semibold text-ink tracking-tight">Générer le planning</h1>
@@ -246,71 +253,7 @@
 
 @endsection
 
-@push('scripts')
-<script>
-function updatePreview() {
-    const d  = document.getElementById('date_debut').value;
-    const s  = parseInt(document.getElementById('semaines').value) || 0;
-    const el = document.getElementById('previewText');
-    if (!d || s < 1) { el.textContent = 'Remplissez les champs pour voir l\'aperçu'; return; }
-    const dt = new Date(d + 'T00:00:00');
-    while (dt.getDay() !== 5) dt.setDate(dt.getDate() + 1);
-    const fin = new Date(dt);
-    fin.setDate(fin.getDate() + (s - 1) * 7 + 1);
-    const fmt = d => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-    el.innerHTML = `<strong>${s * 2} créneaux</strong> (${s} vendredis + ${s} samedis) du <strong>${fmt(dt)}</strong> au <strong>${fmt(fin)}</strong>`;
-}
-
-document.getElementById('date_debut').addEventListener('change', updatePreview);
-document.getElementById('semaines').addEventListener('input', updatePreview);
-updatePreview();
-
-document.getElementById('generateForm').addEventListener('submit', function () {
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Génération en cours…';
-    btn.style.opacity = '0.75';
-});
-
-function submitPreview() {
-    const dateDebut = document.getElementById('date_debut').value;
-    const semaines  = document.getElementById('semaines').value;
-    if (!dateDebut || !semaines || parseInt(semaines) < 1) {
-        alert('Veuillez remplir la date et le nombre de semaines avant de prévisualiser.');
-        return;
-    }
-    document.getElementById('preview_date_debut').value = dateDebut;
-    document.getElementById('preview_semaines').value   = semaines;
-    const btn = document.getElementById('previewBtn');
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Calcul en cours…';
-    btn.style.opacity = '0.75';
-    document.getElementById('previewForm').submit();
-}
-
-function onRollbackTypeChange(radio) {
-    const checklist = document.getElementById('weekChecklist');
-    document.getElementById('opt-total').className   = radio.value === 'total'
-        ? 'rollback-opt border-[1.5px] border-accent bg-sky-50 rounded-lg p-3.5 cursor-pointer transition-colors'
-        : 'rollback-opt border-[1.5px] border-surface-border rounded-lg p-3.5 cursor-pointer transition-colors hover:border-amber-300 hover:bg-amber-50';
-    document.getElementById('opt-partial').className = radio.value === 'partial'
-        ? 'rollback-opt border-[1.5px] border-accent bg-sky-50 rounded-lg p-3.5 cursor-pointer transition-colors'
-        : 'rollback-opt border-[1.5px] border-surface-border rounded-lg p-3.5 cursor-pointer transition-colors hover:border-amber-300 hover:bg-amber-50';
-    checklist.classList.toggle('hidden', radio.value !== 'partial');
-}
-
-function checkAll(state) {
-    document.querySelectorAll('#weekChecklist input[type="checkbox"]').forEach(cb => cb.checked = state);
-}
-
-function confirmRollback() {
-    const type = document.querySelector('input[name="rollback_type"]:checked')?.value;
-    if (type === 'partial') {
-        const checked = document.querySelectorAll('#weekChecklist input[type="checkbox"]:checked').length;
-        if (checked === 0) { alert('Sélectionnez au moins une semaine.'); return false; }
-        return confirm(`Supprimer ${checked} semaine(s) sélectionnée(s) ?`);
-    }
-    return confirm('Annuler toute la génération ? Cette action est irréversible.');
-}
-</script>
-@endpush
+{{--
+    Aucun script inline ici désormais — tout est géré par GeneratePreview.vue
+    (aperçu, soumission, et interactions du panneau de rollback).
+--}}

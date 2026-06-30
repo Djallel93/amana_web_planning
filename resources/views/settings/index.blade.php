@@ -13,6 +13,13 @@
     </div>
 </div>
 
+{{--
+    Point de montage HoraireSettings.vue — gère le label du toggle
+    inscription et les previews d'horaires calculées en live.
+    Invisible, n'affecte pas le layout.
+--}}
+<div id="vue-horaire-settings"></div>
+
 <form action="{{ route('settings.update') }}" method="POST" id="settingsForm">
     @csrf
 
@@ -52,7 +59,6 @@
                                 value="1"
                                 id="inscriptionToggle"
                                 {{ $io['valeur'] ? 'checked' : '' }}
-                                onchange="updateInscriptionStatus(this)"
                                 class="sr-only peer">
                             <div class="w-12 h-6 bg-ink-faint peer-checked:bg-emerald-500 rounded-full relative transition-colors duration-200
                                         after:content-[''] after:absolute after:top-[3px] after:left-[3px]
@@ -190,21 +196,20 @@
                                     {{ $meta['libelle'] }}
                                 </span>
                             </label>
-                            <input type="hidden"
-                                id="{{ $cle }}"
-                                name="settings[{{ $cle }}]"
-                                value="{{ $cal['valeur_raw'] }}">
-                            <div style="position:relative;margin-top:2px;">
-                                <button type="button"
-                                        id="{{ $cle }}_trigger"
-                                        class="cs-trigger"
-                                        aria-haspopup="listbox">
-                                    <span class="cs-trigger-text {{ $cal['valeur_raw'] ? '' : 'placeholder' }}">
-                                        {{ $cal['valeur_raw'] ?: 'Sélectionner…' }}
-                                    </span>
-                                    <span class="cs-trigger-arrow">▼</span>
-                                </button>
-                            </div>
+                            {{--
+                                Point de montage SearchableSelect.vue.
+                                Le composant crée lui-même son <input type="hidden">
+                                via le prop inputName — pas besoin d'en déclarer un ici.
+                            --}}
+                            <div
+                                data-searchable-select
+                                data-api-url="{{ route('calendriers.index') }}"
+                                data-input-name="settings[{{ $cle }}]"
+                                data-input-id="{{ $cle }}_vue"
+                                data-current-value="{{ addslashes($cal['valeur_raw']) }}"
+                                data-placeholder="Sélectionner…"
+                                style="margin-top:2px;"
+                            ></div>
                         </div>
                     @endif
                 @endforeach
@@ -335,54 +340,8 @@
 </form>
 @endsection
 
-@push('scripts')
-<script>
-function updateInscriptionStatus(checkbox) {
-    const label = document.getElementById('inscriptionLabel');
-    if (label) {
-        label.textContent = checkbox.checked ? '✅ Inscriptions ouvertes' : '🔒 Inscriptions fermées';
-    }
-}
-
-(function () {
-    function addMinutes(hhmm, minutes) {
-        const [h, m] = hhmm.split(':').map(Number);
-        const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440;
-        return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
-    }
-
-    function updatePreviews() {
-        const heureCoursInput = document.getElementById('heure_cours');
-        const heureCours = heureCoursInput ? heureCoursInput.value : '20:00';
-        document.querySelectorAll('.horaire-preview').forEach(function (span) {
-            const debutEl = document.querySelector('[name="' + span.dataset.debutInput + '"]');
-            const finEl   = document.querySelector('[name="' + span.dataset.finInput + '"]');
-            if (!debutEl || !finEl) return;
-            span.textContent = addMinutes(heureCours, parseInt(debutEl.value, 10) || 0)
-                + ' → '
-                + addMinutes(heureCours, parseInt(finEl.value,   10) || 0);
-        });
-    }
-
-    document.getElementById('settingsForm').addEventListener('input', updatePreviews);
-})();
-</script>
-
-<script src="{{ asset('js/calendar-select.js') }}"></script>
-<script>
-(function () {
-    const apiUrl = '{{ route("calendriers.index") }}';
-    @foreach($calendarChips as $cle => $meta)
-        @if(isset($calendriers[$cle]))
-            @php $cal = $calendriers[$cle]; @endphp
-            CalendarSelect.init({
-                inputId      : '{{ $cle }}',
-                triggerId    : '{{ $cle }}_trigger',
-                apiUrl       : apiUrl,
-                currentValue : '{{ addslashes($cal['valeur_raw']) }}',
-            });
-        @endif
-    @endforeach
-})();
-</script>
-@endpush
+{{--
+    Aucun script inline ici désormais :
+      - le toggle inscription + previews horaires → HoraireSettings.vue
+      - les sélecteurs calendrier              → SearchableSelect.vue (data-searchable-select)
+--}}

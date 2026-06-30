@@ -1,7 +1,7 @@
 /*
  * public/css/custom.css
  * Styles résiduels non couverts par Tailwind utilitaire.
- * Chargé après le CDN Tailwind Play dans partials/head.blade.php.
+ * Importé dans resources/css/app.css, compilé par Vite.
  *
  * Contient uniquement :
  *  - Animations @keyframes

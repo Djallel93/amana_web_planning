@@ -97,16 +97,18 @@
 
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-bold text-ink tracking-[0.2px]">Nom du calendrier Google Calendar</label>
-                    <input type="hidden" id="calendar_name" name="calendar_name"
-                           value="{{ old('calendar_name', $evenement->calendar_name ?? '') }}">
-                    <div style="position:relative;">
-                        <button type="button" id="calendar_name_trigger" class="cs-trigger" aria-haspopup="listbox" aria-expanded="false">
-                            <span class="cs-trigger-text {{ old('calendar_name', $evenement->calendar_name ?? '') ? '' : 'placeholder' }}">
-                                {{ old('calendar_name', $evenement->calendar_name ?? '') ?: 'Sélectionner un calendrier…' }}
-                            </span>
-                            <span class="cs-trigger-arrow">▼</span>
-                        </button>
-                    </div>
+                    {{--
+                        Point de montage SearchableSelect.vue.
+                        Le composant crée son propre <input type="hidden" name="calendar_name">.
+                    --}}
+                    <div
+                        data-searchable-select
+                        data-api-url="{{ route('calendriers.index') }}"
+                        data-input-name="calendar_name"
+                        data-input-id="calendar_name_vue"
+                        data-current-value="{{ addslashes(old('calendar_name', $evenement->calendar_name ?? '')) }}"
+                        data-placeholder="Sélectionner un calendrier…"
+                    ></div>
                     <span class="text-[11.5px] text-ink-muted">
                         Sélectionnez le calendrier Google Calendar cible.
                         @if($edit && $evenement->calendar_name)
@@ -127,6 +129,13 @@
                 @endif
             </div>
         </div>
+
+        {{--
+            Point de montage EventTaskBlocker.vue — gère le compteur,
+            les couleurs des labels, et la contrainte date_fin >= date_debut.
+            toutCocher() reste exposé sur window pour ces boutons onclick.
+        --}}
+        <div id="vue-event-blocker"></div>
 
         {{-- ── Tâches bloquées --}}
         <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
@@ -198,53 +207,8 @@
 
 @endsection
 
-@push('scripts')
-<script>
-    document.getElementById('date_debut').addEventListener('change', function () {
-        const fin = document.getElementById('date_fin');
-        if (!fin.value || fin.value < this.value) fin.value = this.value;
-        fin.min = this.value;
-    });
-
-    function updateStatus() {
-        const checkboxes = document.querySelectorAll('.tache-checkbox');
-        let blocked = 0;
-        checkboxes.forEach(cb => {
-            const label = cb.closest('.tache-block-item');
-            const status = label.querySelector('.block-status');
-            if (cb.checked) {
-                blocked++;
-                label.classList.add('bg-rose-50');
-                status.textContent = '🚫 Bloquée';
-                status.className = status.className.replace('text-emerald-600','') + ' text-rose-600';
-            } else {
-                label.classList.remove('bg-rose-50');
-                status.textContent = '✅ Libre';
-                status.className = status.className.replace('text-rose-600','') + ' text-emerald-600';
-            }
-        });
-        const el = document.getElementById('blockedCount');
-        if (blocked === 0) { el.textContent = 'Événement informatif'; el.className = 'ml-auto text-[12px] text-amber-600 font-semibold'; }
-        else if (blocked === checkboxes.length) { el.textContent = 'Toutes les tâches bloquées'; el.className = 'ml-auto text-[12px] text-rose-600 font-semibold'; }
-        else { el.textContent = `${blocked} tâche${blocked > 1 ? 's' : ''} bloquée${blocked > 1 ? 's' : ''}`; el.className = 'ml-auto text-[12px] text-amber-600 font-semibold'; }
-    }
-
-    function toutCocher(state) {
-        document.querySelectorAll('.tache-checkbox').forEach(cb => cb.checked = state);
-        updateStatus();
-    }
-
-    document.querySelectorAll('.tache-checkbox').forEach(cb => cb.addEventListener('change', updateStatus));
-    updateStatus();
-</script>
-
-<script src="{{ asset('js/calendar-select.js') }}"></script>
-<script>
-    CalendarSelect.init({
-        inputId:      'calendar_name',
-        triggerId:    'calendar_name_trigger',
-        apiUrl:       '{{ route("calendriers.index") }}',
-        currentValue: '{{ addslashes(old("calendar_name", $evenement->calendar_name ?? "")) }}',
-    });
-</script>
-@endpush
+{{--
+    Aucun script inline ici désormais :
+      - contrainte date_fin / compteur tâches bloquées → EventTaskBlocker.vue
+      - sélecteur calendrier                            → SearchableSelect.vue
+--}}

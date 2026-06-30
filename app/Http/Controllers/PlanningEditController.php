@@ -66,9 +66,17 @@ class PlanningEditController extends Controller
             'id_personne' => ['nullable', 'integer', 'exists:ref_personnes,id'],
         ]);
 
-        $ct = CreneauTache::where('id_planning', $creneauId)
-            ->where('id_tache', $tacheId)
-            ->firstOrFail();
+        // firstOrCreate plutôt que firstOrFail : si la ligne CreneauTache n'existe
+        // pas encore (tâche jamais assignée sur ce créneau), on la crée à la volée
+        // plutôt que de retourner une 404. Cela rend le PATCH idempotent pour les
+        // deux cas (assignation initiale et réassignation).
+        $ct = CreneauTache::firstOrCreate(
+            [
+                'id_planning' => $creneauId,
+                'id_tache'    => $tacheId,
+            ],
+            ['id_personne' => null]
+        );
 
         $avant = $ct->toArray();
         $ct->id_personne = $request->input('id_personne');

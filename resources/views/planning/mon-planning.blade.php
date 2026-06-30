@@ -167,181 +167,31 @@
     </div>
 @endif
 
-{{-- Modale échange --}}
-<div class="fixed inset-0 bg-black/45 backdrop-blur-sm z-[400] flex items-center justify-center p-4
-            opacity-0 pointer-events-none transition-opacity duration-200"
-     id="swapModalBackdrop"
-     onclick="closeSwapOnBackdrop(event)">
-    <div class="bg-white rounded-2xl shadow-lg w-full max-w-md transform scale-95 transition-transform duration-200"
-         id="swapModal">
-        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔄</div>
-            <span class="font-heading text-[14px] font-semibold text-ink flex-1">Demander un échange de créneau</span>
-            <button onclick="closeSwapModal()"
-                    class="w-8 h-8 flex items-center justify-center rounded-md text-ink-muted hover:bg-surface-3 hover:text-ink transition-colors bg-transparent border-0 cursor-pointer text-lg leading-none min-h-[44px] min-w-[44px]">
-                ×
-            </button>
-        </div>
-        <div class="p-5 flex flex-col gap-4">
-            <div class="flex items-center gap-3 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg">
-                <span class="text-xl flex-shrink-0">📅</span>
-                <div>
-                    <div class="font-bold text-[13.5px] text-ink" id="swapMyDate">—</div>
-                    <div class="text-[12.5px] text-ink-muted mt-0.5" id="swapMyTache">—</div>
-                </div>
-            </div>
+{{--
+    Point de montage Vue — SwapRequestModal.vue remplace le bloc modal
+    et le script inline ci-dessous. Le composant est monté par app.ts
+    sur #vue-swap-modal.
+--}}
+<div id="vue-swap-modal"></div>
 
-            <div>
-                <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2">Choisir le créneau avec lequel échanger</p>
-                <div id="slotsContainer">
-                    <div class="text-center py-8 text-[13.5px] text-ink-muted">⏳ Chargement des créneaux disponibles…</div>
-                </div>
-            </div>
-
-            <div class="flex gap-2">
-                <button id="swapConfirmBtn" onclick="submitSwap()" disabled
-                        class="flex-1 min-h-[48px] px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg
-                               shadow-[0_3px_12px_rgba(3,105,161,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5
-                               disabled:opacity-40 disabled:cursor-not-allowed">
-                    🔄 Envoyer la demande
-                </button>
-                <button onclick="closeSwapModal()"
-                        class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer bg-transparent min-h-[48px]">
-                    Annuler
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="fixed bottom-5 right-5 z-[500] flex flex-col gap-2 pointer-events-none" id="toastContainer"></div>
+{{--
+    toastContainer supprimé : les toasts sont maintenant gérés par
+    Toast.vue monté globalement sur #vue-toast dans layouts/app.blade.php.
+--}}
 
 @endsection
 
 @push('scripts')
 <script>
-const CSRF        = document.querySelector('meta[name="csrf-token"]').content;
-const ROUTE_SLOTS = '{{ route("echanges.slots") }}';
-const ROUTE_STORE = '{{ route("echanges.store") }}';
-
-let swapCreneauId = null, swapTacheId = null, selectedSlot = null;
-
-function openModal()  {
-    const bd = document.getElementById('swapModalBackdrop');
-    bd.classList.remove('opacity-0','pointer-events-none');
-    bd.querySelector('#swapModal').classList.remove('scale-95');
-    bd.querySelector('#swapModal').classList.add('scale-100');
-    document.body.style.overflow = 'hidden';
-}
-function closeSwapModal() {
-    const bd = document.getElementById('swapModalBackdrop');
-    bd.classList.add('opacity-0','pointer-events-none');
-    bd.querySelector('#swapModal').classList.add('scale-95');
-    bd.querySelector('#swapModal').classList.remove('scale-100');
-    document.body.style.overflow = '';
-    swapCreneauId = swapTacheId = selectedSlot = null;
-}
-function closeSwapOnBackdrop(e) {
-    if (e.target === document.getElementById('swapModalBackdrop')) closeSwapModal();
-}
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSwapModal(); });
-
-async function openSwapModal(btn) {
-    swapCreneauId = btn.dataset.creneauId;
-    swapTacheId   = btn.dataset.tacheId;
-    selectedSlot  = null;
-    document.getElementById('swapMyDate').textContent  = btn.dataset.date;
-    document.getElementById('swapMyTache').textContent = '🔄 Tâche : ' + btn.dataset.tacheLibelle;
-    document.getElementById('swapConfirmBtn').disabled = true;
-    document.getElementById('slotsContainer').innerHTML =
-        '<div class="text-center py-8 text-[13.5px] text-ink-muted">⏳ Chargement des créneaux disponibles…</div>';
-    openModal();
-    await loadSlots();
-}
-
-async function loadSlots() {
-    try {
-        const url  = ROUTE_SLOTS + '?creneau_id=' + swapCreneauId + '&tache_id=' + swapTacheId;
-        const res  = await fetch(url, { headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
-        const slots = await res.json();
-        if (!slots.length) {
-            document.getElementById('slotsContainer').innerHTML =
-                '<div class="text-center py-8 px-4 text-[13.5px] text-ink-muted bg-surface-2 rounded-lg border border-surface-border">😕 Aucun créneau disponible pour cet échange.</div>';
-            return;
-        }
-        const list = document.createElement('div');
-        list.className = 'flex flex-col gap-2 max-h-[280px] overflow-y-auto';
-        slots.forEach((slot, i) => {
-            const item = document.createElement('label');
-            item.className = 'flex items-center gap-3 px-4 py-3 border-[1.5px] border-surface-border rounded-lg cursor-pointer transition-colors hover:border-accent hover:bg-sky-50';
-            item.innerHTML = `
-                <input type="radio" name="slot_choice" value="${i}"
-                    data-creneau-id="${slot.creneau_id}" data-tache-id="${slot.tache_id}" data-personne-id="${slot.personne_id}"
-                    onchange="onSlotSelect(this, ${JSON.stringify(slot).replace(/"/g,'&quot;')})"
-                    class="w-4 h-4 accent-accent flex-shrink-0">
-                <div class="flex-1 min-w-0">
-                    <div class="font-semibold text-[13px] text-ink">${slot.date_label}</div>
-                    <div class="text-[12px] text-ink-muted mt-0.5">${slot.tache_libelle} · avec <strong>${slot.personne_nom}</strong></div>
-                </div>`;
-            list.appendChild(item);
-        });
-        document.getElementById('slotsContainer').innerHTML = '';
-        document.getElementById('slotsContainer').appendChild(list);
-    } catch {
-        document.getElementById('slotsContainer').innerHTML =
-            '<div class="text-center py-6 text-rose-600 text-[13px]">❌ Erreur lors du chargement.</div>';
-    }
-}
-
-function onSlotSelect(radio, slot) {
-    selectedSlot = slot;
-    document.getElementById('swapConfirmBtn').disabled = false;
-    document.querySelectorAll('#slotsContainer label').forEach(el => {
-        el.classList.toggle('border-accent', false);
-        el.classList.toggle('bg-sky-50', false);
-    });
-    radio.closest('label').classList.add('border-accent','bg-sky-50');
-}
-
-async function submitSwap() {
-    if (!selectedSlot) return;
-    const btn = document.getElementById('swapConfirmBtn');
-    btn.disabled = true; btn.textContent = '⏳ Envoi…';
-    try {
-        const res = await fetch(ROUTE_STORE, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            body: JSON.stringify({
-                creneau_demandeur_id: parseInt(swapCreneauId),
-                tache_demandeur_id:   parseInt(swapTacheId),
-                creneau_cible_id:     selectedSlot.creneau_id,
-                tache_cible_id:       selectedSlot.tache_id,
-                personne_cible_id:    selectedSlot.personne_id,
-            }),
-        });
-        const data = await res.json();
-        if (data.success) {
-            closeSwapModal();
-            showToast(data.message, 'success');
-            setTimeout(() => window.location.reload(), 2500);
-        } else {
-            showToast(data.message || 'Erreur lors de la demande.', 'error');
-            btn.disabled = false; btn.textContent = '🔄 Envoyer la demande';
-        }
-    } catch {
-        showToast('Erreur réseau.', 'error');
-        btn.disabled = false; btn.textContent = '🔄 Envoyer la demande';
-    }
-}
-
-function showToast(msg, type = 'success') {
-    const c = document.getElementById('toastContainer');
-    const t = document.createElement('div');
-    const colorClass = type === 'success' ? 'border-l-emerald-400' : 'border-l-rose-400';
-    t.className = `pointer-events-auto flex items-center gap-2.5 bg-ink text-white px-4 py-3 rounded-xl shadow-lg border-l-[3px] ${colorClass} text-[13px] font-medium min-w-[240px]`;
-    t.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span><span>${msg}</span>`;
-    c.appendChild(t);
-    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 4000);
-}
+{{--
+    MonPlanningConfig : injecte les routes Laravel dans window pour que
+    SwapRequestModal.vue puisse les consommer sans dépendre de Blade.
+    C'est le même pattern que window.PlanningConfig dans PlanningGrid.vue.
+--}}
+window.MonPlanningConfig = {
+    routeSlots: '{{ route("echanges.slots") }}',
+    routeStore: '{{ route("echanges.store") }}',
+};
 </script>
 @endpush
+

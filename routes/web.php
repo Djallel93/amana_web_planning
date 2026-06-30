@@ -11,6 +11,7 @@ use App\Http\Controllers\EchangeController;
 use App\Http\Controllers\EmergencyController;
 use App\Http\Controllers\MonPlanningController;
 use App\Http\Controllers\PlanningController;
+use App\Http\Controllers\PlanningApiController;
 use App\Http\Controllers\PlanningEditController;
 use App\Http\Controllers\PersonnesController;
 use App\Http\Controllers\RestrictionsController;
@@ -101,6 +102,7 @@ Route::middleware('auth')->group(function () {
 
         // Lecture et export : tous les utilisateurs connectés
         Route::get('/', [PlanningController::class, 'index'])->name('index');
+        Route::get('/data', [PlanningApiController::class, 'data'])->name('data');
         Route::get('/stats', [PlanningController::class, 'statistics'])->name('statistics');
         Route::get('/export', [PlanningController::class, 'showExportForm'])->name('export.form');
         Route::post('/export/pdf', [PlanningController::class, 'exportPdf'])->name('export.pdf');

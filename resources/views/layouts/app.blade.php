@@ -20,46 +20,25 @@
         </main>
     </div>
 
-    {{-- ── Script sidebar mobile ── --}}
-    <script>
-        const sidebar = document.getElementById('mainSidebar');
-        const overlay = document.getElementById('sidebarOverlay');
-        const hamburger = document.getElementById('hamburgerBtn');
-
-        function isMobile() { return window.innerWidth < 640; }
-
-        function openSidebar() {
-            sidebar.classList.remove('sidebar-hidden');
-            sidebar.classList.add('shadow-lg');
-            overlay.classList.remove('opacity-0', 'pointer-events-none');
-            overlay.classList.add('opacity-100');
-            hamburger.classList.add('hamburger-open');
-            hamburger.setAttribute('aria-expanded', 'true');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeSidebar() {
-            // Sur desktop la sidebar est toujours visible — ne rien faire
-            if (!isMobile()) return;
-            sidebar.classList.add('sidebar-hidden');
-            sidebar.classList.remove('shadow-lg');
-            overlay.classList.add('opacity-0', 'pointer-events-none');
-            overlay.classList.remove('opacity-100');
-            hamburger.classList.remove('hamburger-open');
-            hamburger.setAttribute('aria-expanded', 'false');
-            document.body.style.overflow = '';
-        }
-
-        function toggleSidebar() {
-            sidebar.classList.contains('sidebar-hidden') ? openSidebar() : closeSidebar();
-        }
-
-        hamburger.addEventListener('click', toggleSidebar);
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSidebar(); });
-        window.addEventListener('resize', () => { if (!isMobile()) closeSidebar(); });
-    </script>
+    {{--
+        Point de montage MobileSidebar.vue — gère l'ouverture/fermeture mobile
+        et le collapse desktop de #mainSidebar. Le markup de la sidebar reste
+        dans layouts/partials/sidebar.blade.php ; ce composant pilote uniquement
+        ses classes CSS et rend le bouton collapse flottant.
+    --}}
+    <div id="vue-mobile-sidebar"></div>
 
     @stack('scripts')
+
+    {{--
+        Point de montage du composant Toast.vue (Vue 3).
+        Ce div vide est remplacé par le composant au chargement — il n'a
+        pas besoin de contenu HTML. Il doit être présent sur TOUTES les pages
+        car le layout principal inclut cette vue.
+        Les <div id="toastContainer"> dans les Blade individuelles seront
+        supprimés au fur et à mesure que leurs pages sont converties en Vue.
+    --}}
+    <div id="vue-toast"></div>
 
 </body>
 
