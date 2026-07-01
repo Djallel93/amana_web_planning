@@ -84,6 +84,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [BilanController::class, 'index'])->name('index');
         Route::get('/data', [BilanController::class, 'show'])->name('data.show');
         Route::post('/data', [BilanController::class, 'store'])->name('data.store');
+        Route::get('/statistiques', [BilanController::class, 'statistiques'])->name('statistiques');
+        Route::get('/statistiques/data', [BilanController::class, 'statistiquesData'])->name('statistiques.data');
     });
 
     // ── API interne — liste des calendriers Make.com (tous rôles) ─────────

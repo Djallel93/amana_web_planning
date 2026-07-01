@@ -11,6 +11,7 @@ import PlanningGrid      from '@/components/planning/PlanningGrid.vue';
 import MobileSidebar     from '@/components/shared/MobileSidebar.vue';
 import EditAbsenceModal  from '@/components/absences/EditAbsenceModal.vue';
 import BilanView         from '@/components/bilan/BilanView.vue';
+import BilanStatistiques from '@/components/bilan/BilanStatistiques.vue';
 
 function mountIfPresent(
     selector: string,
@@ -30,6 +31,7 @@ mountIfPresent('vue-planning-grid',   PlanningGrid);
 mountIfPresent('vue-mobile-sidebar',  MobileSidebar);
 mountIfPresent('vue-edit-absence-modal', EditAbsenceModal);
 mountIfPresent('vue-bilan',           BilanView);
+mountIfPresent('vue-bilan-statistiques', BilanStatistiques);
 
 // ── Montages multiples (SearchableSelect : plusieurs instances par page) ──
 // settings/index.blade.php a 9 instances (une par calendrier de tâche).
