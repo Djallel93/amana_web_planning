@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\CandidaturesController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BilanController;
 use App\Http\Controllers\CalendriersController;
 use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EchangeController;
@@ -77,6 +78,13 @@ Route::middleware('auth')->group(function () {
 
     // ── Mon planning (vue personnelle) — tous les membres connectés ────────
     Route::get('/mon-planning', [MonPlanningController::class, 'index'])->name('mon-planning');
+
+    // ── Bilan quotidien (Amana food + Présences) — tous les membres connectés ──
+    Route::prefix('bilan')->name('bilan.')->group(function () {
+        Route::get('/', [BilanController::class, 'index'])->name('index');
+        Route::get('/data', [BilanController::class, 'show'])->name('data.show');
+        Route::post('/data', [BilanController::class, 'store'])->name('data.store');
+    });
 
     // ── API interne — liste des calendriers Make.com (tous rôles) ─────────
     Route::get('/api/calendriers', [CalendriersController::class, 'index'])->name('calendriers.index');
@@ -154,6 +162,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('absences')->name('absences.')->group(function () {
         Route::get('/', [AbsencesController::class, 'index'])->name('index');
         Route::post('/', [AbsencesController::class, 'store'])->name('store');
+        Route::put('/{id}', [AbsencesController::class, 'update'])
+            ->name('update')
+            ->where('id', '[0-9]+');
         Route::delete('/{id}', [AbsencesController::class, 'destroy'])
             ->name('destroy')
             ->where('id', '[0-9]+');

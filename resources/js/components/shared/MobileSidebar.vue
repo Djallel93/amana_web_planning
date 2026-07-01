@@ -42,6 +42,17 @@ let overlay: HTMLElement | null = null;
 let hamburger: HTMLElement | null = null;
 let mainWrapper: HTMLElement | null = null;
 
+// Largeur réelle de la sidebar (source de vérité : le DOM, pas une constante
+// dupliquée). --sidebar-width est fluide (clamp() défini dans custom.css) et
+// peut donc changer avec la largeur de l'écran ; on lit le rendu effectif via
+// getBoundingClientRect() plutôt que de reparser la variable CSS, pour rester
+// correct même si la formule du clamp() change un jour.
+const sidebarWidthPx = ref('252px');
+
+function readSidebarWidth(): void {
+    if (sidebar) sidebarWidthPx.value = `${sidebar.getBoundingClientRect().width}px`;
+}
+
 function applyDom(): void {
     if (!sidebar || !overlay || !hamburger || !mainWrapper) return;
 
@@ -65,7 +76,8 @@ function applyDom(): void {
             // Sur mobile, la sidebar est en overlay — le contenu ne se décale jamais.
             mainWrapper.style.marginLeft = '0px';
         } else {
-            mainWrapper.style.marginLeft = '252px';
+            readSidebarWidth();
+            mainWrapper.style.marginLeft = sidebarWidthPx.value;
         }
     } else {
         sidebar.classList.add('sidebar-hidden');
@@ -125,6 +137,9 @@ function onResize(): void {
     // sauf si on vient de franchir le seuil alors que la sidebar était
     // explicitement fermée sur mobile — dans ce cas on laisse l'état tel quel,
     // c'est l'utilisateur qui rouvrira via le bouton approprié.
+    // On relit aussi la largeur réelle : --sidebar-width est fluide (clamp()
+    // basé sur vw), elle peut donc changer à chaque redimensionnement.
+    readSidebarWidth();
     applyDom();
 }
 
@@ -139,6 +154,8 @@ onMounted(() => {
     // au moment de la déclaration du ref (au cas où ce composant serait un
     // jour rendu dans un contexte sans `window` disponible).
     if (isMobile()) isOpen.value = false;
+
+    readSidebarWidth();
 
     hamburger?.addEventListener('click', toggle);
     document.addEventListener('keydown', onKeydown);
@@ -168,13 +185,14 @@ window.closeSidebar = closeOnNavigate;
 // ── Classe du bouton collapse ──────────────────────────────────────────────
 // Le bouton est fixed, ancré verticalement au milieu de l'écran (top: 50%),
 // et translaté horizontalement selon l'état de la sidebar :
-//   - sidebar ouverte  → bouton collé à la bordure droite de la sidebar (left: 252px)
+//   - sidebar ouverte  → bouton collé à la bordure droite de la sidebar
+//                        (left: largeur réelle de la sidebar, fluide)
 //   - sidebar fermée   → bouton collé au bord gauche de l'écran (left: 0)
 // La transition est portée par la même durée que celle de la sidebar
 // (.3s cubic-bezier, déjà défini dans custom.css pour #mainSidebar) pour
 // qu'ils se déplacent ensemble visuellement.
 const collapseButtonStyle = computed(() => ({
-    left: isOpen.value ? '252px' : '0px',
+    left: isOpen.value ? sidebarWidthPx.value : '0px',
 }));
 </script>
 

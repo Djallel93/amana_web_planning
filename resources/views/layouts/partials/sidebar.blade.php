@@ -139,6 +139,17 @@
             <span class="flex-1">Disponibilités</span>
         </a>
 
+        {{-- Section : Bilan --}}
+        <p class="px-2.5 mb-1 mt-3 text-[9.5px] font-bold tracking-[1.4px] uppercase text-white/20">Bilan</p>
+
+        <a href="{{ route('bilan.index') }}"
+            class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
+                {{ request()->routeIs('bilan.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+            onclick="closeSidebar()">
+            <span class="text-sm w-[18px] text-center flex-shrink-0">🧾</span>
+            <span class="flex-1">Bilan</span>
+        </a>
+
         {{-- Section : Gestion (gestionnaire + admin) --}}
         @auth
             @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())

@@ -14,6 +14,19 @@
  *  - Touch / mobile overrides fins
  */
 
+/* ── Largeur fluide de la sidebar ──────────────────────────────────────────
+ * Source unique de vérité, consommée par tailwind.config.js (spacing.sidebar
+ * / width.sidebar → classes w-sidebar / ml-sidebar) et lue en JS par
+ * MobileSidebar.vue (getBoundingClientRect) pour synchroniser marginLeft du
+ * contenu principal et la position du bouton collapse.
+ *
+ * clamp(min, préféré, max) : 252px sur les écrans étroits/moyens, grandit
+ * légèrement (16vw) sur les très grands écrans, plafonné à 300px.
+ */
+:root {
+    --sidebar-width: clamp(252px, 16vw, 300px);
+}
+
 /* ── Animations ── */
 @keyframes slideIn {
     from {

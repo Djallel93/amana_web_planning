@@ -47,7 +47,7 @@
                             $jours    = $absence->date_debut->diffInDays($absence->date_fin) + 1;
                             $actuelle = now()->between($absence->date_debut, $absence->date_fin);
                             $isMine   = $absence->id_personne === auth()->id();
-                            $canDelete = auth()->user()->isAdmin() || auth()->user()->isGestionnaire() || $isMine;
+                            $canManage = auth()->user()->isAdmin() || auth()->user()->isGestionnaire() || $isMine;
                         @endphp
                         <tr class="border-b border-surface-3 last:border-0 hover:bg-surface-2 transition-colors {{ $isMine ? 'bg-sky-50 hover:bg-sky-50/80' : '' }}">
                             <td class="px-5 py-3">
@@ -80,14 +80,25 @@
                             </td>
                             <td class="px-5 py-3 text-ink-muted text-[12.5px]">{{ $absence->raison ?? '—' }}</td>
                             <td class="px-5 py-3 text-right">
-                                @if($canDelete)
-                                    <form action="{{ route('absences.destroy', $absence->id) }}" method="POST"
-                                          onsubmit="return confirm('Supprimer cette absence ?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit"
-                                                class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
-                                                title="Supprimer">🗑️</button>
-                                    </form>
+                                @if($canManage)
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <button type="button"
+                                                onclick="openEditAbsenceModal(this)"
+                                                data-id="{{ $absence->id }}"
+                                                data-id-personne="{{ $absence->id_personne }}"
+                                                data-date-debut="{{ $absence->date_debut->toDateString() }}"
+                                                data-date-fin="{{ $absence->date_fin->toDateString() }}"
+                                                data-raison="{{ $absence->raison }}"
+                                                class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+                                                title="Modifier">✏️</button>
+                                        <form action="{{ route('absences.destroy', $absence->id) }}" method="POST"
+                                              onsubmit="return confirm('Supprimer cette absence ?')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit"
+                                                    class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+                                                    title="Supprimer">🗑️</button>
+                                        </form>
+                                    </div>
                                 @endif
                             </td>
                         </tr>
@@ -113,7 +124,7 @@
                     $jours    = $absence->date_debut->diffInDays($absence->date_fin) + 1;
                     $actuelle = now()->between($absence->date_debut, $absence->date_fin);
                     $isMine   = $absence->id_personne === auth()->id();
-                    $canDelete = auth()->user()->isAdmin() || auth()->user()->isGestionnaire() || $isMine;
+                    $canManage = auth()->user()->isAdmin() || auth()->user()->isGestionnaire() || $isMine;
                 @endphp
                 <div class="px-4 py-3.5 {{ $isMine ? 'bg-sky-50' : '' }}">
                     <div class="flex items-center justify-between mb-1.5">
@@ -135,15 +146,27 @@
                                 </div>
                             </div>
                         </div>
-                        @if($canDelete)
-                            <form action="{{ route('absences.destroy', $absence->id) }}" method="POST"
-                                  onsubmit="return confirm('Supprimer cette absence ?')">
-                                @csrf @method('DELETE')
-                                <button type="submit"
-                                        class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm cursor-pointer min-h-[44px] min-w-[44px]">
-                                    🗑️
+                        @if($canManage)
+                            <div class="flex items-center gap-1.5">
+                                <button type="button"
+                                        onclick="openEditAbsenceModal(this)"
+                                        data-id="{{ $absence->id }}"
+                                        data-id-personne="{{ $absence->id_personne }}"
+                                        data-date-debut="{{ $absence->date_debut->toDateString() }}"
+                                        data-date-fin="{{ $absence->date_fin->toDateString() }}"
+                                        data-raison="{{ $absence->raison }}"
+                                        class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sm cursor-pointer min-h-[44px] min-w-[44px]">
+                                    ✏️
                                 </button>
-                            </form>
+                                <form action="{{ route('absences.destroy', $absence->id) }}" method="POST"
+                                      onsubmit="return confirm('Supprimer cette absence ?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit"
+                                            class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm cursor-pointer min-h-[44px] min-w-[44px]">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
                         @endif
                     </div>
                     <div class="flex flex-wrap gap-1.5 mt-1">
@@ -254,6 +277,13 @@
     </div>
 
 </div>
+
+{{--
+    Point de montage EditAbsenceModal.vue — les boutons "✏️" ci-dessus
+    appellent openEditAbsenceModal(this) (pont exposé par le composant).
+--}}
+<div id="vue-edit-absence-modal"></div>
+
 @endsection
 
 @push('scripts')
@@ -263,5 +293,12 @@
         if (!fin.value || fin.value < this.value) fin.value = this.value;
         fin.min = this.value;
     });
+
+    window.AbsencesConfig = {
+        routeUpdateBase: '{{ url('absences') }}',
+        isPrivileged:    @json(auth()->user()->isAdmin() || auth()->user()->isGestionnaire()),
+        currentUserId:   {{ auth()->id() }},
+        personnes:       @json($personnes->map(fn($p) => ['id' => $p->id, 'nom' => $p->nom, 'prenom' => $p->prenom])),
+    };
 </script>
 @endpush

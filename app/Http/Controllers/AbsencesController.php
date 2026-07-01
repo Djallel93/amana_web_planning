@@ -6,8 +6,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Absences\StoreAbsenceRequest;
+use App\Http\Requests\Absences\UpdateAbsenceRequest;
 use App\Models\Absence;
 use App\Models\Personne;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -79,6 +81,60 @@ class AbsencesController extends Controller
 
         return redirect()->route('absences.index')
             ->with('success', "Absence ajoutée pour {$personne->prenom} {$personne->nom}.");
+    }
+
+    /**
+     * Modifie une absence existante (appelé en AJAX depuis le modal d'édition).
+     *
+     * Admin / Gestionnaire : peut modifier n'importe quelle absence, y compris
+     *                        réassigner la personne concernée.
+     * Membre               : peut modifier seulement ses propres absences,
+     *                        et ne peut pas changer la personne concernée.
+     */
+    public function update(UpdateAbsenceRequest $request, int $id): JsonResponse
+    {
+        /** @var \App\Models\Personne $user */
+        $user    = Auth::user();
+        $absence = Absence::with('personne')->findOrFail($id);
+
+        $estPrivilegie = $user->isAdmin() || $user->isGestionnaire();
+
+        // Vérification de sécurité pour les membres : ni l'absence modifiée
+        // ni la personne cible ne peuvent être autre chose qu'eux-mêmes.
+        if (! $estPrivilegie) {
+            if ($absence->id_personne !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous ne pouvez modifier que vos propres absences.',
+                ], 403);
+            }
+
+            if ((int) $request->validated('id_personne') !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous ne pouvez enregistrer une absence que pour vous-même.',
+                ], 403);
+            }
+        }
+
+        $avant = $absence->toArray();
+        $absence->update($request->validated());
+        $absence->refresh()->load('personne');
+
+        audit('update', 'absences', $absence->id, $avant, $absence->toArray());
+
+        return response()->json([
+            'success' => true,
+            'message' => "Absence de {$absence->personne->prenom} {$absence->personne->nom} mise à jour.",
+            'absence' => [
+                'id'          => $absence->id,
+                'id_personne' => $absence->id_personne,
+                'personne'    => $absence->personne->prenom . ' ' . $absence->personne->nom,
+                'date_debut'  => $absence->date_debut->toDateString(),
+                'date_fin'    => $absence->date_fin->toDateString(),
+                'raison'      => $absence->raison,
+            ],
+        ]);
     }
 
     /**

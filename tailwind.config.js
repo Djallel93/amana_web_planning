@@ -53,12 +53,12 @@ export default {
             },
 
             spacing: {
-                sidebar: '252px',
+                sidebar: 'var(--sidebar-width)',
                 topbar:  '56px',
             },
 
             width: {
-                sidebar: '252px',
+                sidebar: 'var(--sidebar-width)',
             },
 
             height: {

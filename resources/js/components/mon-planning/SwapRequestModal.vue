@@ -20,7 +20,7 @@
     Slot        : un créneau disponible pour l'échange (réponse API)
 -->
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import Modal    from '@/components/shared/Modal.vue';
 import { useModal }  from '@/composables/useModal';
 import { useToast }  from '@/composables/useToast';
@@ -56,14 +56,36 @@ const toast = useToast();
 // ── État local ────────────────────────────────────────────────────────────
 type LoadState = 'idle' | 'loading' | 'loaded' | 'error';
 
-const slots       = ref<Slot[]>([]);
-const loadState   = ref<LoadState>('idle');
-const selectedSlot = ref<Slot | null>(null);
-const submitting  = ref(false);
+const slots         = ref<Slot[]>([]);
+const loadState     = ref<LoadState>('idle');
+const selectedSlot  = ref<Slot | null>(null);
+const submitting    = ref(false);
+
+// ── Filtre par plage de dates (du/au) ────────────────────────────────────
+// Filtrage purement client : tous les slots futurs pour la tâche sont déjà
+// chargés en une fois, donc pas besoin de round-trip serveur pour filtrer.
+const dateFrom = ref('');
+const dateTo   = ref('');
+
+const filteredSlots = computed(() => {
+    return slots.value.filter((slot) => {
+        if (dateFrom.value && slot.date < dateFrom.value) return false;
+        if (dateTo.value && slot.date > dateTo.value) return false;
+        return true;
+    });
+});
 
 // computed : le bouton "Envoyer" n'est actif que si un slot est sélectionné
 // et qu'on n'est pas en train de soumettre.
 const canSubmit = computed(() => selectedSlot.value !== null && !submitting.value);
+
+// Si le slot sélectionné sort de la plage filtrée, on désélectionne pour
+// éviter d'envoyer une demande sur un créneau qui n'est plus visible.
+watch(filteredSlots, (visible) => {
+    if (selectedSlot.value && !visible.includes(selectedSlot.value)) {
+        selectedSlot.value = null;
+    }
+});
 
 // ── CSRF ──────────────────────────────────────────────────────────────────
 // On lit le token CSRF depuis la balise <meta name="csrf-token"> injectée
@@ -78,6 +100,8 @@ function getCsrf(): string {
 async function open(context: SwapContext): Promise<void> {
     slots.value        = [];
     selectedSlot.value = null;
+    dateFrom.value      = '';
+    dateTo.value        = '';
     loadState.value    = 'loading';
     modal.open(context);
     await loadSlots(context.creneauId, context.tacheId);
@@ -208,6 +232,29 @@ window.openSwapModal = (btn: HTMLElement) => {
                     Choisir le créneau avec lequel échanger
                 </p>
 
+                <!-- Filtre par plage de dates -->
+                <div v-if="loadState === 'loaded' && slots.length" class="flex items-center gap-2 mb-3">
+                    <input
+                        type="date" v-model="dateFrom" aria-label="Du"
+                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition
+                               focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    >
+                    <span class="text-[12px] text-ink-muted flex-shrink-0">→</span>
+                    <input
+                        type="date" v-model="dateTo" aria-label="Au" :min="dateFrom"
+                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition
+                               focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    >
+                    <button
+                        v-if="dateFrom || dateTo"
+                        type="button"
+                        class="text-[11.5px] text-ink-muted hover:text-ink underline flex-shrink-0 cursor-pointer bg-transparent"
+                        @click="dateFrom = ''; dateTo = ''"
+                    >
+                        Réinitialiser
+                    </button>
+                </div>
+
                 <!-- Chargement -->
                 <div
                     v-if="loadState === 'loading'"
@@ -224,7 +271,7 @@ window.openSwapModal = (btn: HTMLElement) => {
                     ❌ Erreur lors du chargement.
                 </div>
 
-                <!-- Aucun créneau disponible -->
+                <!-- Aucun créneau disponible du tout -->
                 <div
                     v-else-if="loadState === 'loaded' && !slots.length"
                     class="text-center py-8 px-4 text-[13.5px] text-ink-muted
@@ -233,9 +280,18 @@ window.openSwapModal = (btn: HTMLElement) => {
                     😕 Aucun créneau disponible pour cet échange.
                 </div>
 
+                <!-- Aucun créneau dans la plage de dates filtrée -->
+                <div
+                    v-else-if="loadState === 'loaded' && slots.length && !filteredSlots.length"
+                    class="text-center py-8 px-4 text-[13.5px] text-ink-muted
+                           bg-surface-2 rounded-lg border border-surface-border"
+                >
+                    😕 Aucun créneau dans cette plage de dates.
+                </div>
+
                 <!-- Liste des slots -->
                 <div
-                    v-else-if="slots.length"
+                    v-else-if="filteredSlots.length"
                     class="flex flex-col gap-2 max-h-[280px] overflow-y-auto"
                 >
                     <!--
@@ -245,7 +301,7 @@ window.openSwapModal = (btn: HTMLElement) => {
                         car Vue recalcule :class à chaque changement de selectedSlot.
                     -->
                     <label
-                        v-for="slot in slots"
+                        v-for="slot in filteredSlots"
                         :key="`${slot.creneau_id}-${slot.tache_id}`"
                         class="flex items-center gap-3 px-4 py-3 border-[1.5px]
                                rounded-lg cursor-pointer transition-colors"

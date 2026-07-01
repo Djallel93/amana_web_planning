@@ -9,6 +9,8 @@ import EventTaskBlocker  from '@/components/evenements/EventTaskBlocker.vue';
 import GeneratePreview   from '@/components/planning-generate/GeneratePreview.vue';
 import PlanningGrid      from '@/components/planning/PlanningGrid.vue';
 import MobileSidebar     from '@/components/shared/MobileSidebar.vue';
+import EditAbsenceModal  from '@/components/absences/EditAbsenceModal.vue';
+import BilanView         from '@/components/bilan/BilanView.vue';
 
 function mountIfPresent(
     selector: string,
@@ -26,6 +28,8 @@ mountIfPresent('vue-event-blocker',   EventTaskBlocker);
 mountIfPresent('vue-generate-preview', GeneratePreview);
 mountIfPresent('vue-planning-grid',   PlanningGrid);
 mountIfPresent('vue-mobile-sidebar',  MobileSidebar);
+mountIfPresent('vue-edit-absence-modal', EditAbsenceModal);
+mountIfPresent('vue-bilan',           BilanView);
 
 // ── Montages multiples (SearchableSelect : plusieurs instances par page) ──
 // settings/index.blade.php a 9 instances (une par calendrier de tâche).
