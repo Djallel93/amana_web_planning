@@ -75,7 +75,8 @@ jobs:
 
       - name: Strip dev-only files from the artifact
         run: |
-          rm -rf tests .github .deploy-now .git docs README.md phpunit.xml \
+          rm -rf tests .github .deploy-now .git .gitignore .gitattributes \
+          docs .env.example README.md phpunit.xml \
           resources/js resources/css node_modules \
           tailwind.config.js postcss.config.js tsconfig.json vite.config.ts
 
