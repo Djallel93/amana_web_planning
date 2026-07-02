@@ -111,7 +111,7 @@ jobs:
       - name: Put application into maintenance mode
         run: |
           ssh ${{ secrets.IONOS_SSH_USER }}@${{ secrets.IONOS_SSH_HOST }} \
-            "cd ${{ secrets.IONOS_REMOTE_PATH }} && php artisan down || true"
+            "cd ${{ secrets.IONOS_REMOTE_PATH }} && php8.4 artisan down || true"
 
       - name: Sync files via rsync over SSH
         run: |
@@ -141,15 +141,15 @@ jobs:
             MARKER="storage/.bootstrapped"
             if [ "$FORCE_FRESH" = "true" ] || [ ! -f "\$MARKER" ]; then
               echo "==> First deploy detected (or fresh install forced): running migrate:fresh --seed"
-              php artisan migrate:fresh --seed --force
+              php8.4 artisan migrate:fresh --seed --force
               touch "\$MARKER"
             else
               echo "==> Recurring deploy: running migrate"
-              php artisan migrate --force
+              php8.4 artisan migrate --force
             fi
 
-            php artisan optimize:clear
-            php artisan storage:link || true
-            php artisan optimize
-            php artisan up
+            php8.4 artisan optimize:clear
+            php8.4 artisan storage:link || true
+            php8.4 artisan optimize
+            php8.4 artisan up
           EOF
