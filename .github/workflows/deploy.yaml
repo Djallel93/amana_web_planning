@@ -52,7 +52,7 @@ jobs:
       - name: Render production .env
         env:
           APP_KEY: ${{ secrets.APP_KEY }}
-          APP_URL: ${{ secrets.APP_URL }}
+          APP_URL: ${{ vars.APP_URL }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
@@ -111,32 +111,32 @@ jobs:
 
       - name: Put application into maintenance mode
         env:
-          PHP_BIN: ${{ secrets.IONOS_PHP_CLI_PATH }}
+          PHP_BIN: ${{ vars.IONOS_PHP_CLI_PATH }}
         run: |
           ssh ${{ secrets.IONOS_SSH_USER }}@${{ secrets.IONOS_SSH_HOST }} \
-            "cd ${{ secrets.IONOS_REMOTE_PATH }} && $PHP_BIN artisan down || true"
+            "cd ${{ vars.IONOS_REMOTE_PATH }} && $PHP_BIN artisan down || true"
 
       - name: Sync files via rsync over SSH
         run: |
           rsync -az --delete \
             --exclude 'storage' \
             -e "ssh -o StrictHostKeyChecking=accept-new" \
-            deploy/ ${{ secrets.IONOS_SSH_USER }}@${{ secrets.IONOS_SSH_HOST }}:${{ secrets.IONOS_REMOTE_PATH }}/
+            deploy/ ${{ secrets.IONOS_SSH_USER }}@${{ secrets.IONOS_SSH_HOST }}:${{ vars.IONOS_REMOTE_PATH }}/
 
       - name: Ensure storage directory structure exists (first deploy only)
         run: |
           ssh ${{ secrets.IONOS_SSH_USER }}@${{ secrets.IONOS_SSH_HOST }} \
-            "cd ${{ secrets.IONOS_REMOTE_PATH }} && \
+            "cd ${{ vars.IONOS_REMOTE_PATH }} && \
             mkdir -p storage/app/public storage/framework/{cache,sessions,testing,views} storage/logs"
 
       - name: Run post-deploy commands
         env:
           FORCE_FRESH: ${{ inputs.force_fresh_install }}
-          PHP_BIN: ${{ secrets.IONOS_PHP_CLI_PATH }}
+          PHP_BIN: ${{ vars.IONOS_PHP_CLI_PATH }}
         run: |
           ssh ${{ secrets.IONOS_SSH_USER }}@${{ secrets.IONOS_SSH_HOST }} bash -s <<EOF
             set -e
-            cd ${{ secrets.IONOS_REMOTE_PATH }}
+            cd ${{ vars.IONOS_REMOTE_PATH }}
             find . -type f -not -path "./storage/logs/*" -exec chmod 664 {} \;
             find . -type d -not -name "logs" -exec chmod 775 {} \;
             chmod -R o+w storage bootstrap/cache
