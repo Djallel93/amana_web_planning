@@ -3,7 +3,7 @@ name: Build and Deploy to IONOS (SFTP/SSH)
 on:
   push:
     branches:
-      - tailwind
+      - main
   workflow_dispatch:
     inputs:
       force_fresh_install:

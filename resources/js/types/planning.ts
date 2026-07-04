@@ -14,7 +14,7 @@ export interface PersonneAssignee {
 
 // Les 5 codes de tâches actifs dans l'app — utilisé pour garantir l'ordre
 // d'affichage des colonnes (entree, mektaba, salle, amana_food, cours).
-export type TacheCode = 'entree' | 'mektaba' | 'salle' | 'amana_food' | 'cours';
+export type TacheCode = "entree" | "mektaba" | "salle" | "amana_food" | "cours";
 
 export interface TacheAssignation {
     code: TacheCode;
@@ -26,9 +26,9 @@ export interface TacheAssignation {
 
 export interface CreneauData {
     id: number;
-    date: string;       // "2025-03-14" (ISO)
-    dateLabel: string;  // "14 mars 2025"
-    jour: string;       // "Vendredi"
+    date: string; // "2025-03-14" (ISO)
+    dateLabel: string; // "14 mars 2025"
+    jour: string; // "Vendredi"
     toutBloque: boolean;
     partielBloque: boolean;
     evenements: string | null;
@@ -75,22 +75,31 @@ export interface AssignContext {
 
 // ── Contexte transmis à AddCreneauModal lors de l'ouverture ───────────────
 export interface AddCreneauContext {
-    weekMin: string;   // lundi de la semaine, ISO
-    weekMax: string;   // dimanche de la semaine, ISO
+    weekMin: string; // lundi de la semaine, ISO
+    weekMax: string; // dimanche de la semaine, ISO
     existingDates: string[];
 }
 
 // ── Métadonnées d'affichage des 5 tâches (libellé + couleur) ──────────────
 // Équivalent TS du tableau $tachesMeta défini en PHP dans _week-block.blade.php.
-export const TACHES_META: Record<TacheCode, { label: string; colorClass: string }> = {
-    entree:     { label: '🚪 Entrée',     colorClass: 'text-[#2563eb]' },
-    mektaba:    { label: '📚 Mektaba',    colorClass: 'text-[#059669]' },
-    salle:      { label: '🏛️ Salle',      colorClass: 'text-[#d97706]' },
-    amana_food: { label: '🥪 Amana Food', colorClass: 'text-[#e11d48]' },
-    cours:      { label: '🎓 Cours',      colorClass: 'text-[#7c3aed]' },
+export const TACHES_META: Record<
+    TacheCode,
+    { label: string; colorClass: string }
+> = {
+    entree: { label: "🚪 Entrée", colorClass: "text-[#2563eb]" },
+    mektaba: { label: "📚 Mektaba", colorClass: "text-[#059669]" },
+    salle: { label: "🏛️ Salle", colorClass: "text-[#d97706]" },
+    amana_food: { label: "🥪 Amana Food", colorClass: "text-[#e11d48]" },
+    cours: { label: "🎓 Cours", colorClass: "text-[#7c3aed]" },
 };
 
-export const TACHE_CODES: TacheCode[] = ['entree', 'mektaba', 'salle', 'amana_food', 'cours'];
+export const TACHE_CODES: TacheCode[] = [
+    "entree",
+    "mektaba",
+    "salle",
+    "amana_food",
+    "cours",
+];
 
 // ── window.PlanningConfig ──────────────────────────────────────────────────
 // Déclaration globale UNIQUE — injectée par planning/index.blade.php et
@@ -109,10 +118,11 @@ declare global {
         PlanningConfig: {
             csrf: string;
             routes: {
-                personnes:   string;
+                personnes: string;
                 assignation: string;
-                creneau:     string;
-                data:        string;
+                creneau: string;
+                data: string;
+                annulationCours: string;
             };
         };
     }

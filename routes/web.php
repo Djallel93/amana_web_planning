@@ -145,6 +145,8 @@ Route::middleware('auth')->group(function () {
                 ->where('id', '[0-9]+');
             Route::post('/creneau', [PlanningEditController::class, 'createCreneau'])
                 ->name('edit.create-creneau');
+            Route::post('/annulation-cours', [PlanningEditController::class, 'annulerCours'])
+                ->name('annulation-cours');
         });
     });
 

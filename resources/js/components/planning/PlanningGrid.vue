@@ -21,6 +21,7 @@
 import { ref, computed, onMounted } from 'vue';
 import AssignModal from '@/components/planning/AssignModal.vue';
 import AddCreneauModal from '@/components/planning/AddCreneauModal.vue';
+import AnnulationCoursModal from '@/components/planning/AnnulationCoursModal.vue';
 import { useToast } from '@/composables/useToast';
 import type {
     PlanningResponse, SemaineData, CreneauData, PersonneAssignee, AssignContext, AddCreneauContext,
@@ -43,6 +44,7 @@ const loadError   = ref(false);
 import { useTemplateRef } from 'vue';
 const assignModalRef     = useTemplateRef<InstanceType<typeof AssignModal>>('assign-modal');
 const addCreneauModalRef = useTemplateRef<InstanceType<typeof AddCreneauModal>>('add-creneau-modal');
+const annulationCoursModalRef = useTemplateRef<InstanceType<typeof AnnulationCoursModal>>('annulation-cours-modal');
 
 // ── Filtres (années / mois) ───────────────────────────────────────────────
 // Set<number> réactif : on utilise ref(new Set()) plutôt qu'un tableau parce
@@ -267,6 +269,18 @@ async function onCreneauCreated(): Promise<void> {
     await loadData();
 }
 
+// ── Annulation cours ────────────────────────────────────────────────────
+function openAnnulationCours(): void {
+    annulationCoursModalRef.value?.open();
+}
+
+// Une annulation débloque/rebloque potentiellement plusieurs tâches et fait
+// apparaître un nouvel événement bloquant — comme pour la création de
+// créneau, on recharge entièrement plutôt que de patcher l'état local.
+async function onCoursAnnule(): Promise<void> {
+    await loadData();
+}
+
 // ── Bascule historique ────────────────────────────────────────────────────
 async function toggleHistorique(): Promise<void> {
     historique.value = !historique.value;
@@ -375,6 +389,14 @@ async function toggleHistorique(): Promise<void> {
                 >📚 Historique complet</button>
 
                 <span class="ml-auto text-[11.5px] text-ink-muted italic">{{ resultsCountLabel }}</span>
+
+                <button
+                    v-if="peutEditer"
+                    @click="openAnnulationCours"
+                    class="px-3 py-1.5 text-[12px] font-bold text-white bg-rose-600 hover:bg-rose-700
+                           rounded-md transition-colors min-h-[44px] inline-flex items-center gap-1.5
+                           whitespace-nowrap border-0 cursor-pointer shadow-[0_2px_8px_rgba(225,29,72,0.25)]"
+                >🚫 Annulation cours</button>
             </div>
 
             <!-- Blocs semaine -->
@@ -552,6 +574,11 @@ async function toggleHistorique(): Promise<void> {
             v-if="peutEditer"
             ref="add-creneau-modal"
             @created="onCreneauCreated"
+        />
+        <AnnulationCoursModal
+            v-if="peutEditer"
+            ref="annulation-cours-modal"
+            @cancelled="onCoursAnnule"
         />
     </div>
 </template>

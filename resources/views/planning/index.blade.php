@@ -49,6 +49,7 @@
             assignation:  '{{ url("planning/creneau") }}',
             creneau:      '{{ url("planning/creneau") }}',
             data:         '{{ route("planning.data") }}',
+            annulationCours: '{{ route("planning.annulation-cours") }}',
         },
     };
 </script>

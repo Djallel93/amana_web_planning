@@ -83,6 +83,9 @@
         </div>
 
         {{-- ── Synchronisation Google Calendar --}}
+        @php
+            $calendarNamesActuels = old('calendar_names', $edit ? $evenement->calendarNames() : []);
+        @endphp
         <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                 <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
@@ -91,38 +94,41 @@
             </div>
             <div class="p-5">
                 <p class="text-[12.5px] text-ink-muted mb-4 leading-relaxed">
-                    Si vous renseignez un nom de calendrier, un événement sera automatiquement créé (ou mis à jour / supprimé)
-                    dans Google Calendar via Make.com. Laissez vide pour ne pas synchroniser.
+                    Si vous sélectionnez un ou plusieurs calendriers, un événement sera automatiquement créé (ou mis à jour / supprimé)
+                    dans chacun via Make.com. Laissez vide pour ne pas synchroniser.
                 </p>
 
                 <div class="flex flex-col gap-1.5">
-                    <label class="text-xs font-bold text-ink tracking-[0.2px]">Nom du calendrier Google Calendar</label>
+                    <label class="text-xs font-bold text-ink tracking-[0.2px]">Calendriers Google Calendar</label>
                     {{--
-                        Point de montage SearchableSelect.vue.
-                        Le composant crée son propre <input type="hidden" name="calendar_name">.
+                        Point de montage SearchableSelect.vue en mode multiple.
+                        Le composant crée lui-même ses <input type="hidden" name="calendar_names[]">
+                        (un par calendrier sélectionné).
                     --}}
                     <div
                         data-searchable-select
+                        data-multiple="1"
                         data-api-url="{{ route('calendriers.index') }}"
-                        data-input-name="calendar_name"
-                        data-input-id="calendar_name_vue"
-                        data-current-value="{{ addslashes(old('calendar_name', $evenement->calendar_name ?? '')) }}"
-                        data-placeholder="Sélectionner un calendrier…"
+                        data-input-name="calendar_names"
+                        data-input-id="calendar_names_vue"
+                        data-current-value="{{ json_encode(array_values((array) $calendarNamesActuels)) }}"
+                        data-placeholder="Sélectionner un ou plusieurs calendriers…"
                     ></div>
                     <span class="text-[11.5px] text-ink-muted">
-                        Sélectionnez le calendrier Google Calendar cible.
-                        @if($edit && $evenement->calendar_name)
+                        Sélectionnez tous les calendriers Google Calendar cibles.
+                        @if($edit && $evenement->hasCalendarSync())
                             <strong class="text-emerald-600">✓ Synchronisation active</strong>
                         @endif
                     </span>
-                    @error('calendar_name')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
+                    @error('calendar_names')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>
 
-                @if($edit && $evenement->calendar_name)
+                @if($edit && $evenement->hasCalendarSync())
                     <div class="flex items-start gap-2.5 mt-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-[12.5px] text-emerald-800">
                         <span class="flex-shrink-0">📅</span>
                         <span>
-                            Cet événement est synchronisé avec le calendrier <strong>« {{ $evenement->calendar_name }} »</strong>.
+                            Cet événement est synchronisé avec {{ count($evenement->calendarNames()) > 1 ? 'les calendriers' : 'le calendrier' }}
+                            <strong>« {{ implode(' », « ', $evenement->calendarNames()) }} »</strong>.
                             Modifier ou supprimer cet événement mettra également à jour Google Calendar.
                         </span>
                     </div>

@@ -50,6 +50,7 @@ class DatabaseSeeder extends Seeder
             ['code' => 'assistance_amana_food', 'libelle' => 'Assistance Amana Food', 'actif' => false, 'description' => ''],
             ['code' => 'annonce_cours', 'libelle' => 'Annonce Cours', 'actif' => false, 'description' => ''],
             ['code' => 'message_general', 'libelle' => 'Message Général', 'actif' => false, 'description' => ''],
+            ['code' => 'annulation_cours', 'libelle' => 'Annulation Cours', 'actif' => false, 'description' => ''],
         ];
 
         foreach ($taches as $t) {
@@ -150,6 +151,8 @@ class DatabaseSeeder extends Seeder
             ['cle' => 'offset_annonce_cours_fin', 'valeur' => '-345', 'type' => 'integer', 'libelle' => 'Annonce cours : fin (min)', 'description' => null],
             ['cle' => 'offset_message_bot_debut', 'valeur' => '-30', 'type' => 'integer', 'libelle' => 'Message bot : début (min)', 'description' => null],
             ['cle' => 'offset_message_bot_fin', 'valeur' => '0', 'type' => 'integer', 'libelle' => 'Message bot : fin (min)', 'description' => null],
+            ['cle' => 'offset_annulation_cours_debut', 'valeur' => '-360', 'type' => 'integer', 'libelle' => 'Annulation cours : début (min)', 'description' => null],
+            ['cle' => 'offset_annulation_cours_fin', 'valeur' => '-345', 'type' => 'integer', 'libelle' => 'Annulation cours : fin (min)', 'description' => null],
 
             // ── D. Noms de calendriers Google Calendar ─────────────────────
             // Chaque valeur est le nom exact du calendrier Google Calendar dans
@@ -164,6 +167,7 @@ class DatabaseSeeder extends Seeder
             ['cle' => 'calendar_assistance_amana_food', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Assistance Amana Food', 'description' => null],
             ['cle' => 'calendar_annonce_cours', 'valeur' => 'AMANA - Communications', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => null],
             ['cle' => 'calendar_message_bot', 'valeur' => 'AMANA - Communications', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => null],
+            ['cle' => 'calendar_annulation_cours', 'valeur' => 'AMANA - Communications', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => null],
         ];
 
         foreach ($settings as $s) {

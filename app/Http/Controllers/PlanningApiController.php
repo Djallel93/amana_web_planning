@@ -59,14 +59,15 @@ class PlanningApiController extends PlanningController
         $user = $request->user();
         $peutEditer = $user && ($user->isAdmin() || $user->isGestionnaire());
 
-        $semaines = $creneaux->map(fn($creneauxSemaine, $semaineCle) =>
+        $semaines = $creneaux->map(
+            fn($creneauxSemaine, $semaineCle) =>
             $this->serializeSemaine($semaineCle, $creneauxSemaine, $bannièresParSemaine)
         )->values();
 
         return response()->json([
-            'semaines'    => $semaines,
-            'historique'  => $historique,
-            'peutEditer'  => $peutEditer,
+            'semaines' => $semaines,
+            'historique' => $historique,
+            'peutEditer' => $peutEditer,
         ]);
     }
 
@@ -75,41 +76,53 @@ class PlanningApiController extends PlanningController
      */
     private function serializeSemaine(string $semaineCle, $creneauxSemaine, array $bannièresParSemaine): array
     {
-        $first      = $creneauxSemaine->first();
-        $last       = $creneauxSemaine->last();
+        $first = $creneauxSemaine->first();
+        $last = $creneauxSemaine->last();
         $weekMonday = $first->date->clone()->subDays($first->date->isoWeekday() - 1)->startOfDay();
         $weekSunday = $weekMonday->clone()->addDays(6)->endOfDay();
 
         $nbTachesActives = $creneauxSemaine->first()?->taches->count() ?? 5;
         $bannièresSemaine = $bannièresParSemaine[$semaineCle] ?? [];
 
-        $evtToutBloque = collect($bannièresSemaine)->first(
-            fn($b) => !$b['informatif'] && $b['evenement']->tachesBloquees->count() >= $nbTachesActives
-        );
+        // Un événement ne "bloque toute la semaine" (badge dans l'en-tête) que
+        // s'il est réellement lié à CHAQUE créneau existant de la semaine —
+        // pas seulement si sa plage de dates chevauche quelque part la semaine.
+        // Sans cette vérification, un événement d'un seul jour bloquant toutes
+        // les tâches actives (ex. "Cours annulé" via le bouton du planning)
+        // ferait apparaître à tort ce badge pour toute la semaine, alors qu'il
+        // ne s'applique qu'à l'un des créneaux (vendredi OU samedi).
+        $evtToutBloque = collect($bannièresSemaine)->first(function ($b) use ($creneauxSemaine, $nbTachesActives) {
+            if ($b['informatif'] || $b['evenement']->tachesBloquees->count() < $nbTachesActives) {
+                return false;
+            }
+            return $creneauxSemaine->every(
+                fn($c) => $c->evenements->contains('id', $b['evenement']->id)
+            );
+        });
 
         return [
-            'cle'              => $semaineCle,
-            'numeroSemaine'    => $first->semaine,
-            'anneeAffichage'   => $first->date->year,
-            'moisAffichage'    => $first->date->month,
-            'libelleSemaine'   => $first->date->locale('fr')->isoFormat('D MMMM')
+            'cle' => $semaineCle,
+            'numeroSemaine' => $first->semaine,
+            'anneeAffichage' => $first->date->year,
+            'moisAffichage' => $first->date->month,
+            'libelleSemaine' => $first->date->locale('fr')->isoFormat('D MMMM')
                 . ' — ' . $last->date->locale('fr')->isoFormat('D MMMM YYYY'),
-            'lundi'            => $weekMonday->toDateString(),
-            'dimanche'         => $weekSunday->toDateString(),
-            'datesExistantes'  => $creneauxSemaine->pluck('date')->map(fn($d) => $d->toDateString())->values(),
+            'lundi' => $weekMonday->toDateString(),
+            'dimanche' => $weekSunday->toDateString(),
+            'datesExistantes' => $creneauxSemaine->pluck('date')->map(fn($d) => $d->toDateString())->values(),
             'evenementBloquantTotal' => $evtToutBloque ? $evtToutBloque['evenement']->nom : null,
-            'bannieres'        => collect($bannièresSemaine)->map(fn($b) => [
-                'nom'          => $b['evenement']->nom,
-                'dateLabel'    => $this->formatBanniereDate($b),
-                'informatif'   => $b['informatif'],
+            'bannieres' => collect($bannièresSemaine)->map(fn($b) => [
+                'nom' => $b['evenement']->nom,
+                'dateLabel' => $this->formatBanniereDate($b),
+                'informatif' => $b['informatif'],
                 'tachesBloquees' => $b['informatif']
                     ? []
                     : $b['evenement']->tachesBloquees->map(fn($t) => [
-                        'code'    => $t->code,
+                        'code' => $t->code,
                         'libelle' => $t->libelle,
                     ])->values(),
             ])->values(),
-            'creneaux'         => $creneauxSemaine->map(fn($c) => $this->serializeCreneau($c))->values(),
+            'creneaux' => $creneauxSemaine->map(fn($c) => $this->serializeCreneau($c))->values(),
         ];
     }
 
@@ -118,42 +131,40 @@ class PlanningApiController extends PlanningController
      */
     private function serializeCreneau(Creneau $c): array
     {
-        $tachesMap           = $c->taches->keyBy(fn($t) => $t->tache?->code);
+        $tachesMap = $c->taches->keyBy(fn($t) => $t->tache?->code);
         $tachesBloqueesCodes = $c->tachesBloqueesCodes();
-        $nomEvtBloquants     = $c->evenements
+        $nomEvtBloquants = $c->evenements
             ->filter(fn($e) => $e->tachesBloquees->isNotEmpty())
             ->pluck('nom')
             ->implode(', ');
-        $nbTaches  = $c->taches->count();
+        $nbTaches = $c->taches->count();
         $toutBloque = $tachesBloqueesCodes->count() >= $nbTaches && $tachesBloqueesCodes->isNotEmpty();
 
-        $taches = collect(['entree', 'mektaba', 'salle', 'amana_food', 'cours'])->map(function ($code) use (
-            $tachesMap, $tachesBloqueesCodes, $nomEvtBloquants
-        ) {
-            $ct       = $tachesMap->get($code);
+        $taches = collect(['entree', 'mektaba', 'salle', 'amana_food', 'cours'])->map(function ($code) use ($tachesMap, $tachesBloqueesCodes, $nomEvtBloquants) {
+            $ct = $tachesMap->get($code);
             $personne = $ct?->personne;
 
             return [
-                'code'       => $code,
-                'tacheId'    => $ct?->id_tache,
-                'bloquee'    => $tachesBloqueesCodes->contains($code),
+                'code' => $code,
+                'tacheId' => $ct?->id_tache,
+                'bloquee' => $tachesBloqueesCodes->contains($code),
                 'evenementBloquant' => $tachesBloqueesCodes->contains($code) ? $nomEvtBloquants : null,
-                'personne'   => $personne ? [
-                    'id'    => $personne->id,
+                'personne' => $personne ? [
+                    'id' => $personne->id,
                     'label' => $personne->prenom . ' ' . $personne->nom,
                 ] : null,
             ];
         });
 
         return [
-            'id'        => $c->id,
-            'date'      => $c->date->toDateString(),
+            'id' => $c->id,
+            'date' => $c->date->toDateString(),
             'dateLabel' => $c->date->locale('fr')->isoFormat('D MMM YYYY'),
-            'jour'      => $c->jour,
+            'jour' => $c->jour,
             'toutBloque' => $toutBloque,
             'partielBloque' => !$toutBloque && $tachesBloqueesCodes->isNotEmpty(),
             'evenements' => $c->evenements->pluck('nom')->implode(', ') ?: null,
-            'taches'    => $taches,
+            'taches' => $taches,
         ];
     }
 
@@ -162,9 +173,9 @@ class PlanningApiController extends PlanningController
      */
     private function formatBanniereDate(array $bannière): string
     {
-        $debutStr  = $bannière['debut_semaine']->locale('fr')->isoFormat('D MMM');
-        $finStr    = $bannière['fin_semaine']->locale('fr')->isoFormat('D MMM');
-        $mêmeJour  = $bannière['debut_semaine']->isSameDay($bannière['fin_semaine']);
+        $debutStr = $bannière['debut_semaine']->locale('fr')->isoFormat('D MMM');
+        $finStr = $bannière['fin_semaine']->locale('fr')->isoFormat('D MMM');
+        $mêmeJour = $bannière['debut_semaine']->isSameDay($bannière['fin_semaine']);
 
         return $mêmeJour ? $debutStr : "{$debutStr} – {$finStr}";
     }

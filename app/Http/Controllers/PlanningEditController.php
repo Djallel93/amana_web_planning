@@ -8,6 +8,7 @@ namespace App\Http\Controllers;
 use App\Jobs\EnvoyerWebhookMake;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
+use App\Models\Evenement;
 use App\Models\Personne;
 use App\Models\Tache;
 use App\Services\WebhookPayloadBuilder;
@@ -24,12 +25,15 @@ use Illuminate\Support\Facades\Log;
  *   - désassignation (unassignTache)        → DELETE
  *   - suppression d'un créneau entier       → DELETE
  *   - création manuelle d'un créneau        → POST
+ *   - annulation d'un cours (annulerCours)  → DELETE (nettoyage calendrier)
+ *                                              puis POST (annonce annulation)
  *
  * Routes :
  *   PATCH  /planning/creneau/{creneauId}/tache/{tacheId}  → modifier l'assignation
  *   DELETE /planning/creneau/{creneauId}/tache/{tacheId}  → désassigner une tâche
  *   DELETE /planning/creneau/{id}                         → supprimer un créneau entier
  *   POST   /planning/creneau                              → créer un créneau manuellement
+ *   POST   /planning/annulation-cours                     → annuler le cours d'une date
  *   GET    /planning/personnes-actives                    → liste des personnes pour la modale
  */
 class PlanningEditController extends Controller
@@ -73,14 +77,27 @@ class PlanningEditController extends Controller
         $ct = CreneauTache::firstOrCreate(
             [
                 'id_planning' => $creneauId,
-                'id_tache'    => $tacheId,
+                'id_tache' => $tacheId,
             ],
             ['id_personne' => null]
         );
 
         $avant = $ct->toArray();
-        $ct->id_personne = $request->input('id_personne');
-        $ct->save();
+
+        // ⚠️ CreneauTache a une clé primaire composite (id_planning, id_tache)
+        // et déclare `$primaryKey = null` pour désactiver l'auto-increment
+        // — de ce fait, Eloquent ne peut pas construire de clause WHERE pour
+        // un ->save() sur une instance déjà chargée (aucune colonne "id" à
+        // utiliser). ->save() ici générerait un UPDATE SANS CLAUSE WHERE, qui
+        // mettrait à jour TOUTES les lignes de la table. On passe donc
+        // systématiquement par le query builder statique, scopé explicitement
+        // par (id_planning, id_tache) — jamais ->save()/->update() sur une
+        // instance de ce modèle.
+        CreneauTache::where('id_planning', $creneauId)
+            ->where('id_tache', $tacheId)
+            ->update(['id_personne' => $request->input('id_personne')]);
+
+        $ct = $ct->fresh();
 
         $newPersonne = null;
         if ($ct->id_personne) {
@@ -88,7 +105,7 @@ class PlanningEditController extends Controller
             $newPersonne = $p ? ['id' => $p->id, 'label' => $p->prenom . ' ' . $p->nom] : null;
         }
 
-        audit('update', 'planning', $creneauId, $avant, $ct->fresh()->toArray());
+        audit('update', 'planning', $creneauId, $avant, $ct->toArray());
 
         // ── Déclencher le webhook PATCH pour refléter la réassignation ─────
         $this->dispatchWebhookReassignation($creneauId, $tacheId);
@@ -113,10 +130,16 @@ class PlanningEditController extends Controller
             ->firstOrFail();
 
         $avant = $ct->toArray();
-        $ct->id_personne = null;
-        $ct->save();
 
-        audit('update', 'planning', $creneauId, $avant, $ct->fresh()->toArray());
+        // Voir avertissement dans patchAssignation() — jamais ->save() sur une
+        // instance de CreneauTache (clé primaire composite, $primaryKey = null).
+        CreneauTache::where('id_planning', $creneauId)
+            ->where('id_tache', $tacheId)
+            ->update(['id_personne' => null]);
+
+        $ct = $ct->fresh();
+
+        audit('update', 'planning', $creneauId, $avant, $ct->toArray());
 
         // ── Déclencher le webhook DELETE pour refléter la désassignation ───
         $this->dispatchWebhookUnassignation($creneauId, $tacheId);
@@ -199,6 +222,109 @@ class PlanningEditController extends Controller
             'success' => true,
             'message' => "Créneau du {$creneau->jour} " .
                 $carbonDate->locale('fr')->isoFormat('D MMM YYYY') . ' créé.',
+            'date' => $date,
+        ]);
+    }
+
+    /**
+     * Annule le cours d'une date déjà générée : désassigne toutes les tâches,
+     * bloque la date via un événement organisationnel ("Cours annulé — …",
+     * bloquant toutes les tâches actives — visible dans la liste des
+     * Événements), supprime tous les événements calendrier existants sur
+     * cette date, puis annonce l'annulation comme n'importe quel autre
+     * événement social (calendar_annulation_cours).
+     *
+     * POST /planning/annulation-cours
+     * Body JSON : { "date": "2026-07-10" }
+     *
+     * Si aucun créneau n'existe pour cette date, rien n'est modifié : on
+     * retourne un simple avertissement (la date ne peut pas être "bloquée"
+     * a priori, seulement annulée une fois le planning généré).
+     */
+    public function annulerCours(Request $request): JsonResponse
+    {
+        $request->validate([
+            'date' => ['required', 'date', 'after:today'],
+        ], [
+            'date.required' => 'La date est obligatoire.',
+            'date.after' => 'La date doit être future.',
+        ]);
+
+        $date = $request->input('date');
+        $carbonDate = \Carbon\Carbon::parse($date);
+
+        $creneau = Creneau::with('taches.tache')->where('date', $date)->first();
+
+        if (!$creneau) {
+            return response()->json([
+                'success' => false,
+                'warning' => true,
+                'message' => "Aucun planning n'a encore été généré pour le "
+                    . $carbonDate->locale('fr')->isoFormat('D MMMM YYYY')
+                    . ". Cette date ne peut donc pas être annulée pour le moment.",
+            ], 422);
+        }
+
+        // ── 1. Nettoyer les événements calendrier existants sur cette date ──
+        // À faire AVANT de créer/attacher l'événement bloquant ci-dessous :
+        // buildForDeleteCreneau() ignore les tâches déjà bloquées par un
+        // événement lié au créneau (puisqu'aucun événement calendrier
+        // n'existerait pour elles) — il faut donc capturer l'état "avant
+        // annulation" pendant que le créneau n'est pas encore bloqué.
+        $this->dispatchWebhookDeleteCreneau($creneau);
+
+        // ── 2. Désassigner toutes les tâches du créneau ─────────────────────
+        $avant = $creneau->taches->map(fn($ct) => [
+            'id_tache' => $ct->id_tache,
+            'id_personne' => $ct->id_personne,
+        ])->all();
+
+        foreach ($creneau->taches as $ct) {
+            if ($ct->id_personne !== null) {
+                // Voir avertissement dans patchAssignation() — jamais ->save() sur
+                // une instance de CreneauTache (clé primaire composite, $primaryKey = null),
+                // sous peine d'un UPDATE sans clause WHERE affectant TOUTE la table.
+                CreneauTache::where('id_planning', $ct->id_planning)
+                    ->where('id_tache', $ct->id_tache)
+                    ->update(['id_personne' => null]);
+            }
+        }
+
+        // ── 3. Bloquer la date via un événement organisationnel ─────────────
+        // Réutilise le mécanisme existant "événement bloquant toutes les
+        // tâches" — apparaît dans la liste des Événements (voulu), et la
+        // grille/génération/export respectent immédiatement le blocage.
+        $nomEvenement = 'Cours annulé — ' . $carbonDate->locale('fr')->isoFormat('D MMMM YYYY');
+
+        $evenement = Evenement::create([
+            'nom' => $nomEvenement,
+            'date_debut' => $date,
+            'date_fin' => $date,
+            'description' => 'Cours annulé via le bouton "Annulation cours" du planning.',
+        ]);
+
+        $tacheIds = Tache::actif()->pluck('id');
+        $evenement->tachesBloquees()->sync($tacheIds);
+        $creneau->evenements()->syncWithoutDetaching([$evenement->id]);
+
+        audit('update', 'planning', $creneau->id, ['taches' => $avant], [
+            'annule' => true,
+            'evenement_id' => $evenement->id,
+        ]);
+        audit('create', 'evenements', $evenement->id, null, array_merge(
+            $evenement->toArray(),
+            ['taches_bloquees' => $tacheIds->all()]
+        ));
+
+        // ── 4. Annoncer l'annulation (POST, comme n'importe quel événement) ─
+        // Ici, à l'inverse, le créneau DOIT refléter l'état "après annulation"
+        // (toutes les tâches bloquées) — buildForAnnulationCours() recharge
+        // le créneau et son événement bloquant.
+        $this->dispatchWebhookAnnulationCours($creneau);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cours annulé pour le ' . $carbonDate->locale('fr')->isoFormat('D MMMM YYYY') . '.',
             'date' => $date,
         ]);
     }
@@ -299,6 +425,29 @@ class PlanningEditController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::error('[PlanningEditController] Échec dispatch webhook POST créneau', [
+                'creneau_id' => $creneau->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function dispatchWebhookAnnulationCours(Creneau $creneau): void
+    {
+        if (empty(config('services.make.webhook_url'))) {
+            return;
+        }
+
+        try {
+            $payload = $this->webhookBuilder->buildForAnnulationCours($creneau);
+
+            EnvoyerWebhookMake::dispatch($payload, 'post');
+
+            Log::info('[PlanningEditController] Webhook POST dispatché (annulation cours)', [
+                'creneau_id' => $creneau->id,
+                'date' => $creneau->date->toDateString(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[PlanningEditController] Échec dispatch webhook POST annulation cours', [
                 'creneau_id' => $creneau->id,
                 'error' => $e->getMessage(),
             ]);

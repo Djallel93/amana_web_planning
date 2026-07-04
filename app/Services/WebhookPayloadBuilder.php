@@ -29,6 +29,10 @@ use Illuminate\Support\Collection;
  *   - buildForEchange()       → PATCH  exécution d'un échange (2 créneaux affectés)
  *   - buildForUnassignation() → DELETE désassignation explicite d'une tâche
  *   - buildForDeleteCreneau() → DELETE suppression d'un créneau entier
+ *   - buildForAnnulationCours() → POST annonce d'annulation d'un cours
+ *                                  (bouton "Annulation cours" du planning ;
+ *                                  précédée d'un buildForDeleteCreneau() pour
+ *                                  nettoyer les événements calendrier existants)
  *
  * Règle métier conservée : `rappel_sandwich` suit la personne assignée à
  * `amana_food`, et `assistance_amana_food` suit la personne assignée à
@@ -81,6 +85,44 @@ class WebhookPayloadBuilder
         return [
             'lieu' => $this->lieu(),
             'creneaux' => [$this->buildCreneauComplet($creneau, $toutesLesTaches, $heureCours)],
+        ];
+    }
+
+    // ── POST : annonce de l'annulation d'un cours ────────────────────────
+
+    /**
+     * Payload pour l'annonce de l'annulation d'un cours (bouton "Annulation
+     * cours" du planning).
+     *
+     * À appeler APRÈS que le créneau ait été rechargé avec ses tâches
+     * désassignées et son événement bloquant lié — le payload reflète donc
+     * un créneau entièrement bloqué (`taches` vide, comme n'importe quelle
+     * autre date bloquée par un événement), avec en plus une entrée
+     * `evenements_sociaux` dédiée pour le code `annulation_cours`, envoyée
+     * exactement comme n'importe quel autre événement social (POST, même
+     * structure que build()/buildForCreation()) — pas de type de payload
+     * distinct côté Make.com.
+     */
+    public function buildForAnnulationCours(Creneau $creneau): array
+    {
+        $heureCours = Setting::get('heure_cours', 'planning') ?? '20:00';
+        $toutesLesTaches = Tache::all()->keyBy('code');
+        $date = Carbon::parse($creneau->date)->toDateString();
+
+        $creneau->load(['taches.tache', 'taches.personne', 'evenements.tachesBloquees']);
+
+        $entry = $this->buildCreneauComplet($creneau, $toutesLesTaches, $heureCours);
+        $entry['evenements_sociaux'][] = $this->ligneAvecAssignation(
+            'annulation_cours',
+            null,
+            $toutesLesTaches->get('annulation_cours'),
+            $date,
+            $heureCours
+        );
+
+        return [
+            'lieu' => $this->lieu(),
+            'creneaux' => [$entry],
         ];
     }
 
@@ -335,7 +377,7 @@ class WebhookPayloadBuilder
             'email' => $personne?->email,
             'heure_debut' => $debut,
             'heure_fin' => $fin,
-            'calendar_name' => $this->getCalendarName($cleHoraire),
+            'calendar_names' => $this->getCalendarNames($cleHoraire),
             'description' => $tacheRef?->description ?? '',
         ];
     }
@@ -356,7 +398,7 @@ class WebhookPayloadBuilder
             'nom' => $tacheRef?->libelle ?? ucfirst(str_replace('_', ' ', $code)),
             'heure_debut' => $debut,
             'heure_fin' => $fin,
-            'calendar_name' => $this->getCalendarName($cleHoraire),
+            'calendar_names' => $this->getCalendarNames($cleHoraire),
         ];
     }
 
@@ -431,9 +473,20 @@ class WebhookPayloadBuilder
         return Setting::get('lieu', 'planning') ?? '';
     }
 
-    private function getCalendarName(string $code): ?string
+    /**
+     * Retourne les calendriers Google Calendar cibles pour un code donné.
+     *
+     * Aujourd'hui un seul calendrier est configurable par code dans les
+     * Paramètres (une valeur ref_settings par calendar_<code>), mais le
+     * payload expose déjà un tableau — si demain plusieurs calendriers
+     * doivent être configurables pour un même code, seul ce point change.
+     *
+     * @return array<int, string>
+     */
+    private function getCalendarNames(string $code): array
     {
-        return Setting::get("calendar_{$code}", 'planning') ?: null;
+        $valeur = Setting::get("calendar_{$code}", 'planning');
+        return $valeur ? [$valeur] : [];
     }
 
     private function calculerHoraires(string $code, string $date, string $heureCours): array

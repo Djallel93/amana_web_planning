@@ -2,20 +2,29 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 
+// ── Props ─────────────────────────────────────────────────────────────────
+// modelValue :
+//   - mode simple  (multiple=false) → string ('' si rien sélectionné)
+//   - mode multiple (multiple=true) → string[] ([] si rien sélectionné)
+// Le composant garde un seul fichier pour les deux modes plutôt que d'en
+// dupliquer un — la logique de fetch/cache/positionnement du dropdown est
+// strictement identique, seule la sélection change.
 const props = withDefaults(defineProps<{
     apiUrl:       string;
-    modelValue:   string;
+    modelValue:   string | string[];
     placeholder?: string;
     inputName?:   string;
     inputId?:     string;
+    multiple?:    boolean;
 }>(), {
     placeholder: 'Sélectionner un calendrier…',
     inputName:   '',
     inputId:     '',
+    multiple:    false,
 });
 
 const emit = defineEmits<{
-    'update:modelValue': [value: string];
+    'update:modelValue': [value: string | string[]];
 }>();
 
 // ── État local ────────────────────────────────────────────────────────────
@@ -65,7 +74,22 @@ function updateDropdownPosition(): void {
 const _cache    = new Map<string, string[]>();
 const _inflight = new Map<string, Promise<string[]>>();
 
-const selectedLabel = computed(() => props.modelValue || '');
+// ── Helpers de lecture du modelValue selon le mode ─────────────────────────
+const selectedValues = computed((): string[] => {
+    if (!props.multiple) return [];
+    return Array.isArray(props.modelValue) ? props.modelValue : [];
+});
+
+const selectedLabel = computed((): string => {
+    if (props.multiple) return ''; // non utilisé en mode multiple (chips à la place)
+    return typeof props.modelValue === 'string' ? props.modelValue : '';
+});
+
+function isSelected(cal: string): boolean {
+    return props.multiple
+        ? selectedValues.value.includes(cal)
+        : cal === props.modelValue;
+}
 
 const filteredCalendars = computed(() => {
     const q = query.value.toLowerCase().trim();
@@ -135,14 +159,33 @@ function toggle(): void {
     isOpen.value ? close() : open();
 }
 
+/**
+ * Sélectionne (ou bascule, en mode multiple) un calendrier.
+ * Mode simple  : émet la valeur et ferme le dropdown (comportement d'origine).
+ * Mode multiple : bascule l'entrée dans le tableau, ne ferme PAS le dropdown
+ *                 (l'utilisateur peut cocher plusieurs calendriers d'affilée).
+ */
 function select(value: string): void {
-    emit('update:modelValue', value);
-    close();
+    if (!props.multiple) {
+        emit('update:modelValue', value);
+        close();
+        return;
+    }
+
+    const current = selectedValues.value;
+    const next = current.includes(value)
+        ? current.filter(v => v !== value)
+        : [...current, value];
+    emit('update:modelValue', next);
+}
+
+function removeChip(value: string): void {
+    emit('update:modelValue', selectedValues.value.filter(v => v !== value));
 }
 
 function clear(): void {
-    emit('update:modelValue', '');
-    close();
+    emit('update:modelValue', props.multiple ? [] : '');
+    if (!props.multiple) close();
 }
 
 // ── Fermeture par clic extérieur ───────────────────────────────────────────
@@ -189,14 +232,19 @@ onUnmounted(() => {
 <template>
     <div ref="wrapperRef" class="relative w-full">
 
-        <!-- Input caché pour soumission du form Blade -->
-        <input
-            v-if="inputName"
-            type="hidden"
-            :name="inputName"
-            :id="inputId || undefined"
-            :value="modelValue"
-        >
+        <!--
+            Inputs cachés pour soumission du form Blade.
+            Mode simple   : un seul input, valeur = la chaîne sélectionnée.
+            Mode multiple : un input par valeur sélectionnée, name="xxx[]"
+                            pour que Laravel les reçoive comme un tableau —
+                            même convention que des checkboxes natives.
+        -->
+        <template v-if="inputName">
+            <input v-if="!multiple" type="hidden" :name="inputName" :id="inputId || undefined" :value="selectedLabel">
+            <template v-else>
+                <input v-for="val in selectedValues" :key="val" type="hidden" :name="`${inputName}[]`" :value="val">
+            </template>
+        </template>
 
         <!-- Bouton déclencheur -->
         <button
@@ -212,12 +260,33 @@ onUnmounted(() => {
             :aria-expanded="isOpen"
             aria-haspopup="listbox"
         >
+            <!-- Mode multiple : chips des calendriers sélectionnés -->
+            <span v-if="multiple" class="flex-1 flex flex-wrap gap-1.5 min-h-[20px]">
+                <span v-if="!selectedValues.length" class="text-ink-muted">{{ placeholder }}</span>
+                <span
+                    v-for="val in selectedValues"
+                    :key="val"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-sky-50 text-accent"
+                >
+                    {{ val }}
+                    <span
+                        role="button"
+                        aria-label="Retirer"
+                        class="cursor-pointer opacity-60 hover:opacity-100 leading-none"
+                        @click.stop="removeChip(val)"
+                    >×</span>
+                </span>
+            </span>
+
+            <!-- Mode simple : libellé unique (comportement d'origine) -->
             <span
+                v-else
                 class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
                 :class="selectedLabel ? 'text-ink' : 'text-ink-muted'"
             >
                 {{ selectedLabel || placeholder }}
             </span>
+
             <span
                 class="flex-shrink-0 text-[10px] text-ink-muted transition-transform duration-150"
                 :class="isOpen ? 'rotate-180' : ''"
@@ -242,6 +311,7 @@ onUnmounted(() => {
                     :style="dropdownStyle"
                     class="bg-white border-[1.5px] border-ink-faint rounded-lg shadow-lg overflow-hidden"
                     role="listbox"
+                    :aria-multiselectable="multiple"
                 >
                     <!-- Champ recherche -->
                     <div class="px-2.5 pt-2.5 pb-1.5 border-b border-surface-3">
@@ -287,15 +357,19 @@ onUnmounted(() => {
                             v-for="cal in filteredCalendars"
                             :key="cal"
                             role="option"
-                            :aria-selected="cal === modelValue"
-                            class="px-3.5 py-2.5 text-[13.5px] text-ink cursor-pointer transition-colors
+                            :aria-selected="isSelected(cal)"
+                            class="flex items-center gap-2 px-3.5 py-2.5 text-[13.5px] text-ink cursor-pointer transition-colors
                                    overflow-hidden text-ellipsis whitespace-nowrap"
-                            :class="cal === modelValue
+                            :class="isSelected(cal)
                                 ? 'bg-sky-50 text-accent font-semibold'
                                 : 'hover:bg-surface-2'"
                             @click="select(cal)"
                         >
-                            {{ cal }}
+                            <span v-if="multiple" class="flex-shrink-0 w-4 h-4 rounded border-[1.5px] flex items-center justify-center text-[10px]"
+                                  :class="isSelected(cal) ? 'bg-accent border-accent text-white' : 'border-ink-faint'">
+                                <span v-if="isSelected(cal)">✓</span>
+                            </span>
+                            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ cal }}</span>
                         </div>
                     </div>
 

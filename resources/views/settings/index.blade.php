@@ -183,6 +183,7 @@
                     'calendar_assistance_amana_food' => ['libelle' => 'Assistance Amana Food','chip' => 'assistance_amana_food'],
                     'calendar_annonce_cours'         => ['libelle' => 'Annonce Cours',        'chip' => 'annonce_cours'],
                     'calendar_message_bot'           => ['libelle' => 'Message Bot',          'chip' => 'message_bot'],
+                    'calendar_annulation_cours'       => ['libelle' => 'Annulation Cours',     'chip' => 'annulation_cours'],
                 ];
             @endphp
 

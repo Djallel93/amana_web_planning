@@ -4,7 +4,7 @@
 
 1. [Prérequis généraux](#prérequis-généraux)
 2. [Installation en environnement local (Ubuntu 24.04 / Pop!\_OS)](#installation-en-environnement-local-ubuntu-2404--popos)
-3. [Déploiement en production (IONOS)](#déploiement-en-production-ionos)
+3. [Déploiement en production — pipeline GitHub Actions → IONOS](#déploiement-en-production--pipeline-github-actions--ionos)
 4. [Première connexion et changement de mot de passe](#première-connexion-et-changement-de-mot-de-passe)
 5. [Référence des routes principales](#référence-des-routes-principales)
 6. [Résolution des problèmes courants](#résolution-des-problèmes-courants)
@@ -13,17 +13,17 @@
 
 ## Prérequis généraux
 
-| Composant       | Version minimale | Notes                                      |
-| --------------- | ---------------- | ------------------------------------------ |
-| PHP             | 8.2+             | 8.4 recommandé                             |
-| MySQL / MariaDB | 8.0+ / 10.4+     |                                            |
-| Nginx           | 1.24+            |                                            |
-| Composer        | 2.x              |                                            |
-| Node.js         | 20.19+ ou 22.x   | Requis en développement pour le build Vite |
-| npm             | Inclus avec Node |                                            |
-| Git             | 2.x              |                                            |
+| Composant       | Version minimale | Notes                                                          |
+| --------------- | ----------------- | ---------------------------------------------------------------- |
+| PHP             | 8.2+              | 8.4 recommandé (utilisé par la CI et par IONOS)                |
+| MySQL / MariaDB | 8.0+ / 10.4+      |                                                                  |
+| Nginx           | 1.24+             | Développement local uniquement — IONOS gère son propre Apache |
+| Composer        | 2.x               |                                                                  |
+| Node.js         | 20.19+ ou 22.x    | Requis en développement local **et** dans la CI (build Vite : Vue 3 + Tailwind) |
+| npm             | Inclus avec Node  |                                                                  |
+| Git             | 2.x               |                                                                  |
 
-> **En production (IONOS)**, Node.js n'est **pas** requis. Le dossier `public/build/` (CSS compilé) est commité dans git et déployé directement.
+> **Sur le serveur IONOS lui-même, Node.js et Composer ne sont pas requis.** Le build (`composer install`, `npm run build`) se fait entièrement dans le pipeline GitHub Actions ; seul le résultat déjà compilé (code PHP + `public/build/`) est envoyé sur le serveur par `rsync`. Voir [Déploiement en production](#déploiement-en-production--pipeline-github-actions--ionos).
 
 ---
 
@@ -126,16 +126,20 @@ cd /var/www/amana-planning
 composer install
 ```
 
-### 10. Installer les dépendances Node et compiler le CSS
+### 10. Installer les dépendances Node et builder le frontend (Vue 3 + Tailwind)
+
+Le frontend applicatif (planning, événements, bilan, formulaires interactifs…) est écrit en **Vue 3** (composants `.vue` sous `resources/js/`), compilé par **Vite**, avec **Tailwind CSS**. Ce n'est plus du CSS statique seul — le JavaScript de l'app doit être compilé avant de pouvoir utiliser l'application, y compris en local.
 
 ```bash
 npm install
 npm run build
 ```
 
-> **`npm run build`** génère le dossier `public/build/` contenant le CSS Tailwind compilé. Ce dossier est commité dans git — en production, cette étape n'est donc pas nécessaire.
+> **`npm run build`** compile les composants Vue et le CSS Tailwind dans `public/build/` (fichiers hashés + `manifest.json`, lus par la directive Blade `@vite(...)`). Ce dossier est **ignoré par git** (`.gitignore`) — il doit être régénéré à chaque installation/déploiement, ce que fait la CI automatiquement en production (voir plus bas).
 >
-> En développement, utilisez `npm run dev` pour le hot reload automatique lors des modifications de vues Blade.
+> En développement actif, utilisez `npm run dev` : serveur Vite avec hot-module-replacement, rechargement instantané des composants Vue et du CSS sans recompilation manuelle.
+>
+> **`npm run type-check`** (`vue-tsc --noEmit`) vérifie les types TypeScript de tous les composants `.vue` sans générer de fichiers — utile avant de committer une modification frontend.
 
 ### 11. Configurer l'environnement
 
@@ -168,11 +172,14 @@ CACHE_STORE=database
 MAIL_MAILER=log
 
 MAKE_WEBHOOK_URL=
+MAKE_WEBHOOK_APIKEY=
 ```
 
 > **`MAIL_MAILER=log`** : les emails s'écrivent dans `storage/logs/laravel.log` au lieu d'être envoyés — pratique en développement.
 >
 > **`HEURE_COURS` est obsolète** et ignorée. L'heure du cours est gérée via **Paramètres → Heure du cours** dans l'interface.
+>
+> **`MAKE_WEBHOOK_URL` vide** : aucun webhook n'est envoyé (la queue le journalise et ignore silencieusement l'appel) — pratique pour développer sans polluer un vrai scénario Make.com. Voir README, section Intégration Make.com, pour le format exact des payloads envoyés (planning, événements, annulation de cours).
 
 ### 12. Permissions des dossiers
 
@@ -193,7 +200,7 @@ php artisan db:seed --force
 Crée toutes les tables et le compte administrateur par défaut :
 
 | Champ        | Valeur           |
-| ------------ | ---------------- |
+| ------------ | ----------------- |
 | Email        | `admin@amana.fr` |
 | Mot de passe | `changeme123!`   |
 
@@ -263,147 +270,94 @@ tail -f /var/www/amana-planning/storage/logs/laravel.log
 
 ---
 
-## Déploiement en production (IONOS)
+## Déploiement en production — pipeline GitHub Actions → IONOS
 
-### Prérequis côté serveur
+Le déploiement **n'est plus manuel** (pas de `git pull` + script sur le serveur). Chaque push sur la branche **`tailwind`** déclenche automatiquement `.github/workflows/deploy.yaml`, qui build l'application puis la livre sur IONOS par SSH/rsync.
 
-- PHP 8.2+ (configurer dans le panneau IONOS → Configuration PHP)
-- Composer disponible
-- **Node.js non requis** — `public/build/` est livré via git
-
-### 1. Cloner le projet
-
-```bash
-cd /var/www/vhosts/votredomaine.fr/httpdocs
-git clone https://github.com/votre-organisation/amana-planning.git .
+```mermaid
+flowchart LR
+    A[git push → tailwind] --> B[Job build]
+    B --> B1[composer install --no-dev]
+    B1 --> B2[npm ci && npm run build]
+    B2 --> B3[Rendu .env depuis le template\n+ secrets GitHub]
+    B3 --> B4[Suppression fichiers dev\ntests, .git, resources/js, node_modules…]
+    B4 --> C[Artefact GitHub Actions]
+    C --> D[Job deploy]
+    D --> D1[php artisan down]
+    D1 --> D2[rsync -az --delete\nvia SSH]
+    D2 --> D3{Premier déploiement ?\nstorage/.bootstrapped absent}
+    D3 -->|Oui| D4[migrate:fresh --seed]
+    D3 -->|Non| D5[migrate]
+    D4 --> D6[optimize + storage:link + up]
+    D5 --> D6
 ```
 
-### 2. Installer les dépendances PHP
+### Ce que fait le job `build`
 
-```bash
-composer install --no-dev --optimize-autoloader
-```
+1. Checkout du code (avec sous-modules).
+2. PHP 8.4 + `composer install --optimize-autoloader --no-dev --no-interaction`.
+3. Node.js 22.x (cache npm) + `npm ci` + `npm run build` — compile les composants Vue et le CSS Tailwind dans `public/build/`.
+4. Rendu du `.env` de production à partir de `.github/deploy/.env.production.template`, en substituant chaque `${VARIABLE}` par le secret/variable GitHub correspondant. Le job **échoue explicitement** si un placeholder `${...}` reste non résolu après substitution (secret manquant) — voir [Résolution des problèmes courants](#résolution-des-problèmes-courants).
+5. Suppression des fichiers non nécessaires en production (`tests`, `.github`, `.git`, `docs`, `resources/js`, `resources/css`, `node_modules`, fichiers de config du tooling…) — seul le code applicatif + `public/build/` compilé partent sur IONOS.
+6. Upload du résultat comme artefact GitHub Actions (rétention 1 jour), transmis au job `deploy`.
 
-### 3. Configurer l'environnement de production
+### Ce que fait le job `deploy`
 
-```bash
-cp .env.example .env
-php artisan key:generate
-```
+1. Récupère l'artefact du job `build`.
+2. Ouvre une connexion SSH (clé privée en secret, host ajouté à `known_hosts`).
+3. Passe l'application en **mode maintenance** (`php artisan down`) — best effort, ne bloque pas si ça échoue (ex. premier déploiement, rien à mettre en maintenance).
+4. Synchronise les fichiers vers IONOS via `rsync -az --delete` (le dossier `storage/` est **exclu** — jamais écrasé entre deux déploiements, les uploads/logs sont préservés).
+5. Recrée l'arborescence `storage/` si absente (premier déploiement).
+6. Exécute les commandes post-déploiement sur le serveur via SSH :
+   - Corrige les permissions (`chmod 664` fichiers / `775` dossiers, `o+w` sur `storage` et `bootstrap/cache`).
+   - **Détecte le premier déploiement** via le marqueur `storage/.bootstrapped` : s'il est absent (ou si `force_fresh_install` a été forcé manuellement), exécute `migrate:fresh --seed` puis crée le marqueur. Sinon, exécute un `migrate` classique (non destructif).
+   - `optimize:clear`, `storage:link`, `optimize`, puis repasse l'app en ligne (`artisan up`).
 
-```dotenv
-APP_NAME="AMANA Planning"
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://votredomaine.ionos.fr
+> ⚠️ **`migrate:fresh --seed` efface toute la base de données.** Il ne s'exécute automatiquement qu'une seule fois (premier déploiement, marqueur absent). Pour le redéclencher volontairement (ex. réinitialiser complètement un environnement de test), utilisez **Actions → Build and Deploy to IONOS → Run workflow**, en cochant `force_fresh_install`. Ne jamais faire ça sur la production réelle sans sauvegarde préalable.
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=nom_de_votre_bdd
-DB_USERNAME=utilisateur_bdd
-DB_PASSWORD=mot_de_passe_bdd
+### Configuration requise — Secrets & Variables GitHub
 
-SESSION_DRIVER=database
-SESSION_LIFETIME=120
-SESSION_SECURE_COOKIE=true
-SESSION_DOMAIN=votredomaine.ionos.fr
+À définir dans **Settings → Secrets and variables → Actions** du dépôt.
 
-QUEUE_CONNECTION=sync
-CACHE_STORE=database
+**Secrets** (`Repository secrets`) :
 
-MAIL_MAILER=smtp
-MAIL_SCHEME=                        # Laisser VIDE — pas "null"
-MAIL_HOST=smtp.ionos.fr
-MAIL_PORT=587
-MAIL_USERNAME=votre@email.fr
-MAIL_PASSWORD=mot_de_passe_smtp
-MAIL_FROM_ADDRESS=votre@email.fr
-MAIL_FROM_NAME="AMANA Planning"
+| Secret                    | Description                                                             |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `APP_KEY`                 | Clé Laravel (`php artisan key:generate --show` pour en générer une)     |
+| `DB_HOST`                 | Hôte de la base de données MySQL/MariaDB IONOS                          |
+| `DB_NAME`                 | Nom de la base                                                            |
+| `DB_USERNAME`             | Utilisateur DB                                                            |
+| `DB_PASSWORD`             | Mot de passe DB                                                          |
+| `MAIL_HOST`               | Hôte SMTP (ex. `smtp.ionos.fr`)                                          |
+| `MAIL_PORT`               | Port SMTP (587 avec STARTTLS)                                            |
+| `MAIL_USERNAME`           | Compte SMTP (aussi utilisé comme adresse d'expédition)                   |
+| `MAIL_PASSWORD`           | Mot de passe SMTP                                                        |
+| `MAKE_WEBHOOK_URL`        | URL du scénario Make.com (planning + événements)                         |
+| `MAKE_WEBHOOK_APIKEY`     | Clé envoyée dans le header `x-make-apikey` de chaque appel webhook       |
+| `APP_EMERGENCY_KEY`       | Clé de l'outil d'urgence `/urgence-hash` — laisser vide sauf besoin ponctuel |
+| `IONOS_SSH_PRIVATE_KEY`   | Clé SSH privée pour se connecter au serveur IONOS                        |
+| `IONOS_SSH_USER`          | Utilisateur SSH IONOS                                                    |
+| `IONOS_SSH_HOST`          | Hôte SSH IONOS                                                           |
 
-MAKE_WEBHOOK_URL=https://hook.eu2.make.com/...
-MAKE_WEBHOOK_APIKEY=...
+**Variables** (`Repository variables`) :
 
-APP_EMERGENCY_KEY=                  # Laisser vide sauf urgence
-```
+| Variable               | Description                                                              |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `APP_URL`               | URL publique de l'application (ex. `https://votredomaine.fr`)             |
+| `IONOS_REMOTE_PATH`     | Chemin absolu du webspace sur le serveur IONOS (ex. `/homepages/.../htdocs`) |
+| `IONOS_PHP_CLI_PATH`    | Chemin du binaire PHP CLI sur IONOS (souvent différent du `php` du PATH, ex. `/usr/bin/php8.4-cli`) |
 
-> ⚠️ **`MAIL_SCHEME=null`** (la chaîne littérale) bloque silencieusement STARTTLS. Utiliser `MAIL_SCHEME=` (vide) ou `MAIL_SCHEME=tls`.
+> Les secrets/variables `DB_*`, `MAIL_*`, `MAKE_WEBHOOK_*` et `APP_EMERGENCY_KEY` sont substitués tels quels dans `.github/deploy/.env.production.template` — pour ajouter un nouveau paramètre `.env` de production, l'ajouter au template **et** créer le secret/variable GitHub correspondant, sous peine d'échec du job `build` (placeholder non résolu).
 
-### 4. Migrations et seeders
+### Concurrence et sécurité du pipeline
 
-```bash
-php artisan migrate --force
-php artisan db:seed --force
-```
+- `concurrency: deploy-${{ github.ref }}` avec `cancel-in-progress: false` — deux déploiements simultanés sur la même branche ne s'exécutent jamais en parallèle ; le second attend la fin du premier plutôt que de l'annuler (évite un `rsync` interrompu à mi-chemin).
+- Le pipeline se déclenche **uniquement** sur push vers `tailwind` — pousser sur une autre branche ne déploie rien automatiquement.
+- `workflow_dispatch` permet aussi un déclenchement manuel depuis l'onglet **Actions** du dépôt, avec l'option `force_fresh_install`.
 
-### 5. Lien de stockage public
+### Suivre / déboguer un déploiement
 
-```bash
-php artisan storage:link
-```
-
-### 6. Mise en cache
-
-```bash
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-### 7. Build frontend — pas nécessaire en production
-
-Le dossier `public/build/` est inclus dans git. IONOS n'a pas besoin de Node.js.
-
-> Si vous avez modifié des vues ou du CSS en local, faites `npm run build` localement, commitez `public/build/`, et déployez.
-
-### 8. Configurer le document root
-
-Dans le panneau IONOS : **Hébergement Web > votre domaine > Répertoire Web** → `/httpdocs/public`.
-
-Ou via `.htaccess` à la racine du `httpdocs` :
-
-```apache
-RewriteEngine On
-RewriteRule ^(.*)$ public/$1 [L]
-```
-
-### 9. Permissions
-
-```bash
-find . -type f -not -path "./storage/logs/*" -exec chmod 664 {} \;
-find . -type d -not -name "logs" -exec chmod 775 {} \;
-chmod -R o+w storage bootstrap/cache
-```
-
-### 10. Script de mise à jour
-
-Créer `deploy.sh` à la racine :
-
-```bash
-#!/bin/bash
-set -e
-
-echo "==> Mise à jour du code..."
-git pull origin main
-
-echo "==> Dépendances PHP..."
-composer install --no-dev --optimize-autoloader
-
-echo "==> Migrations..."
-php artisan migrate --force
-
-echo "==> Mise en cache..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-echo "==> Terminé."
-```
-
-```bash
-chmod +x deploy.sh
-./deploy.sh
-```
+Onglet **Actions** du dépôt GitHub → sélectionner l'exécution → chaque étape (`build`, `deploy`) affiche ses logs complets, y compris la sortie SSH distante des commandes post-déploiement (migrations, permissions…).
 
 ---
 
@@ -425,22 +379,23 @@ chmod +x deploy.sh
 
 #### Via l'outil d'urgence `/urgence-hash` (si SMTP non opérationnel)
 
-1. Ajouter `APP_EMERGENCY_KEY=une-cle-secrete` dans `.env` production
+1. Définir le secret GitHub `APP_EMERGENCY_KEY` (voir tableau des secrets ci-dessus) et redéployer, ou l'éditer directement dans le `.env` du serveur en urgence
 2. Visiter `https://votredomaine.com/urgence-hash?key=une-cle-secrete`
 3. Générer le hash bcrypt
 4. Exécuter la requête SQL affichée dans phpMyAdmin
-5. **Retirer `APP_EMERGENCY_KEY`** du `.env` après usage
+5. **Retirer `APP_EMERGENCY_KEY`** (secret GitHub vide + redéploiement, ou `.env` serveur) après usage
 
 ---
 
 ## Référence des routes principales
 
 | Méthode | URL                          | Nom                         | Accès              | Description                             |
-| ------- | ---------------------------- | --------------------------- | ------------------ | --------------------------------------- |
+| ------- | ----------------------------- | ----------------------------- | -------------------- | ------------------------------------------ |
 | GET     | `/`                          | —                           | Public             | Redirige vers `/planning`               |
 | GET     | `/login`                     | `login`                     | Public             | Formulaire de connexion                 |
 | GET     | `/inscription`               | `inscription`               | Public             | Formulaire d'inscription publique       |
 | GET     | `/planning`                  | `planning.index`            | Connecté           | Vue principale du planning              |
+| GET     | `/planning/data`             | `planning.data`              | Connecté            | JSON consommé par le composant Vue `PlanningGrid` |
 | GET     | `/mon-planning`              | `mon-planning`              | Connecté           | Vue personnelle                         |
 | GET     | `/planning/stats`            | `planning.statistics`       | Connecté           | Statistiques                            |
 | GET     | `/planning/export`           | `planning.export.form`      | Connecté           | Formulaire export PDF                   |
@@ -451,15 +406,24 @@ chmod +x deploy.sh
 | POST    | `/planning/overlap/cancel`   | `planning.overlap.cancel`   | Gestionnaire+Admin | Annule la confirmation de chevauchement |
 | POST    | `/planning/rollback`         | `planning.rollback`         | Gestionnaire+Admin | Rollback post-génération                |
 | POST    | `/planning/rollback/dismiss` | `planning.rollback.dismiss` | Gestionnaire+Admin | Ferme la session de rollback            |
+| POST    | `/planning/creneau`          | `planning.edit.create-creneau` | Gestionnaire+Admin | Crée un créneau manuellement            |
+| DELETE  | `/planning/creneau/{id}`     | `planning.edit.delete-creneau` | Gestionnaire+Admin | Supprime un créneau entier              |
+| PATCH   | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.assignation` | Gestionnaire+Admin | Réassigne une tâche                     |
+| DELETE  | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.unassign` | Gestionnaire+Admin | Désassigne une tâche                    |
+| POST    | `/planning/annulation-cours` | `planning.annulation-cours` | Gestionnaire+Admin | **Annule le cours d'une date** — désassigne tout, bloque la date, nettoie le calendrier |
 | GET     | `/absences`                  | `absences.index`            | Connecté           | Liste des absences                      |
 | GET     | `/restrictions`              | `restrictions.index`        | Connecté           | Grille des disponibilités               |
 | GET     | `/evenements`                | `evenements.index`          | Connecté           | Liste des événements                    |
+| GET     | `/evenements/creer`          | `evenements.create`         | Gestionnaire+Admin | Formulaire de création d'événement (calendriers multiples) |
+| GET     | `/bilan`                     | `bilan.index`                | Connecté            | Bilan quotidien (Amana Food + Présences) |
+| GET     | `/bilan/statistiques`        | `bilan.statistiques`         | Connecté            | Statistiques du bilan quotidien          |
 | GET     | `/parametres`                | `settings.index`            | Gestionnaire+Admin | Paramètres de l'application             |
 | GET     | `/personnes`                 | `personnes.index`           | Admin              | Liste des membres                       |
 | GET     | `/admin/candidatures`        | `admin.candidatures.index`  | Admin              | Tableau de bord des candidatures        |
 | GET     | `/admin/echanges`            | `admin.echanges.index`      | Gestionnaire+Admin | Gestion des échanges                    |
 | GET     | `/diagnostic-mail`           | `diagnostic.mail.index`     | Admin              | Diagnostic SMTP                         |
 | GET     | `/echanges`                  | `echanges.index`            | Connecté           | Mes échanges                            |
+| GET     | `/api/calendriers`           | `calendriers.index`         | Connecté            | JSON — liste des calendriers Make.com (dropdown de recherche) |
 
 ---
 
@@ -473,7 +437,7 @@ sudo chmod -R 775 storage bootstrap/cache
 php artisan cache:clear && php artisan config:clear
 ```
 
-### Nginx retourne 502 Bad Gateway
+### Nginx retourne 502 Bad Gateway (local)
 
 ```bash
 sudo systemctl status php8.4-fpm
@@ -495,19 +459,21 @@ tail -f storage/logs/laravel.log
 # Tester via /diagnostic-mail dans l'interface
 ```
 
-### La page s'affiche sans CSS (style manquant)
+### Le job `build` échoue avec « secrets are missing »
 
-Le dossier `public/build/` est absent ou vide.
+```text
+::error::One or more secrets are missing - .env still contains unresolved placeholders
+```
+
+Un ou plusieurs secrets/variables GitHub référencés dans `.github/deploy/.env.production.template` ne sont pas définis. Vérifier **Settings → Secrets and variables → Actions** contre le tableau de la section [Configuration requise](#configuration-requise--secrets--variables-github) — le nom du secret manquant apparaît dans le log de l'étape juste avant l'erreur.
+
+### La page s'affiche sans style (CSS/JS manquant) en local
+
+Le dossier `public/build/` est absent ou vide — il n'est **pas** committé dans git (contrairement à une ancienne version de ce projet).
 
 ```bash
-# En local
 npm install
 npm run build
-
-# Puis commiter public/build/ dans git
-git add public/build/
-git commit -m "Build Tailwind CSS"
-git push
 ```
 
 ### Erreur npm « vite requires Node.js version 20.19+ »
@@ -547,13 +513,21 @@ Dans `resources/css/app.css`, les `@import` doivent précéder les directives `@
 @tailwind utilities;
 ```
 
+### Erreur TypeScript lors de `npm run type-check` ou `npm run build`
+
+```bash
+npx vue-tsc --noEmit
+```
+
+Affiche le fichier et la ligne exacts. Les types partagés du module Planning (formes des réponses JSON, `window.PlanningConfig`) sont centralisés dans `resources/js/types/planning.ts` — si une route ou un champ JSON change côté PHP, mettre à jour ce fichier en premier.
+
 ### Page blanche après config:cache
 
 ```bash
 php artisan config:clear && php artisan config:cache
 ```
 
-### Nginx retourne 403 Forbidden
+### Nginx retourne 403 Forbidden (local)
 
 ```bash
 grep -r "root" /etc/nginx/sites-enabled/amana-planning
@@ -581,3 +555,7 @@ SESSION_DOMAIN=votredomaine.fr
 ```bash
 php artisan migrate --force   # Crée la table sessions si absente
 ```
+
+### Un événement bloquant créé après génération ne bloque pas un créneau passé
+
+Comportement voulu, pas un bug : les créneaux dont la date est déjà passée ne sont **jamais** modifiés rétroactivement par la création/modification d'un événement (désassignation, liaison informative) — cela fausserait les statistiques et l'équité de répartition déjà constatées. Un message d'avertissement explicite s'affiche à la place. Voir README, section Événements, et `docs/Schema_bdd.md` (table `ref_evenements`).
