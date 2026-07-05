@@ -81,6 +81,13 @@ class PlanningApiController extends PlanningController
         $weekMonday = $first->date->clone()->subDays($first->date->isoWeekday() - 1)->startOfDay();
         $weekSunday = $weekMonday->clone()->addDays(6)->endOfDay();
 
+        // Les créneaux arrivent triés par date DESC (voir data()) : $first
+        // est donc la date la PLUS RÉCENTE de la semaine et $last la plus
+        // ancienne. Pour le libellé "début — fin", on a besoin de l'ordre
+        // chronologique réel, indépendamment du tri de la requête.
+        $dateDebutSemaine = $creneauxSemaine->min('date');
+        $dateFinSemaine = $creneauxSemaine->max('date');
+
         $nbTachesActives = $creneauxSemaine->first()?->taches->count() ?? 5;
         $bannièresSemaine = $bannièresParSemaine[$semaineCle] ?? [];
 
@@ -105,8 +112,8 @@ class PlanningApiController extends PlanningController
             'numeroSemaine' => $first->semaine,
             'anneeAffichage' => $first->date->year,
             'moisAffichage' => $first->date->month,
-            'libelleSemaine' => $first->date->locale('fr')->isoFormat('D MMMM')
-                . ' — ' . $last->date->locale('fr')->isoFormat('D MMMM YYYY'),
+            'libelleSemaine' => $dateDebutSemaine->locale('fr')->isoFormat('D MMMM')
+                . ' — ' . $dateFinSemaine->locale('fr')->isoFormat('D MMMM YYYY'),
             'lundi' => $weekMonday->toDateString(),
             'dimanche' => $weekSunday->toDateString(),
             'datesExistantes' => $creneauxSemaine->pluck('date')->map(fn($d) => $d->toDateString())->values(),

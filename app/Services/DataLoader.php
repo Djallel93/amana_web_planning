@@ -55,8 +55,13 @@ class DataLoader
 
     public function loadAbsences(): Collection
     {
+        // Inclut aussi les absences déjà terminées (jusqu'à 1 an en arrière) :
+        // nécessaire pour exclure les jours d'absence passés du calcul des
+        // "jours de repos" (RotationEngine::calculerJoursRepos) quand une
+        // personne reprend après un congé — pas seulement les absences
+        // encore actives ou futures.
         return Absence::with('personne')
-            ->where('date_fin', '>=', now()->toDateString())
+            ->where('date_fin', '>=', now()->subYear()->toDateString())
             ->get();
     }
 

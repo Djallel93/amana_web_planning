@@ -16,10 +16,19 @@ use Illuminate\Support\Collection;
  *
  * Algorithme :
  *  1. amana_food → rotation stricte (cycle global, le moins assigné passe en premier)
- *  2. entree, mektaba, salle, cours → score d'équilibrage avec pénalité adaptative
+ *  2. entree, mektaba, salle → score d'équilibrage avec pénalité adaptative
+ *  3. cours → assignation directe, sans scoring (voir assignCours())
  */
 class RotationEngine
 {
+    /**
+     * Plafond (en jours) appliqué au "jours de repos" utilisé dans le score
+     * d'équilibrage de assignOtherTask(). Empêche qu'une longue absence ne
+     * se traduise par une priorité de retour disproportionnée — voir
+     * calculerJoursRepos().
+     */
+    private const MAX_JOURS_REPOS = 21;
+
     private DataLoader $loader;
 
     public function __construct(DataLoader $loader)
@@ -65,11 +74,11 @@ class RotationEngine
             $dejaAssignes[] = $assignments['salle'];
         }
 
-        // 5. COURS
-        $assignments['cours'] = $this->assignOtherTask('cours', $jour, $date, $context, $dejaAssignes);
-        if ($assignments['cours'] !== null) {
-            $dejaAssignes[] = $assignments['cours'];
-        }
+        // 5. COURS (assignation directe, exception dédiée — voir assignCours())
+        //    Volontairement exclu du tableau $dejaAssignes : la personne du
+        //    cours ne doit jamais être écartée par une autre tâche du même
+        //    jour, ni écarter une autre tâche en retour.
+        $assignments['cours'] = $this->assignCours($jour, $date, $context);
 
         return $assignments;
     }
@@ -161,6 +170,13 @@ class RotationEngine
      * Score = (total_tâches × 10) - (jours_repos × 1) + (compteur_cette_tâche × multiplicateur)
      * Plus le score est BAS, plus la personne est prioritaire.
      *
+     * `jours_repos` exclut les jours passés en absence et est plafonné à
+     * MAX_JOURS_REPOS (voir calculerJoursRepos()) : sans ça, une longue
+     * absence produirait un "jours_repos" énorme au retour, et la personne
+     * serait sur-sollicitée de façon disproportionnée le temps de rattraper
+     * son totalTasks — d'autant plus disproportionnée que l'absence est
+     * longue.
+     *
      * Multiplicateur adaptatif selon le nombre d'options disponibles :
      *  ≥8 options → ×80 (diversité maximale)
      *  ≥6 options → ×60
@@ -215,7 +231,7 @@ class RotationEngine
             $totalTasks = $context['totalTasks'][$nom] ?? 0;
             $lastWork = $context['lastWorkDate'][$nom] ?? null;
             $daysRest = $lastWork
-                ? Carbon::parse($lastWork)->diffInDays($date)
+                ? $this->calculerJoursRepos(Carbon::parse($lastWork), $date, $nom, $context['absences'])
                 : 999;
 
             $taskCount = $context['taskHistory'][$codeTask][$nom] ?? 0;
@@ -256,6 +272,121 @@ class RotationEngine
             ($context['taskHistory'][$codeTask][$choisi] ?? 0) + 1;
 
         return $choisi;
+    }
+
+    /**
+     * Calcule le "jours de repos" utilisé dans le score de assignOtherTask(),
+     * en excluant les jours d'absence et en plafonnant le résultat.
+     *
+     * Sans ce correctif, un retour d'absence provoque une sur-sollicitation
+     * agressive de la personne concernée le temps qu'elle "rattrape" son
+     * totalTasks — d'autant plus marquée que l'absence a été longue :
+     *
+     *  - les jours passés en absence entre la dernière tâche effectuée et
+     *    aujourd'hui ne sont PAS du repos mérité (la personne n'était pas
+     *    disponible, ce n'est pas un choix de repos) et sont donc retirés
+     *    du décompte ;
+     *  - un plafond (self::MAX_JOURS_REPOS) borne malgré tout la priorité
+     *    de retour, qu'elle ait été absente 3 semaines ou 6 mois — la durée
+     *    de l'absence elle-même n'est pas limitée, seul l'avantage de score
+     *    qu'elle peut générer au retour l'est.
+     *
+     * @param Carbon     $lastWork Date de la dernière tâche assignée
+     * @param Carbon     $date     Date du créneau en cours d'assignation
+     * @param string     $nom      Clé "nom prenom" de la personne
+     * @param Collection $absences Absences chargées dans le contexte
+     */
+    private function calculerJoursRepos(Carbon $lastWork, Carbon $date, string $nom, Collection $absences): int
+    {
+        // Carbon 3 : diffInDays() retourne un float par défaut (précision
+        // fractionnaire) — on caste en int comme le fait déjà
+        // assignAmanaFood() plus haut, sinon TypeError avec strict_types=1
+        // sur le retour de cette méthode.
+        $joursBruts = (int) $lastWork->diffInDays($date);
+
+        $joursAbsence = 0;
+        foreach ($absences as $absence) {
+            if (!$absence->personne) {
+                continue;
+            }
+            if ($this->nomCle($absence->personne) !== $nom) {
+                continue;
+            }
+
+            // Chevauchement entre l'absence et l'intervalle ]lastWork, date]
+            $debut = $absence->date_debut->greaterThan($lastWork) ? $absence->date_debut : $lastWork;
+            $fin = $absence->date_fin->lessThan($date) ? $absence->date_fin : $date;
+
+            if ($debut->lte($fin)) {
+                $joursAbsence += (int) $debut->diffInDays($fin) + 1;
+            }
+        }
+
+        $joursRepos = max(0, $joursBruts - $joursAbsence);
+
+        return min($joursRepos, self::MAX_JOURS_REPOS);
+    }
+
+    /**
+     * Assignation directe de la tâche `cours`, sans scoring.
+     *
+     * Exception dédiée : par convention métier, une seule personne est
+     * autorisée sur `cours` (les autres sont explicitement interdites via
+     * `ref_restrictions` — voir TestPersonnesSeeder). Cette tâche ne doit
+     * donc PAS passer par le score d'équilibrage de assignOtherTask(), qui
+     * finirait par la faire fuir vers quelqu'un d'autre au fil des semaines
+     * à cause de la pénalité adaptative sur `taskCount`.
+     *
+     * Contrairement à assignOtherTask(), cette méthode :
+     *  - ignore totalement $dejaAssignes : la personne du cours peut aussi
+     *    être assignée à entree/mektaba/salle/amana_food le même jour, et
+     *    inversement aucune autre tâche du jour ne peut lui être retirée
+     *    à cause du cours ;
+     *  - ne calcule aucun score : le premier candidat éligible (autorisé
+     *    par restriction, non absent, période de planning démarrée) est
+     *    retenu directement.
+     *
+     * @return string|null Nom de la personne choisie, ou null si personne
+     *                      n'est autorisée/disponible pour le cours ce jour
+     */
+    private function assignCours(string $jour, Carbon $date, array &$context): ?string
+    {
+        $tache = $context['taches']->firstWhere('code', 'cours');
+        if (!$tache) {
+            return null;
+        }
+
+        if (!isset($context['taskHistory']['cours'])) {
+            $context['taskHistory']['cours'] = [];
+        }
+
+        foreach ($context['personnes'] as $personne) {
+            $nom = $this->nomCle($personne);
+
+            // Vérifier date_debut_planning
+            if ($personne->date_debut_planning && $date->lt($personne->date_debut_planning)) {
+                continue;
+            }
+
+            // Absent ?
+            if ($this->loader->isPersonAbsent($nom, $date, $context['absences'])) {
+                continue;
+            }
+
+            // Autorisé sur "cours" ce jour ? (restriction — seule condition
+            // d'éligibilité, plus de score à comparer entre candidats)
+            if (!$personne->peutFaireTache($tache->id, $jour)) {
+                continue;
+            }
+
+            // Premier candidat éligible retenu directement.
+            $context['taskHistory']['cours'][$nom] =
+                ($context['taskHistory']['cours'][$nom] ?? 0) + 1;
+
+            return $nom;
+        }
+
+        return null; // Aucun candidat autorisé/disponible → cours non assigné
     }
 
     /**

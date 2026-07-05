@@ -271,6 +271,8 @@ Tableau de bord de l'équité de la répartition.
 
 > Les statistiques sont calculées à partir de l'état **actuel** de `plan_creneaux_taches` — un échange de créneau accepté est donc immédiatement reflété dans les compteurs par personne, sans recalcul manuel.
 
+> **Exception `cours` :** par convention une seule personne assure le cours chaque semaine (voir [Algorithme `cours`](#algorithme-cours-exception--assignation-directe-sans-score)). Ce créneau fixe et récurrent n'est **pas** un signal de déséquilibre de rotation ni de fatigue : il est donc exclu du score d'équité, du coefficient de variation, du déséquilibre vendredi/samedi et du calcul des jours consécutifs. Il reste en revanche visible dans la colonne **Cours** du détail par personne, pour garder une trace de combien de fois il a eu lieu.
+
 ---
 
 ### 📄 Export PDF (`/planning/export`)
@@ -599,7 +601,7 @@ flowchart TD
     F --> G[2. Assigner entree\nscore d'équilibrage]
     G --> H[3. Assigner mektaba\nscore d'équilibrage]
     H --> I[4. Assigner salle\nscore d'équilibrage]
-    I --> J[5. Assigner cours\nscore d'équilibrage]
+    I --> J[5. Assigner cours\nassignation directe, sans score]
     J --> K[Mettre à jour le contexte\nlastWorkDate, totalTasks]
 ```
 
@@ -630,7 +632,7 @@ flowchart TD
 
 ### Algorithme autres tâches (score d'équilibrage)
 
-Pour `entree`, `mektaba`, `salle` et `cours`, un score est calculé pour chaque candidat. **Le score le plus bas est prioritaire.**
+Pour `entree`, `mektaba` et `salle`, un score est calculé pour chaque candidat. **Le score le plus bas est prioritaire.**
 
 ```txt
 Score = (total_assignations × 10) - (jours_de_repos × 1) + (nb_fois_cette_tâche × multiplicateur)
@@ -647,7 +649,41 @@ Score = (total_assignations × 10) - (jours_de_repos × 1) + (nb_fois_cette_tâc
 
 > **Pourquoi ce multiplicateur ?** Une personne avec peu d'options (ex : autorisée sur seulement 2 tâches) sera inévitablement répétée plus souvent sur ces tâches. Le multiplicateur réduit la pénalité pour ne pas la désavantager par rapport à des membres plus polyvalents.
 
-**Règle anti-doublon :** une personne déjà assignée à une tâche dans le même créneau ne peut pas être assignée à une autre tâche du même jour.
+**Règle anti-doublon :** une personne déjà assignée à une tâche dans le même créneau ne peut pas être assignée à une autre tâche du même jour. Cette règle **ne s'applique pas à `cours`** (voir ci-dessous).
+
+#### `jours_de_repos` : exclusion des absences + plafond (retour de congé)
+
+`jours_de_repos` n'est **pas** un simple nombre de jours calendaires depuis la dernière tâche (`RotationEngine::calculerJoursRepos()`). Deux correctifs évitent qu'un retour d'absence ne se traduise par une sur-sollicitation agressive de la personne concernée, le temps qu'elle "rattrape" son `totalTasks` :
+
+- **Les jours d'absence ne comptent pas comme repos mérité.** Ils sont soustraits du décompte : la personne n'était pas disponible, ce n'est pas un choix de repos qui doit lui donner un avantage au retour.
+- **Un plafond de 21 jours (`MAX_JOURS_REPOS`)** borne malgré tout l'avantage de score accordé à un retour, qu'il ait duré 3 semaines ou 6 mois. Passé ce plafond, une absence plus longue ne donne **pas** un avantage de score supplémentaire.
+
+> ⚠️ Ce plafond **ne limite en rien la durée d'une absence** — une personne peut être absente aussi longtemps que nécessaire (`plan_absences` n'a pas de limite). Il plafonne uniquement la priorité de re-sélection accordée à son retour, pour que la reprise reste progressive plutôt qu'un rattrapage brutal sur plusieurs semaines.
+
+### Algorithme `cours` (exception — assignation directe, sans score)
+
+Par convention métier, **une seule personne** anime le `cours` chaque semaine : toutes les autres personnes sont explicitement interdites sur cette tâche via `ref_restrictions` (voir `TestPersonnesSeeder`, section "seule autorisée sur cours"). Faire passer `cours` par le score d'équilibrage ci-dessus poserait deux problèmes :
+
+- la pénalité adaptative sur `nb_fois_cette_tâche` grimperait semaine après semaine pour la personne du cours, et finirait — à tort — par faire gagner quelqu'un d'autre au score ;
+- la règle anti-doublon pourrait l'exclure du cours un jour où elle a déjà été assignée à `entree`/`mektaba`/`salle`/`amana_food`, laissant le cours sans personne.
+
+`cours` a donc sa propre méthode d'assignation (`RotationEngine::assignCours()`) :
+
+```mermaid
+flowchart TD
+    A[Pour chaque personne] --> B{date_debut_planning\natteinte ?}
+    B -->|Non| F[Exclure]
+    B -->|Oui| C{Absente ce jour ?}
+    C -->|Oui| F
+    C -->|Non| D{Autorisée sur\ncours ce jour ?}
+    D -->|Interdit| F
+    D -->|Autorisé| E[Assignation directe\naucun score comparé]
+    F --> A
+```
+
+- **Aucun score n'est calculé** : le premier candidat autorisé par restriction (et disponible) est retenu directement, quel que soit son nombre d'assignations passées.
+- **La règle anti-doublon est ignorée pour `cours`** : la personne peut cumuler `cours` avec une autre tâche le même jour, et une autre tâche du jour ne peut pas lui être retirée à cause du cours.
+- Le compteur `totalTasks`/`lastWorkDate` de la personne est tout de même mis à jour après le jour (comme pour toute autre tâche), afin de garder un historique fidèle — voir aussi la section [Statistiques](#-statistiques-planningstats) pour l'effet de `cours` sur le score d'équité affiché.
 
 ### Initialisation du contexte depuis l'historique
 
