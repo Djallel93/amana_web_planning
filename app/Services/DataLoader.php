@@ -27,7 +27,7 @@ class DataLoader
         $absences = $this->loadAbsences();
         $evenements = $this->loadEvenements();
         $premierVendredi = $this->findPremierVendredi($dateDebut);
-        $counters = $this->initializeCountersFromHistory($personnes, $taches);
+        $counters = $this->initializeCountersFromHistory($personnes, $taches, $premierVendredi);
         $personOptions = $this->calculatePersonOptions($personnes, $taches);
 
         return array_merge([
@@ -80,7 +80,20 @@ class DataLoader
         return DateHelper::premierVendredi($dateDebut);
     }
 
-    public function initializeCountersFromHistory(Collection $personnes, Collection $taches): array
+    /**
+     * @param Carbon|null $avant Si fourni, seuls les créneaux STRICTEMENT
+     *                           antérieurs à cette date alimentent les
+     *                           compteurs (historique réel). Sans cette
+     *                           borne, les créneaux déjà générés à partir de
+     *                           $dateDebut — sur le point d'être supprimés
+     *                           par cleanExistingCreneaux() puis régénérés —
+     *                           seraient comptés une première fois ici comme
+     *                           "historique", puis une seconde fois lors de
+     *                           leur réassignation par RotationEngine,
+     *                           faussant l'équilibrage pour toute la fenêtre
+     *                           régénérée.
+     */
+    public function initializeCountersFromHistory(Collection $personnes, Collection $taches, ?Carbon $avant = null): array
     {
         $amanaFood = $taches->firstWhere('code', 'amana_food');
 
@@ -114,6 +127,11 @@ class DataLoader
 
         $historique = CreneauTache::with(['creneau', 'tache', 'personne'])
             ->whereNotNull('id_personne')
+            ->when($avant !== null, function ($query) use ($avant) {
+                $query->whereHas('creneau', function ($q) use ($avant) {
+                    $q->where('date', '<', $avant->toDateString());
+                });
+            })
             ->get();
 
         foreach ($historique as $ligne) {

@@ -141,7 +141,7 @@ class PlanningController extends Controller
         try {
             $resultat = $this->scheduler->generateSchedule($dateDebut, $semaines);
 
-            $lastGenerated = $this->buildRollbackData($dateDebut, $semaines);
+            $lastGenerated = $this->scheduler->buildRollbackSnapshot($dateDebut, $semaines);
             session(['last_generated_creneaux' => $lastGenerated]);
 
             audit('generate', 'planning', null, null, $resultat);
@@ -187,25 +187,6 @@ class PlanningController extends Controller
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
-
-    private function buildRollbackData(string $dateDebut, int $semaines): array
-    {
-        $date = DateHelper::premierVendredi($dateDebut);
-        $dateFin = $date->clone()->addWeeks($semaines)->addDay();
-
-        $creneaux = Creneau::whereBetween('date', [$date->toDateString(), $dateFin->toDateString()])
-            ->orderBy('date')
-            ->get();
-
-        return $creneaux->map(function ($c) {
-            return [
-                'id' => $c->id,
-                'date' => $c->date->toDateString(),
-                'week_label' => 'Semaine ' . $c->date->isoWeek() . ' — ' .
-                    $c->date->locale('fr')->isoFormat('D MMMM YYYY'),
-            ];
-        })->toArray();
-    }
 
     public function rollback(Request $request): RedirectResponse
     {

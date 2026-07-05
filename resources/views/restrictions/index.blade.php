@@ -24,7 +24,7 @@
             <p class="text-ink-muted text-[13.5px] mb-6">Ajoutez des personnes avec statut "Validé" et une date de début planning.</p>
             @if($user->isAdmin())
                 <a href="{{ route('personnes.create') }}"
-                   class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg transition-colors no-underline min-h-[44px]">
+                    class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg transition-colors no-underline min-h-[44px]">
                     + Ajouter une personne
                 </a>
             @endif
@@ -59,10 +59,10 @@
                                 @php $autorise = $restrictionsMap[$user->id][$tache->id][$jour] ?? true; @endphp
                                 <label class="flex items-center gap-2 text-[13px] text-ink-light cursor-pointer min-h-[44px] sm:min-h-0">
                                     <input type="checkbox"
-                                           name="checkboxes[{{ $user->id }}][{{ $tache->id }}][{{ $jour }}]"
-                                           value="1"
-                                           {{ $autorise ? 'checked' : '' }}
-                                           class="w-4 h-4 accent-accent cursor-pointer flex-shrink-0">
+                                        name="checkboxes[{{ $user->id }}][{{ $tache->id }}][{{ $jour }}]"
+                                        value="1"
+                                        {{ $autorise ? 'checked' : '' }}
+                                        class="w-4 h-4 accent-accent cursor-pointer flex-shrink-0">
                                     <span>{{ $jour }}</span>
                                 </label>
                             @endforeach
@@ -72,7 +72,7 @@
             </div>
             <button type="submit"
                     class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg
-                           shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[44px]">
+                        shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[44px]">
                 💾 Enregistrer mes disponibilités
             </button>
         </form>
@@ -182,10 +182,10 @@
                                             @php $autorise = $restrictionsMap[$personne->id][$tache->id][$jour] ?? true; @endphp
                                             <label class="flex items-center gap-2 min-h-[44px] sm:min-h-0 px-1 cursor-pointer">
                                                 <input type="checkbox"
-                                                       name="checkboxes[{{ $personne->id }}][{{ $tache->id }}][{{ $jour }}]"
-                                                       value="1"
-                                                       {{ $autorise ? 'checked' : '' }}
-                                                       class="w-4 h-4 accent-accent cursor-pointer flex-shrink-0">
+                                                    name="checkboxes[{{ $personne->id }}][{{ $tache->id }}][{{ $jour }}]"
+                                                    value="1"
+                                                    {{ $autorise ? 'checked' : '' }}
+                                                    class="w-4 h-4 accent-accent cursor-pointer flex-shrink-0">
                                                 <span class="chip-{{ $tache->code }} inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold">
                                                     {{ $tache->libelle }}
                                                 </span>
@@ -203,7 +203,7 @@
             <div class="flex flex-wrap items-center gap-2.5 px-5 py-4 border-t border-surface-3">
                 <button type="submit"
                         class="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg
-                               shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[44px]">
+                            shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[44px]">
                     💾 Enregistrer toutes les restrictions
                 </button>
                 <button type="button" onclick="toggleAll(true)"
@@ -235,5 +235,50 @@
         document.querySelectorAll('#restrictionsForm input[type="checkbox"]')
             .forEach(cb => cb.checked = state);
     }
+
+    /**
+     * La grille admin/gestionnaire rend DEUX jeux d'inputs pour chaque case
+     * (table desktop "hidden md:block" + cartes mobile "md:hidden"), tous les
+     * deux portant le même name="checkboxes[...]" — seul l'affichage CSS
+     * change selon la largeur d'écran, les deux restent dans le DOM et sont
+     * donc TOUS LES DEUX soumis avec le formulaire (display:none n'exclut pas
+     * un champ de la soumission). Résultat : au submit, la dernière valeur
+     * du DOM pour un même name "gagne", indépendamment de la case visible à
+     * l'écran — ce qui pouvait annuler silencieusement un décochage.
+     *
+     * On synchronise donc les deux inputs partageant un même name : cocher/
+     * décocher l'un met systématiquement l'autre à jour, pour que la valeur
+     * réellement soumise corresponde toujours à ce que l'utilisateur voit et
+     * a modifié, quel que soit le jeu d'inputs utilisé (desktop ou mobile).
+     */
+    function synchroniserCasesDupliquees(formId) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        const groupes = new Map();
+        form.querySelectorAll('input[type="checkbox"][name]').forEach((cb) => {
+            if (!groupes.has(cb.name)) {
+                groupes.set(cb.name, []);
+            }
+            groupes.get(cb.name).push(cb);
+        });
+
+        groupes.forEach((inputs) => {
+            if (inputs.length < 2) return; // rien à synchroniser
+            inputs.forEach((cb) => {
+                cb.addEventListener('change', () => {
+                    inputs.forEach((autre) => {
+                        if (autre !== cb) {
+                            autre.checked = cb.checked;
+                        }
+                    });
+                });
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        synchroniserCasesDupliquees('restrictionsForm');
+    });
 </script>
 @endpush

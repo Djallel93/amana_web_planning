@@ -52,7 +52,7 @@ Les tâches suivantes existent dans `ref_taches` mais ne sont **pas incluses dan
 | `rappel_sandwich`       | Rappel Sandwich       |
 | `assistance_amana_food` | Assistance Amana Food |
 | `annonce_cours`         | Annonce Cours         |
-| `message_general`       | Message Général       |
+| `message_bot`           | Message Général       |
 | `annulation_cours`      | Annulation Cours      |
 
 ---

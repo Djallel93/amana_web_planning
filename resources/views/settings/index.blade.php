@@ -275,6 +275,7 @@
                     $fOff = (int)($groupe['fin']['valeur_raw'] ?? 60);
                     $calcDebut = sprintf('%02d:%02d', intdiv(((($baseMin + $dOff) % 1440) + 1440) % 1440, 60), ((($baseMin + $dOff) % 1440) + 1440) % 1440 % 60);
                     $calcFin   = sprintf('%02d:%02d', intdiv(((($baseMin + $fOff) % 1440) + 1440) % 1440, 60), ((($baseMin + $fOff) % 1440) + 1440) % 1440 % 60);
+                    $description = $groupe['debut']['description'] ?? $groupe['fin']['description'] ?? null;
                 @endphp
                 <div class="px-5 py-4">
                     <div class="flex items-center justify-between mb-3">
@@ -285,6 +286,9 @@
                             {{ $isSandwich ? '08:00 → 08:15' : "$calcDebut → $calcFin" }}
                         </span>
                     </div>
+                    @if($description)
+                        <p class="text-[11.5px] text-ink-muted leading-snug mb-3">{{ $description }}</p>
+                    @endif
                     <div class="grid grid-cols-2 gap-3">
                         <div class="flex flex-col gap-1.5">
                             <label class="text-[10.5px] font-bold text-ink-muted uppercase tracking-wide">Début (min)</label>
@@ -340,9 +344,3 @@
 
 </form>
 @endsection
-
-{{--
-    Aucun script inline ici désormais :
-      - le toggle inscription + previews horaires → HoraireSettings.vue
-      - les sélecteurs calendrier              → SearchableSelect.vue (data-searchable-select)
---}}

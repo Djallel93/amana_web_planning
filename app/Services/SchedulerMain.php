@@ -262,6 +262,34 @@ class SchedulerMain
         ];
     }
 
+    /**
+     * Construit l'instantané des créneaux couverts par une génération, pour
+     * alimenter la session de rollback ("last_generated_creneaux").
+     * Utilisé après un appel à generateSchedule() en mode normal (non dry-run).
+     *
+     * Extrait de PlanningController pour être réutilisable par tout appelant
+     * qui déclenche une génération (ex : régénération automatique suite à une
+     * absence dans AbsencesController).
+     */
+    public function buildRollbackSnapshot(string $dateDebut, int $semaines): array
+    {
+        $date = \App\Helpers\DateHelper::premierVendredi($dateDebut);
+        $dateFin = $date->clone()->addWeeks($semaines)->addDay();
+
+        $creneaux = Creneau::whereBetween('date', [$date->toDateString(), $dateFin->toDateString()])
+            ->orderBy('date')
+            ->get();
+
+        return $creneaux->map(function ($c) {
+            return [
+                'id' => $c->id,
+                'date' => $c->date->toDateString(),
+                'week_label' => 'Semaine ' . $c->date->isoWeek() . ' — ' .
+                    $c->date->locale('fr')->isoFormat('D MMMM YYYY'),
+            ];
+        })->toArray();
+    }
+
     private function cleanExistingCreneaux(Carbon $depuis): void
     {
         $nb = Creneau::where('date', '>=', $depuis->toDateString())->count();

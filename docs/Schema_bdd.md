@@ -293,7 +293,7 @@ Référentiel des tâches planifiables.
 
 **Tâches actives (rotation) :** `entree`, `mektaba`, `salle`, `amana_food`, `cours`
 
-**Tâches inactives (webhook uniquement, pas de rotation) :** `rappel_sandwich`, `assistance_amana_food`, `annonce_cours`, `message_general`, `annulation_cours`
+**Tâches inactives (webhook uniquement, pas de rotation) :** `rappel_sandwich`, `assistance_amana_food`, `annonce_cours`, `message_bot`, `annulation_cours`
 
 > `annulation_cours` sert uniquement à retrouver le `libelle` de l'entrée `evenements_sociaux` envoyée par le bouton **« Annulation cours »** du planning (voir README, section Intégration Make.com) — elle n'est jamais assignée à une personne et n'apparaît dans aucun `plan_creneaux_taches`.
 >

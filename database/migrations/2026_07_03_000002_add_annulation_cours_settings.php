@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Ajoute la tâche "annulation_cours" (inactive, webhook uniquement — même
- * traitement que annonce_cours / message_general) ainsi que ses paramètres
+ * traitement que annonce_cours / message_bot) ainsi que ses paramètres
  * (calendrier cible + décalages horaires) pour le bouton "Annulation cours"
  * du planning.
  *

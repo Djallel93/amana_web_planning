@@ -248,7 +248,7 @@ class WebhookPayloadBuilder
 
         $eventsSociaux = [
             $this->ligneSuppression('annonce_cours', $toutesLesTaches->get('annonce_cours'), $date, $heureCours),
-            $this->ligneSuppression('message_general', $toutesLesTaches->get('message_general'), $date, $heureCours, codeOffset: 'message_bot'),
+            $this->ligneSuppression('message_bot', $toutesLesTaches->get('message_bot'), $date, $heureCours),
         ];
 
         return [
@@ -312,7 +312,7 @@ class WebhookPayloadBuilder
 
         $eventsSociaux = [
             $this->ligneAvecAssignation('annonce_cours', null, $taches->get('annonce_cours'), $date, $heureCours),
-            $this->ligneAvecAssignation('message_general', null, $taches->get('message_general'), $date, $heureCours, codeOffset: 'message_bot'),
+            $this->ligneAvecAssignation('message_bot', null, $taches->get('message_bot'), $date, $heureCours),
         ];
 
         $evenementsOrganisationnels = $creneau->evenements->map(fn(Evenement $e) => [
