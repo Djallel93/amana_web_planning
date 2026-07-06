@@ -46,7 +46,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white border border-orange-200 rounded-lg overflow-hidden mb-4">
+                <div class="bg-surface border border-orange-200 rounded-lg overflow-hidden mb-4">
                     @foreach($pending['semaines_affectees'] as $sem)
                         <div class="flex items-center justify-between px-4 py-2.5 border-b border-orange-50 last:border-0 text-[13px]">
                             <div class="flex items-center gap-2 font-semibold text-orange-900">
@@ -83,7 +83,7 @@
         @endif
 
         {{-- ── Formulaire de génération --}}
-        <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                 <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">⚙️</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Paramètres de génération</span>
@@ -110,7 +110,7 @@
                                    value="{{ old('date_debut', now()->toDateString()) }}"
                                    min="{{ now()->toDateString() }}" required
                                    class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                          focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+                                          focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                             <span class="text-[11.5px] text-ink-muted">Le prochain vendredi sera automatiquement trouvé</span>
                             @error('date_debut')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                         </div>
@@ -121,7 +121,7 @@
                             <input type="number" id="semaines" name="semaines"
                                    value="{{ old('semaines', 4) }}" min="1" max="52" required
                                    class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                          focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+                                          focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                             <span class="text-[11.5px] text-ink-muted">Chaque semaine = vendredi + samedi</span>
                             @error('semaines')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                         </div>
@@ -163,7 +163,7 @@
                 $byWeek    = [];
                 foreach ($generated as $item) $byWeek[$item['week_label']][] = $item;
             @endphp
-            <div class="bg-white rounded-xl border-[1.5px] border-amber-300 shadow overflow-hidden">
+            <div class="bg-surface rounded-xl border-[1.5px] border-amber-300 shadow overflow-hidden">
                 <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                     <div class="w-8 h-8 bg-amber-50 rounded-md flex items-center justify-center text-lg flex-shrink-0">↩️</div>
                     <div>
@@ -224,7 +224,7 @@
                         </div>
 
                         <button type="submit"
-                                onclick="return confirmRollback()"
+                                id="rollbackSubmitBtn"
                                 class="w-full min-h-[44px] px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[13px] rounded-lg
                                        transition-colors cursor-pointer flex items-center justify-center gap-1.5 mb-3">
                             ↩️ Annuler la génération
@@ -241,7 +241,7 @@
                 </div>
             </div>
         @else
-            <div class="bg-white rounded-xl border border-surface-border shadow-sm p-6 text-center">
+            <div class="bg-surface rounded-xl border border-surface-border shadow-sm p-6 text-center">
                 <div class="text-4xl opacity-25 mb-3">↩️</div>
                 <p class="text-[13px] text-ink-muted leading-relaxed">
                     Après la génération, vous pourrez annuler totalement ou partiellement les créneaux créés.

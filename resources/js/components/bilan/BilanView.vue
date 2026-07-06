@@ -137,7 +137,7 @@ async function save(): Promise<void> {
     <div class="flex flex-col gap-5">
 
         <!-- ── Sélecteur de date ── -->
-        <div class="bg-white rounded-xl border border-surface-border shadow-sm px-5 py-4 flex flex-wrap items-center gap-4">
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-5 py-4 flex flex-wrap items-center gap-4">
             <label for="bilan_date" class="text-xs font-bold text-ink tracking-[0.2px]">📅 Date</label>
             <input
                 id="bilan_date" type="date" v-model="date"
@@ -165,7 +165,7 @@ async function save(): Promise<void> {
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-5">
 
             <!-- Amana food -->
-            <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+            <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
                 <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                     <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🍽️</div>
                     <span class="font-heading text-[14px] font-semibold text-ink">Amana food</span>
@@ -191,7 +191,7 @@ async function save(): Promise<void> {
             </div>
 
             <!-- Présences -->
-            <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+            <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
                 <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                     <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">👥</div>
                     <span class="font-heading text-[14px] font-semibold text-ink">Présences</span>

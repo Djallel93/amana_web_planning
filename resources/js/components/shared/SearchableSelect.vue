@@ -309,7 +309,7 @@ onUnmounted(() => {
                     v-if="isOpen"
                     ref="dropdownRef"
                     :style="dropdownStyle"
-                    class="bg-white border-[1.5px] border-ink-faint rounded-lg shadow-lg overflow-hidden"
+                    class="bg-surface border-[1.5px] border-ink-faint rounded-lg shadow-lg overflow-hidden"
                     role="listbox"
                     :aria-multiselectable="multiple"
                 >

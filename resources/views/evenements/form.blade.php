@@ -26,7 +26,7 @@
         @if($edit) @method('PUT') @endif
 
         {{-- ── Informations générales --}}
-        <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                 <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🎉</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Informations de l'événement</span>
@@ -41,7 +41,7 @@
                     <input type="text" id="nom" name="nom" value="{{ old('nom', $evenement->nom ?? '') }}"
                            required maxlength="150" placeholder="Ex : Vacances Noël, Ramadan, Conférence…"
                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                  focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                                  focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                     <span class="text-[11.5px] text-ink-muted">Le nom doit être unique et précis</span>
                     @error('nom')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>
@@ -54,7 +54,7 @@
                                value="{{ old('date_debut', isset($evenement) ? $evenement->date_debut?->toDateString() : '') }}"
                                required
                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                      focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+                                      focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                         @error('date_debut')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                     </div>
                     <div class="flex flex-col gap-1.5">
@@ -63,7 +63,7 @@
                                value="{{ old('date_fin', isset($evenement) ? $evenement->date_fin?->toDateString() : '') }}"
                                required
                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                      focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+                                      focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                         @error('date_fin')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                     </div>
                 </div>
@@ -75,7 +75,7 @@
                     </label>
                     <textarea id="description" name="description" rows="3" placeholder="Notes complémentaires…"
                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition resize-y
-                                     focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">{{ old('description', $evenement->description ?? '') }}</textarea>
+                                     focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">{{ old('description', $evenement->description ?? '') }}</textarea>
                     @error('description')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>
 
@@ -86,7 +86,7 @@
         @php
             $calendarNamesActuels = old('calendar_names', $edit ? $evenement->calendarNames() : []);
         @endphp
-        <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                 <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Synchronisation Google Calendar</span>
@@ -144,7 +144,7 @@
         <div id="vue-event-blocker"></div>
 
         {{-- ── Tâches bloquées --}}
-        <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                 <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🚫</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Tâches bloquées pendant cet événement</span>

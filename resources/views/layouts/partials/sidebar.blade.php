@@ -239,6 +239,22 @@
                     <span class="text-sm w-[18px] text-center flex-shrink-0">🔧</span>
                     <span class="flex-1">Diagnostic SMTP</span>
                 </a>
+
+                <a href="{{ route('admin.activite.index') }}"
+                    class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
+                                                                                    {{ request()->routeIs('admin.activite.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                    onclick="closeSidebar()">
+                    <span class="text-sm w-[18px] text-center flex-shrink-0">📈</span>
+                    <span class="flex-1">Statistiques d'activité</span>
+                </a>
+
+                <a href="{{ route('admin.journal.index') }}"
+                    class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
+                                                                                    {{ request()->routeIs('admin.journal.*') ? 'nav-item-active bg-sky-500/15 text-amber-300 font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                    onclick="closeSidebar()">
+                    <span class="text-sm w-[18px] text-center flex-shrink-0">📜</span>
+                    <span class="flex-1">Journal d'audit</span>
+                </a>
             @endif
         @endauth
 
@@ -262,6 +278,11 @@
                     @endif
                 </div>
             </div>
+            <button type="button" onclick="toggleAppTheme()"
+                title="Changer le thème"
+                class="text-white/30 hover:text-amber-300 text-base p-1 rounded transition-colors bg-transparent border-0 cursor-pointer leading-none flex-shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                <span data-theme-icon>🌙</span>
+            </button>
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
                 <button type="submit"

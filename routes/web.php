@@ -4,6 +4,8 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\CandidaturesController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\ActiviteController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BilanController;
 use App\Http\Controllers\CalendriersController;
@@ -35,7 +37,9 @@ Route::post('/urgence-hash', [EmergencyController::class, 'generate'])->name('em
 
 // ── Authentification ──────────────────────────────────────────────────────
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/login', [AuthController::class, 'login'])
+    ->name('login.submit')
+    ->middleware('throttle:10,1');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // ── Mot de passe oublié ───────────────────────────────────────────────────
@@ -204,6 +208,16 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/valider', [CandidaturesController::class, 'valider'])->name('valider')->where('id', '[0-9]+');
             Route::post('/{id}/refuser', [CandidaturesController::class, 'refuser'])->name('refuser')->where('id', '[0-9]+');
             Route::post('/{id}/renvoyer-invitation', [CandidaturesController::class, 'renvoyerInvitation'])->name('renvoyer-invitation')->where('id', '[0-9]+');
+        });
+
+        Route::prefix('journal')->name('journal.')->group(function () {
+            Route::get('/', [AuditLogController::class, 'index'])->name('index');
+            Route::get('/data', [AuditLogController::class, 'data'])->name('data');
+        });
+
+        Route::prefix('activite')->name('activite.')->group(function () {
+            Route::get('/', [ActiviteController::class, 'index'])->name('index');
+            Route::get('/data', [ActiviteController::class, 'data'])->name('data');
         });
     });
 

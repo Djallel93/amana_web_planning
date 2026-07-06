@@ -33,17 +33,17 @@
     ];
 @endphp
 <div class="flex flex-wrap gap-2.5 mb-6">
-    <div class="bg-white border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col gap-0.5 min-w-[90px]">
+    <div class="bg-surface border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col gap-0.5 min-w-[90px]">
         <div class="font-heading text-2xl font-bold text-ink">{{ $total }}</div>
         <div class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted">Total</div>
     </div>
-    <div class="bg-white border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col gap-0.5 min-w-[90px]">
+    <div class="bg-surface border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col gap-0.5 min-w-[90px]">
         <div class="font-heading text-2xl font-bold text-accent">{{ $futures }}</div>
         <div class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted">À venir</div>
     </div>
     @foreach($parTache as $code => $count)
         @if(isset($tachesMeta[$code]))
-            <div class="bg-white border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col gap-0.5 min-w-[90px]">
+            <div class="bg-surface border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col gap-0.5 min-w-[90px]">
                 <div class="font-heading text-2xl font-bold text-ink">{{ $count }}</div>
                 <div class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted">
                     {{ $tachesMeta[$code][1] }} {{ $tachesMeta[$code][0] }}
@@ -54,7 +54,7 @@
 </div>
 
 @if($parMois->isEmpty())
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm">
         <div class="text-center py-16 px-8">
             <div class="text-5xl mb-3 opacity-40">📭</div>
             <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucune permanence</h3>
@@ -94,7 +94,7 @@
                                 || ($e->id_creneau_cible === $creneau->id && $e->id_tache_cible === $tache?->id)
                             );
                             $borderColor = $isToday ? 'border-l-emerald-400' : ($isFuture ? 'border-l-accent' : 'border-l-surface-3');
-                            $bgColor     = $isToday ? 'bg-emerald-50' : 'bg-white';
+                            $bgColor     = $isToday ? 'bg-emerald-50' : 'bg-surface';
                             $icons = ['entree'=>'🚪','mektaba'=>'📚','salle'=>'🏛️','amana_food'=>'🥪','cours'=>'🎓'];
                         @endphp
 

@@ -23,7 +23,7 @@
 </div>
 
 @if(empty($stats['personnes']))
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm">
         <div class="text-center py-16 px-8">
             <div class="text-5xl mb-3 opacity-40">📊</div>
             <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucune donnée</h3>
@@ -48,7 +48,7 @@
             ['value' => $stats['tauxUtilisation'].'%','label' => "Taux d'utilisation",   'color' => 'text-violet-600'],
             ['value' => $stats['totalAbsenceDays'],   'label' => "Jours d'absence",       'color' => 'text-rose-500'],
         ] as $kpi)
-            <div class="bg-white rounded-xl border border-surface-border shadow-sm p-4 flex flex-col gap-1">
+            <div class="bg-surface rounded-xl border border-surface-border shadow-sm p-4 flex flex-col gap-1">
                 <div class="font-heading text-2xl font-bold {{ $kpi['color'] }}">{{ $kpi['value'] }}</div>
                 <div class="text-[11px] font-bold uppercase tracking-[0.6px] text-ink-muted">{{ $kpi['label'] }}</div>
             </div>
@@ -111,7 +111,7 @@
     </div>
 
     {{-- Table détail --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Détail par personne</span>
@@ -160,7 +160,7 @@
     </div>
 
     {{-- Explications --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📖</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Comment lire ces statistiques</span>

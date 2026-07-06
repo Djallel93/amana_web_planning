@@ -26,7 +26,7 @@
     {{-- ═══════════════════════════════════════
         SECTION 1 — Inscription publique
     ════════════════════════════════════════ --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔓</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Inscription publique</span>
@@ -62,7 +62,7 @@
                                 class="sr-only peer">
                             <div class="w-12 h-6 bg-ink-faint peer-checked:bg-emerald-500 rounded-full relative transition-colors duration-200
                                         after:content-[''] after:absolute after:top-[3px] after:left-[3px]
-                                        after:bg-white after:rounded-full after:w-[18px] after:h-[18px]
+                                        after:bg-surface after:rounded-full after:w-[18px] after:h-[18px]
                                         after:transition-all after:duration-200 after:shadow
                                         peer-checked:after:translate-x-6">
                             </div>
@@ -83,7 +83,7 @@
                     <div class="flex items-center gap-4 opacity-60">
                         <div class="w-12 h-6 {{ $io['valeur'] ? 'bg-emerald-500' : 'bg-ink-faint' }} rounded-full relative
                                     after:content-[''] after:absolute after:top-[3px] after:{{ $io['valeur'] ? 'left-[27px]' : 'left-[3px]' }}
-                                    after:bg-white after:rounded-full after:w-[18px] after:h-[18px] after:shadow">
+                                    after:bg-surface after:rounded-full after:w-[18px] after:h-[18px] after:shadow">
                         </div>
                         <span class="text-[13.5px] text-ink-light font-medium">
                             {{ $io['valeur'] ? '✅ Inscriptions ouvertes' : '🔒 Inscriptions fermées' }}
@@ -107,7 +107,7 @@
     {{-- ═══════════════════════════════════════
         SECTION 2 — Horaires & Lieu
     ════════════════════════════════════════ --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🕐</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Horaires &amp; Lieu</span>
@@ -131,7 +131,7 @@
                             value="{{ $hc['valeur_raw'] }}"
                             required
                             class="w-full max-w-[160px] px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                    focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                                    focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         <span class="text-[11.5px] text-ink-muted">Format 24h — ex : 20:00</span>
                     </div>
                 @endif
@@ -149,7 +149,7 @@
                             maxlength="500"
                             placeholder="Adresse complète"
                             class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                    focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                                    focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         <span class="text-[11.5px] text-ink-muted">Adresse envoyée dans les événements Google Calendar</span>
                     </div>
                 @endif
@@ -161,7 +161,7 @@
     {{-- ═══════════════════════════════════════
         SECTION 3 — Calendriers Google Calendar
     ════════════════════════════════════════ --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm mb-5">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Calendriers Google Calendar</span>
@@ -221,7 +221,7 @@
     {{-- ═══════════════════════════════════════
         SECTION 4 — Décalages des tâches
     ════════════════════════════════════════ --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">⏱️</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Décalages des tâches</span>
@@ -299,7 +299,7 @@
                                     step="1" min="-999" max="999"
                                     {{ $isSandwich ? 'disabled' : '' }}
                                     class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
-                                            focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                            focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                                             disabled:opacity-50 disabled:cursor-not-allowed">
                                 @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
                             @else
@@ -315,7 +315,7 @@
                                     step="1" min="-999" max="999"
                                     {{ $isSandwich ? 'disabled' : '' }}
                                     class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
-                                            focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                            focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                                             disabled:opacity-50 disabled:cursor-not-allowed">
                                 @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
                             @else

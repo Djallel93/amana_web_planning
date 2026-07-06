@@ -20,6 +20,7 @@
 import { ref, computed } from "vue";
 import Modal from "@/components/shared/Modal.vue";
 import { useToast } from "@/composables/useToast";
+import { useConfirm } from "@/composables/useConfirm";
 import type { AssignContext, PersonneAssignee } from "@/types/planning";
 import { TACHES_META } from "@/types/planning";
 
@@ -38,6 +39,7 @@ const emit = defineEmits<{
 }>();
 
 const toast = useToast();
+const { ask } = useConfirm();
 
 // ── État ──────────────────────────────────────────────────────────────────
 const isOpen = ref(false);
@@ -130,7 +132,7 @@ async function save(): Promise<void> {
 // ── Désassignation ────────────────────────────────────────────────────────
 async function unassign(): Promise<void> {
     if (!context.value) return;
-    if (!confirm("Désassigner cette tâche ?")) return;
+    if (!(await ask({ message: "Désassigner cette tâche ?" }))) return;
 
     const { creneauId, tacheId, tacheCode } = context.value;
 
@@ -160,7 +162,7 @@ async function unassign(): Promise<void> {
 // ── Suppression du créneau entier depuis le modal ─────────────────────────
 async function deleteCreneau(): Promise<void> {
     if (!context.value) return;
-    if (!confirm("Supprimer tout ce créneau ?")) return;
+    if (!(await ask({ message: "Supprimer tout ce créneau ?", danger: true }))) return;
 
     const { creneauId } = context.value;
     close();

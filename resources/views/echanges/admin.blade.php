@@ -19,7 +19,7 @@
     </div>
 @endif
 
-<div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+<div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
     <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
         <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔄</div>
         <span class="font-heading text-[14px] font-semibold text-ink">Toutes les demandes d'échange</span>
@@ -165,7 +165,7 @@
                     </span>
                 </div>
 
-                <div class="flex items-center gap-2 flex-wrap p-2.5 bg-white border border-surface-border rounded-lg mb-2.5 text-[12px]">
+                <div class="flex items-center gap-2 flex-wrap p-2.5 bg-surface border border-surface-border rounded-lg mb-2.5 text-[12px]">
                     <div class="flex flex-col gap-0.5 flex-1 min-w-[110px]">
                         <span class="font-semibold text-ink">{{ $echange->creneauDemandeur?->date?->locale('fr')->isoFormat('D MMM YYYY') ?? '—' }}</span>
                         <span class="text-ink-muted text-[11px]">{{ $echange->tacheDemandeur?->libelle ?? '—' }}</span>

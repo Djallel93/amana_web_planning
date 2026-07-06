@@ -1,5 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: 'class',
+
     content: [
         // Blade — inchangé
         './resources/views/**/*.blade.php',
@@ -15,18 +17,27 @@ export default {
                     dark:    '#0284c7',
                     light:   '#0ea5e9',
                 },
+                // surface/ink sont pilotées par des variables CSS (voir
+                // resources/css/app.css, blocs :root et .dark) plutôt que
+                // des valeurs hexadécimales fixes, afin qu'un simple ajout
+                // de la classe .dark sur <html> retheme toute l'app sans
+                // avoir à toucher aux composants qui utilisent déjà ces
+                // classes (bg-surface, text-ink, border-surface-border…).
                 surface: {
-                    DEFAULT: '#ffffff',
-                    2:       '#f8f9fb',
-                    3:       '#f0f2f5',
-                    border:  '#e5e7eb',
+                    DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+                    2:       'rgb(var(--color-surface-2) / <alpha-value>)',
+                    3:       'rgb(var(--color-surface-3) / <alpha-value>)',
+                    border:  'rgb(var(--color-surface-border) / <alpha-value>)',
                 },
                 ink: {
-                    DEFAULT: '#0d1117',
-                    light:   '#374151',
-                    muted:   '#6b7280',
-                    faint:   '#d1d5db',
+                    DEFAULT: 'rgb(var(--color-ink) / <alpha-value>)',
+                    light:   'rgb(var(--color-ink-light) / <alpha-value>)',
+                    muted:   'rgb(var(--color-ink-muted) / <alpha-value>)',
+                    faint:   'rgb(var(--color-ink-faint) / <alpha-value>)',
                 },
+                // La sidebar reste volontairement toujours sombre, qu'on
+                // soit en mode clair ou sombre — c'est une barre de
+                // navigation à identité fixe, pas une "surface" de contenu.
                 sidebar: {
                     DEFAULT: '#0c1e2e',
                     2:       '#0f2740',

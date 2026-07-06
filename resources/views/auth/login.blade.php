@@ -40,7 +40,7 @@
     </div>
 
     {{-- Panneau droit --}}
-    <div class="w-full sm:w-[480px] bg-white flex items-center justify-center px-6 py-10 sm:px-14 flex-shrink-0">
+    <div class="w-full sm:w-[480px] bg-surface flex items-center justify-center px-6 py-10 sm:px-14 flex-shrink-0">
         <div class="w-full max-w-sm">
 
             {{-- Logo mobile uniquement --}}
@@ -63,7 +63,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('login.submit') }}" method="POST" novalidate>
+            <form action="{{ route('login.submit') }}" method="POST" novalidate data-no-dirty-check>
                 @csrf
 
                 <div class="mb-4">
@@ -71,7 +71,7 @@
                     <input type="email" id="email" name="email" value="{{ old('email') }}"
                            autocomplete="email" autofocus placeholder="votre@email.fr"
                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                  focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                  focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                                   hover:border-ink-muted">
                     @error('email')<span class="block text-xs text-rose-600 mt-1">{{ $message }}</span>@enderror
                 </div>
@@ -81,7 +81,7 @@
                     <input type="password" id="password" name="password"
                            autocomplete="current-password" placeholder="••••••••"
                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                  focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                  focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                                   hover:border-ink-muted">
                     @error('password')<span class="block text-xs text-rose-600 mt-1">{{ $message }}</span>@enderror
                 </div>

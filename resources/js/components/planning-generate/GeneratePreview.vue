@@ -13,6 +13,11 @@
 -->
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
+
+const toast = useToast();
+const { ask } = useConfirm();
 
 // ── Aperçu date/semaines ───────────────────────────────────────────────────
 const dateDebut = ref('');
@@ -65,10 +70,7 @@ function submitPreview(): void {
     const sem = semainesEl?.value ?? '';
 
     if (!val || !sem || parseInt(sem, 10) < 1) {
-        // alert() reste acceptable pour une validation bloquante simple —
-        // pas besoin du système de toast pour un message instantané qui
-        // empêche l'action plutôt que de la confirmer après coup.
-        alert('Veuillez remplir la date et le nombre de semaines avant de prévisualiser.');
+        toast.error('Veuillez remplir la date et le nombre de semaines avant de prévisualiser.');
         return;
     }
 
@@ -87,7 +89,6 @@ declare global {
         submitPreview: () => void;
         onRollbackTypeChange: (radio: HTMLInputElement) => void;
         checkAll: (state: boolean) => void;
-        confirmRollback: () => boolean;
     }
 }
 window.submitPreview = submitPreview;
@@ -117,21 +118,40 @@ window.checkAll = (state: boolean): void => {
         .forEach(cb => { cb.checked = state; });
 };
 
-window.confirmRollback = (): boolean => {
+// ── Confirmation avant soumission du rollback ─────────────────────────────
+// confirm() natif est synchrone : un onclick="return confirmRollback()"
+// inline pouvait bloquer la soumission en attendant sa réponse. ask() est
+// asynchrone (boîte stylée), donc ce pattern ne fonctionne plus : on
+// intercepte le clic du bouton, on empêche la soumission par défaut, on
+// attend la réponse de l'utilisateur, puis on soumet le formulaire
+// nous-mêmes si confirmé. Le bouton n'a donc plus d'attribut onclick — voir
+// planning/generate.blade.php (id="rollbackSubmitBtn").
+let rollbackSubmitBtn: HTMLButtonElement | null = null;
+
+async function onRollbackSubmitClick(e: MouseEvent): Promise<void> {
+    e.preventDefault();
+
     const checkedRadio = document.querySelector<HTMLInputElement>('input[name="rollback_type"]:checked');
     const type = checkedRadio?.value;
+
+    let confirmed: boolean;
     if (type === 'partial') {
         const checked = document.querySelectorAll<HTMLInputElement>(
             '#weekChecklist input[type="checkbox"]:checked'
         ).length;
         if (checked === 0) {
-            alert('Sélectionnez au moins une semaine.');
-            return false;
+            toast.error('Sélectionnez au moins une semaine.');
+            return;
         }
-        return confirm(`Supprimer ${checked} semaine(s) sélectionnée(s) ?`);
+        confirmed = await ask({ message: `Supprimer ${checked} semaine(s) sélectionnée(s) ?`, danger: true });
+    } else {
+        confirmed = await ask({ message: 'Annuler toute la génération ? Cette action est irréversible.', danger: true });
     }
-    return confirm('Annuler toute la génération ? Cette action est irréversible.');
-};
+
+    if (confirmed) {
+        (document.getElementById('rollbackForm') as HTMLFormElement | null)?.submit();
+    }
+}
 
 // ── Cycle de vie ──────────────────────────────────────────────────────────
 let dateDebutEl: HTMLInputElement | null = null;
@@ -152,6 +172,9 @@ onMounted(() => {
     generateForm = document.getElementById('generateForm') as HTMLFormElement | null;
     generateForm?.addEventListener('submit', onGenerateSubmit);
 
+    rollbackSubmitBtn = document.getElementById('rollbackSubmitBtn') as HTMLButtonElement | null;
+    rollbackSubmitBtn?.addEventListener('click', onRollbackSubmitClick);
+
     // Le previewText du DOM Blade est remplacé par notre rendu Vue —
     // on synchronise le HTML calculé dans le span existant via un watch.
     // { immediate: true } : exécute le callback tout de suite au montage,
@@ -166,6 +189,7 @@ onUnmounted(() => {
     dateDebutEl?.removeEventListener('input', onDateDebutInput);
     semainesEl?.removeEventListener('input', onSemainesInput);
     generateForm?.removeEventListener('submit', onGenerateSubmit);
+    rollbackSubmitBtn?.removeEventListener('click', onRollbackSubmitClick);
 });
 </script>
 

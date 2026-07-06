@@ -13,7 +13,7 @@
 </div>
 
 {{-- Configuration active --}}
-<div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
+<div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
     <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
         <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
         <span class="font-heading text-[14px] font-semibold text-ink">Configuration SMTP active</span>
@@ -74,7 +74,7 @@
 
 {{-- Résultat du test --}}
 @if($resultat !== null)
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 rounded-md flex items-center justify-center text-sm flex-shrink-0
                         {{ $resultat['succes'] ? 'bg-emerald-50' : 'bg-rose-50' }}">
@@ -118,7 +118,7 @@
 @endif
 
 {{-- Formulaire de test --}}
-<div class="max-w-[480px] bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+<div class="max-w-[480px] bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
     <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
         <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">✉️</div>
         <span class="font-heading text-[14px] font-semibold text-ink">Envoyer un email de test</span>
@@ -135,7 +135,7 @@
                 <input type="email" id="email" name="email"
                        value="{{ old('email', $testEmail) }}" placeholder="votre@email.com" required
                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                              focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+                              focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                 @error('email')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
             </div>
             <button type="submit"

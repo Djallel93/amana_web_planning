@@ -18,7 +18,7 @@
 
 <body class="min-h-screen bg-surface-2 font-body antialiased flex items-center justify-center p-6">
 
-    <div class="bg-white rounded-2xl shadow-lg border border-surface-border p-10 sm:p-12 max-w-md w-full text-center">
+    <div class="bg-surface rounded-2xl shadow-lg border border-surface-border p-10 sm:p-12 max-w-md w-full text-center">
 
         {{-- Brand --}}
         <div class="flex items-center justify-center gap-2.5 mb-8">

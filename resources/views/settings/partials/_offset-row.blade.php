@@ -39,7 +39,7 @@
                     step="1" min="-999" max="999"
                     {{ $isSandwich ? 'disabled' : '' }}
                     class="w-[90px] px-2.5 py-1.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
-                        focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                        focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                         disabled:opacity-50 disabled:cursor-not-allowed">
                 @if(!$isSandwich)
                     <span class="text-[11px] text-ink-muted">min</span>
@@ -60,7 +60,7 @@
                     step="1" min="-999" max="999"
                     {{ $isSandwich ? 'disabled' : '' }}
                     class="w-[90px] px-2.5 py-1.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
-                        focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                        focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                         disabled:opacity-50 disabled:cursor-not-allowed">
                 @if(!$isSandwich)
                     <span class="text-[11px] text-ink-muted">min</span>

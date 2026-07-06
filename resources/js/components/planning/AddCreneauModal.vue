@@ -134,7 +134,7 @@ defineExpose({ open });
             <div
                 class="flex items-center gap-2 px-3 py-2.5 bg-sky-50 border border-sky-100 rounded-lg text-[13px]"
             >
-                <strong class="text-ink" v-html="weekInfoHtml"></strong>
+                <strong class="text-ink">{{ weekInfoHtml }}</strong>
                 <span class="text-ink-muted"
                     >Choisissez une date dans cette semaine</span
                 >
@@ -151,7 +151,7 @@ defineExpose({ open });
                     v-model="selectedDate"
                     :min="context?.weekMin"
                     :max="context?.weekMax"
-                    class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:bg-white focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                 />
                 <p class="text-[11.5px] text-ink-muted mt-1.5 min-h-[18px]">
                     {{ hintText }}

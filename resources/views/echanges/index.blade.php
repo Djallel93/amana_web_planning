@@ -17,7 +17,7 @@
 </div>
 
 @if($echanges->isEmpty())
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm">
         <div class="text-center py-16 px-8">
             <div class="text-5xl mb-3 opacity-40">🔄</div>
             <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucun échange</h3>
@@ -53,7 +53,7 @@
                 $dimmed = in_array($echange->statut, ['refuse', 'expire', 'annule']);
             @endphp
 
-            <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden border-l-[3px] {{ $sc['card'] }} {{ $dimmed ? 'opacity-70' : '' }} transition-shadow hover:shadow">
+            <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden border-l-[3px] {{ $sc['card'] }} {{ $dimmed ? 'opacity-70' : '' }} transition-shadow hover:shadow">
                 <div class="px-5 py-4">
 
                     {{-- Header --}}
@@ -80,7 +80,7 @@
 
                     {{-- Slots --}}
                     <div class="flex items-center gap-3 flex-wrap p-3 bg-surface-2 border border-surface-border rounded-lg">
-                        <div class="flex flex-col gap-0.5 px-3 py-2 bg-white border border-surface-border rounded-lg flex-1 min-w-[130px]">
+                        <div class="flex flex-col gap-0.5 px-3 py-2 bg-surface border border-surface-border rounded-lg flex-1 min-w-[130px]">
                             <span class="font-bold text-[12.5px] text-ink">
                                 {{ $monSlotCreneau->date->locale('fr')->isoFormat('ddd D MMM YYYY') }}
                             </span>
@@ -89,7 +89,7 @@
                             </span>
                         </div>
                         <span class="text-accent text-lg flex-shrink-0 font-bold">⇄</span>
-                        <div class="flex flex-col gap-0.5 px-3 py-2 bg-white border border-surface-border rounded-lg flex-1 min-w-[130px]">
+                        <div class="flex flex-col gap-0.5 px-3 py-2 bg-surface border border-surface-border rounded-lg flex-1 min-w-[130px]">
                             <span class="font-bold text-[12.5px] text-ink">
                                 {{ $sonSlotCreneau->date->locale('fr')->isoFormat('ddd D MMM YYYY') }}
                             </span>

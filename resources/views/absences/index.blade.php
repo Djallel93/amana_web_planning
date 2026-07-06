@@ -22,7 +22,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
 
     {{-- ── Liste --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
             <span class="font-heading text-[14px] font-semibold text-ink">
@@ -188,7 +188,7 @@
     </div>
 
     {{-- ── Formulaire --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">➕</div>
             <span class="font-heading text-[14px] font-semibold text-ink">

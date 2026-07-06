@@ -107,7 +107,7 @@ watch(() => props.open, (isOpen) => {
                 -->
                 <div
                     ref="modal-container"
-                    class="bg-white rounded-2xl shadow-lg w-full transform outline-none"
+                    class="bg-surface rounded-2xl shadow-lg w-full transform outline-none"
                     :class="maxWidth ?? 'max-w-sm'"
                     tabindex="-1"
                 >
@@ -146,20 +146,20 @@ watch(() => props.open, (isOpen) => {
 .modal-leave-to {
     opacity: 0;
 }
-.modal-enter-from .bg-white,
-.modal-leave-to .bg-white {
+.modal-enter-from .bg-surface,
+.modal-leave-to .bg-surface {
     transform: scale(0.95) translateY(8px);
 }
 .modal-enter-active {
     transition: opacity 0.2s ease;
 }
-.modal-enter-active .bg-white {
+.modal-enter-active .bg-surface {
     transition: transform 0.2s ease;
 }
 .modal-leave-active {
     transition: opacity 0.15s ease;
 }
-.modal-leave-active .bg-white {
+.modal-leave-active .bg-surface {
     transition: transform 0.15s ease;
 }
 </style>

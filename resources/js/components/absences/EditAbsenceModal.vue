@@ -18,10 +18,11 @@
     PUT /absences/{id} → { success: boolean, message: string, absence?: {...} }
 -->
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import Modal    from '@/components/shared/Modal.vue';
 import { useModal } from '@/composables/useModal';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 interface Personne {
@@ -41,6 +42,7 @@ interface AbsenceContext {
 // ── Composables ───────────────────────────────────────────────────────────
 const modal = useModal<AbsenceContext>();
 const toast = useToast();
+const { ask } = useConfirm();
 
 // ── Config injectée par Blade ────────────────────────────────────────────
 // Lue une seule fois au setup (config statique, injectée avant le montage
@@ -65,6 +67,21 @@ const canSubmit = computed(() =>
     idPersonne.value !== null && dateDebut.value !== '' && dateFin.value !== '' && !submitting.value
 );
 
+// ── Suivi des modifications non enregistrées ──────────────────────────────
+// Utilisé pour avertir avant une fermeture accidentelle (Escape, backdrop,
+// bouton Annuler) — voir requestClose() plus bas.
+//
+// suppressDirtyTracking évite un piège classique : watch() ne s'exécute
+// qu'au tick suivant (microtâche), donc positionner dirty.value = false
+// juste après avoir rempli les champs dans open() serait écrasé par le
+// watcher déclenché par CE remplissage initial, une fois qu'il s'exécute.
+let suppressDirtyTracking = false;
+const dirty = ref(false);
+watch([idPersonne, dateDebut, dateFin, raison], () => {
+    if (suppressDirtyTracking) return;
+    dirty.value = true;
+});
+
 // ── CSRF ──────────────────────────────────────────────────────────────────
 function getCsrf(): string {
     return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
@@ -72,11 +89,17 @@ function getCsrf(): string {
 
 // ── Ouverture ─────────────────────────────────────────────────────────────
 function open(context: AbsenceContext): void {
+    suppressDirtyTracking = true;
     idPersonne.value = context.idPersonne;
     dateDebut.value  = context.dateDebut;
     dateFin.value    = context.dateFin;
     raison.value     = context.raison;
     modal.open(context);
+    dirty.value = false;
+    // Réactive le suivi après que le watcher déclenché par CE remplissage
+    // initial se soit exécuté (nextTick garantit l'ordre par rapport au
+    // watch(), qui tourne en microtâche).
+    nextTick(() => { suppressDirtyTracking = false; });
 }
 
 // ── Ajustement automatique de la date de fin (comme le formulaire de création) ──
@@ -111,6 +134,7 @@ async function submit(): Promise<void> {
         const data = await res.json() as { success: boolean; message: string };
 
         if (data.success) {
+            dirty.value = false;
             modal.close();
             toast.success(data.message);
             // Rechargement pour refléter les changements dans la liste —
@@ -124,6 +148,17 @@ async function submit(): Promise<void> {
     } finally {
         submitting.value = false;
     }
+}
+
+// ── Fermeture avec confirmation si des modifications sont en attente ─────
+async function requestClose(): Promise<void> {
+    if (dirty.value) {
+        const ok = await ask({
+            message: 'Des modifications non enregistrées seront perdues. Fermer quand même ?',
+        });
+        if (!ok) return;
+    }
+    modal.close();
 }
 
 // ── Pont avec la Blade existante ───────────────────────────────────────────
@@ -151,7 +186,7 @@ window.openEditAbsenceModal = (btn: HTMLElement) => {
 </script>
 
 <template>
-    <Modal :open="modal.isOpen.value" @close="modal.close()" maxWidth="max-w-md">
+    <Modal :open="modal.isOpen.value" @close="requestClose" maxWidth="max-w-md">
 
         <template #header>
             <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">✏️</div>
@@ -236,7 +271,7 @@ window.openEditAbsenceModal = (btn: HTMLElement) => {
                 class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted
                        hover:bg-surface-3 hover:text-ink text-[13px] font-semibold
                        rounded-lg transition-colors cursor-pointer bg-transparent min-h-[48px]"
-                @click="modal.close()"
+                @click="requestClose"
             >
                 Annuler
             </button>

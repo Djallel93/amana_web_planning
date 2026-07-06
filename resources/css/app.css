@@ -1,10 +1,12 @@
 /* resources/css/app.css
  * Point d'entrée Vite — compilé vers public/build/assets/app-[hash].css
  *
- * Ordre :
+ * Ordre (important : tous les @import DOIVENT précéder toute autre règle,
+ * sinon PostCSS/Vite rejette la feuille de style) :
  *   1. Google Fonts
- *   2. Directives Tailwind (base, components, utilities)
- *   3. Styles résiduels AMANA (custom.css)
+ *   2. Styles résiduels AMANA (custom.css)
+ *   3. Jetons de couleur clair/sombre (:root / .dark)
+ *   4. Directives Tailwind (base, components, utilities)
  */
 
 /* ── Google Fonts ── */
@@ -12,6 +14,42 @@
 
 /* ── Styles résiduels (animations, chips, sidebar, hamburger…) ── */
 @import "../../public/css/custom.css";
+
+/*
+ * ── Jetons de couleur (mode clair / mode sombre) ──────────────────────────
+ * Ces variables alimentent les couleurs `surface` et `ink` dans
+ * tailwind.config.js (format "R G B" requis par rgb(var(--x) / <alpha-value>)).
+ * Basculer <html class="dark"> (voir resources/js/lib/theme.ts) change ces
+ * valeurs, et donc l'apparence de TOUTE l'app — puisque les composants
+ * utilisent déjà bg-surface / text-ink / border-surface-border partout,
+ * aucune modification composant par composant n'est nécessaire.
+ *
+ * La sidebar (toujours sombre) n'est volontairement pas concernée ici —
+ * ses couleurs restent fixes dans tailwind.config.js.
+ */
+:root {
+    --color-surface:        255 255 255; /* cartes, modals */
+    --color-surface-2:      248 249 251; /* fond de page */
+    --color-surface-3:      240 242 245; /* accents subtils, hover */
+    --color-surface-border: 229 231 235;
+
+    --color-ink:        13 17 23;   /* texte principal */
+    --color-ink-light:  55 65 81;
+    --color-ink-muted:  107 114 128;
+    --color-ink-faint:  209 213 219; /* bordures de champs, texte très discret */
+}
+
+.dark {
+    --color-surface:        22 27 34;
+    --color-surface-2:      13 17 23;
+    --color-surface-3:      33 38 45;
+    --color-surface-border: 48 54 61;
+
+    --color-ink:        230 237 243;
+    --color-ink-light:  201 209 217;
+    --color-ink-muted:  139 148 158;
+    --color-ink-faint:  72 79 88;
+}
 
 /* ── Tailwind ── */
 @tailwind base;

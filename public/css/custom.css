@@ -249,3 +249,52 @@ button {
         transform: translateX(-100%);
     }
 }
+
+/* ── Mode sombre : overrides pour les couleurs codées en dur ci-dessus ──────
+ * Tout le reste de l'app suit automatiquement via les variables CSS de
+ * resources/css/app.css (bg-surface, text-ink…). Seules les couleurs fixes
+ * (chips, scrollbar, ligne "moi") ont besoin d'un ajustement explicite ici,
+ * pour rester lisibles sur fond sombre.
+ */
+.dark ::-webkit-scrollbar-thumb {
+    background: #30363d;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+.dark * {
+    scrollbar-color: #30363d transparent;
+}
+
+.dark .chip-entree {
+    background: rgba(37, 99, 235, 0.18);
+    color: #60a5fa;
+}
+.dark .chip-mektaba {
+    background: rgba(5, 150, 105, 0.18);
+    color: #34d399;
+}
+.dark .chip-salle {
+    background: rgba(217, 119, 6, 0.18);
+    color: #fbbf24;
+}
+.dark .chip-amana_food {
+    background: rgba(225, 29, 72, 0.18);
+    color: #fb7185;
+}
+.dark .chip-cours {
+    background: rgba(124, 58, 237, 0.18);
+    color: #a78bfa;
+}
+
+.dark .tache-vide {
+    color: #484f58;
+}
+
+.dark .my-row {
+    background: rgba(3, 105, 161, 0.15) !important;
+}
+.dark .my-row:hover {
+    background: rgba(3, 105, 161, 0.22) !important;
+}
+

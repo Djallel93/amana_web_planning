@@ -19,7 +19,7 @@
     </div>
 
     {{-- Card tableau --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
 
         {{-- Header card --}}
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
@@ -122,7 +122,7 @@
                                                     </form>
                                                 @endif
                                                 <a href="{{ route('personnes.edit', $personne->id) }}"
-                                                    class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-surface-border bg-white hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
+                                                    class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
                                                     title="Modifier">✏️</a>
                                                 <form action="{{ route('personnes.destroy', $personne->id) }}" method="POST"
                                                     onsubmit="return confirm('Supprimer {{ $personne->prenom }} {{ $personne->nom }} ?')">
@@ -182,7 +182,7 @@
                                         </form>
                                     @endif
                                     <a href="{{ route('personnes.edit', $personne->id) }}"
-                                        class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-surface-border bg-white hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
+                                        class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
                                         title="Modifier">✏️</a>
                                     <form action="{{ route('personnes.destroy', $personne->id) }}" method="POST"
                                         onsubmit="return confirm('Supprimer {{ $personne->prenom }} {{ $personne->nom }} ?')">

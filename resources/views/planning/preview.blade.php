@@ -62,7 +62,7 @@
         $firstDate  = \Carbon\Carbon::parse($firstJour['date']);
         $lastDate   = \Carbon\Carbon::parse($lastJour['date']);
     @endphp
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4 relative z-10">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4 relative z-10">
         <div class="flex items-center justify-between px-5 py-3 bg-sidebar border-b border-white/[0.06]">
             <div class="flex items-center gap-2.5 font-heading text-[13px] font-semibold text-white">
                 📅
@@ -120,7 +120,7 @@
 @endforeach
 
 {{-- Bande de confirmation bas de page --}}
-<div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4 bg-white border-[1.5px] border-amber-300 rounded-xl shadow-sm relative z-10">
+<div class="flex flex-wrap items-center justify-between gap-4 px-5 py-4 bg-surface border-[1.5px] border-amber-300 rounded-xl shadow-sm relative z-10">
     <div>
         <p class="font-heading text-[14px] font-semibold text-ink">Ce planning vous convient ?</p>
         <p class="text-[12.5px] text-ink-muted mt-0.5">Cliquez sur "Confirmer et générer" pour l'enregistrer définitivement.</p>

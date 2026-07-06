@@ -17,7 +17,7 @@
 
 {{-- ── État vide ── --}}
 @if($personnes->isEmpty())
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="text-center py-16 px-8">
             <div class="text-5xl mb-3 opacity-40">🔒</div>
             <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucun membre actif</h3>
@@ -48,7 +48,7 @@
             @csrf
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
                 @foreach($taches as $tache)
-                    <div class="bg-white border-[1.5px] border-surface-border rounded-lg p-3.5 hover:border-accent transition-colors">
+                    <div class="bg-surface border-[1.5px] border-surface-border rounded-lg p-3.5 hover:border-accent transition-colors">
                         <div class="text-[13px] font-bold text-ink mb-2.5 flex items-center gap-1.5">
                             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $tache->code }}">
                                 {{ $tache->libelle }}
@@ -79,7 +79,7 @@
     </div>
 
     {{-- Grille lecture seule : vue équipe --}}
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">👀</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Disponibilités de l'équipe</span>
@@ -143,7 +143,7 @@
 
 {{-- ── Vue admin / gestionnaire ── --}}
 @else
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <form action="{{ route('restrictions.update') }}" method="POST" id="restrictionsForm">
             @csrf
 

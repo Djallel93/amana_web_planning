@@ -10,14 +10,14 @@
         <h1 class="font-heading text-2xl font-semibold text-ink tracking-tight">Candidatures en attente</h1>
         <p class="text-[13px] text-ink-muted mt-1">Validez ou refusez les demandes d'inscription</p>
     </div>
-    <div class="bg-white border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col items-center min-w-[90px]">
+    <div class="bg-surface border border-surface-border rounded-xl shadow-sm px-4 py-3 flex flex-col items-center min-w-[90px]">
         <div class="font-heading text-2xl font-bold text-amber-500">{{ $candidatures->count() }}</div>
         <div class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted">En attente</div>
     </div>
 </div>
 
 @if($candidatures->isEmpty())
-    <div class="bg-white rounded-xl border border-surface-border shadow-sm">
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm">
         <div class="text-center py-16 px-8">
             <div class="text-5xl mb-3 opacity-40">✅</div>
             <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucune candidature en attente</h3>
@@ -30,7 +30,7 @@
 @else
     <div class="flex flex-col gap-4">
         @foreach($candidatures as $candidat)
-            <div class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+            <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
                 <div class="p-5">
                     <div class="flex flex-wrap items-start justify-between gap-5">
 

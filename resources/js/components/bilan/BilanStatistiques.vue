@@ -235,7 +235,7 @@ onUnmounted(() => chart?.destroy());
     <div class="flex flex-col gap-5">
 
         <!-- Plage de dates -->
-        <div class="bg-white rounded-xl border border-surface-border shadow-sm px-5 py-4 flex flex-wrap items-center gap-3">
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-5 py-4 flex flex-wrap items-center gap-3">
             <label for="stats_from" class="text-xs font-bold text-ink tracking-[0.2px]">📅 Du</label>
             <input
                 id="stats_from" type="date" v-model="dateFrom" :max="dateTo"
@@ -273,7 +273,7 @@ onUnmounted(() => chart?.destroy());
 
             <template v-else>
                 <!-- Graphique -->
-                <div class="bg-white rounded-xl border border-surface-border shadow-sm p-5">
+                <div class="bg-surface rounded-xl border border-surface-border shadow-sm p-5">
                     <div class="relative h-[360px]">
                         <canvas ref="canvasRef"></canvas>
                     </div>
@@ -281,17 +281,17 @@ onUnmounted(() => chart?.destroy());
 
                 <!-- Cartes de stats -->
                 <div v-if="cartes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div class="bg-white rounded-xl border border-surface-border shadow-sm px-4 py-4">
+                    <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
                         <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">💰 Total collecté</div>
                         <div class="text-xl font-heading font-semibold text-ink">{{ fmtEuro(cartes.totalMontant) }}</div>
                     </div>
 
-                    <div class="bg-white rounded-xl border border-surface-border shadow-sm px-4 py-4">
+                    <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
                         <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">👥 Présence moyenne</div>
                         <div class="text-xl font-heading font-semibold text-ink">{{ cartes.moyennePresence }}</div>
                     </div>
 
-                    <div class="bg-white rounded-xl border border-surface-border shadow-sm px-4 py-4">
+                    <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
                         <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">🏆 Meilleure présence</div>
                         <div v-if="cartes.meilleureDate" class="text-xl font-heading font-semibold text-ink">
                             {{ cartes.meilleureDate.valeur }}
@@ -300,7 +300,7 @@ onUnmounted(() => chart?.destroy());
                         <div v-else class="text-[13px] text-ink-muted">—</div>
                     </div>
 
-                    <div class="bg-white rounded-xl border border-surface-border shadow-sm px-4 py-4">
+                    <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
                         <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">🥇 Meilleure collecte</div>
                         <div v-if="cartes.meilleureCollecte" class="text-xl font-heading font-semibold text-ink">
                             {{ fmtEuro(cartes.meilleureCollecte.valeur) }}
@@ -309,7 +309,7 @@ onUnmounted(() => chart?.destroy());
                         <div v-else class="text-[13px] text-ink-muted">—</div>
                     </div>
 
-                    <div class="bg-white rounded-xl border border-surface-border shadow-sm px-4 py-4">
+                    <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
                         <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">📋 Taux de remplissage</div>
                         <div class="text-xl font-heading font-semibold text-ink">
                             <template v-if="cartes.tauxRemplissage !== null">{{ cartes.tauxRemplissage }}%</template>

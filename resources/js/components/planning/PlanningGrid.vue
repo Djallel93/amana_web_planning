@@ -22,13 +22,16 @@ import { ref, computed, onMounted } from 'vue';
 import AssignModal from '@/components/planning/AssignModal.vue';
 import AddCreneauModal from '@/components/planning/AddCreneauModal.vue';
 import AnnulationCoursModal from '@/components/planning/AnnulationCoursModal.vue';
+import SkeletonPlanningGrid from '@/components/shared/SkeletonPlanningGrid.vue';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 import type {
     PlanningResponse, SemaineData, CreneauData, PersonneAssignee, AssignContext, AddCreneauContext,
 } from '@/types/planning';
 import { TACHES_META, TACHE_CODES } from '@/types/planning';
 
 const toast = useToast();
+const { ask } = useConfirm();
 
 // ── État principal ──────────────────────────────────────────────────────
 const semaines    = ref<SemaineData[]>([]);
@@ -193,7 +196,7 @@ function onUnassigned(creneauId: number, tacheCode: string): void {
 
 // ── Suppression d'un créneau (depuis le modal ou le bouton 🗑️ de la ligne) ─
 async function deleteCreneau(creneauId: number): Promise<void> {
-    if (!confirm('Supprimer ce créneau et toutes ses tâches ?')) return;
+    if (!(await ask({ message: 'Supprimer ce créneau et toutes ses tâches ?', danger: true }))) return;
     await doDeleteCreneau(creneauId);
 }
 
@@ -235,7 +238,7 @@ function removeCreneauLocally(creneauId: number): void {
 // ── Suppression de toute une semaine ──────────────────────────────────────
 async function deleteWeek(semaine: SemaineData): Promise<void> {
     const ids = semaine.creneaux.map(c => c.id);
-    if (!confirm(`Supprimer les ${ids.length} créneaux de cette semaine ?`)) return;
+    if (!(await ask({ message: `Supprimer les ${ids.length} créneaux de cette semaine ?`, danger: true }))) return;
 
     let n = 0;
     for (const id of ids) {
@@ -308,9 +311,7 @@ async function toggleHistorique(): Promise<void> {
         </div>
 
         <!-- Chargement -->
-        <div v-if="loading" class="text-center py-16 text-ink-muted text-[13.5px]">
-            ⏳ Chargement du planning…
-        </div>
+        <SkeletonPlanningGrid v-if="loading" :semaines="3" :creneaux-par-semaine="2" />
 
         <!-- Erreur réseau -->
         <div v-else-if="loadError" class="text-center py-16 text-rose-600 text-[13.5px]">
@@ -319,7 +320,7 @@ async function toggleHistorique(): Promise<void> {
         </div>
 
         <!-- Aucun planning -->
-        <div v-else-if="semaines.length === 0" class="bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+        <div v-else-if="semaines.length === 0" class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
             <div class="text-center py-16 px-8">
                 <div class="text-5xl mb-3 opacity-40">📭</div>
                 <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucun planning généré</h3>
@@ -339,7 +340,7 @@ async function toggleHistorique(): Promise<void> {
 
         <template v-else>
             <!-- Barre de filtres -->
-            <div class="flex flex-wrap items-center gap-2.5 px-4 py-3 mb-5 bg-white border border-surface-border rounded-xl shadow-sm">
+            <div class="flex flex-wrap items-center gap-2.5 px-4 py-3 mb-5 bg-surface border border-surface-border rounded-xl shadow-sm">
                 <span class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.8px]">Filtrer</span>
 
                 <div class="flex items-center gap-1.5 flex-wrap">
@@ -401,7 +402,7 @@ async function toggleHistorique(): Promise<void> {
 
             <!-- Blocs semaine -->
             <div v-for="semaine in semainesVisibles" :key="semaine.cle"
-                 class="week-block mb-4 bg-white rounded-xl border border-surface-border shadow-sm overflow-hidden">
+                 class="week-block mb-4 bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
 
                 <!-- Header semaine -->
                 <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-surface-3 bg-surface-2">

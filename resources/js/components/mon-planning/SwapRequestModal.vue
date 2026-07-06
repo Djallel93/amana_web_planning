@@ -24,6 +24,7 @@ import { ref, computed, watch } from 'vue';
 import Modal    from '@/components/shared/Modal.vue';
 import { useModal }  from '@/composables/useModal';
 import { useToast }  from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 // Ces interfaces décrivent exactement la forme des données qu'on manipule.
@@ -52,6 +53,7 @@ interface Slot {
 // TS refusera modal.open({ n'importe_quoi }) — seulement un SwapContext valide.
 const modal = useModal<SwapContext>();
 const toast = useToast();
+const { ask } = useConfirm();
 
 // ── État local ────────────────────────────────────────────────────────────
 type LoadState = 'idle' | 'loading' | 'loaded' | 'error';
@@ -78,6 +80,22 @@ const filteredSlots = computed(() => {
 // computed : le bouton "Envoyer" n'est actif que si un slot est sélectionné
 // et qu'on n'est pas en train de soumettre.
 const canSubmit = computed(() => selectedSlot.value !== null && !submitting.value);
+
+// ── Fermeture avec confirmation si une sélection est en attente ───────────
+// Pas de watch() nécessaire ici comme dans EditAbsenceModal : "dirty" se
+// résume à "un slot a été choisi mais pas encore envoyé", ce qui se dérive
+// directement de selectedSlot sans piège de timing.
+const dirty = computed(() => selectedSlot.value !== null);
+
+async function requestClose(): Promise<void> {
+    if (dirty.value) {
+        const ok = await ask({
+            message: 'Vous avez sélectionné un créneau mais la demande n\'a pas été envoyée. Fermer quand même ?',
+        });
+        if (!ok) return;
+    }
+    modal.close();
+}
 
 // Si le slot sélectionné sort de la plage filtrée, on désélectionne pour
 // éviter d'envoyer une demande sur un créneau qui n'est plus visible.
@@ -197,10 +215,11 @@ window.openSwapModal = (btn: HTMLElement) => {
     <!--
         On utilise le composant Modal.vue générique.
         :open="modal.isOpen.value" → la prop "open" contrôle la visibilité.
-        @close="modal.close()"    → quand Modal émet "close", on ferme.
+        @close="requestClose"      → confirme avant de fermer si un slot est
+                                      sélectionné mais pas encore envoyé.
         max-w-md au lieu de max-w-sm (le modal swap est plus large — liste de slots).
     -->
-    <Modal :open="modal.isOpen.value" @close="modal.close()" maxWidth="max-w-md">
+    <Modal :open="modal.isOpen.value" @close="requestClose" maxWidth="max-w-md">
 
         <!-- Slot header : icône + titre -->
         <template #header>
@@ -345,7 +364,7 @@ window.openSwapModal = (btn: HTMLElement) => {
                 class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted
                        hover:bg-surface-3 hover:text-ink text-[13px] font-semibold
                        rounded-lg transition-colors cursor-pointer bg-transparent min-h-[48px]"
-                @click="modal.close()"
+                @click="requestClose"
             >
                 Annuler
             </button>

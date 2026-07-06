@@ -2,6 +2,8 @@
 import { createApp } from "vue";
 
 import Toast from "@/components/shared/Toast.vue";
+import ConfirmDialog from "@/components/shared/ConfirmDialog.vue";
+import OfflineBanner from "@/components/shared/OfflineBanner.vue";
 import SwapRequestModal from "@/components/mon-planning/SwapRequestModal.vue";
 import SearchableSelect from "@/components/shared/SearchableSelect.vue";
 import HoraireSettings from "@/components/settings/HoraireSettings.vue";
@@ -12,6 +14,13 @@ import MobileSidebar from "@/components/shared/MobileSidebar.vue";
 import EditAbsenceModal from "@/components/absences/EditAbsenceModal.vue";
 import BilanView from "@/components/bilan/BilanView.vue";
 import BilanStatistiques from "@/components/bilan/BilanStatistiques.vue";
+import JournalAudit from "@/components/admin/JournalAudit.vue";
+import ActiviteStatistiques from "@/components/admin/ActiviteStatistiques.vue";
+import { registerThemeToggle } from "@/lib/theme";
+import { registerUnsavedChangesGuard } from "@/lib/unsavedChanges";
+
+registerThemeToggle();
+registerUnsavedChangesGuard();
 
 function mountIfPresent(
     selector: string,
@@ -23,6 +32,8 @@ function mountIfPresent(
 
 // ── Montages simples (un par page) ────────────────────────────────────────
 mountIfPresent("vue-toast", Toast);
+mountIfPresent("vue-confirm-dialog", ConfirmDialog);
+mountIfPresent("vue-offline-banner", OfflineBanner);
 mountIfPresent("vue-swap-modal", SwapRequestModal);
 mountIfPresent("vue-horaire-settings", HoraireSettings);
 mountIfPresent("vue-event-blocker", EventTaskBlocker);
@@ -32,6 +43,8 @@ mountIfPresent("vue-mobile-sidebar", MobileSidebar);
 mountIfPresent("vue-edit-absence-modal", EditAbsenceModal);
 mountIfPresent("vue-bilan", BilanView);
 mountIfPresent("vue-bilan-statistiques", BilanStatistiques);
+mountIfPresent("vue-journal-audit", JournalAudit);
+mountIfPresent("vue-activite-statistiques", ActiviteStatistiques);
 
 // ── Montages multiples (SearchableSelect : plusieurs instances par page) ──
 // settings/index.blade.php a 9 instances (une par calendrier de tâche).

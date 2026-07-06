@@ -40,6 +40,20 @@
     --}}
     <div id="vue-toast"></div>
 
+    {{--
+        Point de montage ConfirmDialog.vue — boîte de confirmation stylée
+        partagée par toute l'app (voir composable useConfirm), en
+        remplacement de confirm() natif du navigateur. Une seule instance
+        pour toute la page, comme Toast.vue.
+    --}}
+    <div id="vue-confirm-dialog"></div>
+
+    {{--
+        Point de montage OfflineBanner.vue — bannière affichée en haut de
+        la page quand le navigateur détecte une perte de connexion.
+    --}}
+    <div id="vue-offline-banner"></div>
+
 </body>
 
 </html>
