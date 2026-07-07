@@ -1,0 +1,41 @@
+{
+    // tsconfig.json — Configuration TypeScript pour AMANA Planning.
+    // On s'appuie sur @vue/tsconfig qui contient déjà les bons réglages
+    // pour Vue 3 + Vite, et on ajoute seulement ce qui est spécifique au projet.
+    "extends": "@vue/tsconfig/tsconfig.dom.json",
+
+    "compilerOptions": {
+        // paths : fait correspondre l'alias "@" déclaré dans vite.config.ts
+        // pour que l'IDE et vue-tsc comprennent les imports "@/...".
+        // Note : baseUrl n'est plus nécessaire depuis TS 5.x quand les
+        // chemins de paths sont exprimés relativement à la racine du projet
+        // (préfixe "./"). Sa suppression élimine l'avertissement de dépréciation
+        // qui apparaîtra comme erreur bloquante dans TS 7.0.
+        "paths": {
+            "@/*": ["./resources/js/*"]
+        },
+
+        // strict: true active un ensemble de règles TS strictes.
+        // C'est plus d'erreurs au départ, mais ça évite des bugs subtils plus tard.
+        // En particulier : "strict null checks" (une variable ne peut pas être null
+        // par accident), et "no implicit any" (TS refuse si un type est inconnu).
+        "strict": true,
+
+        // Permet d'importer des fichiers JSON directement dans le TS
+        // (utile plus tard pour des données statiques éventuelles).
+        "resolveJsonModule": true
+    },
+
+    // include : quels fichiers TypeScript doit-il vérifier ?
+    // On inclut tout ce qui est dans resources/js/ et le vite.config.ts lui-même.
+    "include": [
+        "resources/js/**/*.ts",
+        "resources/js/**/*.vue",
+        "vite.config.ts"
+    ],
+
+    // exclude : on ignore node_modules (toujours).
+    "exclude": [
+        "node_modules"
+    ]
+}

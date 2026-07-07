@@ -1,137 +1,118 @@
 {{-- resources/views/auth/login.blade.php --}}
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion — AMANA Planning</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
-    <link rel="stylesheet" href="{{ asset('css/base.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/auth.css') }}">
-    <style>
-        .remember-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 22px;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .remember-wrap {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: var(--ink-muted);
-        }
-
-        .remember-wrap input[type="checkbox"] {
-            width: 15px;
-            height: 15px;
-            accent-color: var(--app-accent);
-            cursor: pointer;
-            -webkit-appearance: auto;
-            appearance: auto;
-        }
-
-        .remember-wrap label {
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .forgot-link {
-            font-size: 13px;
-            color: var(--app-accent);
-            font-weight: 600;
-            transition: color 0.15s;
-            white-space: nowrap;
-        }
-
-        .forgot-link:hover {
-            color: #0284c7;
-            text-decoration: underline;
-        }
-    </style>
+        @vite(['resources/css/app.css'])
 </head>
 
-<body>
+<body class="flex min-h-screen bg-surface-2 font-body antialiased">
 
-    <div class="panel-left">
-        <div class="panel-left-content">
-            <div class="big-logo">
-                <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA">
+    {{-- Panneau gauche --}}
+    <div class="hidden sm:flex flex-1 bg-sidebar flex-col items-center justify-center px-12 py-16 relative overflow-hidden">
+        {{-- Glows --}}
+        <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-accent/30 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-20 -right-20 w-72 h-72 rounded-full bg-sky-400/15 blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 text-center max-w-sm">
+            <div class="w-20 h-20 mx-auto mb-6 rounded-2xl overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
+                <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover">
             </div>
-            <div class="big-title">AMANA Planning</div>
-            <div class="big-subtitle">Planification des permanences et rotation équitable des tâches</div>
-            <div class="features">
-                <div class="feature-item">
-                    <div class="feature-icon">🔄</div>
-                    <span>Rotation automatique équitable des tâches</span>
+            <h1 class="font-heading text-3xl font-semibold text-white mb-2.5 tracking-tight">AMANA Planning</h1>
+            <p class="text-[14.5px] text-white/45 leading-relaxed">Planification des permanences et rotation équitable des tâches</p>
+
+            <div class="mt-9 flex flex-col gap-3 text-left">
+                @foreach([
+                    ['🔄', 'Rotation automatique équitable des tâches'],
+                    ['📊', 'Statistiques et score d\'équité'],
+                    ['📄', 'Export PDF du planning'],
+                    ['↩️', 'Rollback et gestion des absences'],
+                ] as [$icon, $label])
+                <div class="flex items-center gap-3 text-white/60 text-[13.5px]">
+                    <div class="w-8 h-8 bg-white/[0.07] rounded-lg flex items-center justify-center text-sm flex-shrink-0">{{ $icon }}</div>
+                    <span>{{ $label }}</span>
                 </div>
-                <div class="feature-item">
-                    <div class="feature-icon">📊</div>
-                    <span>Statistiques et score d'équité</span>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">📄</div>
-                    <span>Export PDF du planning</span>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">↩️</div>
-                    <span>Rollback et gestion des absences</span>
-                </div>
+                @endforeach
             </div>
         </div>
     </div>
 
-    <div class="panel-right">
-        <div class="auth-box">
-            <div class="auth-title">Connexion</div>
-            <div class="auth-sub">Accédez à votre espace de gestion</div>
+    {{-- Panneau droit --}}
+    <div class="w-full sm:w-[480px] bg-surface flex items-center justify-center px-6 py-10 sm:px-14 flex-shrink-0">
+        <div class="w-full max-w-sm">
+
+            {{-- Logo mobile uniquement --}}
+            <div class="flex sm:hidden items-center gap-3 mb-8">
+                <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-9 h-9 rounded-lg object-cover">
+                <span class="font-heading text-lg font-semibold text-ink">AMANA Planning</span>
+            </div>
+
+            <h2 class="font-heading text-2xl font-semibold text-ink mb-1.5 tracking-tight">Connexion</h2>
+            <p class="text-[13.5px] text-ink-muted mb-7 leading-relaxed">Accédez à votre espace de gestion</p>
 
             @if(session('success'))
-                <div class="flash flash-success">✅ {{ session('success') }}</div>
+                <div class="flex items-start gap-2.5 px-4 py-3 rounded-lg mb-5 text-[13px] font-medium bg-emerald-50 border border-emerald-200 text-emerald-800">
+                    ✅ {{ session('success') }}
+                </div>
             @endif
             @if(session('error'))
-                <div class="flash flash-error">❌ {{ session('error') }}</div>
+                <div class="flex items-start gap-2.5 px-4 py-3 rounded-lg mb-5 text-[13px] font-medium bg-rose-50 border border-rose-200 text-rose-800">
+                    ❌ {{ session('error') }}
+                </div>
             @endif
 
-            <form action="{{ route('login.submit') }}" method="POST" novalidate>
+            <form action="{{ route('login.submit') }}" method="POST" novalidate data-no-dirty-check>
                 @csrf
-                <div class="form-group">
-                    <label for="email">Adresse email</label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}" autocomplete="email"
-                        autofocus placeholder="votre@email.fr">
-                    @error('email')<span class="field-error">{{ $message }}</span>@enderror
-                </div>
-                <div class="form-group">
-                    <label for="password">Mot de passe</label>
-                    <input type="password" id="password" name="password" autocomplete="current-password"
-                        placeholder="••••••••">
-                    @error('password')<span class="field-error">{{ $message }}</span>@enderror
+
+                <div class="mb-4">
+                    <label for="email" class="block text-xs font-bold text-ink mb-1.5 tracking-[0.2px]">Adresse email</label>
+                    <input type="email" id="email" name="email" value="{{ old('email') }}"
+                           autocomplete="email" autofocus placeholder="votre@email.fr"
+                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                  focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                  hover:border-ink-muted">
+                    @error('email')<span class="block text-xs text-rose-600 mt-1">{{ $message }}</span>@enderror
                 </div>
 
-                <div class="remember-row">
-                    <div class="remember-wrap">
-                        <input type="checkbox" id="remember" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}>
-                        <label for="remember">Se souvenir de moi</label>
-                    </div>
-                    <a href="{{ route('password.request') }}" class="forgot-link">Mot de passe oublié ?</a>
+                <div class="mb-5">
+                    <label for="password" class="block text-xs font-bold text-ink mb-1.5 tracking-[0.2px]">Mot de passe</label>
+                    <input type="password" id="password" name="password"
+                           autocomplete="current-password" placeholder="••••••••"
+                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                  focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                  hover:border-ink-muted">
+                    @error('password')<span class="block text-xs text-rose-600 mt-1">{{ $message }}</span>@enderror
                 </div>
 
-                <button type="submit" class="btn-submit">🔐 Se connecter</button>
+                <div class="flex items-center justify-between mb-6 gap-2 flex-wrap">
+                    <label class="flex items-center gap-2 text-[13px] text-ink-muted cursor-pointer select-none">
+                        <input type="checkbox" id="remember" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}
+                               class="w-4 h-4 accent-accent cursor-pointer">
+                        Se souvenir de moi
+                    </label>
+                    <a href="{{ route('password.request') }}"
+                       class="text-[13px] text-accent font-semibold whitespace-nowrap hover:text-accent-dark hover:underline transition-colors">
+                        Mot de passe oublié ?
+                    </a>
+                </div>
+
+                <button type="submit"
+                        class="w-full min-h-[48px] px-6 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-sm rounded-lg
+                               shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
+                               hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer mb-4">
+                    🔐 Se connecter
+                </button>
             </form>
 
-            <div class="auth-divider"></div>
-            <p class="auth-link">
+            <div class="h-px bg-gray-100 my-5"></div>
+            <p class="text-center text-[13px] text-ink-muted">
                 Pas encore de compte ?
-                <a href="{{ route('inscription') }}"><span>Soumettre une candidature</span></a>
+                <a href="{{ route('inscription') }}" class="text-accent font-semibold hover:underline">Soumettre une candidature</a>
             </p>
         </div>
     </div>
 
 </body>
-
 </html>

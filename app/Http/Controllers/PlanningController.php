@@ -32,43 +32,20 @@ class PlanningController extends Controller
     /**
      * Affiche le planning.
      *
-     * Par défaut : 1 an glissant (aujourd'hui - 365 jours → futur).
-     * Avec ?historique=1 : tout l'historique.
+     * La vue Blade ne rend plus que le header de page — toutes les données
+     * (créneaux, bannières, filtres) sont chargées côté client par
+     * PlanningGrid.vue via GET /planning/data (PlanningApiController::data()).
+     * On ne fait donc plus aucune requête DB ici.
      */
-    public function index(Request $request): View
+    public function index(): View
     {
-        $historique = $request->boolean('historique');
-
-        $query = Creneau::with(['taches.tache', 'taches.personne', 'evenements.tachesBloquees'])
-            ->orderBy('date', 'desc');
-
-        if (!$historique) {
-            $dateMin = now()->subYear()->toDateString();
-            $query->where('date', '>=', $dateMin);
-        }
-
-        $creneaux = $query->get()
-            ->groupBy(fn($c) => $c->date->isoWeek() . '-' . $c->date->year);
-
-        // Charger tous les événements de la période pour les bannières informatives
-        $evenementsQuery = \App\Models\Evenement::with('tachesBloquees')
-            ->orderBy('date_debut');
-
-        if (!$historique) {
-            $evenementsQuery->where('date_fin', '>=', now()->subYear()->toDateString());
-        }
-
-        $tousEvenements = $evenementsQuery->get();
-
-        $bannièresParSemaine = $this->buildBannièresInformatives($tousEvenements, $creneaux);
-
-        return view('planning.index', compact('creneaux', 'historique', 'bannièresParSemaine'));
+        return view('planning.index');
     }
 
     /**
      * Construit les bannières informatives à afficher dans les blocs semaine.
      */
-    private function buildBannièresInformatives(
+    protected function buildBannièresInformatives(
         \Illuminate\Support\Collection $tousEvenements,
         \Illuminate\Support\Collection $creneauxParSemaine
     ): array {
@@ -164,7 +141,7 @@ class PlanningController extends Controller
         try {
             $resultat = $this->scheduler->generateSchedule($dateDebut, $semaines);
 
-            $lastGenerated = $this->buildRollbackData($dateDebut, $semaines);
+            $lastGenerated = $this->scheduler->buildRollbackSnapshot($dateDebut, $semaines);
             session(['last_generated_creneaux' => $lastGenerated]);
 
             audit('generate', 'planning', null, null, $resultat);
@@ -210,25 +187,6 @@ class PlanningController extends Controller
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
-
-    private function buildRollbackData(string $dateDebut, int $semaines): array
-    {
-        $date = DateHelper::premierVendredi($dateDebut);
-        $dateFin = $date->clone()->addWeeks($semaines)->addDay();
-
-        $creneaux = Creneau::whereBetween('date', [$date->toDateString(), $dateFin->toDateString()])
-            ->orderBy('date')
-            ->get();
-
-        return $creneaux->map(function ($c) {
-            return [
-                'id' => $c->id,
-                'date' => $c->date->toDateString(),
-                'week_label' => 'Semaine ' . $c->date->isoWeek() . ' — ' .
-                    $c->date->locale('fr')->isoFormat('D MMMM YYYY'),
-            ];
-        })->toArray();
-    }
 
     public function rollback(Request $request): RedirectResponse
     {

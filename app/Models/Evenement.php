@@ -7,6 +7,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Modèle pour ref_evenements.
@@ -15,16 +16,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * Si aucune tâche n'est liée → événement purement informatif (s'affiche dans
  * la bannière de semaine sans affecter les assignations).
  *
- * Si calendar_name est renseigné, un webhook Make.com est déclenché lors
- * de la création, modification ou suppression de l'événement pour synchroniser
- * Google Calendar.
+ * Si au moins un calendrier est renseigné (relation calendriers), un webhook
+ * Make.com est déclenché lors de la création, modification ou suppression de
+ * l'événement pour synchroniser Google Calendar — un événement peut désormais
+ * être synchronisé sur PLUSIEURS calendriers à la fois.
  *
  * @property int         $id
  * @property string      $nom
  * @property \Carbon\Carbon $date_debut
  * @property \Carbon\Carbon $date_fin
  * @property string|null $description
- * @property string|null $calendar_name
  */
 class Evenement extends Model
 {
@@ -36,7 +37,6 @@ class Evenement extends Model
         'date_debut',
         'date_fin',
         'description',
-        'calendar_name',
     ];
 
     protected $casts = [
@@ -73,6 +73,16 @@ class Evenement extends Model
         );
     }
 
+    /**
+     * Calendriers Google Calendar sur lesquels cet événement est synchronisé
+     * (1-N — un événement peut être synchronisé sur plusieurs calendriers).
+     * Si vide → pas de synchronisation calendrier.
+     */
+    public function calendriers(): HasMany
+    {
+        return $this->hasMany(EvenementCalendrier::class, 'id_evenement');
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────────
 
     /**
@@ -92,11 +102,28 @@ class Evenement extends Model
     }
 
     /**
-     * Retourne true si une synchronisation calendrier est configurée.
+     * Retourne true si une synchronisation calendrier est configurée
+     * (au moins un calendrier lié).
      */
     public function hasCalendarSync(): bool
     {
-        return !empty($this->calendar_name);
+        if (!$this->relationLoaded('calendriers')) {
+            $this->load('calendriers');
+        }
+        return $this->calendriers->isNotEmpty();
+    }
+
+    /**
+     * Retourne la liste des noms de calendriers liés à cet événement.
+     *
+     * @return array<int, string>
+     */
+    public function calendarNames(): array
+    {
+        if (!$this->relationLoaded('calendriers')) {
+            $this->load('calendriers');
+        }
+        return $this->calendriers->pluck('calendar_name')->values()->all();
     }
 
     // ── Scopes ─────────────────────────────────────────────────────────────

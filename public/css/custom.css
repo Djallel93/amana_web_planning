@@ -1,0 +1,300 @@
+/*
+ * public/css/custom.css
+ * Styles résiduels non couverts par Tailwind utilitaire.
+ * Importé dans resources/css/app.css, compilé par Vite.
+ *
+ * Contient uniquement :
+ *  - Animations @keyframes
+ *  - Scrollbar personnalisée
+ *  - Pseudo-éléments complexes (sidebar ::before)
+ *  - Chips tâches (couleurs sémantiques AMANA)
+ *  - Sidebar active indicator (::before barre gauche)
+ *  - Hamburger transform states
+ *  - Pulse badge animation
+ *  - Touch / mobile overrides fins
+ */
+
+/* ── Largeur fluide de la sidebar ──────────────────────────────────────────
+ * Source unique de vérité, consommée par tailwind.config.js (spacing.sidebar
+ * / width.sidebar → classes w-sidebar / ml-sidebar) et lue en JS par
+ * MobileSidebar.vue (getBoundingClientRect) pour synchroniser marginLeft du
+ * contenu principal et la position du bouton collapse.
+ *
+ * clamp(min, préféré, max) : 252px sur les écrans étroits/moyens, grandit
+ * légèrement (16vw) sur les très grands écrans, plafonné à 300px.
+ */
+:root {
+    --sidebar-width: clamp(252px, 16vw, 300px);
+}
+
+/* ── Animations ── */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse-badge {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+}
+
+/* ── Sidebar radial glow (::before pseudo-element) ── */
+#mainSidebar::before {
+    content: "";
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(
+        circle,
+        rgba(14, 165, 233, 0.18) 0%,
+        transparent 70%
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── Nav active indicator (barre gauche) ── */
+.nav-item-active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 56%;
+    background: #38bdf8;
+    border-radius: 0 3px 3px 0;
+}
+
+/* ── Nav badge pulse ── */
+.nav-badge {
+    animation: pulse-badge 2s infinite;
+}
+
+/* ── Flash messages ── */
+.flash-enter {
+    animation: slideIn 0.22s ease forwards;
+}
+
+/* ── Hamburger ── */
+.hamburger-bar {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 2px;
+    transition:
+        transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: center;
+}
+.hamburger-open .hamburger-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+.hamburger-open .hamburger-bar:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+}
+.hamburger-open .hamburger-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* ── Chips couleurs tâches ── */
+.chip-entree {
+    background: #eff6ff;
+    color: #2563eb;
+}
+.chip-mektaba {
+    background: #ecfdf5;
+    color: #059669;
+}
+.chip-salle {
+    background: #fffbeb;
+    color: #d97706;
+}
+.chip-amana_food {
+    background: #fff1f2;
+    color: #e11d48;
+}
+.chip-cours {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+
+/* ── Table restrictions : colonnes tâches colorées ── */
+.sub-entree {
+    color: #2563eb;
+}
+.sub-mektaba {
+    color: #059669;
+}
+.sub-salle {
+    color: #d97706;
+}
+.sub-amana_food {
+    color: #e11d48;
+}
+
+/* ── Tâches vides ── */
+.tache-vide {
+    color: #d1d5db;
+    font-style: italic;
+    font-size: 0.75rem;
+}
+
+/* ── Ligne "moi" dans les tables ── */
+.my-row {
+    background: #f0f9ff !important;
+}
+.my-row:hover {
+    background: #e0f2fe !important;
+}
+.my-row td:first-child::after {
+    content: " (moi)";
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: #0369a1;
+    margin-left: 5px;
+}
+
+/* ── Séparateur jour (restrictions table) ── */
+.jour-separator {
+    border-left: 2px solid #0369a1 !important;
+}
+
+/* ── Input mobile : évite le zoom iOS ── */
+@media (max-width: 768px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* ── Tap highlight suppression ── */
+a,
+button {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Touch target minimum 44px ── */
+.btn-touch {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* ── Filter chips planning (état actif géré par JS via classList 'active') ── */
+.filter-chip.active {
+    background: #0369a1 !important;
+    color: #ffffff !important;
+    border-color: #0369a1 !important;
+}
+
+/* ── Sidebar overlay transition ── */
+#sidebarOverlay {
+    transition: opacity 0.25s;
+}
+
+/* ── Sidebar : masquage mobile via classe JS (remplace max-sm:-translate-x-full) ──
+    Sur desktop (≥ 640px) la sidebar est toujours visible, pas de transform.
+    Sur mobile (< 640px) sidebar-hidden la pousse hors écran.
+    La transition est portée par la sidebar elle-même, pas par la classe.       ── */
+#mainSidebar {
+    transition:
+        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.3s;
+}
+
+@media (max-width: 639px) {
+    #mainSidebar.sidebar-hidden {
+        transform: translateX(-100%);
+    }
+}
+
+/* ── Mode sombre : overrides pour les couleurs codées en dur ci-dessus ──────
+ * Tout le reste de l'app suit automatiquement via les variables CSS de
+ * resources/css/app.css (bg-surface, text-ink…). Seules les couleurs fixes
+ * (chips, scrollbar, ligne "moi") ont besoin d'un ajustement explicite ici,
+ * pour rester lisibles sur fond sombre.
+ */
+.dark ::-webkit-scrollbar-thumb {
+    background: #30363d;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+.dark * {
+    scrollbar-color: #30363d transparent;
+}
+
+.dark .chip-entree {
+    background: rgba(37, 99, 235, 0.18);
+    color: #60a5fa;
+}
+.dark .chip-mektaba {
+    background: rgba(5, 150, 105, 0.18);
+    color: #34d399;
+}
+.dark .chip-salle {
+    background: rgba(217, 119, 6, 0.18);
+    color: #fbbf24;
+}
+.dark .chip-amana_food {
+    background: rgba(225, 29, 72, 0.18);
+    color: #fb7185;
+}
+.dark .chip-cours {
+    background: rgba(124, 58, 237, 0.18);
+    color: #a78bfa;
+}
+
+.dark .tache-vide {
+    color: #484f58;
+}
+
+.dark .my-row {
+    background: rgba(3, 105, 161, 0.15) !important;
+}
+.dark .my-row:hover {
+    background: rgba(3, 105, 161, 0.22) !important;
+}
+

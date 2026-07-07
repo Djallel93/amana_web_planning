@@ -28,3 +28,5 @@ todo*.md
 fix-perms.sh
 /database/database.sqlite
 /debug/**
+ionos_deploy_key
+ionos_deploy_key.pub

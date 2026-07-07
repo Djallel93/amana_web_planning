@@ -3,8 +3,8 @@
 ## Table des matières
 
 1. [Prérequis généraux](#prérequis-généraux)
-2. [Installation en environnement local (Ubuntu 24.04)](#installation-en-environnement-local-ubuntu-2404)
-3. [Déploiement en production (IONOS)](#déploiement-en-production-ionos)
+2. [Installation en environnement local](#installation-en-environnement-local)
+3. [Déploiement en production — pipeline GitHub Actions → IONOS](#déploiement-en-production--pipeline-github-actions--ionos)
 4. [Première connexion et changement de mot de passe](#première-connexion-et-changement-de-mot-de-passe)
 5. [Référence des routes principales](#référence-des-routes-principales)
 6. [Résolution des problèmes courants](#résolution-des-problèmes-courants)
@@ -13,19 +13,21 @@
 
 ## Prérequis généraux
 
-| Composant       | Version minimale |
-| --------------- | ---------------- |
-| PHP             | 8.4+             |
-| MySQL / MariaDB | 8.0+ / 10.4+     |
-| Nginx           | 1.24+            |
-| Composer        | 2.x              |
-| Git             | 2.x              |
+| Composant       | Version minimale | Notes                                                                           |
+| --------------- | ---------------- | ------------------------------------------------------------------------------- |
+| PHP             | 8.2+             | 8.4 recommandé (utilisé par la CI et par IONOS)                                 |
+| MySQL / MariaDB | 8.0+ / 10.4+     |                                                                                 |
+| Nginx           | 1.24+            | Développement local uniquement — IONOS gère son propre Apache                   |
+| Composer        | 2.x              |                                                                                 |
+| Node.js         | 20.19+ ou 22.x   | Requis en développement local **et** dans la CI (build Vite : Vue 3 + Tailwind) |
+| npm             | Inclus avec Node |                                                                                 |
+| Git             | 2.x              |                                                                                 |
+
+> **Sur le serveur IONOS lui-même, Node.js et Composer ne sont pas requis.** Le build (`composer install`, `npm run build`) se fait entièrement dans le pipeline GitHub Actions ; seul le résultat déjà compilé (code PHP + `public/build/`) est envoyé sur le serveur par `rsync`. Voir [Déploiement en production](#déploiement-en-production--pipeline-github-actions--ionos).
 
 ---
 
-## Installation en environnement local (Ubuntu 24.04)
-
-Cette section couvre une installation complète sur Ubuntu 24.04 LTS avec PHP 8.4, Nginx et MariaDB. Toutes les commandes sont à exécuter en tant qu'utilisateur normal — `sudo` est utilisé explicitement là où les droits root sont nécessaires.
+## Installation en environnement local
 
 ### 1. Mettre à jour le système
 
@@ -35,84 +37,37 @@ sudo apt update && sudo apt upgrade -y
 
 ### 2. Installer PHP 8.4
 
-Ubuntu 24.04 ne fournit pas PHP 8.4 dans ses dépôts officiels. On utilise le PPA de Ondřej Surý, la référence standard pour les versions PHP récentes sur Debian/Ubuntu.
+Ubuntu 24.04 ne fournit pas PHP 8.4 dans ses dépôts officiels. On utilise le PPA d'Ondřej Surý.
 
 ```bash
-# Ajouter le PPA
 sudo apt install -y software-properties-common
 sudo add-apt-repository ppa:ondrej/php -y
 sudo apt update
 
-# Installer PHP 8.4 et les extensions requises par Laravel 13
 sudo apt install -y \
-    php8.4 \
-    php8.4-fpm \
-    php8.4-cli \
-    php8.4-mysql \
-    php8.4-mbstring \
-    php8.4-xml \
-    php8.4-curl \
-    php8.4-zip \
-    php8.4-bcmath \
-    php8.4-tokenizer \
-    php8.4-ctype \
-    php8.4-fileinfo \
-    php8.4-dom \
-    php8.4-intl \
-    php8.4-gd
-```
+    php8.4 php8.4-fpm php8.4-cli php8.4-mysql \
+    php8.4-mbstring php8.4-xml php8.4-curl php8.4-zip \
+    php8.4-bcmath php8.4-tokenizer php8.4-ctype \
+    php8.4-fileinfo php8.4-dom php8.4-intl php8.4-gd
 
-Vérifier l'installation :
-
-```bash
-php8.4 -v
-# PHP 8.4.x (cli)
-```
-
-Définir PHP 8.4 comme version par défaut :
-
-```bash
+# Définir PHP 8.4 comme version par défaut
 sudo update-alternatives --set php /usr/bin/php8.4
 php -v
-# PHP 8.4.x (cli)
 ```
 
 ### 3. Installer Nginx
 
 ```bash
 sudo apt install -y nginx
-sudo systemctl enable nginx
-sudo systemctl start nginx
-```
-
-Vérifier :
-
-```bash
-nginx -v
-# nginx version: nginx/1.24.x
-curl -s -o /dev/null -w "%{http_code}" http://localhost
-# 200
+sudo systemctl enable nginx && sudo systemctl start nginx
 ```
 
 ### 4. Installer MariaDB
 
 ```bash
 sudo apt install -y mariadb-server mariadb-client
-sudo systemctl enable mariadb
-sudo systemctl start mariadb
-```
-
-Sécuriser l'installation (définir le mot de passe root, supprimer les utilisateurs anonymes) :
-
-```bash
+sudo systemctl enable mariadb && sudo systemctl start mariadb
 sudo mariadb-secure-installation
-# Répondre aux questions :
-#   Switch to unix_socket authentication  → N
-#   Change the root password              → Y  (définir un mot de passe fort)
-#   Remove anonymous users                → Y
-#   Disallow root login remotely          → Y
-#   Remove test database                  → Y
-#   Reload privilege tables               → Y
 ```
 
 ### 5. Créer la base de données
@@ -121,61 +76,46 @@ sudo mariadb-secure-installation
 sudo mariadb -u root -p
 ```
 
-Dans le prompt MariaDB :
-
 ```sql
--- Créer la base de données
-CREATE DATABASE amana
-    CHARACTER SET utf8mb4
-    COLLATE utf8mb4_unicode_ci;
-
--- Créer un utilisateur dédié (remplacer 'motdepasse' par un vrai mot de passe)
+CREATE DATABASE amana CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'amana_user'@'localhost' IDENTIFIED BY 'motdepasse';
-
--- Accorder tous les droits sur la base
 GRANT ALL PRIVILEGES ON amana.* TO 'amana_user'@'localhost';
-
--- Appliquer les changements
 FLUSH PRIVILEGES;
-
--- Vérifier
-SHOW DATABASES;
 EXIT;
 ```
 
 ### 6. Installer Composer
 
 ```bash
-# Télécharger et installer Composer globalement
 curl -sS https://getcomposer.org/installer | php
 sudo mv composer.phar /usr/local/bin/composer
 sudo chmod +x /usr/local/bin/composer
-
 composer -V
-# Composer version 2.x.x
 ```
 
-### 7. Installer Git
+### 7. Installer Node.js 22
+
+Node.js 18 (version par défaut sur Ubuntu 24.04) n'est **pas compatible** avec Vite 6. Il faut Node.js 20.19+ ou 22.x.
 
 ```bash
-sudo apt install -y git
-git --version
-```
+# Supprimer l'ancienne version si présente
+sudo apt remove -y nodejs npm
+sudo apt autoremove -y
 
-Configurer votre identité Git si ce n'est pas encore fait :
+# Installer Node.js 22 via NodeSource
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
 
-```bash
-git config --global user.name "Votre Nom"
-git config --global user.email "votre@email.fr"
+# Vérifier
+node -v   # v22.x.x
+npm -v
 ```
 
 ### 8. Cloner le projet
 
 ```bash
-# Choisir un répertoire de travail — /var/www est standard pour les projets web
 sudo mkdir -p /var/www/amana-planning
 sudo chown $USER:$USER /var/www/amana-planning
-
 git clone https://github.com/votre-organisation/amana-planning.git /var/www/amana-planning
 cd /var/www/amana-planning
 ```
@@ -186,7 +126,22 @@ cd /var/www/amana-planning
 composer install
 ```
 
-### 10. Configurer l'environnement
+### 10. Installer les dépendances Node et builder le frontend (Vue 3 + Tailwind)
+
+Le frontend applicatif (planning, événements, bilan, formulaires interactifs…) est écrit en **Vue 3** (composants `.vue` sous `resources/js/`), compilé par **Vite**, avec **Tailwind CSS**. Ce n'est plus du CSS statique seul — le JavaScript de l'app doit être compilé avant de pouvoir utiliser l'application, y compris en local.
+
+```bash
+npm install
+npm run build
+```
+
+> **`npm run build`** compile les composants Vue et le CSS Tailwind dans `public/build/` (fichiers hashés + `manifest.json`, lus par la directive Blade `@vite(...)`). Ce dossier est **ignoré par git** (`.gitignore`) — il doit être régénéré à chaque installation/déploiement, ce que fait la CI automatiquement en production (voir plus bas).
+>
+> En développement actif, utilisez `npm run dev` : serveur Vite avec hot-module-replacement, rechargement instantané des composants Vue et du CSS sans recompilation manuelle.
+>
+> **`npm run type-check`** (`vue-tsc --noEmit`) vérifie les types TypeScript de tous les composants `.vue` sans générer de fichiers — utile avant de committer une modification frontend.
+
+### 11. Configurer l'environnement
 
 ```bash
 cp .env.example .env
@@ -208,7 +163,6 @@ DB_DATABASE=amana
 DB_USERNAME=amana_user
 DB_PASSWORD=motdepasse
 
-# En local, file est plus simple — pas besoin de la table sessions
 SESSION_DRIVER=file
 SESSION_LIFETIME=120
 
@@ -218,15 +172,16 @@ CACHE_STORE=database
 MAIL_MAILER=log
 
 MAKE_WEBHOOK_URL=
+MAKE_WEBHOOK_APIKEY=
 ```
 
-> **`SESSION_DRIVER=file`** : suffisant en local. La table `sessions` n'est pas nécessaire. En production (IONOS), utiliser `database` à la place.
+> **`MAIL_MAILER=log`** : les emails s'écrivent dans `storage/logs/laravel.log` au lieu d'être envoyés — pratique en développement.
 >
-> **`QUEUE_CONNECTION=sync`** : les emails sont traités directement sans worker. Avec `MAIL_MAILER=log`, ils s'écrivent dans `storage/logs/laravel.log` au lieu d'être envoyés.
+> **`HEURE_COURS` est obsolète** et ignorée. L'heure du cours est gérée via **Paramètres → Heure du cours** dans l'interface.
 >
-> **`HEURE_COURS` est obsolète** et ignorée. L'heure du cours est gérée exclusivement via **Paramètres → Heure du cours** dans l'interface, stockée dans `ref_settings`.
+> **`MAKE_WEBHOOK_URL` vide** : aucun webhook n'est envoyé (la queue le journalise et ignore silencieusement l'appel) — pratique pour développer sans polluer un vrai scénario Make.com. Voir README, section Intégration Make.com, pour le format exact des payloads envoyés (planning, événements, annulation de cours).
 
-### 11. Permissions des dossiers
+### 12. Permissions des dossiers
 
 ```bash
 sudo chown -R $USER:www-data /var/www/amana-planning
@@ -235,7 +190,7 @@ sudo chmod -R 775 /var/www/amana-planning/storage
 sudo chmod -R 775 /var/www/amana-planning/bootstrap/cache
 ```
 
-### 12. Exécuter les migrations et les seeders
+### 13. Migrations et seeders
 
 ```bash
 php artisan migrate --force
@@ -251,21 +206,17 @@ Crée toutes les tables et le compte administrateur par défaut :
 
 > ⚠️ **Changer ce mot de passe immédiatement après la première connexion.**
 
-### 13. Créer le lien de stockage public
+### 14. Lien de stockage public
 
 ```bash
 php artisan storage:link
 ```
 
-### 14. Configurer Nginx
-
-Créer le fichier de configuration du virtual host :
+### 15. Configurer Nginx
 
 ```bash
 sudo nano /etc/nginx/sites-available/amana-planning
 ```
-
-Coller la configuration suivante :
 
 ```nginx
 server {
@@ -275,16 +226,13 @@ server {
     root /var/www/amana-planning/public;
     index index.php index.html;
 
-    # Journaux
     access_log /var/log/nginx/amana-planning.access.log;
     error_log  /var/log/nginx/amana-planning.error.log;
 
-    # Toutes les requêtes passent par index.php (routing Laravel)
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
 
-    # Traitement PHP via PHP-FPM 8.4
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/run/php/php8.4-fpm.sock;
@@ -292,12 +240,10 @@ server {
         include fastcgi_params;
     }
 
-    # Refuser l'accès aux fichiers cachés (.env, .git, etc.)
     location ~ /\. {
         deny all;
     }
 
-    # Cache navigateur pour les assets statiques
     location ~* \.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
         expires 30d;
         add_header Cache-Control "public, immutable";
@@ -305,241 +251,113 @@ server {
 }
 ```
 
-Activer le site et désactiver le site par défaut :
-
 ```bash
 sudo ln -s /etc/nginx/sites-available/amana-planning /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
-
-# Vérifier la syntaxe
 sudo nginx -t
-# nginx: configuration file /etc/nginx/nginx.conf test is successful
-
-# Recharger Nginx
 sudo systemctl reload nginx
 ```
 
-### 15. Configurer PHP-FPM
+### 16. Vérifier l'installation
 
-Vérifier que PHP-FPM 8.4 tourne :
-
-```bash
-sudo systemctl status php8.4-fpm
-# Active: active (running)
-```
-
-Ajuster si nécessaire la configuration PHP pour le développement :
+Ouvrir <http://localhost>. La page de connexion AMANA Planning doit s'afficher.
 
 ```bash
-sudo nano /etc/php/8.4/fpm/php.ini
-```
-
-Valeurs recommandées en local :
-
-```ini
-display_errors = On
-error_reporting = E_ALL
-max_execution_time = 120
-memory_limit = 256M
-upload_max_filesize = 20M
-post_max_size = 20M
-```
-
-Redémarrer PHP-FPM après modification :
-
-```bash
-sudo systemctl restart php8.4-fpm
-```
-
-### 16. Aucune compilation front-end nécessaire
-
-Le CSS et le JS de l'application sont des fichiers statiques sous `public/css/*.css` et `public/js/*.js`, chargés directement par le navigateur via `asset()`. Il n'y a ni npm, ni Vite, ni étape de build : modifier un fichier puis recharger la page suffit.
-
-### 17. Vérifier l'installation
-
-Ouvrir <http://localhost> dans le navigateur. La page de connexion AMANA Planning doit s'afficher.
-
-Si quelque chose ne fonctionne pas :
-
-```bash
-# Logs Nginx
+# En cas de problème
 sudo tail -f /var/log/nginx/amana-planning.error.log
-
-# Logs Laravel
 tail -f /var/www/amana-planning/storage/logs/laravel.log
-
-# Logs PHP-FPM
-sudo tail -f /var/log/php8.4-fpm.log
 ```
-
-> Avec `QUEUE_CONNECTION=sync`, **aucun worker de queue n'est nécessaire.** Les emails sont traités directement lors de chaque action.
 
 ---
 
-## Déploiement en production (IONOS)
+## Déploiement en production — pipeline GitHub Actions → IONOS
 
-### 1. Accès SSH
+Le déploiement **n'est plus manuel** (pas de `git pull` + script sur le serveur). Chaque push sur la branche **`main`** déclenche automatiquement `.github/workflows/deploy.yaml`, qui build l'application puis la livre sur IONOS par SSH/rsync.
 
-```bash
-ssh votre-utilisateur@votre-serveur.ionos.fr
+```mermaid
+flowchart LR
+    A[git push → main] --> B[Job build]
+    B --> B1[composer install --no-dev]
+    B1 --> B2[npm ci && npm run build]
+    B2 --> B3[Rendu .env depuis le template\n+ secrets GitHub]
+    B3 --> B4[Suppression fichiers dev\ntests, .git, resources/js, node_modules…]
+    B4 --> C[Artefact GitHub Actions]
+    C --> D[Job deploy]
+    D --> D1[php artisan down]
+    D1 --> D2[rsync -az --delete\nvia SSH]
+    D2 --> D3{Premier déploiement ?\nstorage/.bootstrapped absent}
+    D3 -->|Oui| D4[migrate:fresh --seed]
+    D3 -->|Non| D5[migrate]
+    D4 --> D6[optimize + storage:link + up]
+    D5 --> D6
 ```
 
-### 2. Vérifier les prérequis serveur
+### Ce que fait le job `build`
 
-```bash
-php -v          # 8.4+
-mysql --version
-composer -V
-git --version
-```
+1. Checkout du code (avec sous-modules).
+2. PHP 8.4 + `composer install --optimize-autoloader --no-dev --no-interaction`.
+3. Node.js 22.x (cache npm) + `npm ci` + `npm run build` — compile les composants Vue et le CSS Tailwind dans `public/build/`.
+4. Rendu du `.env` de production à partir de `.github/deploy/.env.production.template`, en substituant chaque `${VARIABLE}` par le secret/variable GitHub correspondant. Le job **échoue explicitement** si un placeholder `${...}` reste non résolu après substitution (secret manquant) — voir [Résolution des problèmes courants](#résolution-des-problèmes-courants).
+5. Suppression des fichiers non nécessaires en production (`tests`, `.github`, `.git`, `docs`, `resources/js`, `resources/css`, `node_modules`, fichiers de config du tooling…) — seul le code applicatif + `public/build/` compilé partent sur IONOS.
+6. Upload du résultat comme artefact GitHub Actions (rétention 1 jour), transmis au job `deploy`.
 
-Si PHP 8.4 n'est pas la version par défaut, l'activer dans le panneau IONOS : **Hébergement Web > Configuration PHP**.
+### Ce que fait le job `deploy`
 
-### 3. Cloner le projet
+1. Récupère l'artefact du job `build`.
+2. Ouvre une connexion SSH (clé privée en secret, host ajouté à `known_hosts`).
+3. Passe l'application en **mode maintenance** (`php artisan down`) — best effort, ne bloque pas si ça échoue (ex. premier déploiement, rien à mettre en maintenance).
+4. Synchronise les fichiers vers IONOS via `rsync -az --delete` (le dossier `storage/` est **exclu** — jamais écrasé entre deux déploiements, les uploads/logs sont préservés).
+5. Recrée l'arborescence `storage/` si absente (premier déploiement).
+6. Exécute les commandes post-déploiement sur le serveur via SSH :
+    - Corrige les permissions (`chmod 664` fichiers / `775` dossiers, `o+w` sur `storage` et `bootstrap/cache`).
+    - **Détecte le premier déploiement** via le marqueur `storage/.bootstrapped` : s'il est absent (ou si `force_fresh_install` a été forcé manuellement), exécute `migrate:fresh --seed` puis crée le marqueur. Sinon, exécute un `migrate` classique (non destructif).
+    - `optimize:clear`, `storage:link`, `optimize`, puis repasse l'app en ligne (`artisan up`).
 
-```bash
-cd /var/www/vhosts/votredomaine.fr/httpdocs
+> ⚠️ **`migrate:fresh --seed` efface toute la base de données.** Il ne s'exécute automatiquement qu'une seule fois (premier déploiement, marqueur absent). Pour le redéclencher volontairement (ex. réinitialiser complètement un environnement de test), utilisez **Actions → Build and Deploy to IONOS → Run workflow**, en cochant `force_fresh_install`. Ne jamais faire ça sur la production réelle sans sauvegarde préalable.
 
-git clone https://github.com/votre-organisation/amana-planning.git .
-```
+### Configuration requise — Secrets & Variables GitHub
 
-### 4. Installer les dépendances PHP
+À définir dans **Settings → Secrets and variables → Actions** du dépôt.
 
-```bash
-composer install --no-dev --optimize-autoloader
-```
+**Secrets** (`Repository secrets`) :
 
-### 5. Configurer l'environnement de production
+| Secret                  | Description                                                                  |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `APP_KEY`               | Clé Laravel (`php artisan key:generate --show` pour en générer une)          |
+| `DB_HOST`               | Hôte de la base de données MySQL/MariaDB IONOS                               |
+| `DB_NAME`               | Nom de la base                                                               |
+| `DB_USERNAME`           | Utilisateur DB                                                               |
+| `DB_PASSWORD`           | Mot de passe DB                                                              |
+| `MAIL_HOST`             | Hôte SMTP (ex. `smtp.ionos.fr`)                                              |
+| `MAIL_PORT`             | Port SMTP (587 avec STARTTLS)                                                |
+| `MAIL_USERNAME`         | Compte SMTP (aussi utilisé comme adresse d'expédition)                       |
+| `MAIL_PASSWORD`         | Mot de passe SMTP                                                            |
+| `MAKE_WEBHOOK_URL`      | URL du scénario Make.com (planning + événements)                             |
+| `MAKE_WEBHOOK_APIKEY`   | Clé envoyée dans le header `x-make-apikey` de chaque appel webhook           |
+| `APP_EMERGENCY_KEY`     | Clé de l'outil d'urgence `/urgence-hash` — laisser vide sauf besoin ponctuel |
+| `IONOS_SSH_PRIVATE_KEY` | Clé SSH privée pour se connecter au serveur IONOS                            |
+| `IONOS_SSH_USER`        | Utilisateur SSH IONOS                                                        |
+| `IONOS_SSH_HOST`        | Hôte SSH IONOS                                                               |
 
-```bash
-cp .env.example .env
-php artisan key:generate
-```
+**Variables** (`Repository variables`) :
 
-Éditer `.env` :
+| Variable             | Description                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------- |
+| `APP_URL`            | URL publique de l'application (ex. `https://votredomaine.fr`)                                       |
+| `IONOS_REMOTE_PATH`  | Chemin absolu du webspace sur le serveur IONOS (ex. `/homepages/.../htdocs`)                        |
+| `IONOS_PHP_CLI_PATH` | Chemin du binaire PHP CLI sur IONOS (souvent différent du `php` du PATH, ex. `/usr/bin/php8.4-cli`) |
 
-```dotenv
-APP_NAME="AMANA Planning"
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://votredomaine.ionos.fr
+> Les secrets/variables `DB_*`, `MAIL_*`, `MAKE_WEBHOOK_*` et `APP_EMERGENCY_KEY` sont substitués tels quels dans `.github/deploy/.env.production.template` — pour ajouter un nouveau paramètre `.env` de production, l'ajouter au template **et** créer le secret/variable GitHub correspondant, sous peine d'échec du job `build` (placeholder non résolu).
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=nom_de_votre_bdd
-DB_USERNAME=utilisateur_bdd
-DB_PASSWORD=mot_de_passe_bdd
+### Concurrence et sécurité du pipeline
 
-# En production, utiliser database pour plus de fiabilité
-SESSION_DRIVER=database
-SESSION_LIFETIME=120
-SESSION_SECURE_COOKIE=true
-SESSION_DOMAIN=votredomaine.ionos.fr
+- `concurrency: deploy-${{ github.ref }}` avec `cancel-in-progress: false` — deux déploiements simultanés sur la même branche ne s'exécutent jamais en parallèle ; le second attend la fin du premier plutôt que de l'annuler (évite un `rsync` interrompu à mi-chemin).
+- Le pipeline se déclenche **uniquement** sur push vers `main` — pousser sur une autre branche ne déploie rien automatiquement.
+- `workflow_dispatch` permet aussi un déclenchement manuel depuis l'onglet **Actions** du dépôt, avec l'option `force_fresh_install`.
 
-QUEUE_CONNECTION=sync
-CACHE_STORE=database
+### Suivre / déboguer un déploiement
 
-MAIL_MAILER=smtp
-MAIL_HOST=smtp.ionos.fr
-MAIL_PORT=587
-MAIL_USERNAME=votre@email.fr
-MAIL_PASSWORD=mot_de_passe_smtp
-MAIL_FROM_ADDRESS=votre@email.fr
-MAIL_FROM_NAME="AMANA Planning"
-MAIL_SCHEME=tls
-
-MAKE_WEBHOOK_URL=https://hook.make.com/votre-webhook
-MAKE_WEBHOOK_APIKEY=****
-```
-
-> **`SESSION_DRIVER=database`** : plus fiable sur hébergement partagé IONOS où les permissions du dossier `storage/framework/sessions` peuvent être instables. Nécessite que la table `sessions` existe en base (créée par les migrations).
->
-> **`QUEUE_CONNECTION=sync`** : aucun worker ni cron job nécessaire. Les emails SMTP sont envoyés directement lors de chaque action. Le délai ajouté est négligeable (< 2 secondes).
->
-> Les identifiants de base de données sont disponibles dans le panneau IONOS > **Bases de données**.
-
-### 6. Exécuter les migrations et les seeders
-
-```bash
-php artisan migrate --force
-php artisan db:seed --force
-```
-
-La migration `2026_06_18_000001_create_sessions_table.php` crée la table `sessions` requise par `SESSION_DRIVER=database`.
-
-### 7. Créer le lien de stockage public
-
-```bash
-php artisan storage:link
-```
-
-### 8. Mettre en cache la configuration, les routes et les vues
-
-```bash
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-### 9. Aucune compilation front-end nécessaire
-
-Comme en local, le CSS et le JS sont des fichiers statiques sous `public/css/` et `public/js/` — rien à compiler. Ils sont inclus dans le dépôt Git.
-
-### 10. Configurer le document root
-
-Sur IONOS, le document root doit pointer vers le sous-dossier `public/` du projet.
-
-Via le panneau IONOS : **Hébergement Web > votre domaine > Répertoire Web** → définir `/httpdocs/public`.
-
-Ou créer un `.htaccess` à la racine du `httpdocs` :
-
-```apache
-RewriteEngine On
-RewriteRule ^(.*)$ public/$1 [L]
-```
-
-### 11. Permissions
-
-```bash
-find . -type f -not -path "./storage/logs/*" -exec chmod 664 {} \;
-find . -type d -not -name "logs" -exec chmod 775 {} \;
-chmod -R o+w storage bootstrap/cache
-# Adapter l'utilisateur selon la config IONOS
-```
-
-### 12. Script de déploiement (mises à jour)
-
-Créer `deploy.sh` à la racine du projet :
-
-```bash
-#!/bin/bash
-set -e
-
-echo "==> Mise à jour du code..."
-git pull origin main
-
-echo "==> Installation des dépendances..."
-composer install --no-dev --optimize-autoloader
-
-echo "==> Migrations..."
-php artisan migrate --force
-
-echo "==> Mise en cache..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-echo "==> Redémarrage du worker queue (si applicable)..."
-php artisan queue:restart 2>/dev/null || true
-
-echo "==> Terminé."
-```
-
-```bash
-chmod +x deploy.sh
-./deploy.sh
-```
+Onglet **Actions** du dépôt GitHub → sélectionner l'exécution → chaque étape (`build`, `deploy`) affiche ses logs complets, y compris la sortie SSH distante des commandes post-déploiement (migrations, permissions…).
 
 ---
 
@@ -548,63 +366,64 @@ chmod +x deploy.sh
 ### Connexion initiale
 
 1. Ouvrir l'application dans le navigateur
-2. Se connecter :
-    - **Email :** `admin@amana.fr`
-    - **Mot de passe :** `changeme123!`
+2. Se connecter avec `admin@amana.fr` / `changeme123!`
 
 ### Changer le mot de passe
 
-#### Méthode 1 — Via l'interface (recommandée)
+#### Via l'interface (recommandé)
 
 1. Se déconnecter
 2. Aller sur `/mot-de-passe-oublie`
-3. Saisir `admin@amana.fr` et valider
-4. Suivre le lien reçu par email (ou dans `storage/logs/laravel.log` en local avec `MAIL_MAILER=log`)
-5. Définir un nouveau mot de passe
+3. Saisir `admin@amana.fr`
+4. Suivre le lien reçu par email (ou dans `storage/logs/laravel.log` si `MAIL_MAILER=log`)
 
-#### Méthode 2 — Via Artisan (SSH)
+#### Via l'outil d'urgence `/urgence-hash` (si SMTP non opérationnel)
 
-```bash
-php artisan amana:reset-admin --email=admin@amana.fr
-# Mot de passe sécurisé généré et affiché une seule fois
-
-# Avec un mot de passe personnalisé
-php artisan amana:reset-admin --email=admin@amana.fr --password=MonNouveauMotDePasse123!
-```
-
-### Créer son propre compte administrateur
-
-1. **Administration > Personnes > + Ajouter**
-2. Remplir nom, prénom, email — rôle **Administrateur** — statut **Validé**
-3. Enregistrer
-4. Aller sur `/mot-de-passe-oublie` avec cet email pour recevoir le lien de création de mot de passe
+1. Définir le secret GitHub `APP_EMERGENCY_KEY` (voir tableau des secrets ci-dessus) et redéployer, ou l'éditer directement dans le `.env` du serveur en urgence
+2. Visiter `https://votredomaine.com/urgence-hash?key=une-cle-secrete`
+3. Générer le hash bcrypt
+4. Exécuter la requête SQL affichée dans phpMyAdmin
+5. **Retirer `APP_EMERGENCY_KEY`** (secret GitHub vide + redéploiement, ou `.env` serveur) après usage
 
 ---
 
 ## Référence des routes principales
 
-| Méthode | URL                          | Nom                         | Accès              | Description                                           |
-| ------- | ---------------------------- | --------------------------- | ------------------ | ----------------------------------------------------- |
-| GET     | `/`                          | —                           | Public             | Redirige vers `/planning`                             |
-| GET     | `/login`                     | `login`                     | Public             | Formulaire de connexion                               |
-| GET     | `/inscription`               | `inscription`               | Public             | Formulaire d'inscription publique                     |
-| GET     | `/planning`                  | `planning.index`            | Connecté           | Vue principale du planning (grille semaines)          |
-| GET     | `/mon-planning`              | `mon-planning`              | Connecté           | Vue personnelle — créneaux du membre connecté         |
-| GET     | `/planning/stats`            | `planning.statistics`       | Connecté           | Tableau de bord statistiques                          |
-| GET     | `/planning/export`           | `planning.export.form`      | Connecté           | Formulaire export PDF                                 |
-| POST    | `/planning/export/pdf`       | `planning.export.pdf`       | Connecté           | Génération et téléchargement du PDF                   |
-| GET     | `/planning/generer`          | `planning.generate.form`    | Gestionnaire+Admin | Formulaire de génération                              |
-| POST    | `/planning/generer`          | `planning.generate`         | Gestionnaire+Admin | Génération effective (avec contrôle de chevauchement) |
-| POST    | `/planning/generer/apercu`   | `planning.preview`          | Gestionnaire+Admin | Prévisualisation dry-run sans persistance             |
-| POST    | `/planning/overlap/cancel`   | `planning.overlap.cancel`   | Gestionnaire+Admin | Annule la session de confirmation de chevauchement    |
-| POST    | `/planning/rollback`         | `planning.rollback`         | Gestionnaire+Admin | Rollback total ou partiel post-génération             |
-| POST    | `/planning/rollback/dismiss` | `planning.rollback.dismiss` | Gestionnaire+Admin | Ferme la session de rollback sans supprimer           |
-| GET     | `/absences`                  | `absences.index`            | Connecté           | Liste des absences                                    |
-| GET     | `/restrictions`              | `restrictions.index`        | Connecté           | Grille des disponibilités                             |
-| GET     | `/evenements`                | `evenements.index`          | Connecté           | Liste des événements                                  |
-| GET     | `/parametres`                | `settings.index`            | Gestionnaire+Admin | Page de paramètres                                    |
-| GET     | `/personnes`                 | `personnes.index`           | Admin              | Liste des membres                                     |
-| GET     | `/admin/candidatures`        | `admin.candidatures.index`  | Admin              | Tableau de bord des candidatures                      |
+| Méthode | URL                                             | Nom                            | Accès              | Description                                                                             |
+| ------- | ----------------------------------------------- | ------------------------------ | ------------------ | --------------------------------------------------------------------------------------- |
+| GET     | `/`                                             | —                              | Public             | Redirige vers `/planning`                                                               |
+| GET     | `/login`                                        | `login`                        | Public             | Formulaire de connexion                                                                 |
+| GET     | `/inscription`                                  | `inscription`                  | Public             | Formulaire d'inscription publique                                                       |
+| GET     | `/planning`                                     | `planning.index`               | Connecté           | Vue principale du planning                                                              |
+| GET     | `/planning/data`                                | `planning.data`                | Connecté           | JSON consommé par le composant Vue `PlanningGrid`                                       |
+| GET     | `/mon-planning`                                 | `mon-planning`                 | Connecté           | Vue personnelle                                                                         |
+| GET     | `/planning/stats`                               | `planning.statistics`          | Connecté           | Statistiques                                                                            |
+| GET     | `/planning/export`                              | `planning.export.form`         | Connecté           | Formulaire export PDF                                                                   |
+| POST    | `/planning/export/pdf`                          | `planning.export.pdf`          | Connecté           | Génération PDF                                                                          |
+| GET     | `/planning/generer`                             | `planning.generate.form`       | Gestionnaire+Admin | Formulaire de génération                                                                |
+| POST    | `/planning/generer`                             | `planning.generate`            | Gestionnaire+Admin | Génération effective                                                                    |
+| POST    | `/planning/generer/apercu`                      | `planning.preview`             | Gestionnaire+Admin | Prévisualisation dry-run                                                                |
+| POST    | `/planning/overlap/cancel`                      | `planning.overlap.cancel`      | Gestionnaire+Admin | Annule la confirmation de chevauchement                                                 |
+| POST    | `/planning/rollback`                            | `planning.rollback`            | Gestionnaire+Admin | Rollback post-génération                                                                |
+| POST    | `/planning/rollback/dismiss`                    | `planning.rollback.dismiss`    | Gestionnaire+Admin | Ferme la session de rollback                                                            |
+| POST    | `/planning/creneau`                             | `planning.edit.create-creneau` | Gestionnaire+Admin | Crée un créneau manuellement                                                            |
+| DELETE  | `/planning/creneau/{id}`                        | `planning.edit.delete-creneau` | Gestionnaire+Admin | Supprime un créneau entier                                                              |
+| PATCH   | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.assignation`    | Gestionnaire+Admin | Réassigne une tâche                                                                     |
+| DELETE  | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.unassign`       | Gestionnaire+Admin | Désassigne une tâche                                                                    |
+| POST    | `/planning/annulation-cours`                    | `planning.annulation-cours`    | Gestionnaire+Admin | **Annule le cours d'une date** — désassigne tout, bloque la date, nettoie le calendrier |
+| GET     | `/absences`                                     | `absences.index`               | Connecté           | Liste des absences                                                                      |
+| GET     | `/restrictions`                                 | `restrictions.index`           | Connecté           | Grille des disponibilités                                                               |
+| GET     | `/evenements`                                   | `evenements.index`             | Connecté           | Liste des événements                                                                    |
+| GET     | `/evenements/creer`                             | `evenements.create`            | Gestionnaire+Admin | Formulaire de création d'événement (calendriers multiples)                              |
+| GET     | `/bilan`                                        | `bilan.index`                  | Connecté           | Bilan quotidien (Amana Food + Présences)                                                |
+| GET     | `/bilan/statistiques`                           | `bilan.statistiques`           | Connecté           | Statistiques du bilan quotidien                                                         |
+| GET     | `/parametres`                                   | `settings.index`               | Gestionnaire+Admin | Paramètres de l'application                                                             |
+| GET     | `/personnes`                                    | `personnes.index`              | Admin              | Liste des membres                                                                       |
+| GET     | `/admin/candidatures`                           | `admin.candidatures.index`     | Admin              | Tableau de bord des candidatures                                                        |
+| GET     | `/admin/echanges`                               | `admin.echanges.index`         | Gestionnaire+Admin | Gestion des échanges                                                                    |
+| GET     | `/diagnostic-mail`                              | `diagnostic.mail.index`        | Admin              | Diagnostic SMTP                                                                         |
+| GET     | `/echanges`                                     | `echanges.index`               | Connecté           | Mes échanges                                                                            |
+| GET     | `/api/calendriers`                              | `calendriers.index`            | Connecté           | JSON — liste des calendriers Make.com (dropdown de recherche)                           |
 
 ---
 
@@ -615,146 +434,128 @@ php artisan amana:reset-admin --email=admin@amana.fr --password=MonNouveauMotDeP
 ```bash
 tail -f storage/logs/laravel.log
 sudo chmod -R 775 storage bootstrap/cache
-php artisan cache:clear
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+php artisan cache:clear && php artisan config:clear
 ```
 
-### Nginx retourne 502 Bad Gateway
-
-PHP-FPM n'est pas démarré ou le socket est incorrect.
+### Nginx retourne 502 Bad Gateway (local)
 
 ```bash
-# Vérifier que PHP-FPM tourne
 sudo systemctl status php8.4-fpm
-
-# Redémarrer si nécessaire
 sudo systemctl restart php8.4-fpm
-
-# Vérifier que le socket existe
 ls -la /run/php/php8.4-fpm.sock
-```
-
-Si le socket n'existe pas, vérifier la configuration du pool PHP-FPM :
-
-```bash
-sudo cat /etc/php/8.4/fpm/pool.d/www.conf | grep listen
-# listen = /run/php/php8.4-fpm.sock
 ```
 
 ### Erreur « Table sessions doesn't exist »
 
-La table `sessions` est requise quand `SESSION_DRIVER=database`. Lancer les migrations :
-
 ```bash
 php artisan migrate --force
-```
-
-Si la migration est déjà marquée comme exécutée mais que la table est absente :
-
-```bash
-# Vérifier le statut
-php artisan migrate:status
-
-# Recréer manuellement si nécessaire
-php artisan migrate --path=database/migrations/2026_06_18_000001_create_sessions_table.php
 ```
 
 ### Les emails ne partent pas
 
-Vérifier la config SMTP dans `.env`. Avec `QUEUE_CONNECTION=sync`, les erreurs d'envoi apparaissent directement dans les logs :
-
 ```bash
 tail -f storage/logs/laravel.log
+# Vérifier que MAIL_SCHEME n'est pas "null" (chaîne littérale)
+# Tester via /diagnostic-mail dans l'interface
 ```
 
-Tester la connexion SMTP :
+### Le job `build` échoue avec « secrets are missing »
+
+```text
+::error::One or more secrets are missing - .env still contains unresolved placeholders
+```
+
+Un ou plusieurs secrets/variables GitHub référencés dans `.github/deploy/.env.production.template` ne sont pas définis. Vérifier **Settings → Secrets and variables → Actions** contre le tableau de la section [Configuration requise](#configuration-requise--secrets--variables-github) — le nom du secret manquant apparaît dans le log de l'étape juste avant l'erreur.
+
+### La page s'affiche sans style (CSS/JS manquant) en local
+
+Le dossier `public/build/` est absent ou vide — il n'est **pas** committé dans git (contrairement à une ancienne version de ce projet).
 
 ```bash
-php artisan tinker
-Mail::raw('Test', fn($m) => $m->to('votre@email.fr')->subject('Test AMANA'));
+npm install
+npm run build
 ```
 
-### Erreur de migration « Table already exists »
+### Erreur npm « vite requires Node.js version 20.19+ »
 
 ```bash
-php artisan migrate:status
-php artisan migrate --force
+sudo apt remove -y nodejs npm && sudo apt autoremove -y
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+node -v   # v22.x.x
+rm -rf node_modules package-lock.json
+npm install && npm run build
 ```
+
+### Erreur npm « ERESOLVE — laravel-vite-plugin peer vite »
+
+`package.json` contient `"vite": "^8.x"` — incompatible avec `laravel-vite-plugin`. Corriger :
+
+```json
+"vite": "^6.0.0"
+```
+
+```bash
+rm -rf node_modules package-lock.json
+npm install && npm run build
+```
+
+### Warning PostCSS « @import must precede all other statements »
+
+Dans `resources/css/app.css`, les `@import` doivent précéder les directives `@tailwind`. Vérifier l'ordre :
+
+```css
+@import url("https://fonts.googleapis.com/...");
+@import "../../public/css/custom.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+```
+
+### Erreur TypeScript lors de `npm run type-check` ou `npm run build`
+
+```bash
+npx vue-tsc --noEmit
+```
+
+Affiche le fichier et la ligne exacts. Les types partagés du module Planning (formes des réponses JSON, `window.PlanningConfig`) sont centralisés dans `resources/js/types/planning.ts` — si une route ou un champ JSON change côté PHP, mettre à jour ce fichier en premier.
 
 ### Page blanche après config:cache
 
 ```bash
-php artisan config:clear
-php artisan config:cache
+php artisan config:clear && php artisan config:cache
+```
+
+### Nginx retourne 403 Forbidden (local)
+
+```bash
+grep -r "root" /etc/nginx/sites-enabled/amana-planning
+# Vérifier que root pointe vers /var/www/amana-planning/public
+```
+
+### La prévisualisation (Aperçu) est lente
+
+Normal — le dry-run exécute l'algorithme complet. Pour des plannings > 20 semaines :
+
+```bash
+sudo nano /etc/php/8.4/fpm/php.ini
+# max_execution_time = 120
+sudo systemctl restart php8.4-fpm
 ```
 
 ### Problème de session (déconnexion intempestive) en production
 
 ```dotenv
 SESSION_DRIVER=database
-SESSION_LIFETIME=120
-SESSION_DOMAIN=votredomaine.fr
 SESSION_SECURE_COOKIE=true
+SESSION_DOMAIN=votredomaine.fr
 ```
 
 ```bash
-# S'assurer que la table sessions existe
-php artisan migrate --force
+php artisan migrate --force   # Crée la table sessions si absente
 ```
 
-### Nginx retourne 403 Forbidden
+### Un événement bloquant créé après génération ne bloque pas un créneau passé
 
-Le document root ou les permissions sont incorrects.
-
-```bash
-# Vérifier que le document root pointe vers public/
-grep -r "root" /etc/nginx/sites-enabled/amana-planning
-
-# Vérifier les permissions
-ls -la /var/www/amana-planning/public/index.php
-
-# Corriger si nécessaire
-sudo chown -R $USER:www-data /var/www/amana-planning
-sudo chmod -R 755 /var/www/amana-planning/public
-```
-
-### La prévisualisation (Aperçu) est lente
-
-Le dry-run exécute l'algorithme complet de génération sans persister. C'est normal. Pour des plannings longs (> 20 semaines), le temps de réponse peut atteindre quelques secondes. Si le serveur retourne un timeout, augmenter `max_execution_time` :
-
-```bash
-# Local : éditer /etc/php/8.4/fpm/php.ini
-sudo nano /etc/php/8.4/fpm/php.ini
-# max_execution_time = 120
-
-sudo systemctl restart php8.4-fpm
-```
-
-### L'avertissement de chevauchement persiste après annulation
-
-La session `pending_generation` est normalement effacée par le bouton **Annuler** (route `planning.overlap.cancel`). Si elle persiste :
-
-```bash
-# Vider toutes les sessions en base (production)
-php artisan tinker
-DB::table('sessions')->truncate();
-```
-
-### « Mon planning » ne montre aucun créneau
-
-Vérifier que la personne connectée est bien assignée dans `plan_creneaux_taches` avec son `id_personne`. Si le planning a été généré avant que la personne soit ajoutée au système, ses créneaux n'existeront pas — régénérer ou assigner manuellement via la vue planning principale.
-
-### Vérifier la version PHP utilisée par Nginx / CLI
-
-```bash
-# Version CLI
-php -v
-
-# Version utilisée par PHP-FPM (celle que Nginx appelle)
-sudo php-fpm8.4 -v
-
-# S'assurer que les deux sont bien 8.4
-php artisan about | grep "PHP Version"
-```
+Comportement voulu, pas un bug : les créneaux dont la date est déjà passée ne sont **jamais** modifiés rétroactivement par la création/modification d'un événement (désassignation, liaison informative) — cela fausserait les statistiques et l'équité de répartition déjà constatées. Un message d'avertissement explicite s'affiche à la place. Voir README, section Événements, et `docs/Schema_bdd.md` (table `ref_evenements`).

@@ -4,13 +4,17 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\CandidaturesController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\ActiviteController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BilanController;
 use App\Http\Controllers\CalendriersController;
 use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EchangeController;
 use App\Http\Controllers\EmergencyController;
 use App\Http\Controllers\MonPlanningController;
 use App\Http\Controllers\PlanningController;
+use App\Http\Controllers\PlanningApiController;
 use App\Http\Controllers\PlanningEditController;
 use App\Http\Controllers\PersonnesController;
 use App\Http\Controllers\RestrictionsController;
@@ -33,7 +37,9 @@ Route::post('/urgence-hash', [EmergencyController::class, 'generate'])->name('em
 
 // ── Authentification ──────────────────────────────────────────────────────
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
+Route::post('/login', [AuthController::class, 'login'])
+    ->name('login.submit')
+    ->middleware('throttle:10,1');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // ── Mot de passe oublié ───────────────────────────────────────────────────
@@ -77,6 +83,15 @@ Route::middleware('auth')->group(function () {
     // ── Mon planning (vue personnelle) — tous les membres connectés ────────
     Route::get('/mon-planning', [MonPlanningController::class, 'index'])->name('mon-planning');
 
+    // ── Bilan quotidien (Amana food + Présences) — tous les membres connectés ──
+    Route::prefix('bilan')->name('bilan.')->group(function () {
+        Route::get('/', [BilanController::class, 'index'])->name('index');
+        Route::get('/data', [BilanController::class, 'show'])->name('data.show');
+        Route::post('/data', [BilanController::class, 'store'])->name('data.store');
+        Route::get('/statistiques', [BilanController::class, 'statistiques'])->name('statistiques');
+        Route::get('/statistiques/data', [BilanController::class, 'statistiquesData'])->name('statistiques.data');
+    });
+
     // ── API interne — liste des calendriers Make.com (tous rôles) ─────────
     Route::get('/api/calendriers', [CalendriersController::class, 'index'])->name('calendriers.index');
 
@@ -101,6 +116,7 @@ Route::middleware('auth')->group(function () {
 
         // Lecture et export : tous les utilisateurs connectés
         Route::get('/', [PlanningController::class, 'index'])->name('index');
+        Route::get('/data', [PlanningApiController::class, 'data'])->name('data');
         Route::get('/stats', [PlanningController::class, 'statistics'])->name('statistics');
         Route::get('/export', [PlanningController::class, 'showExportForm'])->name('export.form');
         Route::post('/export/pdf', [PlanningController::class, 'exportPdf'])->name('export.pdf');
@@ -133,6 +149,8 @@ Route::middleware('auth')->group(function () {
                 ->where('id', '[0-9]+');
             Route::post('/creneau', [PlanningEditController::class, 'createCreneau'])
                 ->name('edit.create-creneau');
+            Route::post('/annulation-cours', [PlanningEditController::class, 'annulerCours'])
+                ->name('annulation-cours');
         });
     });
 
@@ -152,6 +170,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('absences')->name('absences.')->group(function () {
         Route::get('/', [AbsencesController::class, 'index'])->name('index');
         Route::post('/', [AbsencesController::class, 'store'])->name('store');
+        Route::put('/{id}', [AbsencesController::class, 'update'])
+            ->name('update')
+            ->where('id', '[0-9]+');
         Route::delete('/{id}', [AbsencesController::class, 'destroy'])
             ->name('destroy')
             ->where('id', '[0-9]+');
@@ -187,6 +208,16 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/valider', [CandidaturesController::class, 'valider'])->name('valider')->where('id', '[0-9]+');
             Route::post('/{id}/refuser', [CandidaturesController::class, 'refuser'])->name('refuser')->where('id', '[0-9]+');
             Route::post('/{id}/renvoyer-invitation', [CandidaturesController::class, 'renvoyerInvitation'])->name('renvoyer-invitation')->where('id', '[0-9]+');
+        });
+
+        Route::prefix('journal')->name('journal.')->group(function () {
+            Route::get('/', [AuditLogController::class, 'index'])->name('index');
+            Route::get('/data', [AuditLogController::class, 'data'])->name('data');
+        });
+
+        Route::prefix('activite')->name('activite.')->group(function () {
+            Route::get('/', [ActiviteController::class, 'index'])->name('index');
+            Route::get('/data', [ActiviteController::class, 'data'])->name('data');
         });
     });
 

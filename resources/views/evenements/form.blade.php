@@ -4,296 +4,217 @@
 @section('title', isset($evenement) ? 'Modifier un événement — AMANA' : 'Créer un événement — AMANA')
 
 @section('content')
-    @php $edit = isset($evenement); @endphp
+@php $edit = isset($evenement); @endphp
 
-    @include('partials.tache-colors')
-
-    <div class="page-header">
-        <div class="page-header-left">
-            <div class="page-title">{{ $edit ? 'Modifier l\'événement' : 'Créer un événement' }}</div>
-            @if($edit)
-                <div class="page-subtitle">{{ $evenement->nom }}</div>
-            @endif
-        </div>
-        <a href="{{ route('evenements.index') }}" class="btn btn-secondary">← Retour</a>
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+        <h1 class="font-heading text-2xl font-semibold text-ink tracking-tight">
+            {{ $edit ? "Modifier l'événement" : 'Créer un événement' }}
+        </h1>
+        @if($edit)<p class="text-[13px] text-ink-muted mt-1">{{ $evenement->nom }}</p>@endif
     </div>
+    <a href="{{ route('evenements.index') }}"
+       class="inline-flex items-center gap-2 px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors no-underline min-h-[44px]">
+        ← Retour
+    </a>
+</div>
 
-    <div style="max-width:640px;">
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <div class="card-title-icon" style="background:var(--amber-bg);">🎉</div>
-                    Informations de l'événement
+<div class="max-w-[680px]">
+    <form action="{{ $edit ? route('evenements.update', $evenement->id) : route('evenements.store') }}"
+          method="POST">
+        @csrf
+        @if($edit) @method('PUT') @endif
+
+        {{-- ── Informations générales --}}
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
+            <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+                <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🎉</div>
+                <span class="font-heading text-[14px] font-semibold text-ink">Informations de l'événement</span>
+            </div>
+            <div class="p-5 flex flex-col gap-4">
+
+                {{-- Nom --}}
+                <div class="flex flex-col gap-1.5">
+                    <label for="nom" class="text-xs font-bold text-ink tracking-[0.2px]">
+                        Nom de l'événement <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="nom" name="nom" value="{{ old('nom', $evenement->nom ?? '') }}"
+                           required maxlength="150" placeholder="Ex : Vacances Noël, Ramadan, Conférence…"
+                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                  focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
+                    <span class="text-[11.5px] text-ink-muted">Le nom doit être unique et précis</span>
+                    @error('nom')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>
-            </div>
-            <div class="card-body">
-                <form action="{{ $edit ? route('evenements.update', $evenement->id) : route('evenements.store') }}"
-                    method="POST">
-                    @csrf
-                    @if($edit) @method('PUT') @endif
 
-                    {{-- Nom --}}
-                    <div class="form-group" style="margin-bottom:18px;">
-                        <label for="nom">Nom de l'événement <span class="req">*</span></label>
-                        <input type="text" id="nom" name="nom" value="{{ old('nom', $evenement->nom ?? '') }}" required
-                            maxlength="150" placeholder="Ex : Vacances Noël, Ramadan, Conférence…">
-                        <span class="form-hint">Le nom doit être unique et précis</span>
-                        @error('nom')<span class="form-error">{{ $message }}</span>@enderror
+                {{-- Dates --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="date_debut" class="text-xs font-bold text-ink tracking-[0.2px]">Date de début <span class="text-rose-500">*</span></label>
+                        <input type="date" id="date_debut" name="date_debut"
+                               value="{{ old('date_debut', isset($evenement) ? $evenement->date_debut?->toDateString() : '') }}"
+                               required
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                      focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+                        @error('date_debut')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                     </div>
-
-                    {{-- Dates --}}
-                    <div class="form-grid" style="margin-bottom:18px;">
-                        <div class="form-group">
-                            <label for="date_debut">Date de début <span class="req">*</span></label>
-                            <input type="date" id="date_debut" name="date_debut"
-                                value="{{ old('date_debut', isset($evenement) ? $evenement->date_debut?->toDateString() : '') }}"
-                                required>
-                            @error('date_debut')<span class="form-error">{{ $message }}</span>@enderror
-                        </div>
-                        <div class="form-group">
-                            <label for="date_fin">Date de fin <span class="req">*</span></label>
-                            <input type="date" id="date_fin" name="date_fin"
-                                value="{{ old('date_fin', isset($evenement) ? $evenement->date_fin?->toDateString() : '') }}"
-                                required>
-                            @error('date_fin')<span class="form-error">{{ $message }}</span>@enderror
-                        </div>
+                    <div class="flex flex-col gap-1.5">
+                        <label for="date_fin" class="text-xs font-bold text-ink tracking-[0.2px]">Date de fin <span class="text-rose-500">*</span></label>
+                        <input type="date" id="date_fin" name="date_fin"
+                               value="{{ old('date_fin', isset($evenement) ? $evenement->date_fin?->toDateString() : '') }}"
+                               required
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                      focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+                        @error('date_fin')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                     </div>
+                </div>
 
-                    {{-- Description --}}
-                    <div class="form-group" style="margin-bottom:22px;">
-                        <label for="description">Description
-                            <span style="color:var(--ink-muted);font-weight:400;">(optionnel)</span>
-                        </label>
-                        <textarea id="description" name="description" rows="3"
-                            placeholder="Notes complémentaires…">{{ old('description', $evenement->description ?? '') }}</textarea>
-                        @error('description')<span class="form-error">{{ $message }}</span>@enderror
-                    </div>
+                {{-- Description --}}
+                <div class="flex flex-col gap-1.5">
+                    <label for="description" class="text-xs font-bold text-ink tracking-[0.2px]">
+                        Description <span class="text-ink-muted font-normal">(optionnel)</span>
+                    </label>
+                    <textarea id="description" name="description" rows="3" placeholder="Notes complémentaires…"
+                              class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition resize-y
+                                     focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">{{ old('description', $evenement->description ?? '') }}</textarea>
+                    @error('description')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
+                </div>
 
-                    <div class="divider"></div>
-
-                    {{-- ── Synchronisation Google Calendar ──────────────────────────── --}}
-                    <div style="margin-bottom:24px;">
-                        <div style="margin-bottom:10px;">
-                            <div
-                                style="font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:4px;display:flex;align-items:center;gap:8px;">
-                                📆 Synchronisation Google Calendar
-                                <span
-                                    style="font-size:11px;font-weight:500;color:var(--ink-muted);background:var(--surface-3);padding:2px 8px;border-radius:20px;">optionnel</span>
-                            </div>
-                            <div style="font-size:12.5px;color:var(--ink-muted);line-height:1.6;">
-                                Si vous renseignez un nom de calendrier, un événement sera automatiquement créé
-                                (ou mis à jour / supprimé) dans Google Calendar via Make.com.
-                                Laissez vide pour ne pas synchroniser.
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Nom du calendrier Google Calendar</label>
-
-                            {{-- Input caché qui reçoit la valeur sélectionnée --}}
-                            <input type="hidden" id="calendar_name" name="calendar_name"
-                                value="{{ old('calendar_name', $evenement->calendar_name ?? '') }}">
-
-                            {{-- Bouton déclencheur du dropdown --}}
-                            <div style="position:relative;">
-                                <button type="button" id="calendar_name_trigger" class="cs-trigger" aria-haspopup="listbox"
-                                    aria-expanded="false">
-                                    <span
-                                        class="cs-trigger-text {{ old('calendar_name', $evenement->calendar_name ?? '') ? '' : 'placeholder' }}">
-                                        {{ old('calendar_name', $evenement->calendar_name ?? '') ?: 'Sélectionner un calendrier…' }}
-                                    </span>
-                                    <span class="cs-trigger-arrow">▼</span>
-                                </button>
-                            </div>
-
-                            <span class="form-hint" style="margin-top:6px;display:block;">
-                                Sélectionnez le calendrier Google Calendar cible dans la liste.
-                                @if($edit && $evenement->calendar_name)
-                                    <strong style="color:var(--emerald);">✓ Synchronisation active</strong>
-                                @endif
-                            </span>
-                            @error('calendar_name')<span class="form-error">{{ $message }}</span>@enderror
-                        </div>
-
-                        {{-- Visual indicator when calendar sync is active --}}
-                        @if($edit && $evenement->calendar_name)
-                            <div style="
-                                                background:var(--emerald-bg);
-                                                border:1px solid var(--emerald-border);
-                                                border-radius:var(--radius);
-                                                padding:10px 14px;
-                                                font-size:12.5px;
-                                                color:#065f46;
-                                                display:flex;
-                                                align-items:center;
-                                                gap:9px;
-                                                margin-top:10px;">
-                                <span style="flex-shrink:0;">📅</span>
-                                <span>
-                                    Cet événement est synchronisé avec le calendrier
-                                    <strong>« {{ $evenement->calendar_name }} »</strong>.
-                                    Modifier ou supprimer cet événement mettra également à jour Google Calendar.
-                                </span>
-                            </div>
-                        @endif
-                    </div>
-
-                    <div class="divider"></div>
-
-                    {{-- ── Tâches bloquées ───────────────────────────────────────────── --}}
-                    <div style="margin-bottom:24px;">
-                        <div style="margin-bottom:10px;">
-                            <div style="font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:4px;">
-                                🚫 Tâches bloquées pendant cet événement
-                            </div>
-                            <div style="font-size:12.5px;color:var(--ink-muted);line-height:1.6;">
-                                Cochez les tâches qui <strong>ne seront pas assignées</strong> lors de la génération du
-                                planning pour les créneaux couverts par cet événement.<br>
-                                <span style="color:var(--amber);font-weight:600;">Si aucune tâche n'est cochée</span>,
-                                l'événement est purement informatif — il apparaîtra dans la bannière de la semaine
-                                sans affecter les assignations.
-                            </div>
-                        </div>
-
-                        @php
-                            $tachesBloquéesIds = isset($evenement)
-                                ? $evenement->tachesBloquees->pluck('id')->toArray()
-                                : [];
-                            $oldTaches = old('taches', $tachesBloquéesIds);
-                        @endphp
-
-                        <div
-                            style="background:var(--surface-2);border:1px solid var(--surface-border);border-radius:var(--radius);overflow:hidden;">
-                            <div
-                                style="padding:10px 16px;border-bottom:1px solid var(--surface-3);display:flex;align-items:center;gap:10px;">
-                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(true)">Tout
-                                    bloquer</button>
-                                <button type="button" class="btn btn-ghost btn-sm" onclick="toutCocher(false)">Tout
-                                    libérer</button>
-                                <span id="blockedCount"
-                                    style="margin-left:auto;font-size:12px;color:var(--ink-muted);"></span>
-                            </div>
-
-                            @foreach($taches as $tache)
-                                @php
-                                    $style = $tacheColors[$tache->code] ?? ['bg' => 'var(--surface-3)', 'color' => 'var(--ink)', 'icon' => '•'];
-                                    $checked = in_array($tache->id, (array) $oldTaches);
-                                @endphp
-                                <label class="tache-block-item {{ $checked ? 'checked' : '' }}" id="label-{{ $tache->id }}"
-                                    style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--surface-3);cursor:pointer;transition:background 0.15s;">
-                                    <input type="checkbox" name="taches[]" value="{{ $tache->id }}" id="tache_{{ $tache->id }}"
-                                        class="tache-checkbox" {{ $checked ? 'checked' : '' }}
-                                        style="width:16px;height:16px;accent-color:var(--rose);cursor:pointer;flex-shrink:0;-webkit-appearance:auto;appearance:auto;">
-                                    <div style="display:flex;align-items:center;gap:9px;flex:1;">
-                                        <span style="
-                                                            display:inline-flex;align-items:center;gap:5px;
-                                                            padding:3px 11px;border-radius:20px;
-                                                            font-size:12.5px;font-weight:600;
-                                                            background:{{ $style['bg'] }};color:{{ $style['color'] }};
-                                                        ">
-                                            {{ $style['icon'] }} {{ $tache->libelle }}
-                                        </span>
-                                    </div>
-                                    <span class="block-status"
-                                        style="font-size:11.5px;font-weight:600;color:{{ $checked ? 'var(--rose)' : 'var(--emerald)' }};">
-                                        {{ $checked ? '🚫 Bloquée' : '✅ Libre' }}
-                                    </span>
-                                </label>
-                            @endforeach
-
-                            <style>
-                                .tache-block-item:last-of-type {
-                                    border-bottom: none !important;
-                                }
-
-                                .tache-block-item:hover {
-                                    background: var(--rose-bg) !important;
-                                }
-
-                                .tache-block-item.checked {
-                                    background: #fff1f2;
-                                }
-                            </style>
-                        </div>
-
-                        @error('taches')<span class="form-error"
-                        style="margin-top:6px;display:block;">{{ $message }}</span>@enderror
-                    </div>
-
-                    <div style="display:flex;gap:11px;">
-                        <button type="submit" class="btn btn-primary">
-                            {{ $edit ? '💾 Enregistrer' : '➕ Créer l\'événement' }}
-                        </button>
-                        <a href="{{ route('evenements.index') }}" class="btn btn-secondary">Annuler</a>
-                    </div>
-                </form>
             </div>
         </div>
-    </div>
+
+        {{-- ── Synchronisation Google Calendar --}}
+        @php
+            $calendarNamesActuels = old('calendar_names', $edit ? $evenement->calendarNames() : []);
+        @endphp
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
+            <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+                <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
+                <span class="font-heading text-[14px] font-semibold text-ink">Synchronisation Google Calendar</span>
+                <span class="ml-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-3 text-ink-muted">optionnel</span>
+            </div>
+            <div class="p-5">
+                <p class="text-[12.5px] text-ink-muted mb-4 leading-relaxed">
+                    Si vous sélectionnez un ou plusieurs calendriers, un événement sera automatiquement créé (ou mis à jour / supprimé)
+                    dans chacun via Make.com. Laissez vide pour ne pas synchroniser.
+                </p>
+
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-bold text-ink tracking-[0.2px]">Calendriers Google Calendar</label>
+                    {{--
+                        Point de montage SearchableSelect.vue en mode multiple.
+                        Le composant crée lui-même ses <input type="hidden" name="calendar_names[]">
+                        (un par calendrier sélectionné).
+                    --}}
+                    <div
+                        data-searchable-select
+                        data-multiple="1"
+                        data-api-url="{{ route('calendriers.index') }}"
+                        data-input-name="calendar_names"
+                        data-input-id="calendar_names_vue"
+                        data-current-value="{{ json_encode(array_values((array) $calendarNamesActuels)) }}"
+                        data-placeholder="Sélectionner un ou plusieurs calendriers…"
+                    ></div>
+                    <span class="text-[11.5px] text-ink-muted">
+                        Sélectionnez tous les calendriers Google Calendar cibles.
+                        @if($edit && $evenement->hasCalendarSync())
+                            <strong class="text-emerald-600">✓ Synchronisation active</strong>
+                        @endif
+                    </span>
+                    @error('calendar_names')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
+                </div>
+
+                @if($edit && $evenement->hasCalendarSync())
+                    <div class="flex items-start gap-2.5 mt-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-[12.5px] text-emerald-800">
+                        <span class="flex-shrink-0">📅</span>
+                        <span>
+                            Cet événement est synchronisé avec {{ count($evenement->calendarNames()) > 1 ? 'les calendriers' : 'le calendrier' }}
+                            <strong>« {{ implode(' », « ', $evenement->calendarNames()) }} »</strong>.
+                            Modifier ou supprimer cet événement mettra également à jour Google Calendar.
+                        </span>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        {{--
+            Point de montage EventTaskBlocker.vue — gère le compteur,
+            les couleurs des labels, et la contrainte date_fin >= date_debut.
+            toutCocher() reste exposé sur window pour ces boutons onclick.
+        --}}
+        <div id="vue-event-blocker"></div>
+
+        {{-- ── Tâches bloquées --}}
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
+            <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+                <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🚫</div>
+                <span class="font-heading text-[14px] font-semibold text-ink">Tâches bloquées pendant cet événement</span>
+            </div>
+            <div class="p-5">
+                <p class="text-[12.5px] text-ink-muted mb-4 leading-relaxed">
+                    Cochez les tâches qui <strong class="text-ink-light">ne seront pas assignées</strong> lors de la génération du planning pour les créneaux couverts par cet événement.<br>
+                    <span class="text-amber-600 font-semibold">Si aucune tâche n'est cochée</span>, l'événement est purement informatif.
+                </p>
+
+                @php
+                    $tachesBloquéesIds = isset($evenement) ? $evenement->tachesBloquees->pluck('id')->toArray() : [];
+                    $oldTaches = old('taches', $tachesBloquéesIds);
+                @endphp
+
+                <div class="border border-surface-border rounded-lg overflow-hidden mb-3">
+                    <div class="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border-b border-surface-3">
+                        <button type="button" onclick="toutCocher(true)"
+                                class="px-3 py-1.5 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md hover:bg-surface-3 transition-colors bg-transparent cursor-pointer min-h-[44px]">
+                            Tout bloquer
+                        </button>
+                        <button type="button" onclick="toutCocher(false)"
+                                class="px-3 py-1.5 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md hover:bg-surface-3 transition-colors bg-transparent cursor-pointer min-h-[44px]">
+                            Tout libérer
+                        </button>
+                        <span id="blockedCount" class="ml-auto text-[12px] text-ink-muted"></span>
+                    </div>
+
+                    @foreach($taches as $tache)
+                        @php $checked = in_array($tache->id, (array) $oldTaches); @endphp
+                        <label id="label-{{ $tache->id }}"
+                               class="tache-block-item flex items-center gap-4 px-5 py-3.5 border-b border-surface-3 last:border-0 cursor-pointer transition-colors min-h-[52px]
+                                      {{ $checked ? 'bg-rose-50' : 'hover:bg-rose-50/50' }}">
+                            <input type="checkbox" name="taches[]" value="{{ $tache->id }}"
+                                   id="tache_{{ $tache->id }}" class="tache-checkbox w-4 h-4 accent-rose-500 cursor-pointer flex-shrink-0"
+                                   {{ $checked ? 'checked' : '' }}>
+                            <span class="chip-{{ $tache->code }} inline-flex items-center px-2.5 py-0.5 rounded-full text-[12.5px] font-semibold flex-1">
+                                {{ $tache->libelle }}
+                            </span>
+                            <span class="block-status text-[11.5px] font-semibold whitespace-nowrap
+                                         {{ $checked ? 'text-rose-600' : 'text-emerald-600' }}">
+                                {{ $checked ? '🚫 Bloquée' : '✅ Libre' }}
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+
+                @error('taches')<span class="text-xs text-rose-600 block">{{ $message }}</span>@enderror
+            </div>
+        </div>
+
+        {{-- Boutons --}}
+        <div class="flex flex-wrap gap-3 items-center">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-[13.5px] rounded-lg
+                           shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[48px]">
+                {{ $edit ? '💾 Enregistrer' : "➕ Créer l'événement" }}
+            </button>
+            <a href="{{ route('evenements.index') }}"
+               class="inline-flex items-center gap-2 px-6 py-3 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink font-semibold text-[13.5px] rounded-lg transition-colors no-underline min-h-[48px]">
+                Annuler
+            </a>
+        </div>
+    </form>
+</div>
+
 @endsection
 
-@push('scripts')
-    <script>
-        document.getElementById('date_debut').addEventListener('change', function () {
-            const fin = document.getElementById('date_fin');
-            if (!fin.value || fin.value < this.value) fin.value = this.value;
-            fin.min = this.value;
-        });
-
-        function updateStatus() {
-            const checkboxes = document.querySelectorAll('.tache-checkbox');
-            let blockedCount = 0;
-
-            checkboxes.forEach(function (cb) {
-                const label = cb.closest('.tache-block-item');
-                const statusEl = label.querySelector('.block-status');
-
-                if (cb.checked) {
-                    blockedCount++;
-                    label.classList.add('checked');
-                    label.style.background = '#fff1f2';
-                    statusEl.textContent = '🚫 Bloquée';
-                    statusEl.style.color = 'var(--rose)';
-                } else {
-                    label.classList.remove('checked');
-                    label.style.background = '';
-                    statusEl.textContent = '✅ Libre';
-                    statusEl.style.color = 'var(--emerald)';
-                }
-            });
-
-            const countEl = document.getElementById('blockedCount');
-            if (blockedCount === 0) {
-                countEl.textContent = 'Événement informatif';
-                countEl.style.color = 'var(--amber)';
-            } else if (blockedCount === checkboxes.length) {
-                countEl.textContent = 'Toutes les tâches bloquées';
-                countEl.style.color = 'var(--rose)';
-            } else {
-                countEl.textContent = `${blockedCount} tâche${blockedCount > 1 ? 's' : ''} bloquée${blockedCount > 1 ? 's' : ''}`;
-                countEl.style.color = 'var(--amber)';
-            }
-        }
-
-        function toutCocher(state) {
-            document.querySelectorAll('.tache-checkbox').forEach(cb => cb.checked = state);
-            updateStatus();
-        }
-
-        document.querySelectorAll('.tache-checkbox').forEach(cb => {
-            cb.addEventListener('change', updateStatus);
-        });
-
-        updateStatus();
-    </script>
-
-    <script src="{{ asset('js/calendar-select.js') }}"></script>
-    <script>
-        CalendarSelect.init({
-            inputId: 'calendar_name',
-            triggerId: 'calendar_name_trigger',
-            apiUrl: '{{ route("calendriers.index") }}',
-            currentValue: '{{ addslashes(old("calendar_name", $evenement->calendar_name ?? "")) }}',
-        });
-    </script>
-@endpush
+{{--
+    Aucun script inline ici désormais :
+      - contrainte date_fin / compteur tâches bloquées → EventTaskBlocker.vue
+      - sélecteur calendrier                            → SearchableSelect.vue
+--}}

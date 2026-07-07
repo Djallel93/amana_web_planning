@@ -60,6 +60,21 @@ class Statistics
             $jour    = $ligne->creneau->jour;  // Accesseur du modèle
             $dateIdx = $indexParDate[$ligne->creneau->date->toDateString()] ?? 0;
 
+            // Compteurs par tâche (toujours renseigné, y compris "cours" —
+            // affiché dans le détail par personne, indépendamment de son
+            // exclusion des métriques d'équité ci-dessous).
+            $tasksByPerson[$nom] ??= ['entree' => 0, 'mektaba' => 0, 'salle' => 0, 'amana_food' => 0, 'cours' => 0];
+            $tasksByPerson[$nom][$code] = ($tasksByPerson[$nom][$code] ?? 0) + 1;
+
+            // "cours" est exclu des métriques d'équité (taskCounts, dayCounts,
+            // jours consécutifs) : par convention une seule personne l'assure
+            // chaque semaine (voir RotationEngine::assignCours), donc ce
+            // créneau fixe ne doit pas être traité comme un signal de
+            // déséquilibre de rotation ni de fatigue (jours consécutifs).
+            if ($code === 'cours') {
+                continue;
+            }
+
             // Compteurs totaux
             $taskCounts[$nom] = ($taskCounts[$nom] ?? 0) + 1;
 
@@ -68,12 +83,15 @@ class Statistics
             if ($jour === 'Vendredi') $dayCounts[$nom]['vendredis']++;
             if ($jour === 'Samedi')   $dayCounts[$nom]['samedis']++;
 
-            // Compteurs par tâche
-            $tasksByPerson[$nom] ??= ['entree' => 0, 'mektaba' => 0, 'salle' => 0, 'amana_food' => 0];
-            $tasksByPerson[$nom][$code] = ($tasksByPerson[$nom][$code] ?? 0) + 1;
-
             // Jours de travail (pour calcul consécutifs)
             $workDays[$nom][] = $dateIdx;
+        }
+
+        // Si quelqu'un n'a jamais fait que "cours" (exclu ci-dessus des
+        // métriques d'équité), il doit tout de même apparaître dans le
+        // tableau des statistiques — avec 0 tâche de rotation comptabilisée.
+        foreach (array_keys($tasksByPerson) as $nom) {
+            $taskCounts[$nom] ??= 0;
         }
 
         // Calcul des jours consécutifs max

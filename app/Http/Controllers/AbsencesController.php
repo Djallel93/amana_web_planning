@@ -6,8 +6,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Absences\StoreAbsenceRequest;
+use App\Http\Requests\Absences\UpdateAbsenceRequest;
 use App\Models\Absence;
 use App\Models\Personne;
+use App\Services\AbsenceRegenerationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -19,9 +22,23 @@ use Illuminate\View\View;
  *   - Admin / Gestionnaire : voit toutes les absences, peut en ajouter/supprimer pour n'importe qui
  *   - Membre : voit toutes les absences (pour savoir qui est disponible),
  *              mais ne peut ajouter/supprimer que les siennes
+ *
+ * Effet de bord (voir App\Services\AbsenceRegenerationService) :
+ *   Ajouter ou modifier une absence qui chevauche une date future pour
+ *   laquelle la personne est déjà assignée déclenche automatiquement une
+ *   régénération du planning à partir de la première date impactée, afin de
+ *   maintenir l'équilibrage des tâches (rotation stricte / score adaptatif).
+ *   La suppression d'une absence n'a volontairement aucun effet de ce type :
+ *   elle rend seulement la personne de nouveau disponible pour de futures
+ *   générations, sans nécessiter de correction immédiate.
  */
 class AbsencesController extends Controller
 {
+    public function __construct(
+        private readonly AbsenceRegenerationService $regenerationService,
+    ) {
+    }
+
     /**
      * Liste toutes les absences.
      * Tout le monde peut voir les absences — admin, gestionnaire et membre.
@@ -77,8 +94,77 @@ class AbsencesController extends Controller
 
         audit('create', 'absences', $absence->id, null, $absence->toArray());
 
+        $message = "Absence ajoutée pour {$personne->prenom} {$personne->nom}.";
+
+        $regeneration = $this->regenerationService->regenererSiNecessaire($absence);
+        if ($regeneration !== null) {
+            $message .= ' ' . $regeneration['message'];
+        }
+
         return redirect()->route('absences.index')
-            ->with('success', "Absence ajoutée pour {$personne->prenom} {$personne->nom}.");
+            ->with('success', $message);
+    }
+
+    /**
+     * Modifie une absence existante (appelé en AJAX depuis le modal d'édition).
+     *
+     * Admin / Gestionnaire : peut modifier n'importe quelle absence, y compris
+     *                        réassigner la personne concernée.
+     * Membre               : peut modifier seulement ses propres absences,
+     *                        et ne peut pas changer la personne concernée.
+     */
+    public function update(UpdateAbsenceRequest $request, int $id): JsonResponse
+    {
+        /** @var \App\Models\Personne $user */
+        $user    = Auth::user();
+        $absence = Absence::with('personne')->findOrFail($id);
+
+        $estPrivilegie = $user->isAdmin() || $user->isGestionnaire();
+
+        // Vérification de sécurité pour les membres : ni l'absence modifiée
+        // ni la personne cible ne peuvent être autre chose qu'eux-mêmes.
+        if (! $estPrivilegie) {
+            if ($absence->id_personne !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous ne pouvez modifier que vos propres absences.',
+                ], 403);
+            }
+
+            if ((int) $request->validated('id_personne') !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vous ne pouvez enregistrer une absence que pour vous-même.',
+                ], 403);
+            }
+        }
+
+        $avant = $absence->toArray();
+        $absence->update($request->validated());
+        $absence->refresh()->load('personne');
+
+        audit('update', 'absences', $absence->id, $avant, $absence->toArray());
+
+        $message = "Absence de {$absence->personne->prenom} {$absence->personne->nom} mise à jour.";
+
+        $regeneration = $this->regenerationService->regenererSiNecessaire($absence);
+        if ($regeneration !== null) {
+            $message .= ' ' . $regeneration['message'];
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'planning_regenere' => $regeneration !== null,
+            'absence' => [
+                'id'          => $absence->id,
+                'id_personne' => $absence->id_personne,
+                'personne'    => $absence->personne->prenom . ' ' . $absence->personne->nom,
+                'date_debut'  => $absence->date_debut->toDateString(),
+                'date_fin'    => $absence->date_fin->toDateString(),
+                'raison'      => $absence->raison,
+            ],
+        ]);
     }
 
     /**

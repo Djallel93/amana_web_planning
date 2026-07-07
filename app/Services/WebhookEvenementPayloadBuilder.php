@@ -28,7 +28,7 @@ use App\Models\Evenement;
  *     "date_debut": "2025-03-01",
  *     "date_fin": "2025-03-30",
  *     "description": "...",
- *     "calendar_name": "AMANA - Événements",
+ *     "calendar_names": ["AMANA - Événements", "AMANA - Communications"],
  *     "taches_bloquees": ["amana_food", "entree"]  // absent pour delete
  *   }
  * }
@@ -40,9 +40,12 @@ class WebhookEvenementPayloadBuilder
      */
     public function buildUpsert(Evenement $evenement): array
     {
-        // S'assurer que la relation est chargée
+        // S'assurer que les relations sont chargées
         if (!$evenement->relationLoaded('tachesBloquees')) {
             $evenement->load('tachesBloquees');
+        }
+        if (!$evenement->relationLoaded('calendriers')) {
+            $evenement->load('calendriers');
         }
 
         return [
@@ -50,14 +53,14 @@ class WebhookEvenementPayloadBuilder
             'action'     => 'upsert',
             'genere_le'  => now()->toIso8601String(),
             'evenement'  => [
-                'id'             => $evenement->id,
-                'nom'            => $evenement->nom,
-                'date_debut'     => $evenement->date_debut->toDateString(),
-                'date_fin'       => $evenement->date_fin->toDateString(),
-                'description'    => $evenement->description ?? '',
-                'calendar_name'  => $evenement->calendar_name,
+                'id'              => $evenement->id,
+                'nom'             => $evenement->nom,
+                'date_debut'      => $evenement->date_debut->toDateString(),
+                'date_fin'        => $evenement->date_fin->toDateString(),
+                'description'     => $evenement->description ?? '',
+                'calendar_names'  => $evenement->calendarNames(),
                 'taches_bloquees' => $evenement->tachesBloquees->pluck('code')->values()->all(),
-                'informatif'     => $evenement->tachesBloquees->isEmpty(),
+                'informatif'      => $evenement->tachesBloquees->isEmpty(),
             ],
         ];
     }
@@ -69,16 +72,20 @@ class WebhookEvenementPayloadBuilder
      */
     public function buildDelete(Evenement $evenement): array
     {
+        if (!$evenement->relationLoaded('calendriers')) {
+            $evenement->load('calendriers');
+        }
+
         return [
             'type'      => 'evenement',
             'action'    => 'delete',
             'genere_le' => now()->toIso8601String(),
             'evenement' => [
-                'id'            => $evenement->id,
-                'nom'           => $evenement->nom,
-                'date_debut'    => $evenement->date_debut->toDateString(),
-                'date_fin'      => $evenement->date_fin->toDateString(),
-                'calendar_name' => $evenement->calendar_name,
+                'id'             => $evenement->id,
+                'nom'            => $evenement->nom,
+                'date_debut'     => $evenement->date_debut->toDateString(),
+                'date_fin'       => $evenement->date_fin->toDateString(),
+                'calendar_names' => $evenement->calendarNames(),
             ],
         ];
     }

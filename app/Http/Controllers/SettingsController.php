@@ -138,6 +138,7 @@ class SettingsController extends Controller
             'assistance_amana_food' => 'Assistance Amana Food',
             'annonce_cours' => 'Annonce Cours',
             'message_bot' => 'Message Bot',
+            'annulation_cours' => 'Annulation Cours',
         ];
 
         $groupes = [];
