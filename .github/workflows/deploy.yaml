@@ -166,3 +166,9 @@ jobs:
             $PHP_BIN artisan optimize
             $PHP_BIN artisan up
           EOF
+
+      - name: Clear Cloudflare/WP Super Cache
+        run: |
+          curl -sS -f "${{ vars.CACHE_CLEAR_URL }}?token=${{ secrets.CACHE_CLEAR_TOKEN }}" \
+            -o response.json -w "HTTP %{http_code}\n"
+          cat response.json
