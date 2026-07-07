@@ -69,21 +69,20 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-build
-          path: deploy
-
-      # Only needed to access .github/deploy/.env.production.template,
-      # which was stripped from the build artifact above. Sparse checkout
-      # keeps this fast and avoids pulling in anything else.
+      # Runs first so its default `git clean -ffdx` doesn't wipe out the
+      # artifact downloaded in the next step (both share GITHUB_WORKSPACE).
       - name: Checkout (for .env template only)
         uses: actions/checkout@v4
         with:
           sparse-checkout: |
             .github/deploy/.env.production.template
           sparse-checkout-cone-mode: false
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-build
+          path: deploy
 
       - name: Render production .env
         env:
@@ -169,6 +168,5 @@ jobs:
 
       - name: Clear Cloudflare/WP Super Cache
         run: |
-          curl -sS -f "${{ vars.CACHE_CLEAR_URL }}?token=${{ secrets.CACHE_CLEAR_TOKEN }}" \
-            -o response.json -w "HTTP %{http_code}\n"
+          curl -sS -f "${{ vars.CACHE_CLEAR_URL }}?token=${{ secrets.CACHE_CLEAR_TOKEN }}" -o response.json -w "HTTP %{http_code}\n"
           cat response.json
