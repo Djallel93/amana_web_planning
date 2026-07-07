@@ -78,7 +78,7 @@ graph TD
 - **PDF :** barryvdh/laravel-dompdf
 - **Queue :** Laravel Queue (driver `database` en prod, `sync` supporté en dev)
 - **Automatisation externe :** Make.com via webhook (planning, événements organisationnels **et** annulations de cours)
-- **CI/CD :** GitHub Actions (`.github/workflows/deploy.yaml`) — build (`composer install` + `npm run build`) et déploiement automatique sur IONOS par SSH/rsync à chaque push sur `tailwind`. Voir [docs/installation.md](docs/installation.md#déploiement-en-production--pipeline-github-actions--ionos).
+- **CI/CD :** GitHub Actions (`.github/workflows/deploy.yaml`) — build (`composer install` + `npm run build`) et déploiement automatique sur IONOS par SSH/rsync à chaque push sur `main`. Voir [docs/installation.md](docs/installation.md#déploiement-en-production--pipeline-github-actions--ionos).
 
 **Configuration dynamique :**
 
@@ -1164,7 +1164,7 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doive
 
 ## Déploiement — pipeline GitHub Actions → IONOS
 
-Le déploiement est **automatisé** : chaque push sur la branche `tailwind` déclenche `.github/workflows/deploy.yaml`, qui build l'application (Composer + `npm run build`) puis la livre sur IONOS par SSH/rsync. Il n'y a **plus** de déploiement manuel par `git pull` sur le serveur.
+Le déploiement est **automatisé** : chaque push sur la branche `main` déclenche `.github/workflows/deploy.yaml`, qui build l'application (Composer + `npm run build`) puis la livre sur IONOS par SSH/rsync. Il n'y a **plus** de déploiement manuel par `git pull` sur le serveur.
 
 ➡️ **Documentation complète du pipeline** (étapes détaillées, secrets/variables GitHub requis, détection du premier déploiement, dépannage) : [docs/installation.md § Déploiement en production](docs/installation.md#déploiement-en-production--pipeline-github-actions--ionos).
 
@@ -1213,7 +1213,7 @@ APP_EMERGENCY_KEY=
 | Étape | Action                                                     | Vérification                                                                                                               |
 | ----- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | 1     | Définir tous les secrets/variables GitHub requis           | Voir [docs/installation.md § Configuration requise](docs/installation.md#configuration-requise--secrets--variables-github) |
-| 2     | Déployer via GitHub Actions (push sur `tailwind`)          | Pipeline vert dans l'onglet **Actions** de GitHub                                                                          |
+| 2     | Déployer via GitHub Actions (push sur `main`)          | Pipeline vert dans l'onglet **Actions** de GitHub                                                                          |
 | 3     | Vérifier que la migration s'est exécutée                   | Aller dans phpMyAdmin — les tables existent (`migrate:fresh --seed` au premier déploiement)                                |
 | 4     | Définir le mot de passe du premier admin                   | Voir [Outil d'urgence `/urgence-hash`](#outil-durgence-post-déploiement----urgence-hash)                                   |
 | 5     | Se connecter et aller sur **Diagnostic SMTP**              | Sidebar → 🔧 Diagnostic SMTP                                                                                               |
