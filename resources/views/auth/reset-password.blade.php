@@ -16,7 +16,7 @@
         <div class="absolute -bottom-20 -right-20 w-72 h-72 rounded-full bg-sky-400/15 blur-3xl pointer-events-none"></div>
         <div class="relative z-10 text-center max-w-sm">
             <div class="w-20 h-20 mx-auto mb-6 rounded-full overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
-                <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover scale-125">
+                <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover scale-90">
             </div>
             <h1 class="font-heading text-3xl font-semibold text-white mb-2.5 tracking-tight">AMANA Planning</h1>
             <p class="text-[14.5px] text-white/45 leading-relaxed mb-8">Choisissez un mot de passe sécurisé pour protéger votre compte.</p>

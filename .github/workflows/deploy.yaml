@@ -166,7 +166,16 @@ jobs:
             $PHP_BIN artisan up
           EOF
 
-      - name: Clear Cloudflare/WP Super Cache
+      - name: Clear Cloudflare Cache
         run: |
-          curl -sS -f "${{ vars.CACHE_CLEAR_URL }}?token=${{ secrets.CACHE_CLEAR_TOKEN }}" -o response.json -w "HTTP %{http_code}\n"
-          cat response.json
+          curl \
+            --silent \
+            --show-error \
+            --fail \
+            --request POST \
+            --header "Authorization: Bearer ${{ secrets.CACHE_CLEAR_TOKEN }}" \
+            --header "Content-Type: application/json" \
+            --data '{"purge_everything":true}' \
+            "${{ vars.CACHE_CLEAR_URL }}" \
+            --output response.json \
+            --write-out "HTTP %{http_code}\n"
