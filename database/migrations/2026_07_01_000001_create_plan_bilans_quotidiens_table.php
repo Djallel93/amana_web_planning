@@ -16,8 +16,14 @@ use Illuminate\Support\Facades\Schema;
  * ── Un seul enregistrement partagé par date ────────────────────────────────
  * Contrairement à plan_absences (une ligne par personne), il n'existe qu'UN
  * SEUL bilan par date — visible et modifiable par tous les utilisateurs
- * connectés (pas de notion de propriétaire). `date` est donc unique, et
- * chaque sauvegarde fait un upsert (updateOrCreate) plutôt qu'un insert.
+ * connectés (pas de notion de propriétaire). `date` est donc unique.
+ *
+ * ── Deux groupes indépendants ───────────────────────────────────────────────
+ * Amana food et Présences ont chacun leurs propres colonnes de méta
+ * (id_personne_maj_*, maj_*_at) et sont enregistrés séparément (upsert par
+ * groupe), pour que deux personnes puissent éditer les deux groupes en
+ * parallèle sans que l'une écrase les valeurs de l'autre avec une copie
+ * obsolète.
  */
 return new class extends Migration {
     public function up(): void
@@ -28,23 +34,35 @@ return new class extends Migration {
             $table->date('date')->unique('uq_bilans_date');
 
             // ── Amana food ────────────────────────────────────────────────
+            // Saisie et méta séparées de Présences : deux personnes différentes
+            // peuvent éditer chaque groupe en parallèle, chacune avec son
+            // propre bouton d'enregistrement — pas d'upsert global qui
+            // écraserait l'autre groupe avec des valeurs obsolètes.
             $table->decimal('montant_carte', 8, 2)->default(0)
                 ->comment('Montant collecté par carte bancaire');
             $table->decimal('montant_espece', 8, 2)->default(0)
                 ->comment('Montant collecté en espèces');
+            $table->unsignedInteger('id_personne_maj_food')->nullable()
+                ->comment('Dernière personne ayant modifié le groupe Amana food');
+            $table->timestamp('maj_food_at')->nullable()
+                ->comment('Date de dernière modification du groupe Amana food');
 
             // ── Présences ─────────────────────────────────────────────────
             $table->unsignedSmallInteger('nb_presents')->default(0)
                 ->comment('Nombre de personnes présentes sur place');
             $table->unsignedSmallInteger('nb_en_ligne')->default(0)
                 ->comment('Nombre de personnes connectées en ligne');
+            $table->unsignedInteger('id_personne_maj_presence')->nullable()
+                ->comment('Dernière personne ayant modifié le groupe Présences');
+            $table->timestamp('maj_presence_at')->nullable()
+                ->comment('Date de dernière modification du groupe Présences');
 
-            // ── Méta ──────────────────────────────────────────────────────
-            $table->unsignedInteger('id_personne_maj')->nullable()
-                ->comment('Dernière personne ayant modifié ce bilan');
             $table->timestamps();
 
-            $table->foreign('id_personne_maj')
+            $table->foreign('id_personne_maj_food')
+                ->references('id')->on('ref_personnes')
+                ->onDelete('set null');
+            $table->foreign('id_personne_maj_presence')
                 ->references('id')->on('ref_personnes')
                 ->onDelete('set null');
         });

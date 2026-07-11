@@ -26,6 +26,7 @@ class AuditLog extends Model
 
     protected $fillable = [
         'user_id',
+        'id_application',
         'action',
         'module',
         'entity_id',
@@ -50,5 +51,14 @@ class AuditLog extends Model
     public function personne(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'user_id');
+    }
+
+    /**
+     * L'application (ref_applications) à l'origine de cette entrée.
+     * Permet à plusieurs applications AMANA de partager cette table.
+     */
+    public function application(): BelongsTo
+    {
+        return $this->belongsTo(Application::class, 'id_application');
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Helpers\AuditHelper;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Personne;
@@ -75,7 +76,11 @@ class AuditLogController extends Controller
             'to'      => ['nullable', 'date', 'after_or_equal:from'],
         ]);
 
+        // Scopé à cette application — audit_logs est partagée entre plusieurs
+        // apps AMANA (voir id_application), le journal ne doit montrer que
+        // ses propres entrées.
         $query = AuditLog::with('personne')
+            ->where('id_application', AuditHelper::applicationId())
             ->when($request->filled('module'), fn($q) => $q->where('module', $request->query('module')))
             ->when($request->filled('action'), fn($q) => $q->where('action', $request->query('action')))
             ->when($request->filled('user_id'), fn($q) => $q->where('user_id', $request->query('user_id')))

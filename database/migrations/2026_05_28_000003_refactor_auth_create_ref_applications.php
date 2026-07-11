@@ -41,10 +41,22 @@ return new class extends Migration
             'libelle' => 'AMANA Planning',
             'actif'   => true,
         ]);
+
+        // audit_logs.id_application (colonne créée dans 2026_05_24_000000, avant
+        // que cette table n'existe) peut désormais être contrainte par FK.
+        Schema::table('audit_logs', function (Blueprint $table) {
+            $table->foreign('id_application')
+                ->references('id')->on('ref_applications')
+                ->nullOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('audit_logs', function (Blueprint $table) {
+            $table->dropForeign(['id_application']);
+        });
+
         Schema::dropIfExists('ref_applications');
     }
 };

@@ -11,6 +11,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'AMANA Planning')</title>
 
+    @include('partials.favicon')
+
     {{--
         Applique le thème (clair/sombre) avant le premier rendu, pour éviter
         un flash de thème clair au chargement si l'utilisateur a choisi le

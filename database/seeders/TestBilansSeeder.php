@@ -96,11 +96,14 @@ class TestBilansSeeder extends Seeder
             $bilan = Bilan::updateOrCreate(
                 ['date' => $date],
                 [
-                    'montant_carte'   => fake()->randomFloat(2, 40, 220),
-                    'montant_espece'  => fake()->randomFloat(2, 15, 130),
-                    'nb_presents'     => fake()->numberBetween(20, 70),
-                    'nb_en_ligne'     => fake()->numberBetween(0, 20),
-                    'id_personne_maj' => $personnes->random()->id,
+                    'montant_carte'            => fake()->randomFloat(2, 40, 220),
+                    'montant_espece'           => fake()->randomFloat(2, 15, 130),
+                    'id_personne_maj_food'     => $personnes->random()->id,
+                    'maj_food_at'              => now(),
+                    'nb_presents'              => fake()->numberBetween(20, 70),
+                    'nb_en_ligne'              => fake()->numberBetween(0, 20),
+                    'id_personne_maj_presence' => $personnes->random()->id,
+                    'maj_presence_at'          => now(),
                 ]
             );
 

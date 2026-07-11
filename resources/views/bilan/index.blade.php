@@ -17,10 +17,13 @@
 
 {{--
     Point de montage BilanView.vue — date picker + sections "Amana food" et
-    "Présences". Les données sont chargées/enregistrées via GET/POST
-    /bilan/data (BilanController), un enregistrement unique et partagé par
-    date (pas de propriétaire — n'importe quel utilisateur connecté peut
-    consulter et modifier n'importe quelle date).
+    "Présences", chacune avec son propre bouton d'enregistrement. Les
+    données sont chargées via GET /bilan/data et enregistrées via
+    POST /bilan/data/amana-food ou /bilan/data/presence (BilanController),
+    indépendamment l'une de l'autre — pas de propriétaire (n'importe quel
+    utilisateur connecté peut consulter et modifier n'importe quelle date),
+    mais deux personnes peuvent éditer les deux groupes en parallèle sans
+    s'écraser.
 --}}
 <div id="vue-bilan"></div>
 
@@ -32,6 +35,8 @@
         csrf: document.querySelector('meta[name="csrf-token"]').content,
         routes: {
             data: '{{ route('bilan.data.show') }}',
+            storeAmanaFood: '{{ route('bilan.data.store.amana-food') }}',
+            storePresence: '{{ route('bilan.data.store.presence') }}',
         },
     };
 </script>

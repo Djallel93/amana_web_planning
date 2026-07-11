@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\AuditHelper;
 use App\Models\AuditLog;
 use App\Models\Personne;
 use Illuminate\Support\Collection;
@@ -28,7 +29,10 @@ class AuditStatistics
      */
     public function computeAll(string $from, string $to): array
     {
+        // Scopé à cette application — audit_logs est partagée entre plusieurs
+        // apps AMANA (voir id_application).
         $logs = AuditLog::with('personne')
+            ->where('id_application', AuditHelper::applicationId())
             ->whereDate('created_at', '>=', $from)
             ->whereDate('created_at', '<=', $to)
             ->get();

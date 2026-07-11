@@ -87,7 +87,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('bilan')->name('bilan.')->group(function () {
         Route::get('/', [BilanController::class, 'index'])->name('index');
         Route::get('/data', [BilanController::class, 'show'])->name('data.show');
-        Route::post('/data', [BilanController::class, 'store'])->name('data.store');
+        Route::post('/data/amana-food', [BilanController::class, 'storeAmanaFood'])->name('data.store.amana-food');
+        Route::post('/data/presence', [BilanController::class, 'storePresence'])->name('data.store.presence');
         Route::get('/statistiques', [BilanController::class, 'statistiques'])->name('statistiques');
         Route::get('/statistiques/data', [BilanController::class, 'statistiquesData'])->name('statistiques.data');
     });

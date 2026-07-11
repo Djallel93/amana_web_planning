@@ -2,15 +2,19 @@
 <!--
     Vue racine de la page Bilan — remplace entièrement le contenu dynamique
     de bilan/index.blade.php (date picker + sections Amana food / Présences),
-    en consommant GET/POST /bilan/data (BilanController), à l'image de
-    PlanningGrid.vue pour /planning/data.
+    en consommant GET /bilan/data et POST /bilan/data/amana-food ou
+    /bilan/data/presence (BilanController), à l'image de PlanningGrid.vue
+    pour /planning/data.
 
-    ── Enregistrement unique et partagé par date ─────────────────────────────
+    ── Deux groupes, deux boutons ─────────────────────────────────────────────
     Il n'y a pas de notion de propriétaire ici : n'importe quel utilisateur
     connecté peut consulter ET modifier le bilan de n'importe quelle date.
-    Changer de date déclenche un nouveau chargement ; le formulaire est
-    pré-rempli avec les valeurs existantes (ou à zéro si rien n'a encore été
-    saisi pour cette date).
+    Amana food et Présences ont chacun leur propre bouton d'enregistrement et
+    n'envoient que leurs propres champs, pour que deux personnes puissent
+    éditer les deux groupes en parallèle sans que l'une écrase les valeurs
+    de l'autre avec une copie obsolète. Changer de date déclenche un nouveau
+    chargement ; le formulaire est pré-rempli avec les valeurs existantes
+    (ou à zéro si rien n'a encore été saisi pour cette date).
 -->
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
@@ -18,21 +22,23 @@ import { useToast } from '@/composables/useToast';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 interface BilanData {
-    date:           string;
-    montantCarte:   number;
-    montantEspece:  number;
-    nbPresents:     number;
-    nbEnLigne:      number;
-    existe:         boolean;
-    derniereMaj:    string | null;
-    derniereMajPar: string | null;
+    date:                    string;
+    montantCarte:            number;
+    montantEspece:           number;
+    nbPresents:              number;
+    nbEnLigne:               number;
+    existe:                  boolean;
+    derniereMajFood:         string | null;
+    derniereMajFoodPar:      string | null;
+    derniereMajPresence:     string | null;
+    derniereMajPresencePar:  string | null;
 }
 
 declare global {
     interface Window {
         BilanConfig: {
             csrf:   string;
-            routes: { data: string };
+            routes: { data: string; storeAmanaFood: string; storePresence: string };
         };
     }
 }
@@ -52,12 +58,15 @@ const montantEspece = ref(0);
 const nbPresents    = ref(0);
 const nbEnLigne     = ref(0);
 const existe        = ref(false);
-const derniereMaj   = ref<string | null>(null);
-const derniereMajPar = ref<string | null>(null);
+const derniereMajFood        = ref<string | null>(null);
+const derniereMajFoodPar     = ref<string | null>(null);
+const derniereMajPresence    = ref<string | null>(null);
+const derniereMajPresencePar = ref<string | null>(null);
 
 type LoadState = 'idle' | 'loading' | 'loaded' | 'error';
-const loadState  = ref<LoadState>('idle');
-const saving     = ref(false);
+const loadState    = ref<LoadState>('idle');
+const savingFood     = ref(false);
+const savingPresence = ref(false);
 
 // ── CSRF ──────────────────────────────────────────────────────────────────
 function getCsrf(): string {
@@ -82,8 +91,10 @@ async function loadBilan(): Promise<void> {
         nbPresents.value     = data.nbPresents;
         nbEnLigne.value      = data.nbEnLigne;
         existe.value         = data.existe;
-        derniereMaj.value    = data.derniereMaj;
-        derniereMajPar.value = data.derniereMajPar;
+        derniereMajFood.value        = data.derniereMajFood;
+        derniereMajFoodPar.value     = data.derniereMajFoodPar;
+        derniereMajPresence.value    = data.derniereMajPresence;
+        derniereMajPresencePar.value = data.derniereMajPresencePar;
 
         loadState.value = 'loaded';
     } catch {
@@ -96,10 +107,13 @@ watch(date, () => loadBilan());
 onMounted(() => loadBilan());
 
 // ── Enregistrement ────────────────────────────────────────────────────────
-async function save(): Promise<void> {
-    saving.value = true;
+// Deux fonctions indépendantes : chaque groupe a son propre bouton et
+// n'envoie que ses propres champs, pour que deux personnes puissent éditer
+// Amana food et Présences en parallèle sans s'écraser l'une l'autre.
+async function saveAmanaFood(): Promise<void> {
+    savingFood.value = true;
     try {
-        const res = await fetch(window.BilanConfig.routes.data, {
+        const res = await fetch(window.BilanConfig.routes.storeAmanaFood, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -110,17 +124,15 @@ async function save(): Promise<void> {
                 date:           date.value,
                 montant_carte:  montantCarte.value,
                 montant_espece: montantEspece.value,
-                nb_presents:    nbPresents.value,
-                nb_en_ligne:    nbEnLigne.value,
             }),
         });
 
         const data = await res.json() as { success: boolean; message: string; bilan?: BilanData };
 
         if (data.success && data.bilan) {
-            existe.value         = data.bilan.existe;
-            derniereMaj.value    = data.bilan.derniereMaj;
-            derniereMajPar.value = data.bilan.derniereMajPar;
+            existe.value              = data.bilan.existe;
+            derniereMajFood.value     = data.bilan.derniereMajFood;
+            derniereMajFoodPar.value  = data.bilan.derniereMajFoodPar;
             toast.success(data.message);
         } else {
             toast.error(data.message || 'Erreur lors de l\'enregistrement.');
@@ -128,7 +140,41 @@ async function save(): Promise<void> {
     } catch {
         toast.error('Erreur réseau.');
     } finally {
-        saving.value = false;
+        savingFood.value = false;
+    }
+}
+
+async function savePresence(): Promise<void> {
+    savingPresence.value = true;
+    try {
+        const res = await fetch(window.BilanConfig.routes.storePresence, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrf(),
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                date:        date.value,
+                nb_presents: nbPresents.value,
+                nb_en_ligne: nbEnLigne.value,
+            }),
+        });
+
+        const data = await res.json() as { success: boolean; message: string; bilan?: BilanData };
+
+        if (data.success && data.bilan) {
+            existe.value                  = data.bilan.existe;
+            derniereMajPresence.value     = data.bilan.derniereMajPresence;
+            derniereMajPresencePar.value  = data.bilan.derniereMajPresencePar;
+            toast.success(data.message);
+        } else {
+            toast.error(data.message || 'Erreur lors de l\'enregistrement.');
+        }
+    } catch {
+        toast.error('Erreur réseau.');
+    } finally {
+        savingPresence.value = false;
     }
 }
 </script>
@@ -147,9 +193,6 @@ async function save(): Promise<void> {
 
             <span v-if="loadState === 'loaded' && !existe" class="text-[12.5px] text-ink-muted">
                 Aucun bilan enregistré pour cette date — les champs sont à zéro.
-            </span>
-            <span v-else-if="loadState === 'loaded' && existe && derniereMajPar" class="text-[12.5px] text-ink-muted">
-                Dernière modification par <strong>{{ derniereMajPar }}</strong> le {{ derniereMaj }}
             </span>
         </div>
 
@@ -187,6 +230,22 @@ async function save(): Promise<void> {
                                    focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                         >
                     </div>
+
+                    <span v-if="derniereMajFoodPar" class="text-[11.5px] text-ink-muted">
+                        Dernière modification par <strong>{{ derniereMajFoodPar }}</strong> le {{ derniereMajFood }}
+                    </span>
+
+                    <button
+                        type="button"
+                        class="min-h-[44px] px-5 py-2.5 bg-accent hover:bg-accent-dark text-white font-bold text-[13px] rounded-lg
+                               shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer
+                               flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                        :disabled="savingFood"
+                        @click="saveAmanaFood"
+                    >
+                        <span v-if="savingFood">⏳ Enregistrement…</span>
+                        <span v-else>💾 Enregistrer Amana food</span>
+                    </button>
                 </div>
             </div>
 
@@ -213,23 +272,24 @@ async function save(): Promise<void> {
                                    focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                         >
                     </div>
+
+                    <span v-if="derniereMajPresencePar" class="text-[11.5px] text-ink-muted">
+                        Dernière modification par <strong>{{ derniereMajPresencePar }}</strong> le {{ derniereMajPresence }}
+                    </span>
+
+                    <button
+                        type="button"
+                        class="min-h-[44px] px-5 py-2.5 bg-accent hover:bg-accent-dark text-white font-bold text-[13px] rounded-lg
+                               shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer
+                               flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                        :disabled="savingPresence"
+                        @click="savePresence"
+                    >
+                        <span v-if="savingPresence">⏳ Enregistrement…</span>
+                        <span v-else>💾 Enregistrer Présences</span>
+                    </button>
                 </div>
             </div>
-        </div>
-
-        <!-- ── Enregistrer ── -->
-        <div v-if="loadState === 'loaded'">
-            <button
-                type="button"
-                class="min-h-[48px] px-5 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-[13.5px] rounded-lg
-                       shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer
-                       flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                :disabled="saving"
-                @click="save"
-            >
-                <span v-if="saving">⏳ Enregistrement…</span>
-                <span v-else>💾 Enregistrer le bilan</span>
-            </button>
         </div>
     </div>
 </template>

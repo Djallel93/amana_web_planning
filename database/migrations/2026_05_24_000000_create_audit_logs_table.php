@@ -24,6 +24,12 @@ return new class extends Migration {
             $table->unsignedInteger('user_id')->nullable()
                 ->comment('ID de ref_personnes — null pour les actions système');
 
+            // Contrainte FK ajoutée dans 2026_05_28_000003 (une fois ref_applications
+            // créée — cette table doit rester exécutable avant elle). Permet à
+            // plusieurs applications AMANA de partager cette même table d'audit.
+            $table->unsignedTinyInteger('id_application')->nullable()
+                ->comment('ID de ref_applications — application à l\'origine de l\'entrée');
+
             $table->string('action', 100)->comment('Type d\'action : create, update, delete, generate, login, logout, webhook');
             $table->string('module', 100)->comment('Module concerné : personnes, planning, restrictions, absences, evenements, auth, settings');
             $table->unsignedBigInteger('entity_id')->nullable()->comment('ID de l\'entité concernée');
@@ -35,6 +41,7 @@ return new class extends Migration {
             $table->timestamps();
 
             $table->index('user_id');
+            $table->index('id_application');
         });
     }
 

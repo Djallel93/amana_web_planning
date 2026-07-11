@@ -5,7 +5,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Bilan\StoreBilanRequest;
+use App\Http\Requests\Bilan\StoreBilanAmanaFoodRequest;
+use App\Http\Requests\Bilan\StoreBilanPresenceRequest;
 use App\Models\Bilan;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
@@ -21,11 +22,18 @@ use Illuminate\View\View;
  * consulter et modifier n'importe quelle date, au même titre.
  *
  * Routes :
- *   GET  /bilan                       → shell Blade (point de montage BilanView.vue)
- *   GET  /bilan/data?date=            → JSON : bilan existant pour une date (ou vide)
- *   POST /bilan/data                  → upsert du bilan pour une date
- *   GET  /bilan/statistiques          → shell Blade (point de montage BilanStatistiques.vue)
- *   GET  /bilan/statistiques/data     → JSON : série + cartes de stats sur une période
+ *   GET  /bilan                             → shell Blade (point de montage BilanView.vue)
+ *   GET  /bilan/data?date=                  → JSON : bilan existant pour une date (ou vide)
+ *   POST /bilan/data/amana-food             → upsert du groupe Amana food pour une date
+ *   POST /bilan/data/presence               → upsert du groupe Présences pour une date
+ *   GET  /bilan/statistiques                → shell Blade (point de montage BilanStatistiques.vue)
+ *   GET  /bilan/statistiques/data           → JSON : série + cartes de stats sur une période
+ *
+ * ── Deux groupes, deux boutons ──────────────────────────────────────────────
+ * Amana food (montants) et Présences (effectifs) sont enregistrés
+ * indépendamment. Deux personnes peuvent éditer chaque groupe en même temps
+ * sans que l'une n'écrase les valeurs de l'autre avec une copie obsolète —
+ * chaque upsert ne touche que les colonnes de son propre groupe.
  */
 class BilanController extends Controller
 {
@@ -50,60 +58,118 @@ class BilanController extends Controller
         ]);
 
         $date  = $request->query('date');
-        $bilan = Bilan::with('personneMaj')->whereDate('date', $date)->first();
+        $bilan = Bilan::with(['personneMajFood', 'personneMajPresence'])->whereDate('date', $date)->first();
 
         return response()->json($this->serialize($date, $bilan));
     }
 
     /**
-     * Enregistre (crée ou met à jour) le bilan d'une date.
+     * Enregistre (crée ou met à jour) uniquement le groupe Amana food d'un
+     * bilan — n'écrit que ses propres colonnes, sans toucher au groupe
+     * Présences, même si celui-ci a été modifié entre-temps par quelqu'un
+     * d'autre.
      *
-     * POST /bilan/data
+     * POST /bilan/data/amana-food
      */
-    public function store(StoreBilanRequest $request): JsonResponse
+    public function storeAmanaFood(StoreBilanAmanaFoodRequest $request): JsonResponse
     {
         /** @var \App\Models\Personne $user */
         $user = Auth::user();
 
-        $date  = $request->validated('date');
-        $avant = Bilan::whereDate('date', $date)->first()?->toArray();
+        $date   = $request->validated('date');
+        $existant = Bilan::whereDate('date', $date)->first();
+        $avant  = $existant?->only(['montant_carte', 'montant_espece']);
 
         $bilan = Bilan::updateOrCreate(
             ['date' => $date],
             [
-                'montant_carte'   => $request->validated('montant_carte'),
-                'montant_espece'  => $request->validated('montant_espece'),
-                'nb_presents'     => $request->validated('nb_presents'),
-                'nb_en_ligne'     => $request->validated('nb_en_ligne'),
-                'id_personne_maj' => $user->id,
+                'montant_carte'        => $request->validated('montant_carte'),
+                'montant_espece'       => $request->validated('montant_espece'),
+                'id_personne_maj_food' => $user->id,
+                'maj_food_at'          => now(),
             ]
         );
-        $bilan->load('personneMaj');
+        $bilan->load(['personneMajFood', 'personneMajPresence']);
 
-        audit($avant ? 'update' : 'create', 'bilan', $bilan->id, $avant, $bilan->toArray());
+        audit(
+            $existant ? 'update' : 'create',
+            'bilan',
+            $bilan->id,
+            $avant,
+            $bilan->only(['montant_carte', 'montant_espece'])
+        );
 
         return response()->json([
             'success' => true,
-            'message' => 'Bilan enregistré.',
+            'message' => 'Bilan Amana food enregistré.',
+            'bilan'   => $this->serialize($date, $bilan),
+        ]);
+    }
+
+    /**
+     * Enregistre (crée ou met à jour) uniquement le groupe Présences d'un
+     * bilan — n'écrit que ses propres colonnes, sans toucher au groupe
+     * Amana food, même si celui-ci a été modifié entre-temps par quelqu'un
+     * d'autre.
+     *
+     * POST /bilan/data/presence
+     */
+    public function storePresence(StoreBilanPresenceRequest $request): JsonResponse
+    {
+        /** @var \App\Models\Personne $user */
+        $user = Auth::user();
+
+        $date     = $request->validated('date');
+        $existant = Bilan::whereDate('date', $date)->first();
+        $avant    = $existant?->only(['nb_presents', 'nb_en_ligne']);
+
+        $bilan = Bilan::updateOrCreate(
+            ['date' => $date],
+            [
+                'nb_presents'              => $request->validated('nb_presents'),
+                'nb_en_ligne'              => $request->validated('nb_en_ligne'),
+                'id_personne_maj_presence' => $user->id,
+                'maj_presence_at'          => now(),
+            ]
+        );
+        $bilan->load(['personneMajFood', 'personneMajPresence']);
+
+        audit(
+            $existant ? 'update' : 'create',
+            'bilan',
+            $bilan->id,
+            $avant,
+            $bilan->only(['nb_presents', 'nb_en_ligne'])
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Bilan Présences enregistré.',
             'bilan'   => $this->serialize($date, $bilan),
         ]);
     }
 
     /**
      * Sérialise un bilan (ou son absence) pour le format attendu par BilanView.vue.
+     * Chaque groupe (Amana food / Présences) porte sa propre méta de dernière
+     * modification, puisqu'ils sont enregistrés indépendamment.
      */
     private function serialize(string $date, ?Bilan $bilan): array
     {
         return [
-            'date'           => $date,
-            'montantCarte'   => $bilan ? (float) $bilan->montant_carte : 0.0,
-            'montantEspece'  => $bilan ? (float) $bilan->montant_espece : 0.0,
-            'nbPresents'     => $bilan?->nb_presents ?? 0,
-            'nbEnLigne'      => $bilan?->nb_en_ligne ?? 0,
-            'existe'         => $bilan !== null,
-            'derniereMaj'    => $bilan?->updated_at?->locale('fr')->isoFormat('D MMM YYYY [à] HH:mm'),
-            'derniereMajPar' => $bilan?->personneMaj
-                ? $bilan->personneMaj->prenom . ' ' . $bilan->personneMaj->nom
+            'date'                  => $date,
+            'montantCarte'          => $bilan ? (float) $bilan->montant_carte : 0.0,
+            'montantEspece'         => $bilan ? (float) $bilan->montant_espece : 0.0,
+            'nbPresents'            => $bilan?->nb_presents ?? 0,
+            'nbEnLigne'             => $bilan?->nb_en_ligne ?? 0,
+            'existe'                => $bilan !== null,
+            'derniereMajFood'       => $bilan?->maj_food_at?->locale('fr')->isoFormat('D MMM YYYY [à] HH:mm'),
+            'derniereMajFoodPar'    => $bilan?->personneMajFood
+                ? $bilan->personneMajFood->prenom . ' ' . $bilan->personneMajFood->nom
+                : null,
+            'derniereMajPresence'    => $bilan?->maj_presence_at?->locale('fr')->isoFormat('D MMM YYYY [à] HH:mm'),
+            'derniereMajPresencePar' => $bilan?->personneMajPresence
+                ? $bilan->personneMajPresence->prenom . ' ' . $bilan->personneMajPresence->nom
                 : null,
         ];
     }
