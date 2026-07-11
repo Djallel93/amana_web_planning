@@ -12,6 +12,7 @@ use App\Http\Controllers\CalendriersController;
 use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EchangeController;
 use App\Http\Controllers\EmergencyController;
+use App\Http\Controllers\GuideController;
 use App\Http\Controllers\MonPlanningController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\PlanningApiController;
@@ -82,6 +83,9 @@ Route::middleware('auth')->group(function () {
 
     // ── Mon planning (vue personnelle) — tous les membres connectés ────────
     Route::get('/mon-planning', [MonPlanningController::class, 'index'])->name('mon-planning');
+
+    // ── Guide d'utilisation — tous les membres connectés (contenu adapté au rôle) ──
+    Route::get('/guide', [GuideController::class, 'index'])->name('guide.index');
 
     // ── Bilan quotidien (Amana food + Présences) — tous les membres connectés ──
     Route::prefix('bilan')->name('bilan.')->group(function () {

@@ -261,6 +261,17 @@
             @endif
         @endauth
 
+        {{-- Section : Aide — tous les utilisateurs connectés --}}
+        <p class="px-2.5 mb-1 mt-3 text-[9.5px] font-bold tracking-[1.4px] uppercase text-white/20">Aide</p>
+
+        <a href="{{ route('guide.index') }}"
+            class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
+                {{ request()->routeIs('guide.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+            onclick="closeSidebar()">
+            <span class="text-sm w-[18px] text-center flex-shrink-0">❓</span>
+            <span class="flex-1">Guide d'utilisation</span>
+        </a>
+
     </div>
 
     {{-- Footer utilisateur --}}
