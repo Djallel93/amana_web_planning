@@ -5,7 +5,7 @@
     class="sm:hidden fixed top-0 left-0 right-0 h-topbar bg-sidebar z-[300] flex items-center justify-between px-4 border-b border-white/[0.06]">
     <a href="{{ route('planning.index') }}" class="flex items-center gap-2.5 no-underline">
         <span class="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 inline-block">
-            <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover scale-90">
+            <img src="{{ asset('favicon-96x96.png') }}" alt="AMANA" class="w-full h-full object-cover scale-90">
         </span>
         <span class="font-heading text-[15px] font-semibold text-white">AMANA</span>
     </a>
@@ -33,7 +33,8 @@
         <a href="{{ route('planning.index') }}" class="flex items-center gap-[11px] no-underline">
             <span
                 class="w-[38px] h-[38px] rounded-full overflow-hidden flex-shrink-0 shadow-[0_4px_12px_rgba(0,0,0,0.3)] inline-block">
-                <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover scale-90">
+                <img src="{{ asset('public/favicon-96x96.png') }}" alt="AMANA"
+                    class="w-full h-full object-cover scale-90">
             </span>
             <div class="flex flex-col">
                 <span
@@ -51,19 +52,19 @@
             @if(auth()->user()->isAdmin())
                 <div
                     class="mx-1 mb-2.5 px-[11px] py-[7px] rounded-sm text-[11px] font-semibold flex items-center gap-1.5
-                                                                                                                        bg-rose-500/[0.14] text-rose-300 border border-rose-500/[0.22]">
+                                                                                                                                                bg-rose-500/[0.14] text-rose-300 border border-rose-500/[0.22]">
                     🛡️ Administrateur
                 </div>
             @elseif(auth()->user()->isGestionnaire())
                 <div
                     class="mx-1 mb-2.5 px-[11px] py-[7px] rounded-sm text-[11px] font-semibold flex items-center gap-1.5
-                                                                                                                        bg-amber-500/[0.14] text-amber-300 border border-amber-500/[0.22]">
+                                                                                                                                                bg-amber-500/[0.14] text-amber-300 border border-amber-500/[0.22]">
                     ⚙️ Gestionnaire
                 </div>
             @else
                 <div
                     class="mx-1 mb-2.5 px-[11px] py-[7px] rounded-sm text-[11px] font-semibold flex items-center gap-1.5
-                                                                                                                        bg-sky-500/[0.14] text-sky-300 border border-sky-500/[0.22]">
+                                                                                                                                                bg-sky-500/[0.14] text-sky-300 border border-sky-500/[0.22]">
                     👤 Membre
                 </div>
             @endif
@@ -168,7 +169,7 @@
 
                 <a href="{{ route('planning.generate.form') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                        {{ request()->routeIs('planning.generate*') || request()->routeIs('planning.preview') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                                                {{ request()->routeIs('planning.generate*') || request()->routeIs('planning.preview') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">✨</span>
                     <span class="flex-1">Générer</span>
@@ -176,7 +177,7 @@
 
                 <a href="{{ route('evenements.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                        {{ request()->routeIs('evenements.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                                                {{ request()->routeIs('evenements.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">🎉</span>
                     <span class="flex-1">Événements</span>
@@ -185,7 +186,7 @@
                 @php $nbEchangesAdmin = \App\Models\Echange::enAttente()->count(); @endphp
                 <a href="{{ route('admin.echanges.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                        {{ request()->routeIs('admin.echanges.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                                                {{ request()->routeIs('admin.echanges.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">🔄</span>
                     <span class="flex-1">Échanges</span>
@@ -199,7 +200,7 @@
                 @if(Route::has('settings.index'))
                     <a href="{{ route('settings.index') }}"
                         class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                                                                            {{ request()->routeIs('settings.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                                                                                                                {{ request()->routeIs('settings.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                         onclick="closeSidebar()">
                         <span class="text-sm w-[18px] text-center flex-shrink-0">⚙️</span>
                         <span class="flex-1">Paramètres</span>
@@ -215,7 +216,7 @@
 
                 <a href="{{ route('personnes.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                        {{ request()->routeIs('personnes.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                                                {{ request()->routeIs('personnes.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">👥</span>
                     <span class="flex-1">Personnes</span>
@@ -224,7 +225,7 @@
                 @php $nbCandidatures = \App\Models\Personne::enAttente()->count(); @endphp
                 <a href="{{ route('admin.candidatures.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                        {{ request()->routeIs('admin.candidatures*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                                                {{ request()->routeIs('admin.candidatures*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">📥</span>
                     <span class="flex-1">Candidatures</span>
@@ -237,7 +238,7 @@
 
                 <a href="{{ route('diagnostic.mail.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                    {{ request()->routeIs('diagnostic.mail.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                                            {{ request()->routeIs('diagnostic.mail.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">🔧</span>
                     <span class="flex-1">Diagnostic SMTP</span>
@@ -245,7 +246,7 @@
 
                 <a href="{{ route('admin.activite.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                    {{ request()->routeIs('admin.activite.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                                            {{ request()->routeIs('admin.activite.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">📈</span>
                     <span class="flex-1">Statistiques d'activité</span>
@@ -253,7 +254,7 @@
 
                 <a href="{{ route('admin.journal.index') }}"
                     class="relative flex items-center gap-2.5 px-3 py-2 rounded-sm text-[13px] font-medium transition-colors mb-px no-underline
-                                                                                                                    {{ request()->routeIs('admin.journal.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
+                                                                                                                                            {{ request()->routeIs('admin.journal.*') ? 'nav-item-active bg-accent/15 text-accent-light font-semibold' : 'text-white hover:bg-white/[0.06] hover:text-white/75' }}"
                     onclick="closeSidebar()">
                     <span class="text-sm w-[18px] text-center flex-shrink-0">📜</span>
                     <span class="flex-1">Journal d'audit</span>

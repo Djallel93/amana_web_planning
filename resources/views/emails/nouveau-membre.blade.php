@@ -430,7 +430,7 @@
 
             <div class="header">
                 <div class="header-logo">
-                    <img src="{{ $logoCid ?? config('app.url') . '/images/amana-logo.png' }}" alt="AMANA">
+                    <img src="{{ $logoCid ?? config('app.url') . 'favicon-96x96.png' }}" alt="AMANA">
                 </div>
                 <div class="header-brand">AMANA</div>
                 <div class="header-sub">Association Musulmane de l'Agglomération Nantaise et ses Alentours</div>

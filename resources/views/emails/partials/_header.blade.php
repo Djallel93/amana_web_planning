@@ -10,7 +10,7 @@ $titleSub — e.g. 'AMANA Planning'
     <p class="bismillah arabic">بِسْمِ اللهِ الرَّحْمٰنِ الرَّحِيمِ</p>
 
     <div class="header-logo">
-        <img src="{{ $logoCid ?? config('app.url') . '/images/amana-logo.png' }}" alt="AMANA">
+        <img src="{{ $logoCid ?? config('app.url') . 'favicon-96x96.png' }}" alt="AMANA">
     </div>
 
     <div class="header-brand">AMANA</div>
