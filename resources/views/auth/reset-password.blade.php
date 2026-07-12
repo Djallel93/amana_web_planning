@@ -15,19 +15,19 @@
         <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-accent/30 blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-20 -right-20 w-72 h-72 rounded-full bg-sky-400/15 blur-3xl pointer-events-none"></div>
         <div class="relative z-10 text-center max-w-sm">
-        <div class="w-30 h-30 mx-auto mb-6 rounded-full overflow-hidden bg-white shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
-            <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover">
+            <div class="w-20 h-20 mx-auto mb-6 rounded-full overflow-hidden bg-white shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
+            <img src="{{ asset('favicon-96x96.png') }}" alt="AMANA" class="w-full h-full object-cover">
         </div>
             <h1 class="font-heading text-3xl font-semibold text-white mb-2.5 tracking-tight">AMANA Planning</h1>
             <p class="text-[14.5px] text-white/45 leading-relaxed mb-8">Choisissez un mot de passe sécurisé pour protéger votre compte.</p>
 
             <div class="flex flex-col gap-3 text-left">
                 @foreach([
-                    'Au moins 8 caractères',
-                    'Mélangez majuscules et minuscules',
-                    'Ajoutez des chiffres ou symboles',
-                    'Évitez les informations personnelles',
-                ] as $rule)
+    'Au moins 8 caractères',
+    'Mélangez majuscules et minuscules',
+    'Ajoutez des chiffres ou symboles',
+    'Évitez les informations personnelles',
+] as $rule)
                 <div class="flex items-center gap-3 text-white/55 text-[13px]">
                     <div class="w-[26px] h-[26px] bg-white/[0.07] rounded-md flex items-center justify-center text-xs flex-shrink-0">✅</div>
                     <span>{{ $rule }}</span>
@@ -42,7 +42,7 @@
         <div class="w-full max-w-sm">
 
             <div class="flex sm:hidden items-center gap-3 mb-8">
-                <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-9 h-9 rounded-lg object-cover">
+                <img src="{{ asset('favicon-96x96.png') }}" alt="AMANA" class="w-9 h-9 rounded-lg object-cover">
                 <span class="font-heading text-lg font-semibold text-ink">AMANA Planning</span>
             </div>
 
