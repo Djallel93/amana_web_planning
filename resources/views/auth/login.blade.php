@@ -17,9 +17,9 @@
         <div class="absolute -bottom-20 -right-20 w-72 h-72 rounded-full bg-sky-400/15 blur-3xl pointer-events-none"></div>
 
         <div class="relative z-10 text-center max-w-sm">
-            <div class="w-30 h-30 mx-auto mb-6 rounded-full overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
-                <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover scale-100">
-            </div>
+        <div class="w-30 h-30 mx-auto mb-6 rounded-full overflow-hidden bg-white shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
+            <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover">
+        </div>
             <h1 class="font-heading text-3xl font-semibold text-white mb-2.5 tracking-tight">AMANA Planning</h1>
             <p class="text-[14.5px] text-white/45 leading-relaxed">Planification des permanences et rotation équitable des tâches</p>
 
@@ -69,39 +69,39 @@
                 <div class="mb-4">
                     <label for="email" class="block text-xs font-bold text-ink mb-1.5 tracking-[0.2px]">Adresse email</label>
                     <input type="email" id="email" name="email" value="{{ old('email') }}"
-                           autocomplete="email" autofocus placeholder="votre@email.fr"
-                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                  focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
-                                  hover:border-ink-muted">
+                        autocomplete="email" autofocus placeholder="votre@email.fr"
+                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                hover:border-ink-muted">
                     @error('email')<span class="block text-xs text-rose-600 mt-1">{{ $message }}</span>@enderror
                 </div>
 
                 <div class="mb-5">
                     <label for="password" class="block text-xs font-bold text-ink mb-1.5 tracking-[0.2px]">Mot de passe</label>
                     <input type="password" id="password" name="password"
-                           autocomplete="current-password" placeholder="••••••••"
-                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                  focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
-                                  hover:border-ink-muted">
+                        autocomplete="current-password" placeholder="••••••••"
+                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                hover:border-ink-muted">
                     @error('password')<span class="block text-xs text-rose-600 mt-1">{{ $message }}</span>@enderror
                 </div>
 
                 <div class="flex items-center justify-between mb-6 gap-2 flex-wrap">
                     <label class="flex items-center gap-2 text-[13px] text-ink-muted cursor-pointer select-none">
                         <input type="checkbox" id="remember" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}
-                               class="w-4 h-4 accent-accent cursor-pointer">
+                            class="w-4 h-4 accent-accent cursor-pointer">
                         Se souvenir de moi
                     </label>
                     <a href="{{ route('password.request') }}"
-                       class="text-[13px] text-accent font-semibold whitespace-nowrap hover:text-accent-dark hover:underline transition-colors">
+                        class="text-[13px] text-accent font-semibold whitespace-nowrap hover:text-accent-dark hover:underline transition-colors">
                         Mot de passe oublié ?
                     </a>
                 </div>
 
                 <button type="submit"
                         class="w-full min-h-[48px] px-6 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-sm rounded-lg
-                               shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
-                               hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer mb-4">
+                            shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
+                            hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer mb-4">
                     🔐 Se connecter
                 </button>
             </form>

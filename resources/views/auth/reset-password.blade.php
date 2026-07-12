@@ -15,9 +15,9 @@
         <div class="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-accent/30 blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-20 -right-20 w-72 h-72 rounded-full bg-sky-400/15 blur-3xl pointer-events-none"></div>
         <div class="relative z-10 text-center max-w-sm">
-            <div class="w-30 h-30 mx-auto mb-6 rounded-full overflow-hidden shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
-                <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover scale-100">
-            </div>
+        <div class="w-30 h-30 mx-auto mb-6 rounded-full overflow-hidden bg-white shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
+            <img src="{{ asset('images/amana-logo.png') }}" alt="AMANA" class="w-full h-full object-cover">
+        </div>
             <h1 class="font-heading text-3xl font-semibold text-white mb-2.5 tracking-tight">AMANA Planning</h1>
             <p class="text-[14.5px] text-white/45 leading-relaxed mb-8">Choisissez un mot de passe sécurisé pour protéger votre compte.</p>
 
@@ -67,10 +67,10 @@
                 <div class="mb-4">
                     <label for="email" class="block text-xs font-bold text-ink mb-1.5 tracking-[0.2px]">Adresse email</label>
                     <input type="email" id="email" name="email" value="{{ old('email', $email) }}"
-                           autocomplete="email" required
-                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                  focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
-                                  hover:border-ink-muted">
+                        autocomplete="email" required
+                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                hover:border-ink-muted">
                     @error('email')<span class="block text-xs text-rose-600 mt-1">{{ $message }}</span>@enderror
                 </div>
 
@@ -78,11 +78,11 @@
                     <label for="password" class="block text-xs font-bold text-ink mb-1.5 tracking-[0.2px]">Nouveau mot de passe</label>
                     <div class="relative">
                         <input type="password" id="password" name="password"
-                               autocomplete="new-password" placeholder="Au moins 8 caractères"
-                               oninput="checkStrength(this.value)" required
-                               class="w-full px-3.5 py-2.5 pr-11 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                      focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
-                                      hover:border-ink-muted">
+                            autocomplete="new-password" placeholder="Au moins 8 caractères"
+                            oninput="checkStrength(this.value)" required
+                            class="w-full px-3.5 py-2.5 pr-11 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                    focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                    hover:border-ink-muted">
                         <button type="button" onclick="toggleVisibility('password', this)"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors text-base leading-none bg-transparent border-0 cursor-pointer p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
                             👁️
@@ -102,10 +102,10 @@
                     <label for="password_confirmation" class="block text-xs font-bold text-ink mb-1.5 tracking-[0.2px]">Confirmer le mot de passe</label>
                     <div class="relative">
                         <input type="password" id="password_confirmation" name="password_confirmation"
-                               autocomplete="new-password" placeholder="Répétez le mot de passe" required
-                               class="w-full px-3.5 py-2.5 pr-11 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                      focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
-                                      hover:border-ink-muted">
+                            autocomplete="new-password" placeholder="Répétez le mot de passe" required
+                            class="w-full px-3.5 py-2.5 pr-11 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                    focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                    hover:border-ink-muted">
                         <button type="button" onclick="toggleVisibility('password_confirmation', this)"
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors text-base leading-none bg-transparent border-0 cursor-pointer p-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
                             👁️
@@ -116,8 +116,8 @@
 
                 <button type="submit"
                         class="w-full min-h-[48px] px-6 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-sm rounded-lg
-                               shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
-                               hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer">
+                            shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
+                            hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer">
                     🔐 Enregistrer mon mot de passe
                 </button>
             </form>
