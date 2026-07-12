@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
+use App\Notifications\Concerns\EmbedsLogo;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +18,8 @@ use Illuminate\Support\Facades\Log;
  */
 class CandidatureValideeNotification extends Notification
 {
+    use EmbedsLogo;
+
     public function __construct(
         private readonly string $resetUrl
     ) {
@@ -35,11 +38,12 @@ class CandidatureValideeNotification extends Notification
             'host' => config('mail.mailers.' . config('mail.default') . '.host'),
         ]);
 
-        return (new MailMessage)
+        return $this->embedLogo(new MailMessage)
             ->subject('Bienvenue chez AMANA — Créez votre mot de passe')
             ->view('emails.candidature-validee', [
                 'prenom' => $notifiable->prenom,
                 'resetUrl' => $this->resetUrl,
+                'logoCid' => $this->logoCid(),
             ]);
     }
 }

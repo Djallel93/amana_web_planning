@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace App\Notifications;
 
 use App\Models\Personne;
+use App\Notifications\Concerns\EmbedsLogo;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
@@ -22,6 +23,8 @@ use Illuminate\Support\Facades\Log;
  */
 class NouveauMembreNotification extends Notification
 {
+    use EmbedsLogo;
+
     public function __construct(
         private readonly Personne $candidat
     ) {
@@ -47,7 +50,7 @@ class NouveauMembreNotification extends Notification
             'host' => config('mail.mailers.' . config('mail.default') . '.host'),
         ]);
 
-        return (new MailMessage)
+        return $this->embedLogo(new MailMessage)
             ->subject(
                 'Nouvelle candidature — '
                 . $candidat->prenom . ' '
@@ -57,6 +60,7 @@ class NouveauMembreNotification extends Notification
                 'adminPrenom' => $notifiable->prenom,
                 'candidat' => $candidat,
                 'urlValidation' => route('admin.candidatures.index'),
+                'logoCid' => $this->logoCid(),
             ]);
     }
 }
