@@ -26,6 +26,7 @@ npm-debug.log
 yarn-error.log
 todo*.md
 fix-perms.sh
+test_webhook.sh
 /database/database.sqlite
 /debug/**
 ionos_deploy_key

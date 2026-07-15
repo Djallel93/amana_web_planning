@@ -107,12 +107,17 @@ watch(() => props.open, (isOpen) => {
                 -->
                 <div
                     ref="modal-container"
-                    class="bg-surface rounded-2xl shadow-lg w-full transform outline-none"
+                    class="bg-surface rounded-2xl shadow-lg w-full transform outline-none
+                           max-h-[85vh] flex flex-col"
                     :class="maxWidth ?? 'max-w-sm'"
                     tabindex="-1"
                 >
-                    <!-- Slot header : le parent met son titre + bouton × ici -->
-                    <div v-if="$slots.header" class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+                    <!--
+                        Slot header : le parent met son titre + bouton × ici.
+                        flex-shrink-0 : le header garde toujours sa taille naturelle
+                        et ne se compresse jamais, même si le body déborde.
+                    -->
+                    <div v-if="$slots.header" class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3 flex-shrink-0">
                         <slot name="header" />
                         <!-- Bouton × par défaut dans le header -->
                         <button
@@ -125,13 +130,20 @@ watch(() => props.open, (isOpen) => {
                         >×</button>
                     </div>
 
-                    <!-- Slot par défaut : corps du modal -->
-                    <div class="px-5 py-4">
+                    <!--
+                        Slot par défaut : corps du modal.
+                        overflow-y-auto + min-h-0 : c'est LA seule zone qui scrolle
+                        quand le contenu dépasse la hauteur disponible. min-h-0 est
+                        nécessaire ici car un enfant flex a par défaut min-height:auto,
+                        ce qui l'empêcherait de se réduire sous sa taille de contenu
+                        et casserait le scroll interne.
+                    -->
+                    <div class="px-5 py-4 overflow-y-auto min-h-0">
                         <slot />
                     </div>
 
-                    <!-- Slot footer : boutons d'action (optionnel) -->
-                    <div v-if="$slots.footer" class="px-5 pb-4 flex gap-2 justify-end">
+                    <!-- Slot footer : boutons d'action (optionnel), toujours visible -->
+                    <div v-if="$slots.footer" class="px-5 pb-4 flex gap-2 justify-end flex-shrink-0">
                         <slot name="footer" />
                     </div>
                 </div>

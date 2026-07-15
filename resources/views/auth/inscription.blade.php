@@ -134,9 +134,12 @@
                                     <tr
                                         class="border-b border-surface-3 last:border-0 hover:bg-surface-2 transition-colors">
                                         <td class="pl-4 py-2.5 font-semibold text-ink">
-                                            <span
-                                                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $tache->code }}">
-                                                {{ $tache->libelle }}
+                                            <span class="inline-flex items-center gap-1.5">
+                                                <span
+                                                    class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $tache->code }}">
+                                                    {{ $tache->libelle }}
+                                                </span>
+                                                @include('partials.tache-info-tooltip', ['tache' => $tache])
                                             </span>
                                         </td>
                                         @foreach($jours as $jour)
@@ -155,11 +158,12 @@
                     {{-- Cartes mobile (< sm) --}} <div class="sm:hidden flex flex-col gap-3">
                         @foreach($taches as $tache)
                             <div class="border border-surface-border rounded-lg overflow-hidden">
-                                <div class="px-4 py-2.5 bg-surface-2 font-semibold text-[13px] text-ink flex items-center">
+                                <div class="px-4 py-2.5 bg-surface-2 font-semibold text-[13px] text-ink flex items-center gap-1.5">
                                     <span
                                         class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $tache->code }}">
                                         {{ $tache->libelle }}
                                     </span>
+                                    @include('partials.tache-info-tooltip', ['tache' => $tache])
                                 </div>
                                 <div class="px-4 py-3 flex flex-col gap-2.5">
                                     @foreach($jours as $jour)

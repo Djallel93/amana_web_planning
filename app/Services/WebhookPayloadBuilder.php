@@ -315,8 +315,17 @@ class WebhookPayloadBuilder
             $this->ligneAvecAssignation('message_bot', null, $taches->get('message_bot'), $date, $heureCours),
         ];
 
+        // Un événement organisationnel (Ramadan, vacances…) n'a jamais de
+        // personne assignée en base (ref_evenements n'a pas cette notion) —
+        // `assigne`/`email` valent donc toujours null ici. On les inclut
+        // quand même pour que la forme de chaque entrée `evenements` reste
+        // identique à celle des entrées `taches`/`evenements_speciaux`/
+        // `evenements_sociaux` (mêmes clés dans tous les types d'événements
+        // du payload, ce qui simplifie le traitement côté Make.com).
         $evenementsOrganisationnels = $creneau->evenements->map(fn(Evenement $e) => [
             'nom' => $e->nom,
+            'assigne' => null,
+            'email' => null,
             'description' => $e->description ?? '',
         ])->values()->all();
 
@@ -378,7 +387,7 @@ class WebhookPayloadBuilder
             'heure_debut' => $debut,
             'heure_fin' => $fin,
             'calendar_names' => $this->getCalendarNames($cleHoraire),
-            'description' => $tacheRef?->description ?? '',
+            'description' => $tacheRef?->description_calendrier ?? '',
         ];
     }
 

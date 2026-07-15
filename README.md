@@ -879,7 +879,7 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doive
     "creneaux": [
         {
             "date": "2026-08-06",
-            "evenements": [{ "nom": "Ramadan", "description": "" }],
+            "evenements": [{ "nom": "Ramadan", "assigne": null, "email": null, "description": "" }],
             "taches": [
                 {
                     "nom": "Entrée",
@@ -1094,7 +1094,7 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doive
         {
             "date": "2026-08-06",
             "evenements": [
-                { "nom": "Cours annulé — 6 août 2026", "description": "" }
+                { "nom": "Cours annulé — 6 août 2026", "assigne": null, "email": null, "description": "" }
             ],
             "taches": [],
             "evenements_speciaux": [],

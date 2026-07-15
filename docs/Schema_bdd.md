@@ -72,6 +72,7 @@ erDiagram
         varchar code
         varchar libelle
         text description
+        text description_calendrier
         boolean actif
     }
 
@@ -283,13 +284,14 @@ Table pivot N-N entre personnes et rôles. Une personne ne peut avoir qu'un seul
 
 Référentiel des tâches planifiables.
 
-| Colonne       | Type               | Description                                                           |
-| ------------- | ------------------ | --------------------------------------------------------------------- |
-| `id`          | TINYINT PK         | Identifiant                                                           |
-| `code`        | VARCHAR(50) UNIQUE | Code technique (`entree`, `mektaba`, `salle`, `amana_food`, `cours`…) |
-| `libelle`     | VARCHAR(100)       | Libellé affiché                                                       |
-| `description` | TEXT NULLABLE      | Description envoyée dans le payload webhook                           |
-| `actif`       | BOOLEAN            | `true` = incluse dans la rotation du scheduler                        |
+| Colonne                  | Type               | Description                                                           |
+| ------------------------ | ------------------ | --------------------------------------------------------------------- |
+| `id`                     | TINYINT PK         | Identifiant                                                           |
+| `code`                   | VARCHAR(50) UNIQUE | Code technique (`entree`, `mektaba`, `salle`, `amana_food`, `cours`…) |
+| `libelle`                | VARCHAR(100)       | Libellé affiché                                                       |
+| `description`            | VARCHAR(250)       | Résumé affiché côté app (formulaire d'inscription, page Disponibilités) |
+| `description_calendrier` | TEXT NULLABLE      | Texte envoyé dans le body de l'événement Google Calendar (payload webhook) |
+| `actif`                  | BOOLEAN            | `true` = incluse dans la rotation du scheduler                        |
 
 **Tâches actives (rotation) :** `entree`, `mektaba`, `salle`, `amana_food`, `cours`
 

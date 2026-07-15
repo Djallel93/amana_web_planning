@@ -37,26 +37,143 @@ class DatabaseSeeder extends Seeder
         $this->command->info('✅ Application planning : OK');
 
         // ── 3. Tâches planifiables ─────────────────────────────────────────
+
+        // Textes longs envoyés dans le body de l'événement Google Calendar
+        // (webhook Make.com) — repris des textes historiquement utilisés
+        // côté Make.com, conservés ici pour rester la source unique de vérité.
+        $descCalRappelSandwich = <<<'TXT'
+PRÉPARER LES SANDWICHS :
+Tu es assigné à AMANA FOOD aujourd'hui. Pense à préparer les sandwichs en avance !
+TXT;
+
+        $descCalEntree = <<<'TXT'
+ENTRÉE :
+Responsabilités :
+• Accueillir les frères et indiquer la salle aux nouveaux
+• Ouvrir la porte du bâtiment
+• Éviter les regroupements dans les couloirs
+• Surveiller l'entrée
+• Nettoyage/rangement des couloirs
+
+⚠️ IMPORTANT : tu as également une tâche AMANA FOOD après le cours (vérifie ton calendrier).
+TXT;
+
+        $descCalAssistanceAmanaFood = <<<'TXT'
+ASSISTANCE AMANA FOOD :
+Tu es assigné à l'ENTRÉE, tu dois donc également assister la personne à AMANA FOOD après le cours.
+TXT;
+
+        $descCalMektaba = <<<'TXT'
+MEKTABA :
+Responsabilités :
+• Accueillir les frères à l'entrée du local
+• S'occuper des achats de la mektaba avant et après le cours
+• Surveiller la marchandise
+• Compter le nombre de présents lors de l'assise
+• Nettoyage/rangement de la mektaba
+TXT;
+
+        $descCalSalle = <<<'TXT'
+SALLE :
+Responsabilités :
+• Assister le frère Réda en cas de nécessité pendant et après l'assise
+• Mise en place des tables pour les cours du week-end après l'assise
+• Nettoyage/rangement de la salle
+TXT;
+
+        $descCalAmanaFood = <<<'TXT'
+AMANA FOOD :
+Responsabilités :
+• Préparation des sandwichs/repas en amont du cours
+• Tenir le stand AMANA FOOD après le cours
+• Nettoyage/rangement du stand
+TXT;
+
         $taches = [
             // Tâches actives (rotation du scheduler)
-            ['code' => 'entree', 'libelle' => 'Entrée', 'actif' => true, 'description' => ''],
-            ['code' => 'mektaba', 'libelle' => 'Mektaba', 'actif' => true, 'description' => ''],
-            ['code' => 'salle', 'libelle' => 'Salle', 'actif' => true, 'description' => ''],
-            ['code' => 'amana_food', 'libelle' => 'Amana Food', 'actif' => true, 'description' => ''],
-            ['code' => 'cours', 'libelle' => 'Cours', 'actif' => true, 'description' => 'Animation du cours'],
+            [
+                'code' => 'entree',
+                'libelle' => 'Entrée',
+                'actif' => true,
+                'description' => "Accueillir les frères à l'entrée, orienter les nouveaux vers la salle, surveiller les couloirs et le bâtiment. Inclut une tâche Amana Food après le cours.",
+                'description_calendrier' => $descCalEntree,
+            ],
+            [
+                'code' => 'mektaba',
+                'libelle' => 'Mektaba',
+                'actif' => true,
+                'description' => "Accueillir les frères à l'entrée du local, gérer les achats et la marchandise de la mektaba, compter les présents et ranger après le cours.",
+                'description_calendrier' => $descCalMektaba,
+            ],
+            [
+                'code' => 'salle',
+                'libelle' => 'Salle',
+                'actif' => true,
+                'description' => "Assister le frère Réda pendant et après l'assise, préparer la salle pour les cours du week-end et ranger après le cours.",
+                'description_calendrier' => $descCalSalle,
+            ],
+            [
+                'code' => 'amana_food',
+                'libelle' => 'Amana Food',
+                'actif' => true,
+                'description' => 'Préparer les sandwichs/repas avant le cours, tenir le stand après le cours et ranger le stand.',
+                'description_calendrier' => $descCalAmanaFood,
+            ],
+            [
+                'code' => 'cours',
+                'libelle' => 'Cours',
+                'actif' => true,
+                'description' => 'Animation du cours',
+                'description_calendrier' => '',
+            ],
 
             // Tâches inactives (webhook uniquement)
-            ['code' => 'rappel_sandwich', 'libelle' => 'Rappel Sandwich', 'actif' => false, 'description' => ''],
-            ['code' => 'assistance_amana_food', 'libelle' => 'Assistance Amana Food', 'actif' => false, 'description' => ''],
-            ['code' => 'annonce_cours', 'libelle' => 'Annonce Cours', 'actif' => false, 'description' => ''],
-            ['code' => 'message_bot', 'libelle' => 'Message Général', 'actif' => false, 'description' => ''],
-            ['code' => 'annulation_cours', 'libelle' => 'Annulation Cours', 'actif' => false, 'description' => ''],
+            [
+                'code' => 'rappel_sandwich',
+                'libelle' => 'Rappel Sandwich',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => $descCalRappelSandwich,
+            ],
+            [
+                'code' => 'assistance_amana_food',
+                'libelle' => 'Assistance Amana Food',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => $descCalAssistanceAmanaFood,
+            ],
+            [
+                'code' => 'annonce_cours',
+                'libelle' => 'Annonce Cours',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => '',
+            ],
+            [
+                'code' => 'message_bot',
+                'libelle' => 'Message Général',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => '',
+            ],
+            [
+                'code' => 'annulation_cours',
+                'libelle' => 'Annulation Cours',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => '',
+            ],
         ];
 
         foreach ($taches as $t) {
             Tache::updateOrCreate(
                 ['code' => $t['code']],
-                ['libelle' => $t['libelle'], 'actif' => $t['actif'], 'description' => $t['description']]
+                [
+                    'libelle' => $t['libelle'],
+                    'actif' => $t['actif'],
+                    'description' => $t['description'],
+                    'description_calendrier' => $t['description_calendrier'],
+                ]
             );
         }
         $this->command->info('✅ Tâches insérées/mises à jour : ' . count($taches));
