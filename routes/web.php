@@ -93,6 +93,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/data', [BilanController::class, 'show'])->name('data.show');
         Route::post('/data/amana-food', [BilanController::class, 'storeAmanaFood'])->name('data.store.amana-food');
         Route::post('/data/presence', [BilanController::class, 'storePresence'])->name('data.store.presence');
+
+        // Réinitialisation (mise à NULL) d'un groupe pour une date —
+        // gestionnaires et admins uniquement (role:gestionnaire = admin OU gestionnaire, cf. EnsureRole).
+        Route::middleware('role:gestionnaire')->group(function () {
+            Route::post('/data/amana-food/reset', [BilanController::class, 'resetAmanaFood'])->name('data.reset.amana-food');
+            Route::post('/data/presence/reset', [BilanController::class, 'resetPresence'])->name('data.reset.presence');
+        });
+
         Route::get('/statistiques', [BilanController::class, 'statistiques'])->name('statistiques');
         Route::get('/statistiques/data', [BilanController::class, 'statistiquesData'])->name('statistiques.data');
     });
