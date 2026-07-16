@@ -21,9 +21,15 @@ use Illuminate\Support\Facades\Log;
  *   - patch  : modification (réassignation d'une tâche, événement modifié)
  *   - delete : suppression (désassignation d'une tâche, créneau supprimé, événement supprimé)
  *
- * Chaque appel inclut le header `x-make-apikey` (config services.make.api_key)
- * en plus de l'URL configurée dans services.make.webhook_url. Les deux doivent
- * être renseignées, sinon l'envoi est ignoré (avec un log d'avertissement).
+ * Deux scénarios Make.com distincts, chacun avec sa propre URL de webhook,
+ * sélectionnée via $cible :
+ *   - 'planning'  → services.make.webhook_url             (créneaux du planning)
+ *   - 'evenement' → services.make.webhook_url_evenements  (événements organisationnels)
+ *
+ * Chaque appel inclut le header `x-make-apikey` (config services.make.api_key,
+ * partagée par les deux scénarios) en plus de l'URL. Les deux (URL + clé)
+ * doivent être renseignées pour la cible concernée, sinon l'envoi est ignoré
+ * (avec un log d'avertissement).
  */
 class EnvoyerWebhookMake implements ShouldQueue
 {
@@ -36,40 +42,44 @@ class EnvoyerWebhookMake implements ShouldQueue
     public int $backoff = 60;
 
     private const METHODES_AUTORISEES = ['post', 'patch', 'delete'];
+    private const CIBLES_AUTORISEES = ['planning', 'evenement'];
 
     public function __construct(
         private readonly array $payload,
         private readonly string $method = 'post',
+        private readonly string $cible = 'planning',
     ) {
     }
 
     /**
-     * Exécution du job : envoi HTTP vers Make.com avec le verbe approprié.
+     * Exécution du job : envoi HTTP vers Make.com avec le verbe approprié,
+     * vers l'URL du scénario correspondant à $cible.
      */
     public function handle(): void
     {
+        $cible = in_array($this->cible, self::CIBLES_AUTORISEES, true) ? $this->cible : 'planning';
+        $configKey = $cible === 'evenement' ? 'webhook_url_evenements' : 'webhook_url';
+
         // config() fonctionne correctement après php artisan config:cache,
         // contrairement à env() qui retourne null en production.
-        $url = config('services.make.webhook_url');
+        $url = config("services.make.{$configKey}");
         $apiKey = config('services.make.api_key');
         $methode = in_array($this->method, self::METHODES_AUTORISEES, true) ? $this->method : 'post';
 
         if (empty($url)) {
-            Log::warning('[WebhookMake] services.make.webhook_url non configurée — envoi ignoré.');
+            Log::warning("[WebhookMake] services.make.{$configKey} non configurée — envoi ignoré.", ['cible' => $cible]);
             return;
         }
 
         if (empty($apiKey)) {
-            Log::warning('[WebhookMake] services.make.api_key non configurée — envoi ignoré.');
+            Log::warning('[WebhookMake] services.make.api_key non configurée — envoi ignoré.', ['cible' => $cible]);
             return;
         }
-
-        $type = $this->payload['type'] ?? 'planning';
 
         Log::info('[WebhookMake] Envoi du webhook vers Make.com', [
             'url' => $url,
             'method' => strtoupper($methode),
-            'type' => $type,
+            'cible' => $cible,
             'nb_creneaux' => count($this->payload['creneaux'] ?? []),
         ]);
 
@@ -88,14 +98,14 @@ class EnvoyerWebhookMake implements ShouldQueue
             Log::info('[WebhookMake] Webhook envoyé avec succès.', [
                 'status' => $response->status(),
                 'method' => strtoupper($methode),
-                'type' => $type,
+                'cible' => $cible,
             ]);
 
             audit('webhook', 'planning', null, null, [
                 'url' => $url,
                 'method' => strtoupper($methode),
                 'status' => $response->status(),
-                'type' => $type,
+                'cible' => $cible,
                 'nb_creneaux' => count($this->payload['creneaux'] ?? []),
             ]);
         } else {
@@ -103,12 +113,12 @@ class EnvoyerWebhookMake implements ShouldQueue
                 'status' => $response->status(),
                 'body' => $response->body(),
                 'method' => strtoupper($methode),
-                'type' => $type,
+                'cible' => $cible,
             ]);
 
             // Déclenche une nouvelle tentative automatique
             $this->fail(new \RuntimeException(
-                "Webhook Make.com échoué : HTTP {$response->status()} ({$methode})"
+                "Webhook Make.com échoué : HTTP {$response->status()} ({$methode}, cible={$cible})"
             ));
         }
     }

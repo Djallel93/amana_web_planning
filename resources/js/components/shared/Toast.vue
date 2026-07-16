@@ -57,7 +57,7 @@ const { toasts, dismiss } = useToast();
             <div
                 v-for="toast in toasts"
                 :key="toast.id"
-                class="pointer-events-auto flex items-center gap-2.5 bg-ink text-white
+                class="pointer-events-auto flex items-center gap-2.5 bg-gray-900 text-white
                        px-4 py-3 rounded-xl shadow-lg border-l-[3px] text-[13px]
                        font-medium min-w-[240px] max-w-[360px] cursor-pointer"
                 :class="toast.type === 'success' ? 'border-l-emerald-400' : 'border-l-rose-400'"

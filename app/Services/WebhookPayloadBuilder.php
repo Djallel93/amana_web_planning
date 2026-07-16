@@ -7,7 +7,6 @@ namespace App\Services;
 
 use App\Helpers\DateHelper;
 use App\Models\Creneau;
-use App\Models\Evenement;
 use App\Models\Setting;
 use App\Models\Tache;
 use Carbon\Carbon;
@@ -16,11 +15,13 @@ use Illuminate\Support\Collection;
 /**
  * Construit les payloads JSON envoyés vers Make.com pour le planning.
  *
- * Format (juin 2026) : la racine se limite strictement à `lieu` + `creneaux`.
+ * Format (juil. 2026) : la racine se limite strictement à `lieu` + `creneaux`.
  * `taches`, `evenements_speciaux` et `evenements_sociaux` sont des TABLEAUX
- * (et non plus des objets indexés par code). `evenements` (organisationnels,
- * type Ramadan/Vacances) est un tableau informatif {nom, description} —
- * sans horaires, puisqu'un événement organisationnel couvre des jours entiers.
+ * (et non plus des objets indexés par code). Les événements organisationnels
+ * (type Ramadan/Vacances) ne figurent PAS dans ces payloads de créneaux : ils
+ * sont déjà envoyés individuellement à leur création/modification via
+ * WebhookEvenementPayloadBuilder::buildUpsert(), les retraiter ici serait
+ * redondant.
  *
  * Chaque méthode correspond à un verbe HTTP précis envoyé par EnvoyerWebhookMake :
  *   - build()                 → POST   génération complète
@@ -315,23 +316,16 @@ class WebhookPayloadBuilder
             $this->ligneAvecAssignation('message_bot', null, $taches->get('message_bot'), $date, $heureCours),
         ];
 
-        // Un événement organisationnel (Ramadan, vacances…) n'a jamais de
-        // personne assignée en base (ref_evenements n'a pas cette notion) —
-        // `assigne`/`email` valent donc toujours null ici. On les inclut
-        // quand même pour que la forme de chaque entrée `evenements` reste
-        // identique à celle des entrées `taches`/`evenements_speciaux`/
-        // `evenements_sociaux` (mêmes clés dans tous les types d'événements
-        // du payload, ce qui simplifie le traitement côté Make.com).
-        $evenementsOrganisationnels = $creneau->evenements->map(fn(Evenement $e) => [
-            'nom' => $e->nom,
-            'assigne' => null,
-            'email' => null,
-            'description' => $e->description ?? '',
-        ])->values()->all();
+        // NB : les événements organisationnels (Ramadan, vacances…) ne sont
+        // volontairement PAS inclus ici — ils sont déjà envoyés à Make.com
+        // individuellement (POST/PATCH) au moment de leur création/modification
+        // via WebhookEvenementPayloadBuilder::buildUpsert(), donc les
+        // retraiter à chaque génération de planning serait redondant.
+        // $creneau->evenements reste chargé/utilisé par tachesBloqueesCodes()
+        // ci-dessus pour savoir quelles tâches exclure de $tachesPayload.
 
         return [
             'date' => $date,
-            'evenements' => $evenementsOrganisationnels,
             'taches' => $tachesPayload,
             'evenements_speciaux' => $eventsSpeciaux,
             'evenements_sociaux' => $eventsSociaux,

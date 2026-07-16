@@ -172,6 +172,7 @@ CACHE_STORE=database
 MAIL_MAILER=log
 
 MAKE_WEBHOOK_URL=
+MAKE_WEBHOOK_URL_EVENEMENTS=
 MAKE_WEBHOOK_APIKEY=
 ```
 
@@ -179,7 +180,7 @@ MAKE_WEBHOOK_APIKEY=
 >
 > **`HEURE_COURS` est obsolète** et ignorée. L'heure du cours est gérée via **Paramètres → Heure du cours** dans l'interface.
 >
-> **`MAKE_WEBHOOK_URL` vide** : aucun webhook n'est envoyé (la queue le journalise et ignore silencieusement l'appel) — pratique pour développer sans polluer un vrai scénario Make.com. Voir README, section Intégration Make.com, pour le format exact des payloads envoyés (planning, événements, annulation de cours).
+> **`MAKE_WEBHOOK_URL`/`MAKE_WEBHOOK_URL_EVENEMENTS` vides** : aucun webhook n'est envoyé pour la cible concernée (la queue le journalise et ignore silencieusement l'appel) — pratique pour développer sans polluer un vrai scénario Make.com. Deux scénarios Make.com distincts sont nécessaires : un pour le planning (`MAKE_WEBHOOK_URL`), un pour les événements organisationnels (`MAKE_WEBHOOK_URL_EVENEMENTS`) — voir README, section Intégration Make.com, pour le format exact des payloads envoyés à chacun.
 
 ### 12. Permissions des dossiers
 
@@ -332,8 +333,9 @@ flowchart LR
 | `MAIL_PORT`             | Port SMTP (587 avec STARTTLS)                                                |
 | `MAIL_USERNAME`         | Compte SMTP (aussi utilisé comme adresse d'expédition)                       |
 | `MAIL_PASSWORD`         | Mot de passe SMTP                                                            |
-| `MAKE_WEBHOOK_URL`      | URL du scénario Make.com (planning + événements)                             |
-| `MAKE_WEBHOOK_APIKEY`   | Clé envoyée dans le header `x-make-apikey` de chaque appel webhook           |
+| `MAKE_WEBHOOK_URL`      | URL du scénario Make.com **planning** (créneaux)                             |
+| `MAKE_WEBHOOK_URL_EVENEMENTS` | URL du scénario Make.com **dédié aux événements** organisationnels     |
+| `MAKE_WEBHOOK_APIKEY`   | Clé envoyée dans le header `x-make-apikey` de chaque appel webhook (partagée par les deux scénarios) |
 | `APP_EMERGENCY_KEY`     | Clé de l'outil d'urgence `/urgence-hash` — laisser vide sauf besoin ponctuel |
 | `IONOS_SSH_PRIVATE_KEY` | Clé SSH privée pour se connecter au serveur IONOS                            |
 | `IONOS_SSH_USER`        | Utilisateur SSH IONOS                                                        |

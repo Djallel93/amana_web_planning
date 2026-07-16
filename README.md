@@ -841,35 +841,43 @@ Voir [docs/Schema_bdd.md](docs/Schema_bdd.md#plan_bilans_quotidiens) pour le dé
 
 Après chaque génération de planning, modification manuelle d'une assignation, création/suppression d'un créneau, ou création/modification/suppression d'un événement synchronisé, l'application envoie un payload JSON à Make.com via un job asynchrone (`EnvoyerWebhookMake`). Make.com crée/modifie/supprime alors les événements Google Calendar correspondants.
 
+Il existe **deux scénarios Make.com distincts**, chacun avec sa propre URL de webhook, car les payloads planning et événements ont des formes différentes :
+
+| Cible (`EnvoyerWebhookMake::$cible`) | Contenu                                       | Variable `.env`               |
+| ------------------------------------- | ---------------------------------------------- | ------------------------------ |
+| `planning`                            | Créneaux du planning (`WebhookPayloadBuilder`) | `MAKE_WEBHOOK_URL`             |
+| `evenement`                           | Événements organisationnels (`WebhookEvenementPayloadBuilder`) | `MAKE_WEBHOOK_URL_EVENEMENTS` |
+
 > Le webhook n'est **pas** dispatché lors d'une prévisualisation dry-run.
 
 **Variables `.env` concernées :**
 
 ```dotenv
-MAKE_WEBHOOK_URL=https://hook.make.com/votre-identifiant
+MAKE_WEBHOOK_URL=https://hook.make.com/votre-identifiant-planning
+MAKE_WEBHOOK_URL_EVENEMENTS=https://hook.make.com/votre-identifiant-evenements
 MAKE_WEBHOOK_APIKEY=votre-cle-api
 ```
 
-Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doivent être configurées, sinon l'envoi est silencieusement ignoré (log d'avertissement).
+Chaque appel inclut le header `x-make-apikey` (en plus de l'URL cible). La clé API est **partagée** par les deux scénarios ; l'URL et la clé doivent être configurées pour la cible concernée, sinon l'envoi est silencieusement ignoré (log d'avertissement).
 
 > L'heure du cours n'est **plus** lue depuis `.env`. Elle est stockée dans `ref_settings` (clé `heure_cours`) et modifiable via la page Paramètres.
 
 **Verbes HTTP par action :**
 
-| Action                                                                              | Verbe    | Builder                                                                           |
-| ----------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------- |
-| Génération complète du planning                                                     | `POST`   | `WebhookPayloadBuilder::build()`                                                  |
-| Création manuelle d'un créneau vide                                                 | `POST`   | `WebhookPayloadBuilder::buildForCreation()`                                       |
-| Réassignation d'une tâche                                                           | `PATCH`  | `WebhookPayloadBuilder::buildForReassignation()`                                  |
-| Désassignation d'une tâche                                                          | `DELETE` | `WebhookPayloadBuilder::buildForUnassignation()`                                  |
-| Suppression d'un créneau entier                                                     | `DELETE` | `WebhookPayloadBuilder::buildForDeleteCreneau()`                                  |
-| Événement organisationnel créé                                                      | `POST`   | `WebhookEvenementPayloadBuilder::buildUpsert()`                                   |
-| Événement organisationnel modifié                                                   | `PATCH`  | `WebhookEvenementPayloadBuilder::buildUpsert()`                                   |
-| Événement organisationnel supprimé                                                  | `DELETE` | `WebhookEvenementPayloadBuilder::buildDelete()`                                   |
-| Désassignation rétroactive (événement créé/modifié bloquant un créneau déjà généré) | `DELETE` | `WebhookPayloadBuilder::buildForUnassignation()` (une fois par tâche désassignée) |
-| Exécution d'un échange (swap validé)                                                | `PATCH`  | `WebhookPayloadBuilder::buildForEchange()`                                        |
-| **Annulation cours** — nettoyage du calendrier existant                             | `DELETE` | `WebhookPayloadBuilder::buildForDeleteCreneau()`                                  |
-| **Annulation cours** — annonce de l'annulation                                      | `POST`   | `WebhookPayloadBuilder::buildForAnnulationCours()`                                |
+| Action                                                                              | Verbe    | Cible       | Builder                                                                           |
+| ----------------------------------------------------------------------------------- | -------- | ----------- | ----------------------------------------------------------------------------------- |
+| Génération complète du planning                                                     | `POST`   | `planning`  | `WebhookPayloadBuilder::build()`                                                  |
+| Création manuelle d'un créneau vide                                                 | `POST`   | `planning`  | `WebhookPayloadBuilder::buildForCreation()`                                       |
+| Réassignation d'une tâche                                                           | `PATCH`  | `planning`  | `WebhookPayloadBuilder::buildForReassignation()`                                  |
+| Désassignation d'une tâche                                                          | `DELETE` | `planning`  | `WebhookPayloadBuilder::buildForUnassignation()`                                  |
+| Suppression d'un créneau entier                                                     | `DELETE` | `planning`  | `WebhookPayloadBuilder::buildForDeleteCreneau()`                                  |
+| Événement organisationnel créé                                                      | `POST`   | `evenement` | `WebhookEvenementPayloadBuilder::buildUpsert()`                                   |
+| Événement organisationnel modifié                                                   | `PATCH`  | `evenement` | `WebhookEvenementPayloadBuilder::buildUpsert()`                                   |
+| Événement organisationnel supprimé                                                  | `DELETE` | `evenement` | `WebhookEvenementPayloadBuilder::buildDelete()`                                   |
+| Désassignation rétroactive (événement créé/modifié bloquant un créneau déjà généré) | `DELETE` | `planning`  | `WebhookPayloadBuilder::buildForUnassignation()` (une fois par tâche désassignée) |
+| Exécution d'un échange (swap validé)                                                | `PATCH`  | `planning`  | `WebhookPayloadBuilder::buildForEchange()`                                        |
+| **Annulation cours** — nettoyage du calendrier existant                             | `DELETE` | `planning`  | `WebhookPayloadBuilder::buildForDeleteCreneau()`                                  |
+| **Annulation cours** — annonce de l'annulation                                      | `POST`   | `planning`  | `WebhookPayloadBuilder::buildForAnnulationCours()`                                |
 
 **Structure du payload planning** — racine strictement limitée à `lieu` + `creneaux` :
 
@@ -879,7 +887,6 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doive
     "creneaux": [
         {
             "date": "2026-08-06",
-            "evenements": [{ "nom": "Ramadan", "assigne": null, "email": null, "description": "" }],
             "taches": [
                 {
                     "nom": "Entrée",
@@ -1093,9 +1100,6 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doive
     "creneaux": [
         {
             "date": "2026-08-06",
-            "evenements": [
-                { "nom": "Cours annulé — 6 août 2026", "assigne": null, "email": null, "description": "" }
-            ],
             "taches": [],
             "evenements_speciaux": [],
             "evenements_sociaux": [
@@ -1114,35 +1118,26 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doive
 }
 ```
 
-**POST/PATCH (événement organisationnel créé ou modifié)** — racine distincte, `type: "evenement"` :
+**POST/PATCH (événement organisationnel créé ou modifié)** — envoyé vers le scénario Make.com **dédié** `MAKE_WEBHOOK_URL_EVENEMENTS` (cible `evenement`). Comme ce scénario est distinct de celui du planning, le payload n'a plus besoin de champ `type`/`action` pour s'auto-décrire : le verbe HTTP (`POST` création / `PATCH` modification) et l'URL suffisent :
 
 ```json
 {
-    "type": "evenement",
-    "action": "upsert",
-    "genere_le": "2026-07-03T10:00:00+00:00",
     "evenement": {
-        "id": 42,
         "nom": "Ramadan",
         "date_debut": "2025-03-01",
         "date_fin": "2025-03-30",
         "description": "",
         "calendar_names": ["AMANA - Événements", "AMANA - Communications"],
-        "taches_bloquees": ["amana_food", "entree"],
-        "informatif": false
+        "taches_bloquees": ["amana_food", "entree"]
     }
 }
 ```
 
-**DELETE (événement organisationnel supprimé)** :
+**DELETE (événement organisationnel supprimé)** — même scénario dédié, verbe `DELETE` :
 
 ```json
 {
-    "type": "evenement",
-    "action": "delete",
-    "genere_le": "2026-07-03T10:00:00+00:00",
     "evenement": {
-        "id": 42,
         "nom": "Ramadan",
         "date_debut": "2025-03-01",
         "date_fin": "2025-03-30",
@@ -1154,11 +1149,13 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL). Les deux doive
 **Notes importantes sur le payload :**
 
 - `taches`, `evenements_speciaux` et `evenements_sociaux` sont des **tableaux** (et non plus des objets indexés par code).
-- `evenements` (niveau créneau) liste les événements organisationnels actifs ce jour-là (`nom` + `description` uniquement — pas d'horaires, un événement type Ramadan couvrant des jours entiers).
-- Si une tâche est **bloquée par un événement**, elle est absente du payload (POST/PATCH/DELETE).
+- Les événements organisationnels (Ramadan, vacances…) **ne figurent pas** dans les payloads planning ci-dessus — ils sont envoyés séparément, individuellement, vers le scénario `evenement` dédié à leur création/modification/suppression.
+- Si une tâche est **bloquée par un événement**, elle est absente du payload planning (POST/PATCH/DELETE).
 - `rappel_sandwich` a un horaire fixe (08:00–08:15) ; `assistance_amana_food` suit l'assigné de `entree` ; `rappel_sandwich` suit l'assigné de `amana_food` — ces dépendances sont propagées automatiquement dans les payloads PATCH/DELETE d'une réassignation/désassignation de `entree` ou `amana_food`.
-- **`calendar_names` est toujours un tableau** (jamais une chaîne unique), y compris pour `taches`, `evenements_speciaux`, `evenements_sociaux` **et** le payload `evenement` séparé — même quand il ne contient qu'un seul nom aujourd'hui. Ce choix est volontairement prévu pour absorber, plus tard, plusieurs calendriers par tâche/événement social sans changer la forme du payload — seul le nombre d'éléments dans le tableau changerait. Un tableau vide `[]` signifie qu'aucun calendrier n'est configuré pour ce code (Make.com peut alors ignorer l'entrée ou utiliser un calendrier par défaut).
-- Pour les **événements organisationnels** (`type: "evenement"`), `calendar_names` correspond à la liste des calendriers Google Calendar liés à l'événement (table `ref_evenements_calendriers`, un événement peut en avoir plusieurs) — indépendant des `calendar_names` des tâches du planning ci-dessus, qui viennent des paramètres (Paramètres → Calendriers).
+- **`calendar_names` est toujours un tableau** (jamais une chaîne unique), y compris pour `taches`, `evenements_speciaux`, `evenements_sociaux` **et** le payload `evenement` dédié — même quand il ne contient qu'un seul nom aujourd'hui. Ce choix est volontairement prévu pour absorber, plus tard, plusieurs calendriers par tâche/événement social sans changer la forme du payload — seul le nombre d'éléments dans le tableau changerait. Un tableau vide `[]` signifie qu'aucun calendrier n'est configuré pour ce code (Make.com peut alors ignorer l'entrée ou utiliser un calendrier par défaut).
+- Pour les **événements organisationnels**, `calendar_names` correspond à la liste des calendriers Google Calendar liés à l'événement (table `ref_evenements_calendriers`, un événement peut en avoir plusieurs) — indépendant des `calendar_names` des tâches du planning ci-dessus, qui viennent des paramètres (Paramètres → Calendriers).
+- Le payload `evenement` **n'expose pas d'`id`** interne — Make.com retrouve l'événement Google Calendar à modifier/supprimer via `nom` + `date_debut`/`date_fin` (pas utilisé côté Make.com aujourd'hui, donc pas envoyé).
+- Tout champ dont la valeur serait `null` est retiré du payload `evenement` avant l'envoi (`WebhookEvenementPayloadBuilder::sansChampsNull()`) — les valeurs "fausses" mais significatives (`false`, `0`, `''`, `[]`) sont conservées.
 
 ---
 
@@ -1200,6 +1197,7 @@ MAIL_FROM_NAME="${APP_NAME}"
 QUEUE_CONNECTION=sync               # Obligatoire sur hébergement partagé (pas de worker persistant)
 
 MAKE_WEBHOOK_URL=https://hook.eu2.make.com/...
+MAKE_WEBHOOK_URL_EVENEMENTS=https://hook.eu2.make.com/...
 MAKE_WEBHOOK_APIKEY=...
 
 # Outil d'urgence — retirer après usage
@@ -1232,7 +1230,7 @@ Accessible depuis la sidebar (section **Administration**, admins uniquement). Pe
 
 ### Sélection des calendriers Google Calendar
 
-Les champs **Calendriers** dans `/parametres` et dans le formulaire de création/modification d'événement ne sont plus des champs texte libres. Ils affichent désormais un **dropdown avec barre de recherche** qui récupère la liste des calendriers disponibles directement depuis Make.com (GET sur le webhook configuré dans `MAKE_WEBHOOK_URL`).
+Les champs **Calendriers** dans `/parametres` et dans le formulaire de création/modification d'événement ne sont plus des champs texte libres. Ils affichent désormais un **dropdown avec barre de recherche** qui récupère la liste des calendriers disponibles directement depuis Make.com (GET sur le webhook configuré dans `MAKE_WEBHOOK_URL` — le scénario **planning**, réutilisé pour les deux formulaires puisque les deux types de payload référencent les mêmes calendriers Google Calendar cibles).
 
 La liste est mise en cache côté navigateur pendant la durée de la session. En cas d'échec de l'appel Make.com (webhook non configuré, timeout), un message d'erreur s'affiche dans le dropdown — les valeurs déjà enregistrées restent inchangées.
 

@@ -270,13 +270,13 @@ class EvenementsController extends Controller
             return;
         }
 
-        if (empty(config('services.make.webhook_url'))) {
+        if (empty(config('services.make.webhook_url_evenements'))) {
             return;
         }
 
         try {
             $payload = $this->webhookBuilder->buildUpsert($evenement);
-            EnvoyerWebhookMake::dispatch($payload, $method);
+            EnvoyerWebhookMake::dispatch($payload, $method, 'evenement');
             Log::info('[EvenementsController] Webhook dispatché', [
                 'id' => $evenement->id,
                 'nom' => $evenement->nom,
@@ -299,13 +299,13 @@ class EvenementsController extends Controller
             return;
         }
 
-        if (empty(config('services.make.webhook_url'))) {
+        if (empty(config('services.make.webhook_url_evenements'))) {
             return;
         }
 
         try {
             $payload = $this->webhookBuilder->buildDelete($evenement);
-            EnvoyerWebhookMake::dispatch($payload, 'delete');
+            EnvoyerWebhookMake::dispatch($payload, 'delete', 'evenement');
             Log::info('[EvenementsController] Webhook DELETE dispatché', ['id' => $evenement->id, 'nom' => $evenement->nom]);
         } catch (\Throwable $e) {
             Log::error('[EvenementsController] Échec dispatch webhook delete', [

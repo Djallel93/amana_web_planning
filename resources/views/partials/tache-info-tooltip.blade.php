@@ -29,7 +29,7 @@
 @once
     <div
         id="tache-tooltip-bubble"
-        class="hidden fixed z-[9999] pointer-events-none w-max max-w-[220px] px-2.5 py-1.5 rounded-md bg-ink text-white text-[11.5px] leading-snug shadow-lg text-left font-normal normal-case tracking-normal"
+        class="hidden fixed z-[9999] pointer-events-none w-max max-w-[220px] px-2.5 py-1.5 rounded-md bg-gray-900 text-white text-[11.5px] leading-snug shadow-lg text-left font-normal normal-case tracking-normal"
     ></div>
     <script>
         (function () {
