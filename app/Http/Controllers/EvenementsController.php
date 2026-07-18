@@ -7,7 +7,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Evenements\StoreEvenementRequest;
 use App\Http\Requests\Evenements\UpdateEvenementRequest;
-use App\Jobs\EnvoyerWebhookMake;
+use App\Jobs\SynchroniserGoogleCalendar;
+use App\Models\CalendrierGoogle;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Evenement;
@@ -22,9 +23,11 @@ use Illuminate\View\View;
 /**
  * Contrôleur CRUD pour les événements organisationnels.
  *
- * Chaque opération create/update/delete déclenche un webhook Make.com
- * si l'événement a au moins un calendrier configuré, avec le verbe HTTP
- * correspondant (POST / PATCH / DELETE).
+ * Chaque opération create/update/delete synchronise directement Google
+ * Calendar (SynchroniserGoogleCalendar) si l'événement a au moins un
+ * calendrier configuré : POST/PATCH en queue (upsert), DELETE en
+ * synchrone — voir le docblock de SynchroniserGoogleCalendar pour le détail
+ * de ce choix (lié à l'onDelete('cascade') sur ref_evenements_calendriers).
  *
  * Si l'événement couvre des dates pour lesquelles un planning a déjà été
  * généré, les créneaux existants (futurs uniquement — voir syncCreneauLinks)
@@ -59,16 +62,16 @@ class EvenementsController extends Controller
     {
         $data = $request->validated();
         $tacheIds = $data['taches'] ?? [];
-        $calendarNames = $data['calendar_names'] ?? [];
-        unset($data['taches'], $data['calendar_names']);
+        $calendarIds = $data['calendar_ids'] ?? [];
+        unset($data['taches'], $data['calendar_ids']);
 
         $evenement = Evenement::create($data);
         $evenement->tachesBloquees()->sync($tacheIds);
-        $this->syncCalendriers($evenement, $calendarNames);
+        $this->syncCalendriers($evenement, $calendarIds);
 
         audit('create', 'evenements', $evenement->id, null, array_merge(
             $evenement->toArray(),
-            ['taches_bloquees' => $tacheIds, 'calendar_names' => $calendarNames]
+            ['taches_bloquees' => $tacheIds, 'calendar_ids' => $calendarIds]
         ));
 
         $evenement->load('tachesBloquees');
@@ -95,16 +98,16 @@ class EvenementsController extends Controller
 
         $data = $request->validated();
         $tacheIds = $data['taches'] ?? [];
-        $calendarNames = $data['calendar_names'] ?? [];
-        unset($data['taches'], $data['calendar_names']);
+        $calendarIds = $data['calendar_ids'] ?? [];
+        unset($data['taches'], $data['calendar_ids']);
 
         $evenement->update($data);
         $evenement->tachesBloquees()->sync($tacheIds);
-        $this->syncCalendriers($evenement, $calendarNames);
+        $this->syncCalendriers($evenement, $calendarIds);
 
         audit('update', 'evenements', $evenement->id, $avant, array_merge(
             $evenement->fresh()->toArray(),
-            ['taches_bloquees' => $tacheIds, 'calendar_names' => $calendarNames]
+            ['taches_bloquees' => $tacheIds, 'calendar_ids' => $calendarIds]
         ));
 
         $evenement = $evenement->fresh()->load('tachesBloquees');
@@ -139,21 +142,52 @@ class EvenementsController extends Controller
     /**
      * Remplace les calendriers liés à un événement.
      *
-     * @param array<int, string> $calendarNames
+     * @param array<int, string> $calendarIds Identifiants Google Calendar
+     *        (calendarId) sélectionnés dans le formulaire — le libellé
+     *        d'affichage (calendar_name) est résolu ici depuis la même
+     *        liste que celle utilisée par le dropdown, pour rester
+     *        cohérent sans dépendre d'un aller-retour API supplémentaire.
      */
-    private function syncCalendriers(Evenement $evenement, array $calendarNames): void
+    private function syncCalendriers(Evenement $evenement, array $calendarIds): void
     {
-        $evenement->calendriers()->delete();
+        $calendarIds = array_values(array_unique(array_filter(array_map('trim', $calendarIds))));
 
-        $calendarNames = array_values(array_unique(array_filter(
-            array_map('trim', $calendarNames)
-        )));
+        $anciennes = $evenement->calendriers()->get()->keyBy('google_calendar_id');
+        $noms = $this->resolveCalendarNames($calendarIds);
 
-        foreach ($calendarNames as $nom) {
-            $evenement->calendriers()->create(['calendar_name' => $nom]);
+        $evenement->calendriers()->whereNotIn('google_calendar_id', $calendarIds)->delete();
+
+        foreach ($calendarIds as $id) {
+            $evenement->calendriers()->updateOrCreate(
+                ['google_calendar_id' => $id],
+                [
+                    'calendar_name' => $noms[$id] ?? $anciennes->get($id)?->calendar_name ?? $id,
+                ]
+            );
         }
 
         $evenement->unsetRelation('calendriers');
+    }
+
+    /**
+     * Résout id → nom d'affichage depuis le registre `ref_calendriers_google`
+     * (voir CalendrierGoogleController) — pas d'appel à l'API Google Calendar
+     * ici : `calendars.get()` en boucle pour chaque ID serait lent et
+     * superflu puisque le registre contient déjà le nom validé à
+     * l'enregistrement de chaque calendrier.
+     *
+     * @param array<int, string> $calendarIds
+     * @return array<string, string>
+     */
+    private function resolveCalendarNames(array $calendarIds): array
+    {
+        if (empty($calendarIds)) {
+            return [];
+        }
+
+        return CalendrierGoogle::whereIn('calendar_id', $calendarIds)
+            ->pluck('nom', 'calendar_id')
+            ->all();
     }
 
     /**
@@ -260,7 +294,8 @@ class EvenementsController extends Controller
     }
 
     /**
-     * Dispatche un webhook upsert si au moins un calendrier est configuré.
+     * Dispatche une synchronisation Google Calendar (upsert) si au moins un
+     * calendrier est configuré.
      *
      * @param string $method 'post' (création) ou 'patch' (modification)
      */
@@ -270,20 +305,16 @@ class EvenementsController extends Controller
             return;
         }
 
-        if (empty(config('services.make.webhook_url_evenements'))) {
-            return;
-        }
-
         try {
             $payload = $this->webhookBuilder->buildUpsert($evenement);
-            EnvoyerWebhookMake::dispatch($payload, $method, 'evenement');
-            Log::info('[EvenementsController] Webhook dispatché', [
+            SynchroniserGoogleCalendar::dispatch($payload, $method, 'evenement');
+            Log::info('[EvenementsController] Synchronisation Google Calendar dispatchée', [
                 'id' => $evenement->id,
                 'nom' => $evenement->nom,
                 'method' => strtoupper($method),
             ]);
         } catch (\Throwable $e) {
-            Log::error('[EvenementsController] Échec dispatch webhook upsert', [
+            Log::error('[EvenementsController] Échec dispatch synchronisation upsert', [
                 'id' => $evenement->id,
                 'error' => $e->getMessage(),
             ]);
@@ -291,7 +322,8 @@ class EvenementsController extends Controller
     }
 
     /**
-     * Dispatche un webhook delete si au moins un calendrier est configuré.
+     * Dispatche une suppression Google Calendar (synchrone) si au moins un
+     * calendrier est configuré — voir docblock de SynchroniserGoogleCalendar.
      */
     private function dispatchWebhookDelete(Evenement $evenement): void
     {
@@ -299,16 +331,12 @@ class EvenementsController extends Controller
             return;
         }
 
-        if (empty(config('services.make.webhook_url_evenements'))) {
-            return;
-        }
-
         try {
             $payload = $this->webhookBuilder->buildDelete($evenement);
-            EnvoyerWebhookMake::dispatch($payload, 'delete', 'evenement');
-            Log::info('[EvenementsController] Webhook DELETE dispatché', ['id' => $evenement->id, 'nom' => $evenement->nom]);
+            SynchroniserGoogleCalendar::dispatchSync($payload, 'delete', 'evenement');
+            Log::info('[EvenementsController] Synchronisation Google Calendar (delete)', ['id' => $evenement->id, 'nom' => $evenement->nom]);
         } catch (\Throwable $e) {
-            Log::error('[EvenementsController] Échec dispatch webhook delete', [
+            Log::error('[EvenementsController] Échec synchronisation Google Calendar (delete)', [
                 'id' => $evenement->id,
                 'error' => $e->getMessage(),
             ]);
@@ -316,29 +344,26 @@ class EvenementsController extends Controller
     }
 
     /**
-     * Dispatche le webhook DELETE de désassignation d'une tâche (réutilisé
-     * depuis PlanningEditController — même payload que le bouton
-     * "✕ Désassigner" manuel).
+     * Dispatche la synchronisation DELETE de désassignation d'une tâche
+     * (réutilisée depuis PlanningEditController — même payload que le
+     * bouton "✕ Désassigner" manuel). Synchrone — voir docblock de
+     * SynchroniserGoogleCalendar.
      */
     private function dispatchWebhookUnassignation(int $creneauId, int $tacheId): void
     {
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
         try {
             $creneau = Creneau::findOrFail($creneauId);
             $tache = Tache::findOrFail($tacheId);
             $payload = $this->planningWebhookBuilder->buildForUnassignation($creneau, $tache);
 
-            EnvoyerWebhookMake::dispatch($payload, 'delete');
+            SynchroniserGoogleCalendar::dispatchSync($payload, 'delete');
 
-            Log::info('[EvenementsController] Webhook DELETE dispatché (désassignation rétroactive)', [
+            Log::info('[EvenementsController] Synchronisation Google Calendar (delete, désassignation rétroactive)', [
                 'creneau_id' => $creneauId,
                 'tache_id' => $tacheId,
             ]);
         } catch (\Throwable $e) {
-            Log::error('[EvenementsController] Échec dispatch webhook DELETE (désassignation rétroactive)', [
+            Log::error('[EvenementsController] Échec synchronisation Google Calendar (désassignation rétroactive)', [
                 'creneau_id' => $creneauId,
                 'tache_id' => $tacheId,
                 'error' => $e->getMessage(),

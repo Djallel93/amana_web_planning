@@ -45,7 +45,7 @@ return new class extends Migration {
             ],
             [
                 'cle' => 'calendar_annulation_cours',
-                'valeur' => 'AMANA - Communications',
+                'valeur' => '',
                 'type' => 'string',
                 'libelle' => 'Annulation Cours',
                 'description' => null,

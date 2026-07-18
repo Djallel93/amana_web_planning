@@ -84,7 +84,7 @@
 
         {{-- ── Synchronisation Google Calendar --}}
         @php
-            $calendarNamesActuels = old('calendar_names', $edit ? $evenement->calendarNames() : []);
+            $calendarIdsActuels = old('calendar_ids', $edit ? $evenement->calendarIds() : []);
         @endphp
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
@@ -95,23 +95,24 @@
             <div class="p-5">
                 <p class="text-[12.5px] text-ink-muted mb-4 leading-relaxed">
                     Si vous sélectionnez un ou plusieurs calendriers, un événement sera automatiquement créé (ou mis à jour / supprimé)
-                    dans chacun via Make.com. Laissez vide pour ne pas synchroniser.
+                    dans chacun via l'API Google Calendar. Laissez vide pour ne pas synchroniser.
                 </p>
 
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-bold text-ink tracking-[0.2px]">Calendriers Google Calendar</label>
                     {{--
                         Point de montage SearchableSelect.vue en mode multiple.
-                        Le composant crée lui-même ses <input type="hidden" name="calendar_names[]">
-                        (un par calendrier sélectionné).
+                        Le composant crée lui-même ses <input type="hidden" name="calendar_ids[]">
+                        (un par calendrier sélectionné) — la valeur soumise est
+                        l'ID Google Calendar, pas le nom affiché.
                     --}}
                     <div
                         data-searchable-select
                         data-multiple="1"
                         data-api-url="{{ route('calendriers.index') }}"
-                        data-input-name="calendar_names"
-                        data-input-id="calendar_names_vue"
-                        data-current-value="{{ json_encode(array_values((array) $calendarNamesActuels)) }}"
+                        data-input-name="calendar_ids"
+                        data-input-id="calendar_ids_vue"
+                        data-current-value="{{ json_encode(array_values((array) $calendarIdsActuels)) }}"
                         data-placeholder="Sélectionner un ou plusieurs calendriers…"
                     ></div>
                     <span class="text-[11.5px] text-ink-muted">
@@ -120,7 +121,7 @@
                             <strong class="text-emerald-600">✓ Synchronisation active</strong>
                         @endif
                     </span>
-                    @error('calendar_names')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
+                    @error('calendar_ids')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>
 
                 @if($edit && $evenement->hasCalendarSync())

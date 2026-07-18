@@ -8,32 +8,27 @@ namespace App\Services;
 use App\Models\Evenement;
 
 /**
- * Construit le payload webhook pour les événements organisationnels.
- *
- * Envoyé vers un scénario Make.com DÉDIÉ (services.make.webhook_url_evenements),
- * distinct de celui du planning (WebhookPayloadBuilder /
- * services.make.webhook_url) — voir EnvoyerWebhookMake::$cible. Comme
- * chaque scénario a sa propre URL, le payload n'a plus besoin de porter de
- * champ `type`/`action` pour se distinguer ou s'auto-décrire : le verbe HTTP
- * (POST/PATCH/DELETE, choisi par l'appelant) et l'URL suffisent à Make.com
- * pour savoir quoi faire.
+ * Construit le payload consommé par SynchroniserGoogleCalendar pour les
+ * événements organisationnels (ex-Make.com, cible `evenement`).
  *
  * Structure du payload :
  * {
  *   "evenement": {
+ *     "id_evenement": 12,
  *     "nom": "Ramadan",
  *     "date_debut": "2025-03-01",
  *     "date_fin": "2025-03-30",
  *     "description": "...",
- *     "calendar_names": ["AMANA - Événements", "AMANA - Communications"],
+ *     "calendar_ids": ["abc123@group.calendar.google.com", "..."],
  *     "taches_bloquees": ["amana_food", "entree"]  // absent pour delete
  *   }
  * }
  *
- * `nom` + `date_debut`/`date_fin` servent d'identifiant pour que Make.com
- * retrouve l'événement Google Calendar correspondant lors d'une modification
- * ou suppression ultérieure (pas d'`id` interne exposé — non utilisé côté
- * Make.com).
+ * `id_evenement` permet à GoogleCalendarPayloadMapper de retrouver/mettre à
+ * jour la ligne ref_evenements_calendriers correspondante (event_id exact) —
+ * plus de résolution par nom + date comme du temps de Make.com.
+ * `calendar_ids` contient des identifiants Google Calendar (calendarId), pas
+ * des noms — voir Evenement::calendarIds().
  */
 class WebhookEvenementPayloadBuilder
 {
@@ -52,11 +47,12 @@ class WebhookEvenementPayloadBuilder
 
         return [
             'evenement' => $this->sansChampsNull([
+                'id_evenement'    => $evenement->id,
                 'nom'             => $evenement->nom,
                 'date_debut'      => $evenement->date_debut->toDateString(),
                 'date_fin'        => $evenement->date_fin->toDateString(),
                 'description'     => $evenement->description ?? '',
-                'calendar_names'  => $evenement->calendarNames(),
+                'calendar_ids'    => $evenement->calendarIds(),
                 'taches_bloquees' => $evenement->tachesBloquees->pluck('code')->values()->all(),
             ]),
         ];
@@ -77,10 +73,10 @@ class WebhookEvenementPayloadBuilder
     }
 
     /**
-     * Payload pour une suppression d'événement (DELETE).
-     * On envoie uniquement de quoi localiser l'événement Google Calendar
-     * correspondant (nom + dates + calendriers cibles) — pas de champs
-     * dépendant de l'assignation des tâches bloquées.
+     * Payload pour une suppression d'événement (DELETE). `id_evenement`
+     * suffit à GoogleCalendarPayloadMapper pour retrouver les event_id
+     * Google Calendar à supprimer — les autres champs sont conservés pour
+     * le logging/l'audit uniquement.
      */
     public function buildDelete(Evenement $evenement): array
     {
@@ -90,10 +86,11 @@ class WebhookEvenementPayloadBuilder
 
         return [
             'evenement' => [
-                'nom'            => $evenement->nom,
-                'date_debut'     => $evenement->date_debut->toDateString(),
-                'date_fin'       => $evenement->date_fin->toDateString(),
-                'calendar_names' => $evenement->calendarNames(),
+                'id_evenement'  => $evenement->id,
+                'nom'           => $evenement->nom,
+                'date_debut'    => $evenement->date_debut->toDateString(),
+                'date_fin'      => $evenement->date_fin->toDateString(),
+                'calendar_ids'  => $evenement->calendarIds(),
             ],
         ];
     }

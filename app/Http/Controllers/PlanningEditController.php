@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Jobs\EnvoyerWebhookMake;
+use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Evenement;
@@ -19,14 +19,20 @@ use Illuminate\Support\Facades\Log;
 /**
  * Contrôleur pour les modifications manuelles du planning généré.
  *
- * Chaque modification déclenche un webhook vers Make.com avec le verbe HTTP
- * correspondant à la nature de l'action :
- *   - réassignation (patchAssignation)      → PATCH
- *   - désassignation (unassignTache)        → DELETE
- *   - suppression d'un créneau entier       → DELETE
- *   - création manuelle d'un créneau        → POST
- *   - annulation d'un cours (annulerCours)  → DELETE (nettoyage calendrier)
- *                                              puis POST (annonce annulation)
+ * Chaque modification synchronise directement Google Calendar (API v3, via
+ * SynchroniserGoogleCalendar) avec le mode adapté à la nature de l'action :
+ *   - réassignation (patchAssignation)      → PATCH  (upsert, en queue)
+ *   - désassignation (unassignTache)        → DELETE (synchrone)
+ *   - suppression d'un créneau entier       → DELETE (synchrone)
+ *   - création manuelle d'un créneau        → POST   (upsert, en queue)
+ *   - annulation d'un cours (annulerCours)  → DELETE (nettoyage calendrier,
+ *                                              synchrone) puis POST (annonce
+ *                                              annulation, en queue)
+ *
+ * Les DELETE sont dispatchés en SYNCHRONE (dispatchSync) et non en queue,
+ * car ils sont toujours suivis d'une suppression en cascade des lignes
+ * plan_calendrier_evenements — voir le docblock de SynchroniserGoogleCalendar
+ * pour le détail de ce choix.
  *
  * Routes :
  *   PATCH  /planning/creneau/{creneauId}/tache/{tacheId}  → modifier l'assignation
@@ -335,23 +341,19 @@ class PlanningEditController extends Controller
 
     private function dispatchWebhookReassignation(int $creneauId, int $tacheId): void
     {
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
         try {
             $creneau = Creneau::findOrFail($creneauId);
             $tache = Tache::findOrFail($tacheId);
             $payload = $this->webhookBuilder->buildForReassignation($creneau, $tache);
 
-            EnvoyerWebhookMake::dispatch($payload, 'patch');
+            SynchroniserGoogleCalendar::dispatch($payload, 'patch');
 
-            Log::info('[PlanningEditController] Webhook PATCH dispatché (réassignation)', [
+            Log::info('[PlanningEditController] Synchronisation Google Calendar dispatchée (réassignation)', [
                 'creneau_id' => $creneauId,
                 'tache_id' => $tacheId,
             ]);
         } catch (\Throwable $e) {
-            Log::error('[PlanningEditController] Échec dispatch webhook PATCH', [
+            Log::error('[PlanningEditController] Échec dispatch synchronisation (réassignation)', [
                 'creneau_id' => $creneauId,
                 'tache_id' => $tacheId,
                 'error' => $e->getMessage(),
@@ -361,23 +363,19 @@ class PlanningEditController extends Controller
 
     private function dispatchWebhookUnassignation(int $creneauId, int $tacheId): void
     {
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
         try {
             $creneau = Creneau::findOrFail($creneauId);
             $tache = Tache::findOrFail($tacheId);
             $payload = $this->webhookBuilder->buildForUnassignation($creneau, $tache);
 
-            EnvoyerWebhookMake::dispatch($payload, 'delete');
+            SynchroniserGoogleCalendar::dispatchSync($payload, 'delete');
 
-            Log::info('[PlanningEditController] Webhook DELETE dispatché (désassignation)', [
+            Log::info('[PlanningEditController] Synchronisation Google Calendar (délete, désassignation)', [
                 'creneau_id' => $creneauId,
                 'tache_id' => $tacheId,
             ]);
         } catch (\Throwable $e) {
-            Log::error('[PlanningEditController] Échec dispatch webhook DELETE', [
+            Log::error('[PlanningEditController] Échec synchronisation Google Calendar (désassignation)', [
                 'creneau_id' => $creneauId,
                 'tache_id' => $tacheId,
                 'error' => $e->getMessage(),
@@ -387,21 +385,17 @@ class PlanningEditController extends Controller
 
     private function dispatchWebhookDeleteCreneau(Creneau $creneau): void
     {
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
         try {
             $payload = $this->webhookBuilder->buildForDeleteCreneau($creneau);
 
-            EnvoyerWebhookMake::dispatch($payload, 'delete');
+            SynchroniserGoogleCalendar::dispatchSync($payload, 'delete');
 
-            Log::info('[PlanningEditController] Webhook DELETE dispatché (créneau supprimé)', [
+            Log::info('[PlanningEditController] Synchronisation Google Calendar (delete, créneau supprimé)', [
                 'creneau_id' => $creneau->id,
                 'date' => $creneau->date->toDateString(),
             ]);
         } catch (\Throwable $e) {
-            Log::error('[PlanningEditController] Échec dispatch webhook DELETE créneau', [
+            Log::error('[PlanningEditController] Échec synchronisation Google Calendar (delete créneau)', [
                 'creneau_id' => $creneau->id,
                 'error' => $e->getMessage(),
             ]);
@@ -410,21 +404,17 @@ class PlanningEditController extends Controller
 
     private function dispatchWebhookCreation(Creneau $creneau): void
     {
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
         try {
             $payload = $this->webhookBuilder->buildForCreation($creneau);
 
-            EnvoyerWebhookMake::dispatch($payload, 'post');
+            SynchroniserGoogleCalendar::dispatch($payload, 'post');
 
-            Log::info('[PlanningEditController] Webhook POST dispatché (créneau créé)', [
+            Log::info('[PlanningEditController] Synchronisation Google Calendar dispatchée (créneau créé)', [
                 'creneau_id' => $creneau->id,
                 'date' => $creneau->date->toDateString(),
             ]);
         } catch (\Throwable $e) {
-            Log::error('[PlanningEditController] Échec dispatch webhook POST créneau', [
+            Log::error('[PlanningEditController] Échec dispatch synchronisation (créneau)', [
                 'creneau_id' => $creneau->id,
                 'error' => $e->getMessage(),
             ]);
@@ -433,21 +423,17 @@ class PlanningEditController extends Controller
 
     private function dispatchWebhookAnnulationCours(Creneau $creneau): void
     {
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
         try {
             $payload = $this->webhookBuilder->buildForAnnulationCours($creneau);
 
-            EnvoyerWebhookMake::dispatch($payload, 'post');
+            SynchroniserGoogleCalendar::dispatch($payload, 'post');
 
-            Log::info('[PlanningEditController] Webhook POST dispatché (annulation cours)', [
+            Log::info('[PlanningEditController] Synchronisation Google Calendar dispatchée (annulation cours)', [
                 'creneau_id' => $creneau->id,
                 'date' => $creneau->date->toDateString(),
             ]);
         } catch (\Throwable $e) {
-            Log::error('[PlanningEditController] Échec dispatch webhook POST annulation cours', [
+            Log::error('[PlanningEditController] Échec dispatch synchronisation (annulation cours)', [
                 'creneau_id' => $creneau->id,
                 'error' => $e->getMessage(),
             ]);

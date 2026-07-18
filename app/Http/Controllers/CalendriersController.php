@@ -5,96 +5,48 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\CalendrierGoogle;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 /**
- * Proxy vers Make.com pour récupérer la liste des calendriers Google Calendar.
+ * Sert la liste des calendriers Google Calendar **enregistrés** dans
+ * ref_calendriers_google (voir CalendrierGoogleController pour la gestion
+ * de ce registre) — alimente le dropdown de sélection de calendrier
+ * (SearchableSelect.vue) côté Paramètres et formulaire d'événement.
  *
- * Un GET sur le webhook Make.com retourne un JSON de la forme :
- *   { "calendars": ["Calendrier A", "Calendrier B", ...] }
+ * Ne fait AUCUN appel à l'API Google Calendar : contrairement à ce qu'on
+ * pourrait attendre, un compte de service n'a pas de "liste de calendriers"
+ * interrogeable (calendarList.list() renvoie toujours une liste vide pour un
+ * compte de service, même avec des calendriers partagés — voir
+ * docs/google_service_account.md et le docblock de la migration
+ * 2026_07_17_000001_create_ref_calendriers_google_table.php). Chaque
+ * calendrier doit donc être enregistré manuellement une fois (validé via
+ * `calendars.get()` au moment de l'ajout), après quoi cette route ne fait
+ * qu'une lecture DB — rapide, sans dépendance réseau à chaque affichage de
+ * formulaire.
  *
- * Cette route est appelée en AJAX depuis les formulaires qui ont un champ
- * de sélection de calendrier (événements et paramètres).
- *
- * Route : GET /api/calendriers (middleware auth)
+ * Route : GET /api/calendriers (tous rôles connectés)
  */
 class CalendriersController extends Controller
 {
-    /**
-     * Récupère la liste des calendriers depuis Make.com et la retourne en JSON.
-     *
-     * En cas d'échec (webhook non configuré, timeout, erreur réseau),
-     * retourne un tableau vide avec un message d'erreur — le formulaire
-     * bascule alors sur un input texte libre en fallback.
-     */
     public function index(): JsonResponse
     {
-        $url = config('services.make.webhook_url');
-        $apiKey = config('services.make.api_key');
+        $calendars = CalendrierGoogle::where('actif', true)
+            ->orderBy('nom')
+            ->get()
+            ->map(fn(CalendrierGoogle $c) => [
+                'id' => $c->calendar_id,
+                'name' => $c->nom,
+            ])
+            ->values();
 
-        if (empty($url)) {
-            Log::warning('[CalendriersController] MAKE_WEBHOOK_URL non configurée.');
+        if ($calendars->isEmpty()) {
             return response()->json([
                 'calendars' => [],
-                'erreur' => 'Webhook Make.com non configuré.',
+                'erreur' => 'Aucun calendrier Google Calendar enregistré. Un gestionnaire ou administrateur peut en ajouter depuis /parametres.',
             ]);
         }
 
-        try {
-            Log::info('[CalendriersController] GET calendriers Make.com', ['url' => $url]);
-
-            $request = Http::timeout(10);
-
-            if (!empty($apiKey)) {
-                $request = $request->withHeaders(['x-make-apikey' => $apiKey]);
-            }
-
-            $response = $request->get($url);
-
-            if (!$response->successful()) {
-                Log::warning('[CalendriersController] Réponse non-2xx Make.com', [
-                    'status' => $response->status(),
-                    'body' => substr($response->body(), 0, 500),
-                ]);
-                return response()->json([
-                    'calendars' => [],
-                    'erreur' => 'Réponse inattendue du webhook (HTTP ' . $response->status() . ').',
-                ]);
-            }
-
-            $data = $response->json();
-
-            if (!isset($data['calendars']) || !is_array($data['calendars'])) {
-                Log::warning('[CalendriersController] Format de réponse inattendu', [
-                    'data' => $data,
-                ]);
-                return response()->json([
-                    'calendars' => [],
-                    'erreur' => 'Format de réponse Make.com inattendu.',
-                ]);
-            }
-
-            $calendars = array_values(array_filter($data['calendars'], 'is_string'));
-            sort($calendars);
-
-            Log::info('[CalendriersController] Calendriers récupérés', [
-                'count' => count($calendars),
-            ]);
-
-            return response()->json(['calendars' => $calendars]);
-
-        } catch (\Throwable $e) {
-            Log::error('[CalendriersController] Erreur lors du GET Make.com', [
-                'erreur' => $e->getMessage(),
-                'classe' => get_class($e),
-            ]);
-
-            return response()->json([
-                'calendars' => [],
-                'erreur' => 'Impossible de contacter Make.com : ' . $e->getMessage(),
-            ]);
-        }
+        return response()->json(['calendars' => $calendars]);
     }
 }

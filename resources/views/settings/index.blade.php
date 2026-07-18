@@ -20,6 +20,104 @@
 --}}
 <div id="vue-horaire-settings"></div>
 
+{{-- ═══════════════════════════════════════
+    SECTION 2bis — Registre des calendriers Google Calendar
+════════════════════════════════════════ --}}
+<div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
+    <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+        <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
+        <span class="font-heading text-[14px] font-semibold text-ink">Registre des calendriers Google Calendar</span>
+    </div>
+    <div class="px-5 py-5">
+        <div class="flex items-start gap-2 mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
+            <span class="flex-shrink-0 mt-px">ℹ️</span>
+            <span>
+                Un compte de service Google ne peut pas "découvrir" automatiquement les calendriers qui lui sont partagés — chaque calendrier doit être enregistré ici <strong>une fois</strong>, avec son ID Google Calendar (copié depuis Google Calendar → ⚙️ Paramètres du calendrier concerné → <strong>Intégrer l'agenda</strong> → « ID de l'agenda »). L'accès est vérifié automatiquement à l'ajout. Voir <code>docs/google_service_account.md</code> pour le détail.
+            </span>
+        </div>
+
+        @if($calendriersGoogle->isEmpty())
+            <p class="text-[12.5px] text-ink-muted mb-4">Aucun calendrier enregistré pour le moment.</p>
+        @else
+            <div class="overflow-x-auto mb-5">
+                <table class="w-full text-[12.5px]">
+                    <thead>
+                        <tr class="text-left text-ink-muted border-b border-surface-3">
+                            <th class="py-2 pr-3 font-semibold">Nom</th>
+                            <th class="py-2 pr-3 font-semibold">Calendar ID</th>
+                            <th class="py-2 pr-3 font-semibold">État</th>
+                            <th class="py-2 pr-3 font-semibold">Dernière vérification</th>
+                            <th class="py-2 font-semibold text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($calendriersGoogle as $cal)
+                            <tr class="border-b border-surface-3 last:border-0">
+                                <td class="py-2.5 pr-3 font-medium text-ink">{{ $cal->nom }}</td>
+                                <td class="py-2.5 pr-3 font-mono text-[11.5px] text-ink-muted">{{ $cal->calendar_id }}</td>
+                                <td class="py-2.5 pr-3">
+                                    @if($cal->actif)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">Actif</span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-3 text-ink-muted">Inactif</span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 pr-3 text-ink-muted">
+                                    {{ $cal->derniere_verification_at?->diffForHumans() ?? '—' }}
+                                </td>
+                                <td class="py-2.5 text-right whitespace-nowrap">
+                                    <form action="{{ route('calendriers-google.verifier', $cal) }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" class="text-[11.5px] font-semibold text-accent hover:underline mr-3">Vérifier</button>
+                                    </form>
+                                    <form action="{{ route('calendriers-google.update', $cal) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="nom" value="{{ $cal->nom }}">
+                                        <input type="hidden" name="description" value="{{ $cal->description }}">
+                                        <input type="hidden" name="actif" value="{{ $cal->actif ? '0' : '1' }}">
+                                        <button type="submit" class="text-[11.5px] font-semibold text-ink-muted hover:underline mr-3">
+                                            {{ $cal->actif ? 'Désactiver' : 'Activer' }}
+                                        </button>
+                                    </form>
+                                    <form action="{{ route('calendriers-google.destroy', $cal) }}" method="POST" class="inline" onsubmit="return confirm('Retirer « {{ $cal->nom }} » du registre ? Les événements déjà créés sur Google Calendar ne seront pas affectés — seuls les nouveaux formulaires ne le proposeront plus.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-[11.5px] font-semibold text-rose-600 hover:underline">Retirer</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+        {{-- Formulaire d'ajout --}}
+        <form action="{{ route('calendriers-google.store') }}" method="POST" class="border-t border-surface-3 pt-4">
+            @csrf
+            <p class="text-xs font-bold text-ink tracking-[0.2px] mb-3">Ajouter un calendrier</p>
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-start">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-semibold text-ink-muted">Nom d'affichage</label>
+                    <input type="text" name="nom" value="{{ old('nom') }}" placeholder="ex. AMANA - Planning" required maxlength="200"
+                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-accent/30">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-semibold text-ink-muted">Calendar ID</label>
+                    <input type="text" name="calendar_id" value="{{ old('calendar_id') }}" placeholder="xxxx@group.calendar.google.com" required maxlength="200"
+                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-accent/30">
+                </div>
+                <button type="submit" class="self-end px-4 py-2 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 whitespace-nowrap">
+                    Ajouter et vérifier
+                </button>
+            </div>
+            @error('calendar_id')<span class="block mt-2 text-xs text-rose-600">{{ $message }}</span>@enderror
+            @error('nom')<span class="block mt-2 text-xs text-rose-600">{{ $message }}</span>@enderror
+        </form>
+    </div>
+</div>
+
 <form action="{{ route('settings.update') }}" method="POST" id="settingsForm">
     @csrf
 
@@ -158,6 +256,7 @@
         </div>
     </div>
 
+
     {{-- ═══════════════════════════════════════
         SECTION 3 — Calendriers Google Calendar
     ════════════════════════════════════════ --}}
@@ -168,8 +267,8 @@
         </div>
         <div class="px-5 py-5">
             <p class="text-[12.5px] text-ink-muted mb-5 leading-relaxed">
-                Nom du calendrier Google Calendar dans lequel chaque type d'événement sera créé.
-                Laissez vide pour utiliser le calendrier par défaut configuré dans Make.com.
+                Calendrier Google Calendar dans lequel chaque type d'événement sera créé.
+                Laissez vide pour ne synchroniser aucun événement de ce type.
             </p>
 
             @php

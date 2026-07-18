@@ -16,10 +16,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Si aucune tâche n'est liée → événement purement informatif (s'affiche dans
  * la bannière de semaine sans affecter les assignations).
  *
- * Si au moins un calendrier est renseigné (relation calendriers), un webhook
- * Make.com est déclenché lors de la création, modification ou suppression de
- * l'événement pour synchroniser Google Calendar — un événement peut désormais
- * être synchronisé sur PLUSIEURS calendriers à la fois.
+ * Si au moins un calendrier est renseigné (relation calendriers), une
+ * synchronisation Google Calendar directe est déclenchée lors de la
+ * création, modification ou suppression de l'événement — un événement peut
+ * désormais être synchronisé sur PLUSIEURS calendriers à la fois.
  *
  * @property int         $id
  * @property string      $nom
@@ -124,6 +124,27 @@ class Evenement extends Model
             $this->load('calendriers');
         }
         return $this->calendriers->pluck('calendar_name')->values()->all();
+    }
+
+    /**
+     * Retourne les identifiants Google Calendar (google_calendar_id) liés à
+     * cet événement — c'est cette valeur, et non calendar_name, qui est
+     * envoyée à l'API Google Calendar par SynchroniserGoogleCalendar.
+     * Une ligne sans google_calendar_id (calendrier sélectionné avant la
+     * bascule vers l'identification par ID) est ignorée.
+     *
+     * @return array<int, string>
+     */
+    public function calendarIds(): array
+    {
+        if (!$this->relationLoaded('calendriers')) {
+            $this->load('calendriers');
+        }
+        return $this->calendriers
+            ->pluck('google_calendar_id')
+            ->filter()
+            ->values()
+            ->all();
     }
 
     // ── Scopes ─────────────────────────────────────────────────────────────

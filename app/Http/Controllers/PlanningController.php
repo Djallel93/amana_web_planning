@@ -146,14 +146,12 @@ class PlanningController extends Controller
 
             audit('generate', 'planning', null, null, $resultat);
 
-            if (config('services.make.webhook_url')) {
-                $payload = app(\App\Services\WebhookPayloadBuilder::class)
-                    ->build($dateDebut, $semaines);
+            $payload = app(\App\Services\WebhookPayloadBuilder::class)
+                ->build($dateDebut, $semaines);
 
-                \App\Jobs\EnvoyerWebhookMake::dispatch($payload, 'post');
+            \App\Jobs\SynchroniserGoogleCalendar::dispatch($payload, 'post');
 
-                Log::info('[PlanningController] Webhook Make.com dispatché en queue (POST).');
-            }
+            Log::info('[PlanningController] Synchronisation Google Calendar dispatchée en queue (POST).');
 
             return redirect()->route('planning.generate.form')
                 ->with('success', "Planning généré : {$resultat['jours_generes']} jours créés en {$resultat['duree_ms']}ms. ({$resultat['non_assignes']} non assigné(s))");

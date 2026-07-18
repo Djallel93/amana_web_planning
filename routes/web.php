@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ActiviteController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BilanController;
+use App\Http\Controllers\CalendrierGoogleController;
 use App\Http\Controllers\CalendriersController;
 use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EchangeController;
@@ -105,7 +106,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/statistiques/data', [BilanController::class, 'statistiquesData'])->name('statistiques.data');
     });
 
-    // ── API interne — liste des calendriers Make.com (tous rôles) ─────────
+    // ── API interne — liste des calendriers Google Calendar (tous rôles) ──
     Route::get('/api/calendriers', [CalendriersController::class, 'index'])->name('calendriers.index');
 
     // ── Diagnostic SMTP — admin uniquement ────────────────────────────────
@@ -171,6 +172,17 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:gestionnaire')->group(function () {
         Route::get('/parametres', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/parametres', [SettingsController::class, 'update'])->name('settings.update');
+
+        // Registre des calendriers Google Calendar — voir CalendrierGoogleController
+        // (découverte automatique impossible pour un compte de service, voir
+        // docs/google_service_account.md, section "Pourquoi il faut enregistrer
+        // les calendriers manuellement").
+        Route::prefix('parametres/calendriers-google')->name('calendriers-google.')->group(function () {
+            Route::post('/', [CalendrierGoogleController::class, 'store'])->name('store');
+            Route::patch('/{calendrierGoogle}', [CalendrierGoogleController::class, 'update'])->name('update');
+            Route::delete('/{calendrierGoogle}', [CalendrierGoogleController::class, 'destroy'])->name('destroy');
+            Route::post('/{calendrierGoogle}/verifier', [CalendrierGoogleController::class, 'verifier'])->name('verifier');
+        });
     });
 
     // ── Restrictions ───────────────────────────────────────────────────────

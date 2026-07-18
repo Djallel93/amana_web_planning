@@ -30,7 +30,7 @@ const emit = defineEmits<{
 // ── État local ────────────────────────────────────────────────────────────
 const isOpen     = ref(false);
 const query      = ref('');
-const calendars  = ref<string[]>([]);
+const calendars  = ref<{ id: string; name: string }[]>([]);
 const loading    = ref(false);
 const fetchError = ref('');
 
@@ -71,8 +71,8 @@ function updateDropdownPosition(): void {
 }
 
 // ── Cache module-level partagé entre toutes les instances ─────────────────
-const _cache    = new Map<string, string[]>();
-const _inflight = new Map<string, Promise<string[]>>();
+const _cache    = new Map<string, { id: string; name: string }[]>();
+const _inflight = new Map<string, Promise<{ id: string; name: string }[]>>();
 
 // ── Helpers de lecture du modelValue selon le mode ─────────────────────────
 const selectedValues = computed((): string[] => {
@@ -82,19 +82,30 @@ const selectedValues = computed((): string[] => {
 
 const selectedLabel = computed((): string => {
     if (props.multiple) return ''; // non utilisé en mode multiple (chips à la place)
-    return typeof props.modelValue === 'string' ? props.modelValue : '';
+    if (typeof props.modelValue !== 'string' || !props.modelValue) return '';
+    return labelFor(props.modelValue);
 });
 
-function isSelected(cal: string): boolean {
+/**
+ * Résout un ID de calendrier vers son nom d'affichage à partir de la liste
+ * chargée depuis l'API. Tant que la liste n'est pas encore chargée (ou si
+ * l'ID sélectionné n'y figure plus), on retombe sur l'ID brut plutôt que
+ * d'afficher un champ vide.
+ */
+function labelFor(id: string): string {
+    return calendars.value.find(c => c.id === id)?.name ?? id;
+}
+
+function isSelected(cal: { id: string; name: string }): boolean {
     return props.multiple
-        ? selectedValues.value.includes(cal)
-        : cal === props.modelValue;
+        ? selectedValues.value.includes(cal.id)
+        : cal.id === props.modelValue;
 }
 
 const filteredCalendars = computed(() => {
     const q = query.value.toLowerCase().trim();
     if (!q) return calendars.value;
-    return calendars.value.filter(c => c.toLowerCase().includes(q));
+    return calendars.value.filter(c => c.name.toLowerCase().includes(q));
 });
 
 // ── Fetch ─────────────────────────────────────────────────────────────────
@@ -119,15 +130,15 @@ async function fetchCalendars(): Promise<void> {
         },
     })
         .then(r => r.json())
-        .then((data: { calendars?: string[]; erreur?: string }) => {
+        .then((data: { calendars?: { id: string; name: string }[]; erreur?: string }) => {
             const result = data.calendars ?? [];
             _cache.set(props.apiUrl, result);
             if (data.erreur) fetchError.value = data.erreur;
             return result;
         })
         .catch(() => {
-            fetchError.value = 'Impossible de contacter Make.com.';
-            return [] as string[];
+            fetchError.value = 'Impossible de contacter Google Calendar.';
+            return [] as { id: string; name: string }[];
         })
         .finally(() => {
             _inflight.delete(props.apiUrl);
@@ -165,17 +176,17 @@ function toggle(): void {
  * Mode multiple : bascule l'entrée dans le tableau, ne ferme PAS le dropdown
  *                 (l'utilisateur peut cocher plusieurs calendriers d'affilée).
  */
-function select(value: string): void {
+function select(cal: { id: string; name: string }): void {
     if (!props.multiple) {
-        emit('update:modelValue', value);
+        emit('update:modelValue', cal.id);
         close();
         return;
     }
 
     const current = selectedValues.value;
-    const next = current.includes(value)
-        ? current.filter(v => v !== value)
-        : [...current, value];
+    const next = current.includes(cal.id)
+        ? current.filter(v => v !== cal.id)
+        : [...current, cal.id];
     emit('update:modelValue', next);
 }
 
@@ -268,7 +279,7 @@ onUnmounted(() => {
                     :key="val"
                     class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[12px] font-semibold bg-sky-50 text-accent"
                 >
-                    {{ val }}
+                    {{ labelFor(val) }}
                     <span
                         role="button"
                         aria-label="Retirer"
@@ -342,7 +353,7 @@ onUnmounted(() => {
                             class="px-4 py-3 text-[12.5px] text-rose-700 bg-rose-50 border-t border-rose-200"
                         >
                             ⚠️ {{ fetchError }}<br>
-                            <span class="text-[11.5px]">Vérifiez la configuration Make.com.</span>
+                            <span class="text-[11.5px]">Vérifiez la configuration Google Calendar.</span>
                         </div>
 
                         <div
@@ -355,7 +366,7 @@ onUnmounted(() => {
 
                         <div
                             v-for="cal in filteredCalendars"
-                            :key="cal"
+                            :key="cal.id"
                             role="option"
                             :aria-selected="isSelected(cal)"
                             class="flex items-center gap-2 px-3.5 py-2.5 text-[13.5px] text-ink cursor-pointer transition-colors
@@ -369,7 +380,7 @@ onUnmounted(() => {
                                   :class="isSelected(cal) ? 'bg-accent border-accent text-white' : 'border-ink-faint'">
                                 <span v-if="isSelected(cal)">✓</span>
                             </span>
-                            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ cal }}</span>
+                            <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ cal.name }}</span>
                         </div>
                     </div>
 

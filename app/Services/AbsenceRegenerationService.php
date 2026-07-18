@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Jobs\EnvoyerWebhookMake;
+use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Absence;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Log;
  *   - Régénérer le planning depuis la première date impactée (SchedulerMain)
  *   - Alimenter le mécanisme de rollback (comme une génération manuelle)
  *   - Journaliser l'opération (audit)
- *   - Dispatcher le webhook Make.com si configuré
+ *   - Dispatcher la synchronisation Google Calendar si configurée
  *
  * Extrait de AbsencesController pour séparer l'orchestration (contrôleur)
  * de la logique métier de régénération (service).
@@ -133,11 +133,9 @@ class AbsenceRegenerationService
             'id_personne' => $absence->id_personne,
         ]));
 
-        if (config('services.make.webhook_url')) {
-            $payload = app(WebhookPayloadBuilder::class)->build($dateDebutRegen, $semaines);
-            EnvoyerWebhookMake::dispatch($payload, 'post');
-            Log::info('[AbsenceRegenerationService] Webhook Make.com dispatché en queue (POST) suite à régénération automatique.');
-        }
+        $payload = app(WebhookPayloadBuilder::class)->build($dateDebutRegen, $semaines);
+        SynchroniserGoogleCalendar::dispatch($payload, 'post');
+        Log::info('[AbsenceRegenerationService] Synchronisation Google Calendar dispatchée en queue (POST) suite à régénération automatique.');
 
         $dateLabel = $regenererDepuis->locale('fr')->isoFormat('D MMMM YYYY');
 

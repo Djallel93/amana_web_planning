@@ -31,3 +31,4 @@ test_webhook.sh
 /debug/**
 ionos_deploy_key
 ionos_deploy_key.pub
+cloud_service_account_credentials.json

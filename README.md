@@ -12,7 +12,7 @@
 8. [Système de notifications](#système-de-notifications)
 9. [Échanges de créneaux](#échanges-de-créneaux)
 10. [Bilan quotidien](#bilan-quotidien)
-11. [Intégration Make.com (Webhook)](#intégration-makecom-webhook)
+11. [Intégration Google Calendar (API directe)](#intégration-google-calendar-api-directe)
 12. [Déploiement — pipeline GitHub Actions → IONOS](#déploiement--pipeline-github-actions--ionos)
 
 ## Documentation complémentaire
@@ -65,8 +65,7 @@ graph TD
     B --> C[MySQL / MariaDB]
     B --> D[Queue Worker]
     D -->|Email| E[Serveur SMTP]
-    D -->|Webhook JSON planning/événements/annulation| F[Make.com]
-    F -->|Événements Google Calendar| G[Google Calendar]
+    D -->|API Google Calendar v3\n(compte de service)| G[Google Calendar]
     B -.->|Build Vite| H[Vue 3 + Tailwind\npublic/build/]
 ```
 
@@ -77,7 +76,7 @@ graph TD
 - **Frontend :** Blade pour le rendu serveur (layout, formulaires simples) + **Vue 3** pour les vues interactives (planning, événements, bilan quotidien, formulaires avec sélection multiple…), compilé par **Vite** avec **Tailwind CSS**. Le build produit `public/build/` (non committé dans git — voir [docs/installation.md](docs/installation.md)), chargé côté Blade via la directive `@vite(...)`.
 - **PDF :** barryvdh/laravel-dompdf
 - **Queue :** Laravel Queue (driver `database` en prod, `sync` supporté en dev)
-- **Automatisation externe :** Make.com via webhook (planning, événements organisationnels **et** annulations de cours)
+- **Automatisation externe :** API Google Calendar v3 en appel direct, via compte de service (planning, événements organisationnels **et** annulations de cours)
 - **CI/CD :** GitHub Actions (`.github/workflows/deploy.yaml`) — build (`composer install` + `npm run build`) et déploiement automatique sur IONOS par SSH/rsync à chaque push sur `main`. Voir [docs/installation.md](docs/installation.md#déploiement-en-production--pipeline-github-actions--ionos).
 
 **Configuration dynamique :**
@@ -160,8 +159,8 @@ Bouton rouge dans la barre de filtres, visible uniquement pour les admins/gestio
 3. Une fois confirmé :
     - Toutes les tâches déjà assignées sur ce créneau sont **désassignées** (`id_personne = NULL`).
     - Un événement organisationnel **« Cours annulé — {date} »** est créé, bloquant automatiquement **toutes les tâches actives** pour cette date — il apparaît dans la liste des [Événements](#-événements-evenements) comme n'importe quel autre événement, et la grille du planning affiche immédiatement la date comme bloquée.
-    - Tous les événements calendrier existants pour cette date sont supprimés côté Make.com (webhook `DELETE`).
-    - Une annonce d'annulation est envoyée à Make.com comme n'importe quel autre événement social du planning (webhook `POST`, code `annulation_cours` — voir [Intégration Make.com](#intégration-makecom-webhook)).
+    - Tous les événements calendrier existants pour cette date sont supprimés côté Google Calendar (synchronisation `DELETE`, synchrone).
+    - Une annonce d'annulation est envoyée à Google Calendar comme n'importe quel autre événement social du planning (synchronisation `POST`, code `annulation_cours` — voir [Intégration Google Calendar](#intégration-google-calendar-api-directe)).
 
 Si **aucun planning n'a encore été généré** pour la date choisie, rien n'est modifié : un simple avertissement s'affiche dans la modale (« Aucun planning n'a encore été généré pour le … »).
 
@@ -250,7 +249,7 @@ flowchart TD
     F -->|Confirmer et générer| D
     F -->|← Modifier| A
     D --> G[Planning enregistré]
-    G --> H[Webhook Make.com dispatché]
+    G --> H[Synchronisation Google Calendar dispatchée]
     G --> I[Session rollback disponible]
 ```
 
@@ -333,25 +332,25 @@ Créer ou modifier un événement dont la plage de dates chevauche des créneaux
 
 Le formulaire de création/modification d'un événement comporte un champ **« Calendriers Google Calendar »** en sélection multiple (chips + recherche).
 
-- **Si au moins un calendrier est sélectionné** : chaque création, modification ou suppression de l'événement dispatche un job `EnvoyerWebhookMake` vers Make.com pour **chacun** des calendriers sélectionnés, qui crée/met à jour/supprime l'événement correspondant dans chaque calendrier Google Calendar indiqué.
-- **Si aucun calendrier n'est sélectionné** : comportement inchangé — aucun webhook n'est envoyé pour cet événement.
+- **Si au moins un calendrier est sélectionné** : chaque création, modification ou suppression de l'événement dispatche un job `SynchroniserGoogleCalendar` (POST/PATCH en queue, DELETE synchrone) qui crée/met à jour/supprime directement l'événement correspondant, via l'API Google Calendar, dans **chacun** des calendriers sélectionnés.
+- **Si aucun calendrier n'est sélectionné** : comportement inchangé — aucune synchronisation n'est déclenchée pour cet événement.
 - Les calendriers sont stockés par événement dans la table `ref_evenements_calendriers` (relation 1-N — un événement peut être synchronisé sur **plusieurs** calendriers), indépendamment des clés `calendar_*` de `ref_settings` qui configurent les calendriers des **tâches** du planning (entree, mektaba…).
 - Le formulaire affiche un indicateur visuel **« ✓ Synchronisation active »** lorsque l'événement édité a déjà au moins un calendrier renseigné, et liste les calendriers actifs.
 
 ```mermaid
 flowchart LR
     A[Créer/Modifier/Supprimer\nun événement] --> B{Calendriers\nsélectionnés ?}
-    B -->|Aucun| C[Aucun webhook]
+    B -->|Aucun| C[Aucune synchronisation]
     B -->|Un ou plusieurs| D[WebhookEvenementPayloadBuilder]
-    D --> E[Job EnvoyerWebhookMake\naction: upsert ou delete\ncalendar_names: tableau]
-    E --> F[Make.com]
-    F --> G[Chaque calendrier Google\nmis à jour]
+    D --> E[GoogleCalendarPayloadMapper\naction: upsert ou delete\ncalendar_ids: tableau]
+    E --> F[Job SynchroniserGoogleCalendar]
+    F --> G[Chaque calendrier Google\nmis à jour via l'API v3]
     A --> H{Chevauche des créneaux\ndéjà générés ?}
     H -->|Futurs uniquement| I[Lien informatif +\ndésassignation réelle si bloquant]
     H -->|Passés| J[Aucune modification\n+ avertissement]
 ```
 
-Voir [Intégration Make.com](#intégration-makecom-webhook) pour le format exact du payload.
+Voir [Intégration Google Calendar](#intégration-google-calendar-api-directe) pour le format exact du payload.
 
 ---
 
@@ -560,7 +559,7 @@ flowchart TD
     F --> G[Générer Samedi]
     G --> H{Dernière semaine ?}
     H -->|Non| E
-    H -->|Oui| I[Envoyer Webhook Make.com\nen arrière-plan]
+    H -->|Oui| I[Synchroniser Google Calendar\nen arrière-plan]
     I --> J[Fin]
 ```
 
@@ -837,86 +836,109 @@ Voir [docs/Schema_bdd.md](docs/Schema_bdd.md#plan_bilans_quotidiens) pour le dé
 
 ---
 
-## Intégration Make.com (Webhook)
+## Intégration Google Calendar (API directe)
 
-Après chaque génération de planning, modification manuelle d'une assignation, création/suppression d'un créneau, ou création/modification/suppression d'un événement synchronisé, l'application envoie un payload JSON à Make.com via un job asynchrone (`EnvoyerWebhookMake`). Make.com crée/modifie/supprime alors les événements Google Calendar correspondants.
+Après chaque génération de planning, modification manuelle d'une assignation, création/suppression d'un créneau, ou création/modification/suppression d'un événement synchronisé, l'application appelle **directement l'API Google Calendar v3**, authentifiée par un **compte de service** (pas de flux OAuth consentement — outil interne mono-organisation). Chaque calendrier Google Calendar utilisé doit être individuellement partagé avec l'email du compte de service, avec droit de modification.
 
-Il existe **deux scénarios Make.com distincts**, chacun avec sa propre URL de webhook, car les payloads planning et événements ont des formes différentes :
+> Cette intégration remplace l'ancienne intégration Make.com (deux scénarios/webhooks externes). Contrairement à Make.com, qui retrouvait l'événement à modifier/supprimer par une recherche "nom + date" fragile, l'application stocke désormais l'**event_id** Google Calendar renvoyé à la création (`plan_calendrier_evenements` pour le planning, `ref_evenements_calendriers` pour les événements — voir [docs/Schema_bdd.md](docs/Schema_bdd.md)) et l'utilise tel quel pour les `PATCH`/`DELETE` suivants.
 
-| Cible (`EnvoyerWebhookMake::$cible`) | Contenu                                       | Variable `.env`               |
-| ------------------------------------- | ---------------------------------------------- | ------------------------------ |
-| `planning`                            | Créneaux du planning (`WebhookPayloadBuilder`) | `MAKE_WEBHOOK_URL`             |
-| `evenement`                           | Événements organisationnels (`WebhookEvenementPayloadBuilder`) | `MAKE_WEBHOOK_URL_EVENEMENTS` |
+### Composants
 
-> Le webhook n'est **pas** dispatché lors d'une prévisualisation dry-run.
+| Composant | Rôle |
+| --- | --- |
+| `GoogleCalendarService` | Fine wrapper autour de `google/apiclient` (auth compte de service, `createEvent`/`updateEvent`/`deleteEvent`/`getCalendar`, retry + backoff exponentiel sur 403/429/5xx) |
+| `CalendrierGoogleController` | CRUD du **registre** des calendriers connus (`ref_calendriers_google`, page `/parametres`) — voir encadré ci-dessous |
+| `WebhookPayloadBuilder` / `WebhookEvenementPayloadBuilder` | Logique métier inchangée (dates, offsets, assignations, calendriers cibles) — construisent toujours le même payload JSON, désormais enrichi de `code`/`id_planning`/`id_evenement` pour permettre le suivi exact |
+| `GoogleCalendarPayloadMapper` | Aplati le payload imbriqué (`creneaux[].taches[]…` ou `evenement{}`) en une liste d'opérations Google Calendar unitaires (un calendrier cible = une opération) |
+| `SynchroniserGoogleCalendar` | Job (`ShouldQueue`) qui exécute chaque opération : upsert (créer si aucun event_id connu, sinon patcher) pour `post`/`patch`, suppression pour `delete` |
 
-**Variables `.env` concernées :**
+> ⚠️ **Pas de découverte automatique des calendriers.** Un compte de service Google n'a pas de "Calendar List" comme un utilisateur humain — `calendarList.list()` renvoie systématiquement une liste vide pour un compte de service, même quand des calendriers lui sont partagés individuellement (documenté par Google : [developers.google.com/workspace/calendar/api/concepts/sharing](https://developers.google.com/workspace/calendar/api/concepts/sharing)). Chaque calendrier utilisé par l'application doit donc être **enregistré manuellement une fois** dans le registre `ref_calendriers_google` (page `/parametres`, section "Registre des calendriers Google Calendar") — l'accès est vérifié via `calendars.get()` au moment de l'ajout. Voir [docs/google_service_account.md](docs/google_service_account.md) pour la procédure complète.
+
+### Variable `.env` concernée
 
 ```dotenv
-MAKE_WEBHOOK_URL=https://hook.make.com/votre-identifiant-planning
-MAKE_WEBHOOK_URL_EVENEMENTS=https://hook.make.com/votre-identifiant-evenements
-MAKE_WEBHOOK_APIKEY=votre-cle-api
+GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=<contenu du fichier JSON de clé, encodé en base64>
 ```
 
-Chaque appel inclut le header `x-make-apikey` (en plus de l'URL cible). La clé API est **partagée** par les deux scénarios ; l'URL et la clé doivent être configurées pour la cible concernée, sinon l'envoi est silencieusement ignoré (log d'avertissement).
+Décodée au runtime par `GoogleCalendarService`. Si absente ou invalide, la synchronisation est **silencieusement ignorée** (log d'avertissement) — pratique pour développer sans toucher à un vrai calendrier. Voir [docs/google_service_account.md](docs/google_service_account.md) pour la procédure détaillée de création du compte de service, du partage des calendriers cibles, et de l'obtention de cette valeur.
+
+**Vérifier la configuration :**
+
+```bash
+php artisan amana:tester-google-calendar                                        # auth + accès aux calendriers déjà enregistrés dans /parametres
+php artisan amana:tester-google-calendar --calendar-id=xxxx@group.calendar.google.com  # vérifie un ID précis, même non enregistré
+php artisan amana:tester-google-calendar --create                               # + cycle create/update/delete sur un événement de test
+```
+
+> Cette commande ne peut **pas** lister automatiquement tous les calendriers partagés avec le compte de service — voir l'encadré plus bas sur l'absence de découverte automatique. Elle vérifie l'accès aux calendriers déjà enregistrés dans `ref_calendriers_google`, et/ou à un ID précis passé en option.
 
 > L'heure du cours n'est **plus** lue depuis `.env`. Elle est stockée dans `ref_settings` (clé `heure_cours`) et modifiable via la page Paramètres.
 
-**Verbes HTTP par action :**
+### Dispatch synchrone vs en queue
 
-| Action                                                                              | Verbe    | Cible       | Builder                                                                           |
-| ----------------------------------------------------------------------------------- | -------- | ----------- | ----------------------------------------------------------------------------------- |
-| Génération complète du planning                                                     | `POST`   | `planning`  | `WebhookPayloadBuilder::build()`                                                  |
-| Création manuelle d'un créneau vide                                                 | `POST`   | `planning`  | `WebhookPayloadBuilder::buildForCreation()`                                       |
-| Réassignation d'une tâche                                                           | `PATCH`  | `planning`  | `WebhookPayloadBuilder::buildForReassignation()`                                  |
-| Désassignation d'une tâche                                                          | `DELETE` | `planning`  | `WebhookPayloadBuilder::buildForUnassignation()`                                  |
-| Suppression d'un créneau entier                                                     | `DELETE` | `planning`  | `WebhookPayloadBuilder::buildForDeleteCreneau()`                                  |
-| Événement organisationnel créé                                                      | `POST`   | `evenement` | `WebhookEvenementPayloadBuilder::buildUpsert()`                                   |
-| Événement organisationnel modifié                                                   | `PATCH`  | `evenement` | `WebhookEvenementPayloadBuilder::buildUpsert()`                                   |
-| Événement organisationnel supprimé                                                  | `DELETE` | `evenement` | `WebhookEvenementPayloadBuilder::buildDelete()`                                   |
-| Désassignation rétroactive (événement créé/modifié bloquant un créneau déjà généré) | `DELETE` | `planning`  | `WebhookPayloadBuilder::buildForUnassignation()` (une fois par tâche désassignée) |
-| Exécution d'un échange (swap validé)                                                | `PATCH`  | `planning`  | `WebhookPayloadBuilder::buildForEchange()`                                        |
-| **Annulation cours** — nettoyage du calendrier existant                             | `DELETE` | `planning`  | `WebhookPayloadBuilder::buildForDeleteCreneau()`                                  |
-| **Annulation cours** — annonce de l'annulation                                      | `POST`   | `planning`  | `WebhookPayloadBuilder::buildForAnnulationCours()`                                |
+`SynchroniserGoogleCalendar::dispatch(...)` (queue) est utilisé pour les créations/mises à jour (`post`/`patch`). Pour les **suppressions** (`delete`), tous les sites d'appel utilisent `SynchroniserGoogleCalendar::dispatchSync(...)` (exécution immédiate, synchrone) :
 
-**Structure du payload planning** — racine strictement limitée à `lieu` + `creneaux` :
+`plan_calendrier_evenements` et `ref_evenements_calendriers` portent un `onDelete('cascade')` sur, respectivement, le créneau et l'événement. Les 3 sites d'appel qui envoient un `delete` le font systématiquement **avant** de supprimer l'entité concernée en base — si ce `delete` restait en queue, la ligne de suivi portant l'`event_id` aurait déjà disparu (cascade) au moment où le Job s'exécuterait réellement, et il n'y aurait plus moyen de savoir quel événement Google Calendar supprimer. Le dispatch synchrone garantit que le Job lit l'`event_id` **pendant que la ligne existe encore**, juste avant la suppression en cascade.
+
+**Verbes/mode par action :**
+
+| Action                                                                              | Verbe    | Dispatch  | Cible       | Builder                                                                           |
+| ----------------------------------------------------------------------------------- | -------- | --------- | ----------- | ----------------------------------------------------------------------------------- |
+| Génération complète du planning                                                     | `POST`   | Queue     | `planning`  | `WebhookPayloadBuilder::build()`                                                  |
+| Création manuelle d'un créneau vide                                                 | `POST`   | Queue     | `planning`  | `WebhookPayloadBuilder::buildForCreation()`                                       |
+| Réassignation d'une tâche                                                           | `PATCH`  | Queue     | `planning`  | `WebhookPayloadBuilder::buildForReassignation()`                                  |
+| Désassignation d'une tâche                                                          | `DELETE` | Synchrone | `planning`  | `WebhookPayloadBuilder::buildForUnassignation()`                                  |
+| Suppression d'un créneau entier                                                     | `DELETE` | Synchrone | `planning`  | `WebhookPayloadBuilder::buildForDeleteCreneau()`                                  |
+| Événement organisationnel créé                                                      | `POST`   | Queue     | `evenement` | `WebhookEvenementPayloadBuilder::buildUpsert()`                                   |
+| Événement organisationnel modifié                                                   | `PATCH`  | Queue     | `evenement` | `WebhookEvenementPayloadBuilder::buildUpsert()`                                   |
+| Événement organisationnel supprimé                                                  | `DELETE` | Synchrone | `evenement` | `WebhookEvenementPayloadBuilder::buildDelete()`                                   |
+| Désassignation rétroactive (événement créé/modifié bloquant un créneau déjà généré) | `DELETE` | Synchrone | `planning`  | `WebhookPayloadBuilder::buildForUnassignation()` (une fois par tâche désassignée) |
+| Exécution d'un échange (swap validé)                                                | `PATCH`  | Queue     | `planning`  | `WebhookPayloadBuilder::buildForEchange()`                                        |
+| **Annulation cours** — nettoyage du calendrier existant                             | `DELETE` | Synchrone | `planning`  | `WebhookPayloadBuilder::buildForDeleteCreneau()`                                  |
+| **Annulation cours** — annonce de l'annulation                                      | `POST`   | Queue     | `planning`  | `WebhookPayloadBuilder::buildForAnnulationCours()`                                |
+
+**Structure du payload planning** — racine strictement limitée à `lieu` + `creneaux`, chaque créneau porte `id_planning` et chaque ligne (tâche/événement spécial/social) porte `code` — utilisés par `GoogleCalendarPayloadMapper` pour retrouver la ligne `plan_calendrier_evenements` correspondante :
 
 ```json
 {
     "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
     "creneaux": [
         {
+            "id_planning": 42,
             "date": "2026-08-06",
             "taches": [
                 {
+                    "code": "entree",
                     "nom": "Entrée",
                     "assigne": "Prénom Nom",
                     "email": "personne@exemple.fr",
                     "heure_debut": "19:30",
                     "heure_fin": "20:30",
-                    "calendar_names": ["AMANA - Planning"],
+                    "calendar_ids": ["abc123@group.calendar.google.com"],
                     "description": ""
                 }
             ],
             "evenements_speciaux": [
                 {
+                    "code": "rappel_sandwich",
                     "nom": "Rappel Sandwich",
                     "assigne": "Prénom Nom",
                     "email": "personne@exemple.fr",
                     "heure_debut": "08:00",
                     "heure_fin": "08:15",
-                    "calendar_names": ["AMANA - Planning"],
+                    "calendar_ids": ["abc123@group.calendar.google.com"],
                     "description": ""
                 }
             ],
             "evenements_sociaux": [
                 {
+                    "code": "annonce_cours",
                     "nom": "Annonce Cours",
                     "assigne": null,
                     "email": null,
                     "heure_debut": "14:00",
                     "heure_fin": "14:15",
-                    "calendar_names": ["AMANA - Communications"],
+                    "calendar_ids": ["def456@group.calendar.google.com"],
                     "description": ""
                 }
             ]
@@ -932,26 +954,29 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL cible). La clé 
     "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
     "creneaux": [
         {
+            "id_planning": 42,
             "date": "2026-08-06",
             "taches": [
                 {
+                    "code": "entree",
                     "nom": "Entrée",
                     "assigne": "Nouveau Nom",
                     "email": "nouveau@exemple.fr",
                     "heure_debut": "19:30",
                     "heure_fin": "20:30",
-                    "calendar_names": ["AMANA - Planning"],
+                    "calendar_ids": ["abc123@group.calendar.google.com"],
                     "description": ""
                 }
             ],
             "evenements_speciaux": [
                 {
+                    "code": "assistance_amana_food",
                     "nom": "Assistance Amana Food",
                     "assigne": "Nouveau Nom",
                     "email": "nouveau@exemple.fr",
                     "heure_debut": "20:30",
                     "heure_fin": "21:30",
-                    "calendar_names": ["AMANA - Planning"],
+                    "calendar_ids": ["abc123@group.calendar.google.com"],
                     "description": ""
                 }
             ]
@@ -967,29 +992,33 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL cible). La clé 
     "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
     "creneaux": [
         {
+            "id_planning": 42,
             "date": "2026-08-06",
             "taches": [
                 {
+                    "code": "entree",
                     "nom": "Entrée",
                     "assigne": "Alice Dupont",
                     "email": "alice@exemple.fr",
                     "heure_debut": "19:30",
                     "heure_fin": "20:30",
-                    "calendar_names": ["AMANA - Planning"],
+                    "calendar_ids": ["abc123@group.calendar.google.com"],
                     "description": ""
                 }
             ]
         },
         {
+            "id_planning": 57,
             "date": "2026-08-13",
             "taches": [
                 {
+                    "code": "entree",
                     "nom": "Entrée",
                     "assigne": "Bob Martin",
                     "email": "bob@exemple.fr",
                     "heure_debut": "19:30",
                     "heure_fin": "20:30",
-                    "calendar_names": ["AMANA - Planning"],
+                    "calendar_ids": ["abc123@group.calendar.google.com"],
                     "description": ""
                 }
             ]
@@ -1005,13 +1034,15 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL cible). La clé 
     "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
     "creneaux": [
         {
+            "id_planning": 42,
             "date": "2026-08-06",
             "taches": [
                 {
+                    "code": "entree",
                     "nom": "Entrée",
                     "heure_debut": "19:30",
                     "heure_fin": "20:30",
-                    "calendar_names": ["AMANA - Planning"]
+                    "calendar_ids": ["abc123@group.calendar.google.com"]
                 }
             ]
         }
@@ -1026,66 +1057,22 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL cible). La clé 
     "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
     "creneaux": [
         {
+            "id_planning": 42,
             "date": "2026-08-06",
             "taches": [
-                {
-                    "nom": "Entrée",
-                    "heure_debut": "19:30",
-                    "heure_fin": "20:30",
-                    "calendar_names": ["AMANA - Planning"]
-                },
-                {
-                    "nom": "Mektaba",
-                    "heure_debut": "19:40",
-                    "heure_fin": "21:40",
-                    "calendar_names": ["AMANA - Planning"]
-                },
-                {
-                    "nom": "Salle",
-                    "heure_debut": "20:00",
-                    "heure_fin": "21:30",
-                    "calendar_names": ["AMANA - Planning"]
-                },
-                {
-                    "nom": "Amana Food",
-                    "heure_debut": "20:30",
-                    "heure_fin": "21:30",
-                    "calendar_names": ["AMANA - Planning"]
-                },
-                {
-                    "nom": "Cours",
-                    "heure_debut": "20:00",
-                    "heure_fin": "21:00",
-                    "calendar_names": ["AMANA - Planning"]
-                }
+                { "code": "entree", "nom": "Entrée", "heure_debut": "19:30", "heure_fin": "20:30", "calendar_ids": ["abc123@group.calendar.google.com"] },
+                { "code": "mektaba", "nom": "Mektaba", "heure_debut": "19:40", "heure_fin": "21:40", "calendar_ids": ["abc123@group.calendar.google.com"] },
+                { "code": "salle", "nom": "Salle", "heure_debut": "20:00", "heure_fin": "21:30", "calendar_ids": ["abc123@group.calendar.google.com"] },
+                { "code": "amana_food", "nom": "Amana Food", "heure_debut": "20:30", "heure_fin": "21:30", "calendar_ids": ["abc123@group.calendar.google.com"] },
+                { "code": "cours", "nom": "Cours", "heure_debut": "20:00", "heure_fin": "21:00", "calendar_ids": ["abc123@group.calendar.google.com"] }
             ],
             "evenements_speciaux": [
-                {
-                    "nom": "Rappel Sandwich",
-                    "heure_debut": "08:00",
-                    "heure_fin": "08:15",
-                    "calendar_names": ["AMANA - Planning"]
-                },
-                {
-                    "nom": "Assistance Amana Food",
-                    "heure_debut": "20:30",
-                    "heure_fin": "21:30",
-                    "calendar_names": ["AMANA - Planning"]
-                }
+                { "code": "rappel_sandwich", "nom": "Rappel Sandwich", "heure_debut": "08:00", "heure_fin": "08:15", "calendar_ids": ["abc123@group.calendar.google.com"] },
+                { "code": "assistance_amana_food", "nom": "Assistance Amana Food", "heure_debut": "20:30", "heure_fin": "21:30", "calendar_ids": ["abc123@group.calendar.google.com"] }
             ],
             "evenements_sociaux": [
-                {
-                    "nom": "Annonce Cours",
-                    "heure_debut": "14:00",
-                    "heure_fin": "14:15",
-                    "calendar_names": ["AMANA - Communications"]
-                },
-                {
-                    "nom": "Message Général",
-                    "heure_debut": "19:30",
-                    "heure_fin": "20:00",
-                    "calendar_names": ["AMANA - Communications"]
-                }
+                { "code": "annonce_cours", "nom": "Annonce Cours", "heure_debut": "14:00", "heure_fin": "14:15", "calendar_ids": ["def456@group.calendar.google.com"] },
+                { "code": "message_bot", "nom": "Message Général", "heure_debut": "19:30", "heure_fin": "20:00", "calendar_ids": ["def456@group.calendar.google.com"] }
             ]
         }
     ]
@@ -1099,17 +1086,19 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL cible). La clé 
     "lieu": "319 Rte de Vannes, 44800 Saint-Herblain, France",
     "creneaux": [
         {
+            "id_planning": 42,
             "date": "2026-08-06",
             "taches": [],
             "evenements_speciaux": [],
             "evenements_sociaux": [
                 {
+                    "code": "annulation_cours",
                     "nom": "Annulation Cours",
                     "assigne": null,
                     "email": null,
                     "heure_debut": "14:00",
                     "heure_fin": "14:15",
-                    "calendar_names": ["AMANA - Communications"],
+                    "calendar_ids": ["def456@group.calendar.google.com"],
                     "description": ""
                 }
             ]
@@ -1118,43 +1107,45 @@ Chaque appel inclut le header `x-make-apikey` (en plus de l'URL cible). La clé 
 }
 ```
 
-**POST/PATCH (événement organisationnel créé ou modifié)** — envoyé vers le scénario Make.com **dédié** `MAKE_WEBHOOK_URL_EVENEMENTS` (cible `evenement`). Comme ce scénario est distinct de celui du planning, le payload n'a plus besoin de champ `type`/`action` pour s'auto-décrire : le verbe HTTP (`POST` création / `PATCH` modification) et l'URL suffisent :
+**POST/PATCH (événement organisationnel créé ou modifié)** — cible `evenement`. `id_evenement` permet à `GoogleCalendarPayloadMapper` de retrouver/mettre à jour la ligne `ref_evenements_calendriers` correspondante :
 
 ```json
 {
     "evenement": {
+        "id_evenement": 12,
         "nom": "Ramadan",
         "date_debut": "2025-03-01",
         "date_fin": "2025-03-30",
         "description": "",
-        "calendar_names": ["AMANA - Événements", "AMANA - Communications"],
+        "calendar_ids": ["ghi789@group.calendar.google.com", "def456@group.calendar.google.com"],
         "taches_bloquees": ["amana_food", "entree"]
     }
 }
 ```
 
-**DELETE (événement organisationnel supprimé)** — même scénario dédié, verbe `DELETE` :
+**DELETE (événement organisationnel supprimé)** — même cible, verbe `DELETE` :
 
 ```json
 {
     "evenement": {
+        "id_evenement": 12,
         "nom": "Ramadan",
         "date_debut": "2025-03-01",
         "date_fin": "2025-03-30",
-        "calendar_names": ["AMANA - Événements", "AMANA - Communications"]
+        "calendar_ids": ["ghi789@group.calendar.google.com", "def456@group.calendar.google.com"]
     }
 }
 ```
 
 **Notes importantes sur le payload :**
 
-- `taches`, `evenements_speciaux` et `evenements_sociaux` sont des **tableaux** (et non plus des objets indexés par code).
-- Les événements organisationnels (Ramadan, vacances…) **ne figurent pas** dans les payloads planning ci-dessus — ils sont envoyés séparément, individuellement, vers le scénario `evenement` dédié à leur création/modification/suppression.
+- `taches`, `evenements_speciaux` et `evenements_sociaux` sont des **tableaux** (et non des objets indexés par code).
+- Les événements organisationnels (Ramadan, vacances…) **ne figurent pas** dans les payloads planning ci-dessus — ils sont envoyés séparément, individuellement, à leur création/modification/suppression.
 - Si une tâche est **bloquée par un événement**, elle est absente du payload planning (POST/PATCH/DELETE).
 - `rappel_sandwich` a un horaire fixe (08:00–08:15) ; `assistance_amana_food` suit l'assigné de `entree` ; `rappel_sandwich` suit l'assigné de `amana_food` — ces dépendances sont propagées automatiquement dans les payloads PATCH/DELETE d'une réassignation/désassignation de `entree` ou `amana_food`.
-- **`calendar_names` est toujours un tableau** (jamais une chaîne unique), y compris pour `taches`, `evenements_speciaux`, `evenements_sociaux` **et** le payload `evenement` dédié — même quand il ne contient qu'un seul nom aujourd'hui. Ce choix est volontairement prévu pour absorber, plus tard, plusieurs calendriers par tâche/événement social sans changer la forme du payload — seul le nombre d'éléments dans le tableau changerait. Un tableau vide `[]` signifie qu'aucun calendrier n'est configuré pour ce code (Make.com peut alors ignorer l'entrée ou utiliser un calendrier par défaut).
-- Pour les **événements organisationnels**, `calendar_names` correspond à la liste des calendriers Google Calendar liés à l'événement (table `ref_evenements_calendriers`, un événement peut en avoir plusieurs) — indépendant des `calendar_names` des tâches du planning ci-dessus, qui viennent des paramètres (Paramètres → Calendriers).
-- Le payload `evenement` **n'expose pas d'`id`** interne — Make.com retrouve l'événement Google Calendar à modifier/supprimer via `nom` + `date_debut`/`date_fin` (pas utilisé côté Make.com aujourd'hui, donc pas envoyé).
+- **`calendar_ids` est toujours un tableau** (jamais une chaîne unique), y compris pour `taches`, `evenements_speciaux`, `evenements_sociaux` **et** le payload `evenement` dédié — même quand il ne contient qu'un seul identifiant aujourd'hui. Ce choix est volontairement prévu pour absorber, plus tard, plusieurs calendriers par tâche/événement social sans changer la forme du payload — seul le nombre d'éléments dans le tableau changerait. Un tableau vide `[]` signifie qu'aucun calendrier n'est configuré pour ce code — `GoogleCalendarPayloadMapper` ne génère alors aucune opération pour cette ligne.
+- Pour les **événements organisationnels**, `calendar_ids` correspond aux identifiants Google Calendar liés à l'événement (table `ref_evenements_calendriers`, un événement peut en avoir plusieurs) — indépendant des `calendar_ids` des tâches du planning ci-dessus, qui viennent des paramètres (Paramètres → Calendriers).
+- `id_planning` et `id_evenement` sont utilisés uniquement par `GoogleCalendarPayloadMapper` pour retrouver la bonne ligne de suivi en base (`plan_calendrier_evenements` / `ref_evenements_calendriers`) — ils remplacent l'ancienne résolution "par nom + date" faite côté Make.com.
 - Tout champ dont la valeur serait `null` est retiré du payload `evenement` avant l'envoi (`WebhookEvenementPayloadBuilder::sansChampsNull()`) — les valeurs "fausses" mais significatives (`false`, `0`, `''`, `[]`) sont conservées.
 
 ---
@@ -1196,9 +1187,7 @@ MAIL_FROM_NAME="${APP_NAME}"
 
 QUEUE_CONNECTION=sync               # Obligatoire sur hébergement partagé (pas de worker persistant)
 
-MAKE_WEBHOOK_URL=https://hook.eu2.make.com/...
-MAKE_WEBHOOK_URL_EVENEMENTS=https://hook.eu2.make.com/...
-MAKE_WEBHOOK_APIKEY=...
+GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=...
 
 # Outil d'urgence — retirer après usage
 APP_EMERGENCY_KEY=
@@ -1216,7 +1205,8 @@ APP_EMERGENCY_KEY=
 | 4     | Définir le mot de passe du premier admin                   | Voir [Outil d'urgence `/urgence-hash`](#outil-durgence-post-déploiement----urgence-hash)                                   |
 | 5     | Se connecter et aller sur **Diagnostic SMTP**              | Sidebar → 🔧 Diagnostic SMTP                                                                                               |
 | 6     | Envoyer un email de test depuis le diagnostic              | Vérifier la réception + `laravel.log`                                                                                      |
-| 7     | Configurer les paramètres (heure, lieu, calendriers)       | `/parametres`                                                                                                              |
+| 7     | Configurer les paramètres (heure, lieu, calendriers)       | `/parametres` — enregistrer d'abord les calendriers dans le registre, avant de les sélectionner par tâche |
+| 7bis  | Vérifier le compte de service Google Calendar               | `php artisan amana:tester-google-calendar --create` (SSH) — voir [Intégration Google Calendar](#intégration-google-calendar-api-directe) |
 | 8     | Retirer le secret `APP_EMERGENCY_KEY` (vide) et redéployer | Le champ `?key=` de `/urgence-hash` ne doit plus fonctionner                                                               |
 
 ### Diagnostic SMTP — `/diagnostic-mail`
@@ -1230,9 +1220,9 @@ Accessible depuis la sidebar (section **Administration**, admins uniquement). Pe
 
 ### Sélection des calendriers Google Calendar
 
-Les champs **Calendriers** dans `/parametres` et dans le formulaire de création/modification d'événement ne sont plus des champs texte libres. Ils affichent désormais un **dropdown avec barre de recherche** qui récupère la liste des calendriers disponibles directement depuis Make.com (GET sur le webhook configuré dans `MAKE_WEBHOOK_URL` — le scénario **planning**, réutilisé pour les deux formulaires puisque les deux types de payload référencent les mêmes calendriers Google Calendar cibles).
+Les champs **Calendriers** dans `/parametres` et dans le formulaire de création/modification d'événement ne sont plus des champs texte libres. Ils affichent désormais un **dropdown avec barre de recherche** qui récupère la liste des calendriers depuis le registre `ref_calendriers_google` (`GET /api/calendriers`, lecture DB — pas d'appel Google Calendar API à chaque affichage). La valeur soumise/stockée est l'**ID** Google Calendar, le libellé affiché dans le dropdown est le nom enregistré dans le registre.
 
-La liste est mise en cache côté navigateur pendant la durée de la session. En cas d'échec de l'appel Make.com (webhook non configuré, timeout), un message d'erreur s'affiche dans le dropdown — les valeurs déjà enregistrées restent inchangées.
+Un calendrier doit d'abord être **ajouté au registre** (section "Registre des calendriers Google Calendar" en haut de `/parametres`, qui vérifie l'accès via l'API au moment de l'ajout) avant d'apparaître dans ces dropdowns — voir [docs/google_service_account.md](docs/google_service_account.md).
 
 ### Contraintes de l'hébergement partagé IONOS
 

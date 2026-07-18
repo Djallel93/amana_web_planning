@@ -31,7 +31,7 @@ return new class extends Migration {
     {
         Schema::table('ref_taches', function (Blueprint $table) {
             $table->text('description_calendrier')->nullable()->after('description')
-                ->comment('Texte envoyé dans le body de l\'événement Google Calendar (webhook Make.com) — distinct de la description affichée dans l\'app');
+                ->comment('Texte envoyé dans le body de l\'événement Google Calendar — distinct de la description affichée dans l\'app');
         });
     }
 

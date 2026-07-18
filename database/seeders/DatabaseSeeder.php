@@ -38,9 +38,10 @@ class DatabaseSeeder extends Seeder
 
         // ── 3. Tâches planifiables ─────────────────────────────────────────
 
-        // Textes longs envoyés dans le body de l'événement Google Calendar
-        // (webhook Make.com) — repris des textes historiquement utilisés
-        // côté Make.com, conservés ici pour rester la source unique de vérité.
+        // Textes longs envoyés dans le body de l'événement Google Calendar —
+        // repris des textes historiquement utilisés côté Make.com (avant la
+        // bascule vers l'API Google Calendar directe), conservés ici pour
+        // rester la source unique de vérité.
         $descCalRappelSandwich = <<<'TXT'
 PRÉPARER LES SANDWICHS :
 Tu es assigné à AMANA FOOD aujourd'hui. Pense à préparer les sandwichs en avance !
@@ -271,20 +272,28 @@ TXT;
             ['cle' => 'offset_annulation_cours_debut', 'valeur' => '-360', 'type' => 'integer', 'libelle' => 'Annulation cours : début (min)', 'description' => 'Message d\'annulation automatique envoyé lorsque le cours est annulé pour cette date.'],
             ['cle' => 'offset_annulation_cours_fin', 'valeur' => '-345', 'type' => 'integer', 'libelle' => 'Annulation cours : fin (min)', 'description' => 'Message d\'annulation automatique envoyé lorsque le cours est annulé pour cette date.'],
 
-            // ── D. Noms de calendriers Google Calendar ─────────────────────
-            // Chaque valeur est le nom exact du calendrier Google Calendar dans
-            // lequel Make.com créera les événements pour cette tâche/événement.
-            // Si vide → Make.com utilise son calendrier par défaut.
-            ['cle' => 'calendar_entree', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Entrée', 'description' => null],
-            ['cle' => 'calendar_mektaba', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Mektaba', 'description' => null],
-            ['cle' => 'calendar_salle', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Salle', 'description' => null],
-            ['cle' => 'calendar_amana_food', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Amana Food', 'description' => null],
-            ['cle' => 'calendar_cours', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Cours', 'description' => null],
-            ['cle' => 'calendar_rappel_sandwich', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Rappel Sandwich', 'description' => null],
-            ['cle' => 'calendar_assistance_amana_food', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Assistance Amana Food', 'description' => null],
-            ['cle' => 'calendar_annonce_cours', 'valeur' => 'AMANA - Communications', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => null],
-            ['cle' => 'calendar_message_bot', 'valeur' => 'AMANA - Communications', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => null],
-            ['cle' => 'calendar_annulation_cours', 'valeur' => 'AMANA - Communications', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => null],
+            // ── D. Calendriers Google Calendar (identifiants) ───────────────
+            // Chaque valeur est l'ID Google Calendar (calendarId, ex :
+            // "xxxx@group.calendar.google.com") dans lequel l'événement sera
+            // créé pour cette tâche/événement — résolu et sélectionné via le
+            // dropdown de /parametres (alimenté par
+            // GoogleCalendarService::listCalendars()), jamais saisi à la
+            // main. Laissées vides ici : les vrais identifiants dépendent
+            // des calendriers Google réels de l'environnement cible et
+            // doivent être choisis après le premier déploiement, une fois
+            // le compte de service partagé sur les calendriers concernés.
+            // Une valeur vide = pas de synchronisation pour ce code (voir
+            // WebhookPayloadBuilder::getCalendarIds()).
+            ['cle' => 'calendar_entree', 'valeur' => '', 'type' => 'string', 'libelle' => 'Entrée', 'description' => null],
+            ['cle' => 'calendar_mektaba', 'valeur' => '', 'type' => 'string', 'libelle' => 'Mektaba', 'description' => null],
+            ['cle' => 'calendar_salle', 'valeur' => '', 'type' => 'string', 'libelle' => 'Salle', 'description' => null],
+            ['cle' => 'calendar_amana_food', 'valeur' => '', 'type' => 'string', 'libelle' => 'Amana Food', 'description' => null],
+            ['cle' => 'calendar_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Cours', 'description' => null],
+            ['cle' => 'calendar_rappel_sandwich', 'valeur' => '', 'type' => 'string', 'libelle' => 'Rappel Sandwich', 'description' => null],
+            ['cle' => 'calendar_assistance_amana_food', 'valeur' => '', 'type' => 'string', 'libelle' => 'Assistance Amana Food', 'description' => null],
+            ['cle' => 'calendar_annonce_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => null],
+            ['cle' => 'calendar_message_bot', 'valeur' => '', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => null],
+            ['cle' => 'calendar_annulation_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => null],
         ];
 
         foreach ($settings as $s) {

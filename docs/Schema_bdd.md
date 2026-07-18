@@ -26,6 +26,9 @@ La base de données est organisée en trois groupes fonctionnels :
 > - `plan_bilans_quotidiens` — bilan quotidien (Amana food + Présences), un enregistrement partagé par date
 > - `ref_evenements_calendriers` — synchronisation Google Calendar par événement, **plusieurs calendriers par événement** possible (remplace l'ancienne colonne `ref_evenements.calendar_name`, supprimée)
 > - Tâche `annulation_cours` (dans `ref_taches`, `actif = false`) + ses paramètres `calendar_annulation_cours` / `offset_annulation_cours_debut` / `offset_annulation_cours_fin` (dans `ref_settings`) — support du bouton **« 🚫 Annulation cours »** du planning
+> - `ref_evenements_calendriers.google_calendar_id` / `google_event_id` — remplace l'ancienne intégration Make.com par un appel direct à l'API Google Calendar v3 ; `calendar_name` reste un libellé d'affichage, `google_calendar_id` est l'identifiant réellement envoyé à l'API
+> - `plan_calendrier_evenements` — équivalent côté planning : suivi de l'`event_id` Google Calendar par (créneau, code de tâche, calendrier), pour que les mises à jour/suppressions ciblent l'événement exact au lieu d'une recherche par nom + date
+> - `ref_calendriers_google` — registre manuel des calendriers connus (un compte de service ne peut pas découvrir automatiquement les calendriers qui lui sont partagés, voir la section dédiée plus bas) ; remplace la découverte dynamique initialement prévue via `calendarList.list()`
 
 ---
 
@@ -93,6 +96,17 @@ erDiagram
         int id PK
         int id_evenement FK
         varchar calendar_name
+        varchar google_calendar_id
+        varchar google_event_id
+    }
+
+    ref_calendriers_google {
+        int id PK
+        varchar calendar_id
+        varchar nom
+        text description
+        boolean actif
+        timestamp derniere_verification_at
     }
 
     ref_settings {
@@ -119,6 +133,14 @@ erDiagram
     plan_creneaux_evenements {
         int id_planning FK
         int id_evenement FK
+    }
+
+    plan_calendrier_evenements {
+        int id PK
+        int id_planning FK
+        tinyint id_tache FK
+        varchar google_calendar_id
+        varchar google_event_id
     }
 
     plan_absences {
@@ -200,12 +222,14 @@ erDiagram
     ref_taches ||--o{ plan_restrictions : "concerne"
     ref_taches ||--o{ ref_evenements_taches : "bloquée par"
     ref_taches ||--o{ plan_echanges : "concernée par (demandeur/cible)"
+    ref_taches ||--o{ plan_calendrier_evenements : "suivie sur"
     ref_evenements ||--o{ ref_evenements_taches : "bloque"
     ref_evenements ||--o{ ref_evenements_calendriers : "synchronisé sur"
     ref_evenements ||--o{ plan_creneaux_evenements : "liée à"
     plan_creneaux ||--o{ plan_creneaux_taches : "contient"
     plan_creneaux ||--o{ plan_creneaux_evenements : "associé à"
     plan_creneaux ||--o{ plan_echanges : "concerné par (demandeur/cible)"
+    plan_creneaux ||--o{ plan_calendrier_evenements : "synchronisé sur"
 ```
 
 ---
@@ -290,14 +314,14 @@ Référentiel des tâches planifiables.
 | `code`                   | VARCHAR(50) UNIQUE | Code technique (`entree`, `mektaba`, `salle`, `amana_food`, `cours`…) |
 | `libelle`                | VARCHAR(100)       | Libellé affiché                                                       |
 | `description`            | VARCHAR(250)       | Résumé affiché côté app (formulaire d'inscription, page Disponibilités) |
-| `description_calendrier` | TEXT NULLABLE      | Texte envoyé dans le body de l'événement Google Calendar (payload webhook) |
+| `description_calendrier` | TEXT NULLABLE      | Texte envoyé dans le body de l'événement Google Calendar |
 | `actif`                  | BOOLEAN            | `true` = incluse dans la rotation du scheduler                        |
 
 **Tâches actives (rotation) :** `entree`, `mektaba`, `salle`, `amana_food`, `cours`
 
-**Tâches inactives (webhook uniquement, pas de rotation) :** `rappel_sandwich`, `assistance_amana_food`, `annonce_cours`, `message_bot`, `annulation_cours`
+**Tâches inactives (synchronisation calendrier uniquement, pas de rotation) :** `rappel_sandwich`, `assistance_amana_food`, `annonce_cours`, `message_bot`, `annulation_cours`
 
-> `annulation_cours` sert uniquement à retrouver le `libelle` de l'entrée `evenements_sociaux` envoyée par le bouton **« Annulation cours »** du planning (voir README, section Intégration Make.com) — elle n'est jamais assignée à une personne et n'apparaît dans aucun `plan_creneaux_taches`.
+> `annulation_cours` sert uniquement à retrouver le `libelle` de l'entrée `evenements_sociaux` envoyée par le bouton **« Annulation cours »** du planning (voir README, section Intégration Google Calendar) — elle n'est jamais assignée à une personne et n'apparaît dans aucun `plan_creneaux_taches`.
 >
 > **Échanges de créneaux :** `id_tache_demandeur` et `id_tache_cible` dans `plan_echanges` référencent cette table. Un échange ne peut concerner que des tâches actives déjà assignées dans le planning — le service `EchangeService` restreint par défaut les slots échangeables à la **même tâche** (même `code`) que le slot d'origine.
 
@@ -305,7 +329,7 @@ Référentiel des tâches planifiables.
 
 ### `ref_evenements`
 
-Événements organisationnels (vacances, Ramadan, jours fériés, cours annulés…). Peut optionnellement être synchronisé avec un ou plusieurs calendriers Google Calendar via Make.com (voir `ref_evenements_calendriers` ci-dessous).
+Événements organisationnels (vacances, Ramadan, jours fériés, cours annulés…). Peut optionnellement être synchronisé avec un ou plusieurs calendriers Google Calendar via l'API Google Calendar directe (voir `ref_evenements_calendriers` ci-dessous).
 
 | Colonne       | Type          | Description                  |
 | ------------- | ------------- | ----------------------------- |
@@ -317,7 +341,7 @@ Référentiel des tâches planifiables.
 
 > Index sur `(date_debut, date_fin)` pour les recherches de chevauchement.
 >
-> **Synchronisation retroactive du planning déjà généré :** à chaque création ou modification d'un événement, `EvenementsController::syncCreneauLinks()` relie l'événement (`plan_creneaux_evenements`) à tous les créneaux **futurs** existants dont la date tombe dans sa plage — que l'événement soit bloquant ou purement informatif. Si l'événement est **bloquant**, toute tâche déjà assignée sur ces créneaux et nouvellement couverte est réellement **désassignée** (`id_personne = NULL`, webhook DELETE envoyé, `audit_logs` renseigné) — pas seulement masquée visuellement — car cela affecte l'équité de répartition et les statistiques. **Les créneaux déjà passés (date < aujourd'hui) ne sont jamais modifiés**, même liés informativement ; l'utilisateur reçoit un avertissement explicite s'il tente de créer/modifier un événement chevauchant des dates passées.
+> **Synchronisation retroactive du planning déjà généré :** à chaque création ou modification d'un événement, `EvenementsController::syncCreneauLinks()` relie l'événement (`plan_creneaux_evenements`) à tous les créneaux **futurs** existants dont la date tombe dans sa plage — que l'événement soit bloquant ou purement informatif. Si l'événement est **bloquant**, toute tâche déjà assignée sur ces créneaux et nouvellement couverte est réellement **désassignée** (`id_personne = NULL`, synchronisation Google Calendar DELETE envoyée, `audit_logs` renseigné) — pas seulement masquée visuellement — car cela affecte l'équité de répartition et les statistiques. **Les créneaux déjà passés (date < aujourd'hui) ne sont jamais modifiés**, même liés informativement ; l'utilisateur reçoit un avertissement explicite s'il tente de créer/modifier un événement chevauchant des dates passées.
 >
 > **Bouton « Annulation cours » du planning :** annuler la date d'un cours crée automatiquement un événement `"Cours annulé — {date}"` bloquant **toutes les tâches actives**, visible dans la liste des Événements comme n'importe quel autre événement.
 
@@ -340,17 +364,40 @@ Table pivot N-N entre événements et tâches bloquées. Si un événement n'a a
 
 Calendriers Google Calendar sur lesquels un événement organisationnel est synchronisé. **Un événement peut être synchronisé sur plusieurs calendriers à la fois** (relation 1-N, remplace l'ancienne colonne unique `ref_evenements.calendar_name`).
 
-| Colonne         | Type          | Description                                     |
-| --------------- | ------------- | ------------------------------------------------ |
-| `id`            | INT PK        | Identifiant                                     |
-| `id_evenement`  | INT FK        | Référence vers `ref_evenements` (`onDelete: cascade`) |
-| `calendar_name` | VARCHAR(200)  | Nom exact du calendrier Google Calendar cible   |
+| Colonne               | Type          | Description                                     |
+| ---------------------- | ------------- | ------------------------------------------------ |
+| `id`                  | INT PK        | Identifiant                                     |
+| `id_evenement`        | INT FK        | Référence vers `ref_evenements` (`onDelete: cascade`) |
+| `calendar_name`       | VARCHAR(200)  | Libellé d'affichage du calendrier (résolu depuis le registre `ref_calendriers_google` au moment de l'enregistrement) |
+| `google_calendar_id`  | VARCHAR(200) NULLABLE | Identifiant Google Calendar (`calendarId`) — c'est cette valeur, pas `calendar_name`, qui est envoyée à l'API Google Calendar |
+| `google_event_id`     | VARCHAR(200) NULLABLE | Identifiant de l'événement Google Calendar (`event.id`), renseigné après la première création réussie |
 
 > Contrainte unique : `(id_evenement, calendar_name)` — un même calendrier ne peut pas être ajouté deux fois au même événement.
 >
-> **Aucune ligne pour un événement donné** = pas de synchronisation calendrier (équivalent de l'ancien `calendar_name = NULL`). Si au moins une ligne existe, `EvenementsController` dispatche un job `EnvoyerWebhookMake` vers Make.com à chaque `create`, `update` ou `delete` de l'événement, via `WebhookEvenementPayloadBuilder` — le payload envoie alors `calendar_names` (tableau JSON de tous les noms liés), pas une chaîne unique. Voir README, section Intégration Make.com.
+> **Aucune ligne pour un événement donné** = pas de synchronisation calendrier. Si au moins une ligne existe, `EvenementsController` dispatche un job `SynchroniserGoogleCalendar` (API Google Calendar directe, ex-Make.com) à chaque `create`, `update` ou `delete` de l'événement, via `WebhookEvenementPayloadBuilder` — le payload envoie alors `calendar_ids` (tableau JSON de tous les identifiants Google Calendar liés), pas un nom. `google_event_id` est ensuite utilisé pour les `PATCH`/`DELETE` suivants — plus de recherche par nom + date côté Google Calendar. Voir README, section Intégration Google Calendar.
 >
 > Cette table est **indépendante** des clés `calendar_*` de `ref_settings`, qui configurent les calendriers des **tâches du planning** (entree, mektaba, etc.), pas des événements organisationnels.
+
+---
+
+### `ref_calendriers_google`
+
+Registre des calendriers Google Calendar **connus** de l'application — alimente `/api/calendriers` (dropdowns de sélection de calendrier, côté Paramètres et formulaire d'événement) et sert de source pour résoudre les noms d'affichage (`EvenementsController::resolveCalendarNames()`).
+
+| Colonne                     | Type                  | Description                                                        |
+| ----------------------------- | --------------------- | -------------------------------------------------------------------- |
+| `id`                         | INT PK                | Identifiant                                                         |
+| `calendar_id`                | VARCHAR(200) UNIQUE   | Identifiant Google Calendar (`calendarId`)                          |
+| `nom`                        | VARCHAR(200)          | Libellé d'affichage dans les dropdowns                               |
+| `description`                | TEXT NULLABLE         | Note libre pour l'administrateur (usage prévu du calendrier, etc.)  |
+| `actif`                      | BOOLEAN               | `false` = masqué des dropdowns sans supprimer l'enregistrement       |
+| `derniere_verification_at`   | TIMESTAMP NULLABLE    | Dernier `calendars.get()` réussi (à l'ajout ou via le bouton "Vérifier") |
+
+> **Pourquoi cette table existe** : un compte de service Google n'a pas de "Calendar List" comme un utilisateur humain — `calendarList.list()` renvoie systématiquement une liste vide pour un compte de service, MÊME quand des calendriers lui ont été partagés individuellement et qu'il peut parfaitement les lire/écrire via `calendars.get()`/`events.insert()`/etc. C'est documenté par Google lui-même ([developers.google.com/workspace/calendar/api/concepts/sharing](https://developers.google.com/workspace/calendar/api/concepts/sharing)) et confirmé par de nombreux rapports d'implémentation (dont Google Issue Tracker #148804709). Il n'existe donc **aucun moyen fiable de découvrir automatiquement** la liste des calendriers partagés avec le compte de service — seulement de **vérifier l'accès à un ID déjà connu**.
+>
+> **Gestion** : `CalendrierGoogleController` (page `/parametres`, section "Registre des calendriers Google Calendar") — ajout avec vérification immédiate via `GoogleCalendarService::getCalendar()`, activation/désactivation, revérification à la demande, suppression. Voir [docs/google_service_account.md](../docs/google_service_account.md) pour la procédure complète côté Google Cloud/Calendar.
+>
+> **Aucune contrainte FK** vers cette table depuis `plan_calendrier_evenements` ou `ref_evenements_calendriers` — ces tables stockent le `calendar_id` en clair (comme une chaîne libre), pas une référence à une ligne de ce registre. Retirer un calendrier du registre n'affecte donc ni les événements déjà synchronisés, ni les lignes de suivi existantes — seuls les **nouveaux** formulaires cessent de le proposer.
 
 ---
 
@@ -425,6 +472,28 @@ Table pivot N-N entre créneaux et événements qui les concernent. Peuplée à 
 | `id_evenement` | INT FK | Référence vers `ref_evenements` |
 
 > Clé primaire composite : `(id_planning, id_evenement)`.
+
+---
+
+### `plan_calendrier_evenements`
+
+Suivi des événements Google Calendar créés pour le planning — équivalent, côté planning, de `ref_evenements_calendriers` côté événements organisationnels. Une ligne = un événement Google Calendar existant pour un (créneau, code de tâche, calendrier) donné.
+
+| Colonne              | Type          | Description                                                    |
+| --------------------- | ------------- | ---------------------------------------------------------------- |
+| `id`                  | INT PK        | Identifiant                                                     |
+| `id_planning`         | INT FK        | Référence vers `plan_creneaux` (`onDelete: cascade`)            |
+| `id_tache`            | TINYINT FK    | Référence vers `ref_taches` (`onDelete: cascade`)               |
+| `google_calendar_id`  | VARCHAR(200)  | Identifiant Google Calendar (`calendarId`) cible                |
+| `google_event_id`     | VARCHAR(200)  | Identifiant de l'événement Google Calendar (`event.id`)         |
+
+> Contrainte unique : `(id_planning, id_tache, google_calendar_id)`.
+>
+> **Pourquoi une table dédiée plutôt que des colonnes sur `plan_creneaux_taches`** : sur les 10 codes `ref_taches` pouvant produire un événement calendrier pour un créneau, seuls 5 (`entree`, `mektaba`, `salle`, `amana_food`, `cours`) sont assignables et ont une ligne dans `plan_creneaux_taches`. Les 5 autres (`rappel_sandwich`, `assistance_amana_food`, `annonce_cours`, `message_bot`, `annulation_cours`) sont calculés à la volée par `WebhookPayloadBuilder` à chaque construction de payload et n'ont jamais de ligne dédiée — il n'y a donc pas de colonne commune sur laquelle accrocher `google_event_id` pour ces 5 codes.
+>
+> **Utilisation** : `SynchroniserGoogleCalendar` consulte cette table avant tout `PATCH`/`DELETE` pour retrouver l'`event_id` exact — plus de recherche par nom + date côté Google Calendar (ancien comportement Make.com). Alimentée en upsert après chaque création/modification réussie.
+>
+> **Suppression synchrone (`dispatchSync`)** : `id_planning` porte `onDelete('cascade')` — quand un créneau est supprimé, ses lignes de suivi le sont aussi. Les sites d'appel qui suppriment un créneau/désassignent une tâche dispatchent donc leur synchronisation Google Calendar `DELETE` de façon **synchrone**, avant la suppression en cascade, pour pouvoir encore lire l'`event_id` au moment du `DELETE` — voir le docblock de `SynchroniserGoogleCalendar`.
 
 ---
 
@@ -608,7 +677,7 @@ Tables standard Laravel pour la gestion des queues.
 
 > Avec `QUEUE_CONNECTION=sync`, ces tables ne sont **pas utilisées** mais restent présentes dans le schéma (créées par la migration Laravel par défaut). Elles peuvent être ignorées.
 >
-> En production (`QUEUE_CONNECTION=database`), ces tables portent désormais aussi les jobs `EnvoyerWebhookMake` de type `evenement` (synchronisation calendrier) et les notifications `App\Notifications\Echanges\*` (toutes `ShouldQueue`).
+> En production (`QUEUE_CONNECTION=database`), ces tables portent désormais aussi les jobs `SynchroniserGoogleCalendar` de type `evenement`/`planning` (synchronisation calendrier — les `DELETE` sont dispatchés en synchrone, hors queue, voir `plan_calendrier_evenements` ci-dessus) et les notifications `App\Notifications\Echanges\*` (toutes `ShouldQueue`).
 
 ---
 

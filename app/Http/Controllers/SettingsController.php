@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\CalendrierGoogle;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,6 +47,7 @@ class SettingsController extends Controller
         $decalagesGroupes = $this->grouperDecalages($decalages);
         $inscription = $settings->only(['inscription_ouverte']);
         $calendriers = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'calendar_'));
+        $calendriersGoogle = CalendrierGoogle::orderBy('nom')->get();
 
         /** @var \App\Models\Personne $user */
         $user = Auth::user();
@@ -57,6 +59,7 @@ class SettingsController extends Controller
             'settings',
             'inscription',
             'calendriers',
+            'calendriersGoogle',
             'user',
         ));
     }

@@ -96,9 +96,7 @@ jobs:
           MAIL_PORT: ${{ secrets.MAIL_PORT }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
-          MAKE_WEBHOOK_URL_EVENEMENTS: ${{ secrets.MAKE_WEBHOOK_URL }}
-          MAKE_WEBHOOK_APIKEY: ${{ secrets.MAKE_WEBHOOK_APIKEY }}
+          GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}
           APP_EMERGENCY_KEY: ${{ secrets.APP_EMERGENCY_KEY }}
         run: |
           envsubst < .github/deploy/.env.production.template > deploy/.env
