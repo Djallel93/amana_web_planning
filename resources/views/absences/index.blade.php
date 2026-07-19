@@ -92,7 +92,7 @@
                                                 class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
                                                 title="Modifier">✏️</button>
                                         <form action="{{ route('absences.destroy', $absence->id) }}" method="POST"
-                                              onsubmit="return confirm('Supprimer cette absence ?')">
+                                              data-confirm="Supprimer cette absence ?" data-confirm-danger>
                                             @csrf @method('DELETE')
                                             <button type="submit"
                                                     class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
@@ -159,7 +159,7 @@
                                     ✏️
                                 </button>
                                 <form action="{{ route('absences.destroy', $absence->id) }}" method="POST"
-                                      onsubmit="return confirm('Supprimer cette absence ?')">
+                                      data-confirm="Supprimer cette absence ?" data-confirm-danger>
                                     @csrf @method('DELETE')
                                     <button type="submit"
                                             class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm cursor-pointer min-h-[44px] min-w-[44px]">

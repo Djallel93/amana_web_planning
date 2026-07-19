@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Helpers\DateHelper;
+use App\Helpers\GoogleCalendarColors;
 use App\Models\Creneau;
 use App\Models\Setting;
 use App\Models\Tache;
@@ -431,6 +432,7 @@ class WebhookPayloadBuilder
             'heure_fin' => $fin,
             'calendar_ids' => $this->getCalendarIds($cleHoraire),
             'description' => $tacheRef?->description_calendrier ?? '',
+            'color_id' => GoogleCalendarColors::TACHES[$code] ?? null,
         ];
     }
 

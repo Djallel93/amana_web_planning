@@ -18,9 +18,11 @@ import JournalAudit from "@/components/admin/JournalAudit.vue";
 import ActiviteStatistiques from "@/components/admin/ActiviteStatistiques.vue";
 import { registerThemeToggle } from "@/lib/theme";
 import { registerUnsavedChangesGuard } from "@/lib/unsavedChanges";
+import { registerConfirmForms } from "@/lib/confirmForms";
 
 registerThemeToggle();
 registerUnsavedChangesGuard();
+registerConfirmForms();
 
 function mountIfPresent(
     selector: string,

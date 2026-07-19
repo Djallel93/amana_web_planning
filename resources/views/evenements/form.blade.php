@@ -79,6 +79,28 @@
                     @error('description')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>
 
+                {{-- Couleur Google Calendar --}}
+                @php $couleurActuelle = old('couleur', $evenement->couleur ?? ''); @endphp
+                <div class="flex flex-col gap-1.5">
+                    <label for="couleur" class="text-xs font-bold text-ink tracking-[0.2px]">
+                        Couleur Google Calendar <span class="text-ink-muted font-normal">(optionnel)</span>
+                    </label>
+                    <select id="couleur" name="couleur"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition cursor-pointer
+                                   focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+                        <option value="">Couleur par défaut du calendrier</option>
+                        @foreach(\App\Helpers\GoogleCalendarColors::PALETTE as $id => $couleur)
+                            <option value="{{ $id }}" {{ (string) $couleurActuelle === (string) $id ? 'selected' : '' }}>
+                                {{ $couleur['nom'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <span class="text-[11.5px] text-ink-muted">
+                        Uniquement appliquée si l'événement est synchronisé avec au moins un calendrier ci-dessous.
+                    </span>
+                    @error('couleur')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
+                </div>
+
             </div>
         </div>
 

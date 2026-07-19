@@ -96,7 +96,7 @@
                                        class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
                                        title="Modifier">✏️</a>
                                     <form action="{{ route('evenements.destroy', $evt->id) }}" method="POST"
-                                          onsubmit="return confirm('Supprimer « {{ $evt->nom }} » ?')">
+                                          data-confirm="Supprimer « {{ $evt->nom }} » ?" data-confirm-danger>
                                         @csrf @method('DELETE')
                                         <button type="submit"
                                                 class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
@@ -158,7 +158,7 @@
                             <a href="{{ route('evenements.edit', $evt->id) }}"
                                class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm no-underline min-h-[44px] min-w-[44px]">✏️</a>
                             <form action="{{ route('evenements.destroy', $evt->id) }}" method="POST"
-                                  onsubmit="return confirm('Supprimer « {{ $evt->nom }} » ?')">
+                                  data-confirm="Supprimer « {{ $evt->nom }} » ?" data-confirm-danger>
                                 @csrf @method('DELETE')
                                 <button type="submit"
                                         class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm cursor-pointer min-h-[44px] min-w-[44px]">🗑️</button>

@@ -408,12 +408,56 @@
                                     <span class="guide-chevron">▾</span>
                                 </summary>
                                 <div class="guide-body">
-                                    <p>La page <strong class="text-ink">⚙️ Paramètres</strong> regroupe les réglages généraux
-                                        de l'application, comme l'ouverture des inscriptions.</p>
+                                    <p>La page <strong class="text-ink">⚙️ Paramètres</strong> regroupe les réglages
+                                        généraux de l'application, répartis en plusieurs sections.</p>
+
+                                    <p><strong class="text-ink">🔓 Inscription publique</strong> — contrôle l'accès
+                                        au formulaire d'inscription public. Fermer les inscriptions bloque
+                                        l'affichage et la soumission du formulaire, sans supprimer les candidatures
+                                        déjà en attente. Réservé aux administrateurs.</p>
+
+                                    <p><strong class="text-ink">🕐 Horaires &amp; Lieu</strong> — l'heure du cours et
+                                        l'adresse physique des permanences. Tous les horaires des tâches et
+                                        événements (voir <strong class="text-ink">Décalages horaires</strong>
+                                        ci-dessous) sont calculés relativement à cette heure de référence ; la
+                                        modifier recalcule automatiquement tous les créneaux horaires envoyés à
+                                        Google Calendar. L'adresse est incluse dans chaque événement créé.</p>
+
+                                    <p><strong class="text-ink">📋 Registre des calendriers Google Calendar</strong>
+                                        — chaque calendrier Google Calendar utilisable ailleurs dans l'application
+                                        doit d'abord être enregistré ici, une fois, avec son identifiant (« ID de
+                                        l'agenda », copié depuis Google Calendar → Paramètres du calendrier →
+                                        Intégrer l'agenda). L'accès du compte de service est vérifié automatiquement
+                                        à l'ajout, et peut être re-vérifié à tout moment via le bouton
+                                        <strong class="text-ink">Vérifier</strong>. La colonne
+                                        <strong class="text-ink">Nouveaux bénévoles</strong> détermine si ce
+                                        calendrier est partagé automatiquement avec l'adresse email d'une personne
+                                        dès que sa candidature est validée — le niveau d'accès accordé (lecture
+                                        seule, modification, ou gestion complète) dépend alors du rôle qui lui est
+                                        attribué. Retirer un calendrier du registre n'affecte pas les événements
+                                        déjà créés dessus, seuls les nouveaux formulaires ne le proposeront plus.</p>
+
+                                    <p><strong class="text-ink">📆 Calendriers Google Calendar</strong> — pour
+                                        chaque type de tâche ou d'événement social (Entrée, Mektaba, Salle, Amana
+                                        Food, Cours, Message Bot…), choisissez dans quel calendrier du registre les
+                                        événements correspondants seront créés/mis à jour/supprimés. Laisser un
+                                        champ vide désactive la synchronisation calendrier pour ce type d'événement
+                                        uniquement — les autres continuent de se synchroniser normalement.</p>
+
+                                    <p><strong class="text-ink">⏱️ Décalages horaires</strong> — pour chaque tâche
+                                        ou événement, définit le début et la fin de son créneau Google Calendar en
+                                        minutes relatives à l'heure du cours (ex : −30 = 30 minutes avant le cours,
+                                        +60 = 1 heure après). Une valeur négative se situe donc avant le cours, une
+                                        valeur positive après. Le rappel sandwich a un horaire fixe (08:00–08:15),
+                                        indépendant de ce réglage.</p>
+
                                     <div class="guide-example">
                                         <span class="guide-example-label">Exemple</span>
-                                        L'association est complète pour la rentrée : le gestionnaire désactive temporairement
-                                        « Inscriptions ouvertes » depuis les Paramètres.
+                                        L'heure du cours passe de 20:00 à 19:30 pour l'hiver : le gestionnaire met à
+                                        jour <strong>Horaires &amp; Lieu</strong>, et tous les créneaux (entrée,
+                                        mektaba, salle, amana food…) se recalculent automatiquement selon leurs
+                                        décalages respectifs, sans qu'il ait besoin d'ajuster chaque tâche une par
+                                        une.
                                     </div>
                                 </div>
                             </details>

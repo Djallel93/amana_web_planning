@@ -39,6 +39,7 @@ use Illuminate\Support\Collection;
  *     end: string|null,
  *     date_debut: string|null,
  *     date_fin: string|null,
+ *     color_id: string|null,
  * }
  */
 class GoogleCalendarPayloadMapper
@@ -108,6 +109,7 @@ class GoogleCalendarPayloadMapper
                 'date_fin' => isset($evenement['date_fin'])
                     ? Carbon::parse($evenement['date_fin'])->addDay()->toDateString()
                     : null,
+                'color_id' => $evenement['couleur'] ?? null,
             ];
         }
 
@@ -149,6 +151,7 @@ class GoogleCalendarPayloadMapper
                 'end' => isset($ligne['heure_fin'])
                     ? Carbon::parse("{$date} {$ligne['heure_fin']}", 'Europe/Paris')->toIso8601String()
                     : null,
+                'color_id' => $ligne['color_id'] ?? null,
             ];
         }
 

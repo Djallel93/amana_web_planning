@@ -96,6 +96,23 @@ class DatabaseSeeder extends Seeder
             • 🧹 Nettoyage / rangement du stand
             TXT;
 
+        $descCalMessageBot = <<<'TXT'
+            ℹ️ Salam ‘alaykoum !
+            Nous mettons à votre disposition notre assistant virtuel sur Telegram pour permettre à ceux qui ne sont pas présents de poser leurs questions en lien direct avec les conférences du week-end.
+
+            ⚠️ Merci de poser uniquement des questions liées au sujet de la conférence du jour.
+            💬 Des sessions dédiées seront ouvertes plus tard pour les questions hors sujet (fiqh général, vie quotidienne, etc.).
+
+            Pour poser votre question, suivez le lien ci-dessous :
+            📲 https://t.me/AmanaQuestionsBot
+
+            👉🏼 Les questions en lien avec la conférence sont regroupées et présentées à notre frère Réda, selon le temps disponible.
+
+            Jazakum Allāhu khayran.
+
+            https://t.me/AMANA_LIVE
+            TXT;
+
         $taches = [
             // Tâches actives (rotation du scheduler)
             [
@@ -161,7 +178,7 @@ class DatabaseSeeder extends Seeder
                 'libelle' => 'Message Bot',
                 'actif' => false,
                 'description' => '',
-                'description_calendrier' => '',
+                'description_calendrier' => $descCalMessageBot,
             ],
             [
                 'code' => 'annulation_cours',

@@ -38,20 +38,25 @@ return new class extends Migration {
             // peuvent éditer chaque groupe en parallèle, chacune avec son
             // propre bouton d'enregistrement — pas d'upsert global qui
             // écraserait l'autre groupe avec des valeurs obsolètes.
-            $table->decimal('montant_carte', 8, 2)->default(0)
-                ->comment('Montant collecté par carte bancaire');
-            $table->decimal('montant_espece', 8, 2)->default(0)
-                ->comment('Montant collecté en espèces');
+            //
+            // NULL = pas de cours ce jour-là (valeur volontairement absente,
+            // jamais saisie, ou réinitialisée) ; 0 = un cours a bien eu lieu
+            // et la valeur réelle est zéro. Les deux cas doivent rester
+            // distinguables — d'où l'absence de valeur par défaut.
+            $table->decimal('montant_carte', 8, 2)->nullable()->default(null)
+                ->comment('Montant collecté par carte bancaire — NULL = pas de cours ce jour-là');
+            $table->decimal('montant_espece', 8, 2)->nullable()->default(null)
+                ->comment('Montant collecté en espèces — NULL = pas de cours ce jour-là');
             $table->unsignedInteger('id_personne_maj_food')->nullable()
                 ->comment('Dernière personne ayant modifié le groupe Amana food');
             $table->timestamp('maj_food_at')->nullable()
                 ->comment('Date de dernière modification du groupe Amana food');
 
             // ── Présences ─────────────────────────────────────────────────
-            $table->unsignedSmallInteger('nb_presents')->default(0)
-                ->comment('Nombre de personnes présentes sur place');
-            $table->unsignedSmallInteger('nb_en_ligne')->default(0)
-                ->comment('Nombre de personnes connectées en ligne');
+            $table->unsignedSmallInteger('nb_presents')->nullable()->default(null)
+                ->comment('Nombre de personnes présentes sur place — NULL = pas de cours ce jour-là');
+            $table->unsignedSmallInteger('nb_en_ligne')->nullable()->default(null)
+                ->comment('Nombre de personnes connectées en ligne — NULL = pas de cours ce jour-là');
             $table->unsignedInteger('id_personne_maj_presence')->nullable()
                 ->comment('Dernière personne ayant modifié le groupe Présences');
             $table->timestamp('maj_presence_at')->nullable()

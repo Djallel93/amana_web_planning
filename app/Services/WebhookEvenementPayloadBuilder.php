@@ -19,6 +19,7 @@ use App\Models\Evenement;
  *     "date_debut": "2025-03-01",
  *     "date_fin": "2025-03-30",
  *     "description": "...",
+ *     "couleur": "10",  // colorId Google Calendar, absent si non renseigné
  *     "calendar_ids": ["abc123@group.calendar.google.com", "..."],
  *     "taches_bloquees": ["amana_food", "entree"]  // absent pour delete
  *   }
@@ -52,6 +53,7 @@ class WebhookEvenementPayloadBuilder
                 'date_debut'      => $evenement->date_debut->toDateString(),
                 'date_fin'        => $evenement->date_fin->toDateString(),
                 'description'     => $evenement->description ?? '',
+                'couleur'         => $evenement->couleur,
                 'calendar_ids'    => $evenement->calendarIds(),
                 'taches_bloquees' => $evenement->tachesBloquees->pluck('code')->values()->all(),
             ]),

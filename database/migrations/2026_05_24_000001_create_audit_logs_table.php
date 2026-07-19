@@ -1,5 +1,5 @@
 <?php
-// database/migrations/2024_01_01_000000_create_audit_logs_table.php
+// database/migrations/2026_05_24_000001_create_audit_logs_table.php
 
 declare(strict_types=1);
 
@@ -17,16 +17,14 @@ return new class extends Migration {
         Schema::create('audit_logs', function (Blueprint $table) {
             $table->id();
 
-            // Pas de contrainte FK intentionnellement — même approche que la table sessions.
-            // L'historique d'audit est conservé même si la personne est supprimée.
-            // NULL = action système sans utilisateur identifié (webhook job, tentative
+            // Pas de contrainte FK sur user_id intentionnellement — même
+            // approche que la table sessions. L'historique d'audit est
+            // conservé même si la personne est supprimée. NULL = action
+            // système sans utilisateur identifié (webhook job, tentative
             // de connexion échouée avant Auth::user() soit résolu).
             $table->unsignedInteger('user_id')->nullable()
                 ->comment('ID de ref_personnes — null pour les actions système');
 
-            // Contrainte FK ajoutée dans 2026_05_28_000003 (une fois ref_applications
-            // créée — cette table doit rester exécutable avant elle). Permet à
-            // plusieurs applications AMANA de partager cette même table d'audit.
             $table->unsignedTinyInteger('id_application')->nullable()
                 ->comment('ID de ref_applications — application à l\'origine de l\'entrée');
 
@@ -42,6 +40,10 @@ return new class extends Migration {
 
             $table->index('user_id');
             $table->index('id_application');
+
+            $table->foreign('id_application')
+                ->references('id')->on('ref_applications')
+                ->nullOnDelete();
         });
     }
 

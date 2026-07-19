@@ -109,7 +109,7 @@
                                             {{ $cal->actif ? 'Désactiver' : 'Activer' }}
                                         </button>
                                     </form>
-                                    <form action="{{ route('calendriers-google.destroy', $cal) }}" method="POST" class="inline" onsubmit="return confirm('Retirer « {{ $cal->nom }} » du registre ? Les événements déjà créés sur Google Calendar ne seront pas affectés — seuls les nouveaux formulaires ne le proposeront plus.');">
+                                    <form action="{{ route('calendriers-google.destroy', $cal) }}" method="POST" class="inline" data-confirm="Retirer « {{ $cal->nom }} » du registre ? Les événements déjà créés sur Google Calendar ne seront pas affectés — seuls les nouveaux formulaires ne le proposeront plus." data-confirm-danger>
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-[11.5px] font-semibold text-rose-600 hover:underline">Retirer</button>
@@ -130,12 +130,12 @@
                 <div class="flex flex-col gap-1">
                     <label class="text-[11px] font-semibold text-ink-muted">Nom d'affichage</label>
                     <input type="text" name="nom" value="{{ old('nom') }}" placeholder="ex. AMANA - Planning" required maxlength="200"
-                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-accent/30">
+                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] text-ink bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent/30">
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[11px] font-semibold text-ink-muted">Calendar ID</label>
                     <input type="text" name="calendar_id" value="{{ old('calendar_id') }}" placeholder="xxxx@group.calendar.google.com" required maxlength="200"
-                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] font-mono focus:outline-none focus:ring-2 focus:ring-accent/30">
+                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] font-mono text-ink bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent/30">
                 </div>
                 <button type="submit" class="self-end px-4 py-2 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 whitespace-nowrap">
                     Ajouter et vérifier

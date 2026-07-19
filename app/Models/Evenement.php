@@ -26,6 +26,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property \Carbon\Carbon $date_debut
  * @property \Carbon\Carbon $date_fin
  * @property string|null $description
+ * @property string|null $couleur Identifiant de couleur Google Calendar
+ *           (colorId, '1' à '11') — voir GoogleCalendarService::COLOR_NAMES.
+ *           Null = couleur par défaut du calendrier cible.
  */
 class Evenement extends Model
 {
@@ -37,6 +40,7 @@ class Evenement extends Model
         'date_debut',
         'date_fin',
         'description',
+        'couleur',
     ];
 
     protected $casts = [

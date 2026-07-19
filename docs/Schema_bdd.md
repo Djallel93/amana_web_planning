@@ -85,6 +85,7 @@ erDiagram
         date date_debut
         date date_fin
         text description
+        varchar couleur
     }
 
     ref_evenements_taches {
@@ -338,6 +339,7 @@ Référentiel des tâches planifiables.
 | `date_debut`  | DATE          | Début de la période          |
 | `date_fin`    | DATE          | Fin de la période (incluse)  |
 | `description` | TEXT NULLABLE | Notes complémentaires        |
+| `couleur`     | VARCHAR(2) NULLABLE | colorId Google Calendar (`'1'` à `'11'`, voir `App\Helpers\GoogleCalendarColors::PALETTE`) — NULL = couleur par défaut du calendrier cible |
 
 > Index sur `(date_debut, date_fin)` pour les recherches de chevauchement.
 >

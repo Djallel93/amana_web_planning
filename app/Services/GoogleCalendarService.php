@@ -110,7 +110,7 @@ class GoogleCalendarService
      * Crée un événement dans le calendrier donné. Retourne l'event_id
      * Google Calendar créé, à persister immédiatement par l'appelant.
      *
-     * @param array{summary: string, description?: string, start: string, end: string, date?: string} $event
+     * @param array{summary: string, description?: string, start: string, end: string, date?: string, color_id?: string} $event
      */
     public function createEvent(string $calendarId, array $event): string
     {
@@ -221,6 +221,12 @@ class GoogleCalendarService
 
         if (!empty($event['description'])) {
             $googleEvent->setDescription($event['description']);
+        }
+
+        // colorId Google Calendar ('1' à '11', voir GoogleCalendarColors::PALETTE).
+        // Absent/null = l'événement garde la couleur par défaut du calendrier cible.
+        if (!empty($event['color_id'])) {
+            $googleEvent->setColorId((string) $event['color_id']);
         }
 
         // Événement sur créneau horaire précis (heure_debut/heure_fin).

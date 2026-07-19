@@ -21,6 +21,7 @@ class UpdateEvenementRequest extends FormRequest
             'date_debut'    => ['required', 'date'],
             'date_fin'      => ['required', 'date', 'after_or_equal:date_debut'],
             'description'    => ['nullable', 'string'],
+            'couleur'        => ['nullable', 'string', 'in:1,2,3,4,5,6,7,8,9,10,11'],
             'calendar_ids'   => ['nullable', 'array'],
             'calendar_ids.*' => ['string', 'max:200', 'distinct'],
             'taches'         => ['nullable', 'array'],

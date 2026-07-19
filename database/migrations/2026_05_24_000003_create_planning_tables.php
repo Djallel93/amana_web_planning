@@ -1,5 +1,5 @@
 <?php
-// database/migrations/2024_01_01_000002_create_planning_tables.php
+// database/migrations/2026_05_24_000003_create_planning_tables.php
 
 declare(strict_types=1);
 
@@ -20,8 +20,30 @@ return new class extends Migration {
             $table->date('date_debut');
             $table->date('date_fin');
             $table->text('description')->nullable();
+            $table->string('couleur', 2)->nullable()
+                ->comment('colorId Google Calendar (\'1\' à \'11\') — null = couleur par défaut du calendrier cible');
 
             $table->index(['date_debut', 'date_fin'], 'idx_evenements_dates');
+        });
+
+        // ── ref_evenements_taches ──────────────────────────────────────────
+        // Table pivot entre événements et tâches bloquées. Si un événement a
+        // des lignes ici, les tâches concernées ne seront pas assignées lors
+        // de la génération du planning pour les créneaux couverts par cet
+        // événement. Aucune ligne → événement purement informatif.
+        Schema::create('ref_evenements_taches', function (Blueprint $table) {
+            $table->unsignedInteger('id_evenement');
+            $table->unsignedTinyInteger('id_tache');
+
+            $table->primary(['id_evenement', 'id_tache']);
+
+            $table->foreign('id_evenement')
+                ->references('id')->on('ref_evenements')
+                ->onDelete('cascade')->onUpdate('cascade');
+
+            $table->foreign('id_tache')
+                ->references('id')->on('ref_taches')
+                ->onDelete('restrict')->onUpdate('cascade');
         });
 
         // ── plan_absences ──────────────────────────────────────────────────
@@ -107,6 +129,7 @@ return new class extends Migration {
         Schema::dropIfExists('plan_creneaux_evenements');
         Schema::dropIfExists('plan_creneaux');
         Schema::dropIfExists('plan_absences');
+        Schema::dropIfExists('ref_evenements_taches');
         Schema::dropIfExists('ref_evenements');
     }
 };

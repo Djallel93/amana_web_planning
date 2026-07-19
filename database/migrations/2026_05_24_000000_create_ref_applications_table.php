@@ -1,5 +1,5 @@
 <?php
-// database/migrations/2026_05_28_000003_refactor_auth_create_ref_applications.php
+// database/migrations/2026_05_24_000000_create_ref_applications_table.php
 
 declare(strict_types=1);
 
@@ -9,21 +9,15 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Étape 3 du refactoring auth.
+ * Référence toutes les applications du système AMANA partageant cette base
+ * de données (planning, livraisons, tirelire, familles, benevoles...).
  *
- * Crée la table ref_applications qui référence toutes les applications
- * du système AMANA partageant cette base de données.
- *
- * Chaque rôle dans ref_roles sera lié à une application spécifique,
+ * Chaque rôle dans ref_roles est lié à une application spécifique,
  * permettant à une même personne d'avoir des rôles différents selon l'app.
- *
- * Exemples :
- *   admin     sur planning
- *   livreur   sur livraisons
- *   tresorier sur tirelire
+ * Créée en tout premier : ref_roles (id_application) et audit_logs
+ * (id_application) en dépendent toutes deux dès leur création.
  */
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('ref_applications', function (Blueprint $table) {
@@ -35,28 +29,15 @@ return new class extends Migration
             $table->boolean('actif')->default(true);
         });
 
-        // Insérer l'application planning d'emblée
         DB::table('ref_applications')->insert([
             'code'    => 'planning',
             'libelle' => 'AMANA Planning',
             'actif'   => true,
         ]);
-
-        // audit_logs.id_application (colonne créée dans 2026_05_24_000000, avant
-        // que cette table n'existe) peut désormais être contrainte par FK.
-        Schema::table('audit_logs', function (Blueprint $table) {
-            $table->foreign('id_application')
-                ->references('id')->on('ref_applications')
-                ->nullOnDelete();
-        });
     }
 
     public function down(): void
     {
-        Schema::table('audit_logs', function (Blueprint $table) {
-            $table->dropForeign(['id_application']);
-        });
-
         Schema::dropIfExists('ref_applications');
     }
 };

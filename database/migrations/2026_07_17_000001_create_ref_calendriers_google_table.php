@@ -40,6 +40,8 @@ return new class extends Migration {
             $table->string('nom', 200);
             $table->text('description')->nullable();
             $table->boolean('actif')->default(true);
+            $table->boolean('inclure_nouveaux_membres')->default(false)
+                ->comment('Si true, ce calendrier est partagé automatiquement avec chaque nouveau bénévole validé (voir CalendarSharingService)');
             $table->timestamp('derniere_verification_at')->nullable();
             $table->timestamps();
         });
