@@ -159,6 +159,10 @@
     background: #f5f3ff;
     color: #7c3aed;
 }
+.chip-absence {
+    background: #f3f4f6;
+    color: #4b5563;
+}
 
 /* ── Table restrictions : colonnes tâches colorées ── */
 .sub-entree {
@@ -285,6 +289,10 @@ button {
 .dark .chip-cours {
     background: rgba(124, 58, 237, 0.18);
     color: #a78bfa;
+}
+.dark .chip-absence {
+    background: rgba(107, 114, 128, 0.22);
+    color: #9ca3af;
 }
 
 .dark .tache-vide {

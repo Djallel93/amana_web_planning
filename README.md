@@ -290,6 +290,8 @@ Gestion des périodes d'absence. Une absence empêche l'assignation d'une person
 - Un membre ne peut ajouter/supprimer que ses propres absences
 - Admin/gestionnaire peut gérer les absences de tout le monde
 
+**Synchronisation Google Calendar :** chaque absence (création/modification/suppression) est synchronisée comme un événement **journée entière**, en **couleur grise fixe (Graphite, colorId 8, non configurable)**, sur le calendrier défini par le paramètre **Calendriers → Absences** dans `/parametres` (laisser vide pour désactiver la synchronisation). Voir `App\Services\WebhookAbsencePayloadBuilder` et [Intégration Google Calendar](#intégration-google-calendar-api-directe). Contrairement aux événements organisationnels (potentiellement diffusés sur plusieurs calendriers), une absence n'a qu'un seul calendrier cible possible ; le suivi `google_calendar_id`/`google_event_id` est stocké directement sur `plan_absences` plutôt que dans une table pivot dédiée.
+
 ---
 
 ### 🔒 Disponibilités (`/restrictions`)
@@ -374,12 +376,21 @@ Configuration de l'application (admin/gestionnaire, avec restrictions selon le r
 | --------------------- | -------------------- | ---------------------------------------------------------------------------- |
 | Inscriptions ouvertes | Admin uniquement     | Active ou désactive le formulaire public `/inscription`                      |
 | Heure du cours & Lieu | Admin + Gestionnaire | Heure de référence pour les horaires webhook ; adresse physique              |
-| Calendriers Google    | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement (planning) |
+| Calendriers Google    | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement (planning), y compris le calendrier des absences |
+| Couleurs Google Calendar | Admin + Gestionnaire | Couleur (colorId Google Calendar 1-11, avec pastille d'aperçu) par tâche/événement spécial — voir ci-dessous |
 | Décalages des tâches  | Admin + Gestionnaire | Offsets en minutes (positif = après le cours, négatif = avant)               |
 
 > Tous ces paramètres sont stockés dans `ref_settings` et lus dynamiquement — il n'y a pas de valeur en `.env` pour ces réglages.
 >
 > Ne pas confondre avec le champ **« Calendriers Google Calendar »** (sélection multiple) du formulaire d'un événement organisationnel individuel (`/evenements/creer`) — ceux-ci sont stockés directement sur l'événement dans `ref_evenements_calendriers` (un événement peut avoir plusieurs calendriers), pas dans `ref_settings`.
+
+#### Couleurs Google Calendar par tâche/événement spécial
+
+Chaque tâche (`entree`, `mektaba`, `salle`, `amana_food`, `cours`) et chaque événement spécial webhook (`rappel_sandwich`, `assistance_amana_food`, `annonce_cours`, `message_bot`, `annulation_cours`) a une couleur Google Calendar configurable (`couleur_<code>` dans `ref_settings`), affichée avec le nom de la couleur **et une pastille d'aperçu** — voir `resources/views/partials/color-select.blade.php`, partagé avec le sélecteur de couleur du formulaire d'événement (`/evenements/creer`).
+
+Si un paramètre `couleur_<code>` est laissé vide, `WebhookPayloadBuilder` retombe sur le mapping fixe historique (`App\Helpers\GoogleCalendarColors::TACHES`) — aucun comportement ne change tant que la section n'est pas éditée.
+
+Les absences ont une couleur **fixe non configurable** (Graphite/gris, colorId `8`) — voir la section Absences (`/absences`) plus bas.
 
 ---
 
@@ -458,8 +469,8 @@ flowchart TD
     C --> H[Statut : Validé\ndirectement]
     H --> I[Admin envoie\nlien reset via formulaire\nmot de passe oublié]
 
-    D --> J[Outil d'urgence\n/urgence-hash]
-    J --> K[Hash bcrypt généré\n→ coller dans phpMyAdmin]
+    D --> J[Tinker en SSH\nsur le serveur IONOS]
+    J --> K[Mot de passe défini\ndirectement en base]
 
     G --> L[Membre se connecte ✅]
     I --> L
@@ -478,54 +489,26 @@ En fonctionnement normal (emails SMTP opérationnels) :
 
 Pour renvoyer manuellement un lien à un utilisateur depuis l'interface admin, aller dans **Candidatures → Renvoyer l'invitation**.
 
-### Outil d'urgence post-déploiement — `/urgence-hash`
+### Définir un mot de passe en urgence — Tinker en SSH
 
-Sur IONOS Deploy Now, il n'y a **pas de SSH interactif** et `php artisan tinker` (mode interactif) est inaccessible. Si les emails ne fonctionnent pas encore au premier déploiement, il est impossible de recevoir un lien de réinitialisation. L'outil `/urgence-hash` résout ce problème.
-
-#### Principe
-
-L'outil génère un **hash bcrypt** à partir d'un mot de passe saisi dans le navigateur, puis affiche la requête SQL prête à exécuter dans **phpMyAdmin**. Il ne modifie rien en base de données — c'est l'administrateur qui applique la requête manuellement.
-
-#### Activation
-
-Ajouter la variable suivante dans le `.env` sur IONOS (via le panneau Deploy Now ou SFTP) :
-
-```env
-APP_EMERGENCY_KEY=une-cle-secrete-tres-longue-et-aleatoire
-```
-
-La route est **entièrement désactivée** (retourne HTTP 404) si `APP_EMERGENCY_KEY` est absent ou vide. Elle ne nécessite aucune authentification — la clé secrète dans l'URL en tient lieu.
+Le pipeline de déploiement (`.github/workflows/deploy.yaml`) se connecte à IONOS **en SSH**, ce qui rend `php artisan tinker` accessible directement sur le serveur — la route dédiée `/urgence-hash` qui existait avant (pour un hébergement sans accès SSH interactif) a été retirée : elle exposait un mécanisme de contournement d'authentification supplémentaire à maintenir et sécuriser (clé secrète en `.env`, route publique) pour un besoin désormais couvert nativement par l'accès serveur.
 
 #### Utilisation
 
-1. Visiter `https://votredomaine.com/urgence-hash?key=une-cle-secrete-tres-longue-et-aleatoire`
-2. Saisir le nouveau mot de passe (8 caractères minimum) et le confirmer.
-3. Cliquer sur **Générer le hash bcrypt**.
-4. La page affiche le hash et la requête SQL suivante (cliquer pour copier) :
+1. Se connecter en SSH au serveur (`IONOS_SSH_USER@IONOS_SSH_HOST`, voir secrets GitHub Actions).
+2. Depuis `IONOS_REMOTE_PATH` :
+   ```bash
+   {chemin du binaire PHP CLI IONOS, ex. php8.4-cli} artisan tinker
+   ```
+3. Dans Tinker :
+   ```php
+   $p = \App\Models\Personne::where('email', 'votre@email.com')->first();
+   $p->password = bcrypt('nouveau-mot-de-passe');
+   $p->save();
+   ```
+4. `exit`, puis se connecter normalement sur `/login`.
 
-```sql
-UPDATE ref_personnes
-SET password = '$2y$12$...(hash généré)...'
-WHERE email = 'votre@email.com';
-```
-
-1. Exécuter cette requête dans **phpMyAdmin** sur la base de données de production.
-2. Se connecter normalement sur `/login`.
-
-#### Désactivation après usage
-
-⚠️ **Retirer la clé après utilisation** pour fermer la trappe d'urgence :
-
-```env
-# Supprimer ou vider cette ligne dans le .env IONOS :
-APP_EMERGENCY_KEY=
-```
-
-Puis redéployer ou vider le cache de configuration :
-
-```bash
-php artisan config:cache
-```
+Aucune clé secrète supplémentaire à provisionner/retirer, aucune route publique — l'accès est protégé par la clé SSH elle-même (`IONOS_SSH_PRIVATE_KEY`).
 
 ### Commande planifiée — expiration des échanges
 
@@ -1188,9 +1171,6 @@ MAIL_FROM_NAME="${APP_NAME}"
 QUEUE_CONNECTION=sync               # Obligatoire sur hébergement partagé (pas de worker persistant)
 
 GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=...
-
-# Outil d'urgence — retirer après usage
-APP_EMERGENCY_KEY=
 ```
 
 > ⚠️ **`MAIL_SCHEME=null`** (la chaîne littérale) est une erreur fréquente. Sur IONOS avec le port 587 (STARTTLS), la valeur doit être **vide** (`MAIL_SCHEME=`) ou absente du `.env`. La valeur `null` en texte perturbe Symfony Mailer et bloque silencieusement l'envoi des emails.
@@ -1202,12 +1182,11 @@ APP_EMERGENCY_KEY=
 | 1     | Définir tous les secrets/variables GitHub requis           | Voir [docs/installation.md § Configuration requise](docs/installation.md#configuration-requise--secrets--variables-github) |
 | 2     | Déployer via GitHub Actions (push sur `main`)          | Pipeline vert dans l'onglet **Actions** de GitHub                                                                          |
 | 3     | Vérifier que la migration s'est exécutée                   | Aller dans phpMyAdmin — les tables existent (`migrate:fresh --seed` au premier déploiement)                                |
-| 4     | Définir le mot de passe du premier admin                   | Voir [Outil d'urgence `/urgence-hash`](#outil-durgence-post-déploiement----urgence-hash)                                   |
+| 4     | Définir le mot de passe du premier admin                   | Voir [Définir un mot de passe en urgence — Tinker en SSH](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)              |
 | 5     | Se connecter et aller sur **Diagnostic SMTP**              | Sidebar → 🔧 Diagnostic SMTP                                                                                               |
 | 6     | Envoyer un email de test depuis le diagnostic              | Vérifier la réception + `laravel.log`                                                                                      |
 | 7     | Configurer les paramètres (heure, lieu, calendriers)       | `/parametres` — enregistrer d'abord les calendriers dans le registre, avant de les sélectionner par tâche |
 | 7bis  | Vérifier le compte de service Google Calendar               | `php artisan amana:tester-google-calendar --create` (SSH) — voir [Intégration Google Calendar](#intégration-google-calendar-api-directe) |
-| 8     | Retirer le secret `APP_EMERGENCY_KEY` (vide) et redéployer | Le champ `?key=` de `/urgence-hash` ne doit plus fonctionner                                                               |
 
 ### Diagnostic SMTP — `/diagnostic-mail`
 
@@ -1228,7 +1207,7 @@ Un calendrier doit d'abord être **ajouté au registre** (section "Registre des 
 
 | Contrainte                                | Impact                                                      | Contournement                                                                                                         |
 | ----------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| SSH réservé au déploiement automatisé     | Pas de session interactive pratique pour du débogage ad hoc | `php artisan tinker` reste possible en SSH mais n'est pas le flux normal ; outil `/urgence-hash` pour les hash bcrypt |
+| SSH réservé au déploiement automatisé     | Pas de session interactive pratique pour du débogage ad hoc | `php artisan tinker` reste possible en SSH — c'est le flux recommandé pour un reset de mot de passe en urgence (voir [Définir un mot de passe en urgence](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)) |
 | Pas de worker de queue persistant         | Les jobs `ShouldQueue` doivent s'exécuter immédiatement     | `QUEUE_CONNECTION=sync` dans `.env`                                                                                   |
 | Logs serveur séparés de Laravel           | `access.log.*` ≠ `laravel.log`                              | Lire `storage/logs/laravel.log` via SFTP ou phpMyAdmin                                                                |
 | `storage/` exclu du déploiement récurrent | Le dossier est préservé entre déploiements                  | `rsync` exclut explicitement `storage/` dans le job `deploy` du pipeline                                              |

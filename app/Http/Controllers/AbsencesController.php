@@ -7,12 +7,15 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Absences\StoreAbsenceRequest;
 use App\Http\Requests\Absences\UpdateAbsenceRequest;
+use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Absence;
 use App\Models\Personne;
 use App\Services\AbsenceRegenerationService;
+use App\Services\WebhookAbsencePayloadBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 /**
@@ -36,6 +39,7 @@ class AbsencesController extends Controller
 {
     public function __construct(
         private readonly AbsenceRegenerationService $regenerationService,
+        private readonly WebhookAbsencePayloadBuilder $webhookBuilder,
     ) {
     }
 
@@ -94,6 +98,8 @@ class AbsencesController extends Controller
 
         audit('create', 'absences', $absence->id, null, $absence->toArray());
 
+        $this->dispatchWebhookUpsert($absence, 'post');
+
         $message = "Absence ajoutée pour {$personne->prenom} {$personne->nom}.";
 
         $regeneration = $this->regenerationService->regenererSiNecessaire($absence);
@@ -145,6 +151,8 @@ class AbsencesController extends Controller
 
         audit('update', 'absences', $absence->id, $avant, $absence->toArray());
 
+        $this->dispatchWebhookUpsert($absence, 'patch');
+
         $message = "Absence de {$absence->personne->prenom} {$absence->personne->nom} mise à jour.";
 
         $regeneration = $this->regenerationService->regenererSiNecessaire($absence);
@@ -190,11 +198,66 @@ class AbsencesController extends Controller
             ? "{$absence->personne->prenom} {$absence->personne->nom}"
             : "ID {$absence->id_personne}";
 
+        $this->dispatchWebhookDelete($absence);
+
         $absence->delete();
 
         audit('delete', 'absences', $id, $avant, null);
 
         return redirect()->route('absences.index')
             ->with('success', "Absence de {$nomPers} supprimée.");
+    }
+
+    // ── Private : synchronisation Google Calendar ────────────────────────
+
+    /**
+     * Dispatche une synchronisation Google Calendar (upsert) si un
+     * calendrier `calendar_absence` est configuré.
+     *
+     * @param string $method 'post' (création) ou 'patch' (modification)
+     */
+    private function dispatchWebhookUpsert(Absence $absence, string $method): void
+    {
+        if (!$this->webhookBuilder->hasCalendarSync()) {
+            return;
+        }
+
+        try {
+            $payload = $this->webhookBuilder->buildUpsert($absence);
+            SynchroniserGoogleCalendar::dispatch($payload, $method, 'absence');
+            Log::info('[AbsencesController] Synchronisation Google Calendar dispatchée', [
+                'id' => $absence->id,
+                'method' => strtoupper($method),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[AbsencesController] Échec dispatch synchronisation upsert', [
+                'id' => $absence->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Dispatche une suppression Google Calendar (synchrone) si un
+     * calendrier était configuré au moment de la création de cette absence
+     * — voir docblock de SynchroniserGoogleCalendar pour le choix du mode
+     * synchrone (dispatchSync) sur les DELETE.
+     */
+    private function dispatchWebhookDelete(Absence $absence): void
+    {
+        if (!$absence->google_event_id) {
+            return;
+        }
+
+        try {
+            $payload = $this->webhookBuilder->buildDelete($absence);
+            SynchroniserGoogleCalendar::dispatchSync($payload, 'delete', 'absence');
+            Log::info('[AbsencesController] Synchronisation Google Calendar (delete)', ['id' => $absence->id]);
+        } catch (\Throwable $e) {
+            Log::error('[AbsencesController] Échec synchronisation Google Calendar (delete)', [
+                'id' => $absence->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

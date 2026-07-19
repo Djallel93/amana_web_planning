@@ -12,7 +12,6 @@ use App\Http\Controllers\CalendrierGoogleController;
 use App\Http\Controllers\CalendriersController;
 use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EchangeController;
-use App\Http\Controllers\EmergencyController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\MonPlanningController;
 use App\Http\Controllers\PlanningController;
@@ -32,10 +31,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', fn() => redirect()->route('planning.index'));
-
-// ── Outil d'urgence post-déploiement — génère un hash bcrypt (désactivé si APP_EMERGENCY_KEY vide) ──
-Route::get('/urgence-hash', [EmergencyController::class, 'show'])->name('emergency.hash.show');
-Route::post('/urgence-hash', [EmergencyController::class, 'generate'])->name('emergency.hash.generate');
 
 // ── Authentification ──────────────────────────────────────────────────────
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

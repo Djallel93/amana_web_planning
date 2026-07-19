@@ -317,6 +317,25 @@ class DatabaseSeeder extends Seeder
             ['cle' => 'calendar_annonce_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => null],
             ['cle' => 'calendar_message_bot', 'valeur' => '', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => null],
             ['cle' => 'calendar_annulation_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => null],
+            // Calendrier cible pour la synchronisation des absences (journée
+            // entière, couleur Graphite fixe — voir WebhookAbsencePayloadBuilder).
+            ['cle' => 'calendar_absence', 'valeur' => '', 'type' => 'string', 'libelle' => 'Absences', 'description' => 'Calendrier Google Calendar dans lequel les absences sont synchronisées (journée entière, couleur grise fixe). Laisser vide pour ne pas synchroniser les absences.'],
+
+            // ── E. Couleurs Google Calendar par tâche/événement spécial ─────
+            // colorId (1 à 11, voir GoogleCalendarColors::PALETTE), éditable
+            // dans Paramètres → Couleurs. Valeurs par défaut alignées sur
+            // GoogleCalendarColors::TACHES pour ne rien changer visuellement
+            // tant que personne n'y touche.
+            ['cle' => 'couleur_entree', 'valeur' => '7', 'type' => 'string', 'libelle' => 'Entrée', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_mektaba', 'valeur' => '10', 'type' => 'string', 'libelle' => 'Mektaba', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_salle', 'valeur' => '5', 'type' => 'string', 'libelle' => 'Salle', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_amana_food', 'valeur' => '11', 'type' => 'string', 'libelle' => 'Amana Food', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_cours', 'valeur' => '3', 'type' => 'string', 'libelle' => 'Cours', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_rappel_sandwich', 'valeur' => '6', 'type' => 'string', 'libelle' => 'Rappel Sandwich', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_assistance_amana_food', 'valeur' => '9', 'type' => 'string', 'libelle' => 'Assistance Amana Food', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_annonce_cours', 'valeur' => '8', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_message_bot', 'valeur' => '1', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_annulation_cours', 'valeur' => '4', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
         ];
 
         foreach ($settings as $s) {

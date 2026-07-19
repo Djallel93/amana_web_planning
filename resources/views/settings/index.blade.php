@@ -312,6 +312,7 @@
                     'calendar_annonce_cours'         => ['libelle' => 'Annonce Cours',        'chip' => 'annonce_cours'],
                     'calendar_message_bot'           => ['libelle' => 'Message Bot',          'chip' => 'message_bot'],
                     'calendar_annulation_cours'       => ['libelle' => 'Annulation Cours',     'chip' => 'annulation_cours'],
+                    'calendar_absence'                => ['libelle' => 'Absences',             'chip' => 'absence'],
                 ];
             @endphp
 
@@ -339,6 +340,57 @@
                                 data-placeholder="Sélectionner…"
                                 style="margin-top:2px;"
                             ></div>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    {{-- ═══════════════════════════════════════
+        SECTION 3bis — Couleurs Google Calendar
+    ════════════════════════════════════════ --}}
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
+        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+            <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🎨</div>
+            <span class="font-heading text-[14px] font-semibold text-ink">Couleurs Google Calendar</span>
+        </div>
+        <div class="px-5 py-5">
+            <p class="text-[12.5px] text-ink-muted mb-5 leading-relaxed">
+                Couleur utilisée pour chaque tâche/événement spécial lors de la synchronisation Google Calendar.
+            </p>
+
+            @php
+                // Même liste de codes que $calendarChips ci-dessus (hors
+                // absences, dont la couleur grise est fixe — voir point 4).
+                $couleurChips = [
+                    'couleur_entree'                => ['libelle' => 'Entrée',                'chip' => 'entree'],
+                    'couleur_mektaba'               => ['libelle' => 'Mektaba',               'chip' => 'mektaba'],
+                    'couleur_salle'                 => ['libelle' => 'Salle',                 'chip' => 'salle'],
+                    'couleur_amana_food'            => ['libelle' => 'Amana Food',            'chip' => 'amana_food'],
+                    'couleur_cours'                 => ['libelle' => 'Cours',                 'chip' => 'cours'],
+                    'couleur_rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',       'chip' => 'rappel_sandwich'],
+                    'couleur_assistance_amana_food' => ['libelle' => 'Assistance Amana Food', 'chip' => 'assistance_amana_food'],
+                    'couleur_annonce_cours'         => ['libelle' => 'Annonce Cours',         'chip' => 'annonce_cours'],
+                    'couleur_message_bot'           => ['libelle' => 'Message Bot',           'chip' => 'message_bot'],
+                    'couleur_annulation_cours'      => ['libelle' => 'Annulation Cours',      'chip' => 'annulation_cours'],
+                ];
+            @endphp
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                @foreach($couleurChips as $cle => $meta)
+                    @if(isset($couleurs[$cle]))
+                        <div class="flex flex-col gap-1.5">
+                            <label for="{{ $cle }}" class="text-xs font-bold text-ink tracking-[0.2px]">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold chip-{{ $meta['chip'] }}">
+                                    {{ $meta['libelle'] }}
+                                </span>
+                            </label>
+                            @include('partials.color-select', [
+                                'id' => $cle,
+                                'name' => "settings[{$cle}]",
+                                'selected' => $couleurs[$cle]['valeur_raw'],
+                            ])
                         </div>
                     @endif
                 @endforeach

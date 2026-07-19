@@ -432,7 +432,7 @@ class WebhookPayloadBuilder
             'heure_fin' => $fin,
             'calendar_ids' => $this->getCalendarIds($cleHoraire),
             'description' => $tacheRef?->description_calendrier ?? '',
-            'color_id' => GoogleCalendarColors::TACHES[$code] ?? null,
+            'color_id' => $this->getCouleur($code),
         ];
     }
 
@@ -545,6 +545,20 @@ class WebhookPayloadBuilder
     {
         $valeur = Setting::get("calendar_{$code}", 'planning');
         return $valeur ? [$valeur] : [];
+    }
+
+    /**
+     * Couleur Google Calendar (colorId) pour un code donné : priorité au
+     * paramètre `couleur_<code>` (éditable dans Paramètres → Couleurs),
+     * repli sur GoogleCalendarColors::TACHES si le paramètre n'existe pas
+     * encore ou a été laissé vide.
+     */
+    private function getCouleur(string $code): ?string
+    {
+        $valeur = Setting::get("couleur_{$code}", 'planning');
+        return $valeur !== null && $valeur !== ''
+            ? (string) $valeur
+            : (GoogleCalendarColors::TACHES[$code] ?? null);
     }
 
     private function calculerHoraires(string $code, string $date, string $heureCours): array

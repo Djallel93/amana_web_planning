@@ -27,11 +27,12 @@ use Illuminate\Support\Collection;
  * 'planning', ref_evenements_calendriers pour 'evenement').
  *
  * @phpstan-type GoogleCalendarOperation array{
- *     scope: 'planning'|'evenement',
+ *     scope: 'planning'|'evenement'|'absence',
  *     id_planning?: int,
  *     id_tache?: int,
  *     code?: string,
  *     id_evenement?: int,
+ *     id_absence?: int,
  *     calendar_id: string,
  *     summary: string,
  *     description: string|null,
@@ -114,6 +115,39 @@ class GoogleCalendarPayloadMapper
         }
 
         return $operations;
+    }
+
+    /**
+     * Convertit un payload 'absence' ({absence: {...}}) en liste
+     * d'opérations (0 ou 1 — une absence n'a qu'un seul calendrier cible
+     * possible, contrairement aux événements organisationnels).
+     * Une absence journée entière — pas d'heure_debut/heure_fin.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function mapAbsence(array $payload): array
+    {
+        $absence = $payload['absence'] ?? null;
+        $calendarId = $absence['calendar_id'] ?? null;
+        if (!$absence || !isset($absence['id_absence']) || !$calendarId) {
+            return [];
+        }
+
+        return [[
+            'scope' => 'absence',
+            'id_absence' => (int) $absence['id_absence'],
+            'calendar_id' => $calendarId,
+            'summary' => $absence['nom'] ?? '',
+            'description' => $absence['description'] ?? null,
+            'date_debut' => $absence['date_debut'] ?? null,
+            // Google Calendar : la date de fin d'un événement all-day est
+            // EXCLUSIVE — +1 jour par rapport à date_fin (inclusive côté
+            // métier), comme pour mapEvenement().
+            'date_fin' => isset($absence['date_fin'])
+                ? Carbon::parse($absence['date_fin'])->addDay()->toDateString()
+                : null,
+            'color_id' => $absence['couleur'] ?? null,
+        ]];
     }
 
     // ── Private ───────────────────────────────────────────────────────────

@@ -44,6 +44,14 @@ class GoogleCalendarColors
      *
      * @var array<string, string>
      */
+    /**
+     * Couleur fixe (non configurable) utilisée pour TOUTES les absences
+     * synchronisées sur Google Calendar — colorId 8 = Graphite (gris),
+     * cf. PALETTE ci-dessus. Contrairement à TACHES, aucun paramètre
+     * `couleur_absence` n'existe : le gris est imposé, pas un défaut.
+     */
+    public const ABSENCE = '8';
+
     public const TACHES = [
         'entree'                 => '7',  // Paon (bleu)     — aligné chip-entree
         'mektaba'                => '10', // Basilic (vert)  — aligné chip-mektaba

@@ -36,6 +36,22 @@
             var bubble = document.getElementById('tache-tooltip-bubble');
             var currentTrigger = null;
 
+            // Sur mobile, un tap déclenche dans l'ordre : touchstart, puis
+            // (événements souris synthétiques) mouseover, mousedown, focus,
+            // mouseup, click. Sans garde, le mouseover synthétique ouvrait
+            // déjà la bulle (currentTrigger = trigger) AVANT que le click
+            // (juste après) ne la referme aussitôt en la prenant pour un
+            // second tap sur un déclencheur déjà ouvert — la bulle
+            // n'apparaissait donc jamais visuellement au toucher.
+            // touchstart précède toujours ce mouseover synthétique : on
+            // l'utilise pour désactiver définitivement les listeners
+            // hover dès la première interaction tactile détectée, et
+            // laisser le seul listener click piloter l'ouverture/fermeture.
+            var usingTouch = false;
+            document.addEventListener('touchstart', function () {
+                usingTouch = true;
+            }, { passive: true, once: true });
+
             function showTooltip(trigger) {
                 var text = trigger.getAttribute('data-tooltip');
                 if (!text) return;
@@ -70,10 +86,12 @@
             }
 
             document.addEventListener('mouseover', function (e) {
+                if (usingTouch) return;
                 var trigger = e.target.closest && e.target.closest('.js-tache-tooltip-trigger');
                 if (trigger) showTooltip(trigger);
             });
             document.addEventListener('mouseout', function (e) {
+                if (usingTouch) return;
                 var trigger = e.target.closest && e.target.closest('.js-tache-tooltip-trigger');
                 if (trigger && trigger === currentTrigger) hideTooltip();
             });

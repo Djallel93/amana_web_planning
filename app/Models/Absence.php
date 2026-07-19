@@ -16,7 +16,20 @@ class Absence extends Model
     protected $table = 'plan_absences';
     public $timestamps = false;
 
-    protected $fillable = ['id_personne', 'date_debut', 'date_fin', 'raison'];
+    /**
+     * google_calendar_id / google_event_id ne sont jamais soumis par le
+     * formulaire absences (StoreAbsenceRequest/UpdateAbsenceRequest ne les
+     * valident pas) — seulement écrits par SynchroniserGoogleCalendar après
+     * synchronisation, sur le même modèle qu'EvenementCalendrier.
+     */
+    protected $fillable = [
+        'id_personne',
+        'date_debut',
+        'date_fin',
+        'raison',
+        'google_calendar_id',
+        'google_event_id',
+    ];
 
     protected $casts = [
         'date_debut' => 'date',

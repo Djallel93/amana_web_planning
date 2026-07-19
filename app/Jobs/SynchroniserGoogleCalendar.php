@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Models\Absence;
 use App\Models\CalendrierEvenement;
 use App\Models\EvenementCalendrier;
 use App\Services\GoogleCalendarPayloadMapper;
@@ -54,7 +55,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
     public int $backoff = 60;
 
     private const METHODES_AUTORISEES = ['post', 'patch', 'delete'];
-    private const CIBLES_AUTORISEES = ['planning', 'evenement'];
+    private const CIBLES_AUTORISEES = ['planning', 'evenement', 'absence'];
 
     public function __construct(
         private readonly array $payload,
@@ -75,9 +76,11 @@ class SynchroniserGoogleCalendar implements ShouldQueue
         $cible = in_array($this->cible, self::CIBLES_AUTORISEES, true) ? $this->cible : 'planning';
         $methode = in_array($this->method, self::METHODES_AUTORISEES, true) ? $this->method : 'post';
 
-        $operations = $cible === 'evenement'
-            ? $mapper->mapEvenement($this->payload)
-            : $mapper->mapPlanning($this->payload);
+        $operations = match ($cible) {
+            'evenement' => $mapper->mapEvenement($this->payload),
+            'absence' => $mapper->mapAbsence($this->payload),
+            default => $mapper->mapPlanning($this->payload),
+        };
 
         if (empty($operations)) {
             Log::info('[SynchroniserGoogleCalendar] Aucune opération à synchroniser (0 calendrier configuré).', [
@@ -133,7 +136,11 @@ class SynchroniserGoogleCalendar implements ShouldQueue
         // Action 'webhook' conservée telle quelle (voir docs/Schema_bdd.md,
         // liste des valeurs `audit_logs.action`) — renommer casserait tout
         // filtrage/dashboard existant basé sur cette valeur.
-        audit('webhook', $cible === 'evenement' ? 'evenements' : 'planning', null, null, $resume);
+        audit('webhook', match ($cible) {
+            'evenement' => 'evenements',
+            'absence' => 'absences',
+            default => 'planning',
+        }, null, null, $resume);
     }
 
     // ── Private : upsert (post/patch) ────────────────────────────────────
@@ -147,7 +154,46 @@ class SynchroniserGoogleCalendar implements ShouldQueue
             return;
         }
 
+        if ($operation['scope'] === 'absence') {
+            $this->upsertAbsence($google, $operation, $body);
+            return;
+        }
+
         $this->upsertPlanning($google, $operation, $body);
+    }
+
+    /**
+     * Contrairement à upsertEvenement()/upsertPlanning(), pas de table de
+     * suivi dédiée à consulter : une absence n'a qu'un seul calendrier
+     * cible possible, donc google_calendar_id/google_event_id vivent
+     * directement sur plan_absences (voir migration
+     * add_google_calendar_tracking_to_plan_absences_table).
+     */
+    private function upsertAbsence(GoogleCalendarService $google, array $operation, array $body): void
+    {
+        $absence = Absence::find($operation['id_absence']);
+        if (!$absence) {
+            Log::warning('[SynchroniserGoogleCalendar] Absence introuvable — opération ignorée.', [
+                'operation' => $operation,
+            ]);
+            return;
+        }
+
+        // L'event_id connu n'est réutilisable que s'il a été créé sur le
+        // MÊME calendrier — si `calendar_absence` a changé entre-temps, on
+        // recrée plutôt que de patcher un event_id qui vit sur l'ancien
+        // calendrier (patch échouerait avec un 404 de toute façon, mais
+        // autant l'anticiper explicitement).
+        $eventIdConnu = $absence->google_calendar_id === $operation['calendar_id']
+            ? $absence->google_event_id
+            : null;
+
+        $eventId = $this->patchOuCree($google, $operation['calendar_id'], $eventIdConnu, $body);
+
+        $absence->forceFill([
+            'google_calendar_id' => $operation['calendar_id'],
+            'google_event_id' => $eventId,
+        ])->save();
     }
 
     private function upsertPlanning(GoogleCalendarService $google, array $operation, array $body): void
@@ -221,6 +267,20 @@ class SynchroniserGoogleCalendar implements ShouldQueue
 
     private function supprimer(GoogleCalendarService $google, array $operation): void
     {
+        if ($operation['scope'] === 'absence') {
+            $absence = Absence::find($operation['id_absence']);
+            if (!$absence || !$absence->google_event_id) {
+                Log::info('[SynchroniserGoogleCalendar] Rien à supprimer (aucun event_id connu).', ['operation' => $operation]);
+                return;
+            }
+            // Pas de mise à jour de la ligne après coup : AbsencesController::destroy()
+            // supprime déjà plan_absences juste après avoir construit ce payload
+            // (voir WebhookAbsencePayloadBuilder::buildDelete()) — la ligne
+            // entière disparaît, pas besoin de nettoyer les colonnes de suivi.
+            $google->deleteEvent($operation['calendar_id'], $absence->google_event_id);
+            return;
+        }
+
         if ($operation['scope'] === 'evenement') {
             $ligne = EvenementCalendrier::where('id_evenement', $operation['id_evenement'])
                 ->where('google_calendar_id', $operation['calendar_id'])
@@ -248,12 +308,13 @@ class SynchroniserGoogleCalendar implements ShouldQueue
 
     private function buildEventBody(array $operation): array
     {
-        if ($operation['scope'] === 'evenement') {
+        if ($operation['scope'] === 'evenement' || $operation['scope'] === 'absence') {
             return [
                 'summary' => $operation['summary'],
                 'description' => $operation['description'],
                 'date_debut' => $operation['date_debut'],
                 'date_fin' => $operation['date_fin'],
+                'color_id' => $operation['color_id'] ?? null,
             ];
         }
 
@@ -262,6 +323,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
             'description' => $operation['description'],
             'start' => $operation['start'],
             'end' => $operation['end'],
+            'color_id' => $operation['color_id'] ?? null,
         ];
     }
 }

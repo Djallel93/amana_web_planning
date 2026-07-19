@@ -47,6 +47,7 @@ class SettingsController extends Controller
         $decalagesGroupes = $this->grouperDecalages($decalages);
         $inscription = $settings->only(['inscription_ouverte']);
         $calendriers = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'calendar_'));
+        $couleurs = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'couleur_'));
         $calendriersGoogle = CalendrierGoogle::orderBy('nom')->get();
 
         /** @var \App\Models\Personne $user */
@@ -59,6 +60,7 @@ class SettingsController extends Controller
             'settings',
             'inscription',
             'calendriers',
+            'couleurs',
             'calendriersGoogle',
             'user',
         ));

@@ -332,7 +332,6 @@ flowchart LR
 | `MAIL_USERNAME`         | Compte SMTP (aussi utilisé comme adresse d'expédition)                       |
 | `MAIL_PASSWORD`         | Mot de passe SMTP                                                            |
 | `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` | Clé JSON du compte de service Google Cloud (Calendar API), encodée en base64 |
-| `APP_EMERGENCY_KEY`     | Clé de l'outil d'urgence `/urgence-hash` — laisser vide sauf besoin ponctuel |
 | `IONOS_SSH_PRIVATE_KEY` | Clé SSH privée pour se connecter au serveur IONOS                            |
 | `IONOS_SSH_USER`        | Utilisateur SSH IONOS                                                        |
 | `IONOS_SSH_HOST`        | Hôte SSH IONOS                                                               |
@@ -345,7 +344,7 @@ flowchart LR
 | `IONOS_REMOTE_PATH`  | Chemin absolu du webspace sur le serveur IONOS (ex. `/homepages/.../htdocs`)                        |
 | `IONOS_PHP_CLI_PATH` | Chemin du binaire PHP CLI sur IONOS (souvent différent du `php` du PATH, ex. `/usr/bin/php8.4-cli`) |
 
-> Les secrets/variables `DB_*`, `MAIL_*`, `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` et `APP_EMERGENCY_KEY` sont substitués tels quels dans `.github/deploy/.env.production.template` — pour ajouter un nouveau paramètre `.env` de production, l'ajouter au template **et** créer le secret/variable GitHub correspondant, sous peine d'échec du job `build` (placeholder non résolu).
+> Les secrets/variables `DB_*`, `MAIL_*` et `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` sont substitués tels quels dans `.github/deploy/.env.production.template` — pour ajouter un nouveau paramètre `.env` de production, l'ajouter au template **et** créer le secret/variable GitHub correspondant, sous peine d'échec du job `build` (placeholder non résolu).
 
 ### Concurrence et sécurité du pipeline
 
@@ -375,13 +374,19 @@ Onglet **Actions** du dépôt GitHub → sélectionner l'exécution → chaque �
 3. Saisir `admin@amana.fr`
 4. Suivre le lien reçu par email (ou dans `storage/logs/laravel.log` si `MAIL_MAILER=log`)
 
-#### Via l'outil d'urgence `/urgence-hash` (si SMTP non opérationnel)
+#### Via Tinker en SSH sur le serveur (si SMTP non opérationnel)
 
-1. Définir le secret GitHub `APP_EMERGENCY_KEY` (voir tableau des secrets ci-dessus) et redéployer, ou l'éditer directement dans le `.env` du serveur en urgence
-2. Visiter `https://votredomaine.com/urgence-hash?key=une-cle-secrete`
-3. Générer le hash bcrypt
-4. Exécuter la requête SQL affichée dans phpMyAdmin
-5. **Retirer `APP_EMERGENCY_KEY`** (secret GitHub vide + redéploiement, ou `.env` serveur) après usage
+> Remplace l'ancien outil `/urgence-hash`, retiré du projet — le déploiement SSH vers IONOS étant opérationnel, `php artisan tinker` sur le serveur couvre le même besoin sans exposer de route publique ni de clé secrète supplémentaire à gérer.
+
+1. Se connecter en SSH au serveur IONOS (`IONOS_SSH_USER@IONOS_SSH_HOST`)
+2. Depuis `IONOS_REMOTE_PATH`, lancer `{chemin du binaire PHP CLI IONOS, ex. php8.4-cli} artisan tinker`
+3. Dans Tinker :
+   ```php
+   $p = \App\Models\Personne::where('email', 'admin@amana.fr')->first();
+   $p->password = bcrypt('nouveau-mot-de-passe');
+   $p->save();
+   ```
+4. `exit` pour quitter Tinker
 
 ---
 

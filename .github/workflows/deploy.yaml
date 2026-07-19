@@ -97,7 +97,6 @@ jobs:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}
-          APP_EMERGENCY_KEY: ${{ secrets.APP_EMERGENCY_KEY }}
         run: |
           envsubst < .github/deploy/.env.production.template > deploy/.env
           # sanity check: fail fast if a placeholder was left unresolved

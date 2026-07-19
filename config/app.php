@@ -123,17 +123,4 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Clé d'urgence post-déploiement
-    |--------------------------------------------------------------------------
-    |
-    | Quand APP_EMERGENCY_KEY est défini dans .env, la route /urgence-hash
-    | devient accessible et permet de générer un hash bcrypt à copier dans
-    | phpMyAdmin. Laisser vide (ou absent) pour désactiver complètement la route.
-    |
-    */
-
-    'emergency_key' => env('APP_EMERGENCY_KEY', ''),
-
 ];
