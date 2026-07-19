@@ -18,9 +18,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Synchronise directement avec l'API Google Calendar — remplace
- * EnvoyerWebhookMake (Make.com) tout en gardant la même signature
- * d'appel (payload, method, cible), pour un remplacement quasi mot-à-mot
+ * Synchronise directement avec l'API Google Calendar, avec une signature
+ * d'appel (payload, method, cible) volontairement stable dans le temps
  * aux 8 sites d'appel existants.
  *
  * $method ('post'|'patch'|'delete') pilote deux choses :
@@ -132,8 +131,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
         Log::info('[SynchroniserGoogleCalendar] Synchronisation réussie.', $resume);
 
         // Action 'webhook' conservée telle quelle (voir docs/Schema_bdd.md,
-        // liste des valeurs `audit_logs.action`) même si le mécanisme sous-
-        // jacent n'est plus un webhook Make.com — renommer casserait tout
+        // liste des valeurs `audit_logs.action`) — renommer casserait tout
         // filtrage/dashboard existant basé sur cette valeur.
         audit('webhook', $cible === 'evenement' ? 'evenements' : 'planning', null, null, $resume);
     }
@@ -264,7 +262,6 @@ class SynchroniserGoogleCalendar implements ShouldQueue
             'description' => $operation['description'],
             'start' => $operation['start'],
             'end' => $operation['end'],
-            'attendee_email' => $operation['attendee_email'],
         ];
     }
 }

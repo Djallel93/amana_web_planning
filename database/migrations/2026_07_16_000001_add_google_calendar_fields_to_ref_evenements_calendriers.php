@@ -10,9 +10,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Ajoute le suivi direct Google Calendar à ref_evenements_calendriers.
  *
- * Remplace le mécanisme Make.com (retrouver l'événement Google Calendar par
- * recherche nom + date, à chaque modification/suppression) par un suivi
- * exact :
+ * Remplace la recherche "par nom + date" (à chaque modification/suppression)
+ * par un suivi exact :
  *   - google_calendar_id : identifiant Google Calendar cible (calendarId),
  *     remplace calendar_name comme valeur réellement envoyée à l'API — 
  *     calendar_name est conservé uniquement comme libellé d'affichage.
@@ -26,7 +25,7 @@ use Illuminate\Support\Facades\Schema;
  * tant que le premier événement Google Calendar n'a pas encore été créé.
  *
  * Environnement encore en développement : pas de backfill des lignes
- * existantes (créées par l'ancien flux Make.com) — elles resteront avec
+ * existantes — elles resteront avec
  * google_calendar_id/google_event_id à NULL et seront simplement
  * retraitées comme une création au prochain upsert.
  */

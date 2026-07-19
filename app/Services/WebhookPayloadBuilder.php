@@ -14,7 +14,7 @@ use Illuminate\Support\Collection;
 
 /**
  * Construit les payloads consommés par SynchroniserGoogleCalendar pour
- * synchroniser le planning avec Google Calendar (API directe, ex-Make.com).
+ * synchroniser le planning avec Google Calendar (appel API direct).
  *
  * Format (juil. 2026) : la racine se limite strictement à `lieu` + `creneaux`.
  * `taches`, `evenements_speciaux` et `evenements_sociaux` sont des TABLEAUX
@@ -272,6 +272,43 @@ class WebhookPayloadBuilder
                 ]
             ],
         ];
+    }
+
+    // ── Lecture seule : un seul créneau, par date exacte ──────────────────
+
+    /**
+     * Retourne les mêmes lignes `taches`/`evenements_speciaux` que
+     * build()/buildForCreation() (mêmes règles métier : offsets,
+     * rappel_sandwich qui suit amana_food, assistance_amana_food qui suit
+     * entree…), mais pour UNE SEULE date exacte plutôt qu'une plage de
+     * semaines à partir du prochain vendredi.
+     *
+     * Utilisé par RappelService pour les rappels par email (3 jours avant /
+     * jour J / 3h avant) — sans dupliquer la logique d'assignation ici.
+     * `evenements_sociaux` (annonce_cours, message_bot) est volontairement
+     * omis : ces entrées n'ont jamais d'assignation (`assigne`/`email` =
+     * null), donc rien à envoyer comme rappel pour elles.
+     *
+     * @return array{id_planning: int, date: string, taches: array, evenements_speciaux: array}|null
+     *         null si aucun créneau (plan_creneaux) n'existe à cette date.
+     */
+    public function buildPourDate(string $date): ?array
+    {
+        $creneau = Creneau::with(['taches.tache', 'taches.personne', 'evenements.tachesBloquees'])
+            ->where('date', $date)
+            ->first();
+
+        if (!$creneau) {
+            return null;
+        }
+
+        $heureCours = Setting::get('heure_cours', 'planning') ?? '20:00';
+        $toutesLesTaches = Tache::all()->keyBy('code');
+
+        $entry = $this->buildCreneauComplet($creneau, $toutesLesTaches, $heureCours);
+        unset($entry['evenements_sociaux']);
+
+        return $entry;
     }
 
     // ── Private : construction d'un créneau complet (POST) ───────────────

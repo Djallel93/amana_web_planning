@@ -840,7 +840,7 @@ Voir [docs/Schema_bdd.md](docs/Schema_bdd.md#plan_bilans_quotidiens) pour le dé
 
 Après chaque génération de planning, modification manuelle d'une assignation, création/suppression d'un créneau, ou création/modification/suppression d'un événement synchronisé, l'application appelle **directement l'API Google Calendar v3**, authentifiée par un **compte de service** (pas de flux OAuth consentement — outil interne mono-organisation). Chaque calendrier Google Calendar utilisé doit être individuellement partagé avec l'email du compte de service, avec droit de modification.
 
-> Cette intégration remplace l'ancienne intégration Make.com (deux scénarios/webhooks externes). Contrairement à Make.com, qui retrouvait l'événement à modifier/supprimer par une recherche "nom + date" fragile, l'application stocke désormais l'**event_id** Google Calendar renvoyé à la création (`plan_calendrier_evenements` pour le planning, `ref_evenements_calendriers` pour les événements — voir [docs/Schema_bdd.md](docs/Schema_bdd.md)) et l'utilise tel quel pour les `PATCH`/`DELETE` suivants.
+> Plutôt que de retrouver l'événement à modifier/supprimer par une recherche "nom + date" fragile, l'application stocke l'**event_id** Google Calendar renvoyé à la création (`plan_calendrier_evenements` pour le planning, `ref_evenements_calendriers` pour les événements — voir [docs/Schema_bdd.md](docs/Schema_bdd.md)) et l'utilise tel quel pour les `PATCH`/`DELETE` suivants.
 
 ### Composants
 
@@ -1145,7 +1145,7 @@ php artisan amana:tester-google-calendar --create                               
 - `rappel_sandwich` a un horaire fixe (08:00–08:15) ; `assistance_amana_food` suit l'assigné de `entree` ; `rappel_sandwich` suit l'assigné de `amana_food` — ces dépendances sont propagées automatiquement dans les payloads PATCH/DELETE d'une réassignation/désassignation de `entree` ou `amana_food`.
 - **`calendar_ids` est toujours un tableau** (jamais une chaîne unique), y compris pour `taches`, `evenements_speciaux`, `evenements_sociaux` **et** le payload `evenement` dédié — même quand il ne contient qu'un seul identifiant aujourd'hui. Ce choix est volontairement prévu pour absorber, plus tard, plusieurs calendriers par tâche/événement social sans changer la forme du payload — seul le nombre d'éléments dans le tableau changerait. Un tableau vide `[]` signifie qu'aucun calendrier n'est configuré pour ce code — `GoogleCalendarPayloadMapper` ne génère alors aucune opération pour cette ligne.
 - Pour les **événements organisationnels**, `calendar_ids` correspond aux identifiants Google Calendar liés à l'événement (table `ref_evenements_calendriers`, un événement peut en avoir plusieurs) — indépendant des `calendar_ids` des tâches du planning ci-dessus, qui viennent des paramètres (Paramètres → Calendriers).
-- `id_planning` et `id_evenement` sont utilisés uniquement par `GoogleCalendarPayloadMapper` pour retrouver la bonne ligne de suivi en base (`plan_calendrier_evenements` / `ref_evenements_calendriers`) — ils remplacent l'ancienne résolution "par nom + date" faite côté Make.com.
+- `id_planning` et `id_evenement` sont utilisés uniquement par `GoogleCalendarPayloadMapper` pour retrouver la bonne ligne de suivi en base (`plan_calendrier_evenements` / `ref_evenements_calendriers`), plutôt qu'une résolution "par nom + date".
 - Tout champ dont la valeur serait `null` est retiré du payload `evenement` avant l'envoi (`WebhookEvenementPayloadBuilder::sansChampsNull()`) — les valeurs "fausses" mais significatives (`false`, `0`, `''`, `[]`) sont conservées.
 
 ---

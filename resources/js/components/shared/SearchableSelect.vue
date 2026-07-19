@@ -251,7 +251,7 @@ onUnmounted(() => {
                             même convention que des checkboxes natives.
         -->
         <template v-if="inputName">
-            <input v-if="!multiple" type="hidden" :name="inputName" :id="inputId || undefined" :value="selectedLabel">
+            <input v-if="!multiple" type="hidden" :name="inputName" :id="inputId || undefined" :value="modelValue">
             <template v-else>
                 <input v-for="val in selectedValues" :key="val" type="hidden" :name="`${inputName}[]`" :value="val">
             </template>

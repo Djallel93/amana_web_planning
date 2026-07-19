@@ -97,6 +97,7 @@ class CalendrierGoogleController extends Controller
             'nom' => ['required', 'string', 'max:200'],
             'description' => ['nullable', 'string', 'max:1000'],
             'actif' => ['sometimes', 'boolean'],
+            'inclure_nouveaux_membres' => ['sometimes', 'boolean'],
         ]);
 
         $avant = $calendrierGoogle->toArray();
@@ -105,6 +106,7 @@ class CalendrierGoogleController extends Controller
             'nom' => $data['nom'],
             'description' => $data['description'] ?? null,
             'actif' => $request->boolean('actif', $calendrierGoogle->actif),
+            'inclure_nouveaux_membres' => $request->boolean('inclure_nouveaux_membres', $calendrierGoogle->inclure_nouveaux_membres),
         ]);
 
         audit('update', 'calendriers_google', $calendrierGoogle->id, $avant, $calendrierGoogle->fresh()->toArray());

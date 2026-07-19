@@ -7,6 +7,8 @@ namespace App\Services;
 
 use Google\Client as GoogleClient;
 use Google\Service\Calendar as GoogleCalendar;
+use Google\Service\Calendar\AclRule as GoogleAclRule;
+use Google\Service\Calendar\AclRuleScope as GoogleAclRuleScope;
 use Google\Service\Calendar\Event as GoogleEvent;
 use Google\Service\Calendar\EventDateTime;
 use Google\Service\Exception as GoogleServiceException;
@@ -16,9 +18,8 @@ use Illuminate\Support\Facades\Log;
  * Fine wrapper autour de l'API Google Calendar v3 (client officiel
  * google/apiclient), authentifié via un compte de service.
  *
- * Remplace l'ancien round-trip Make.com (EnvoyerWebhookMake) : les
- * événements Google Calendar sont désormais créés/modifiés/supprimés en
- * appel direct, avec l'event_id stocké en base (voir CalendrierEvenement /
+ * Les événements Google Calendar sont créés/modifiés/supprimés en appel
+ * direct, avec l'event_id stocké en base (voir CalendrierEvenement /
  * EvenementCalendrier) plutôt qu'une résolution par nom + date.
  *
  * Auth : GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 (voir config/services.php)
@@ -109,7 +110,7 @@ class GoogleCalendarService
      * Crée un événement dans le calendrier donné. Retourne l'event_id
      * Google Calendar créé, à persister immédiatement par l'appelant.
      *
-     * @param array{summary: string, description?: string, start: string, end: string, date?: string, attendee_email?: string|null} $event
+     * @param array{summary: string, description?: string, start: string, end: string, date?: string} $event
      */
     public function createEvent(string $calendarId, array $event): string
     {
@@ -160,8 +161,59 @@ class GoogleCalendarService
         }
     }
 
+    /**
+     * Partage un calendrier avec l'adresse email d'un utilisateur, via une
+     * règle ACL (Acl::insert) — donne accès au calendrier ENTIER depuis le
+     * compte Google personnel de cette personne, pas à un événement précis
+     * (Google Calendar n'a pas de mécanisme de partage par événement isolé
+     * via un compte de service — voir docblock de buildEventBody() : les
+     * événements créés ici n'ont ni attendee ni invitation).
+     *
+     * $role suit la nomenclature des rôles ACL Google Calendar :
+     *   - 'reader'       : voir les détails des événements ("See all event details")
+     *   - 'writer'       : créer/modifier des événements ("Make changes to events")
+     *   - 'owner'        : gérer aussi le partage ("Make changes and manage sharing")
+     *     — plusieurs personnes peuvent chacune détenir une règle ACL 'owner'
+     *     sur un même calendrier, cela ne désigne pas un propriétaire unique.
+     *   - 'freeBusyReader' : uniquement les disponibilités, sans détail
+     *
+     * Idempotent en pratique : Google Calendar remplace silencieusement une
+     * règle ACL existante pour la même adresse plutôt que d'en créer une
+     * deuxième, donc appeler cette méthode plusieurs fois pour la même
+     * personne/le même calendrier est sans risque.
+     *
+     * @throws GoogleServiceException propagée telle quelle à l'appelant —
+     *         voir CalendarSharingService pour la gestion des échecs partiels.
+     */
+    public function partagerAvecUtilisateur(string $calendarId, string $email, string $role): void
+    {
+        $scope = new GoogleAclRuleScope();
+        $scope->setType('user');
+        $scope->setValue($email);
+
+        $rule = new GoogleAclRule();
+        $rule->setScope($scope);
+        $rule->setRole($role);
+
+        $this->withRetry(
+            fn() => $this->client()->acl->insert($calendarId, $rule)
+        );
+    }
+
     // ── Private ───────────────────────────────────────────────────────────
 
+    /**
+     * Volontairement AUCUN attendee/invitation sur les événements créés ici.
+     * Un compte de service ne peut pas inviter d'attendees sans Domain-Wide
+     * Delegation (erreur Google `forbiddenForServiceAccounts`, HTTP 403) —
+     * restriction de l'API elle-même, indépendante de la validité de
+     * l'adresse email fournie. La personne assignée reste visible : son nom
+     * est déjà inclus dans la description de l'événement (voir
+     * GoogleCalendarPayloadMapper::buildDescription()). Les rappels
+     * personnels et ciblés sont gérés indépendamment de Google Calendar, via
+     * une commande planifiée (cron IONOS → scheduler Laravel → Notification
+     * email), pas via ce mécanisme.
+     */
     private function buildEventBody(array $event): GoogleEvent
     {
         $googleEvent = new GoogleEvent();
@@ -199,12 +251,6 @@ class GoogleCalendarService
 
             $googleEvent->setStart($start);
             $googleEvent->setEnd($end);
-        }
-
-        if (!empty($event['attendee_email'])) {
-            $googleEvent->setAttendees([
-                ['email' => $event['attendee_email']],
-            ]);
         }
 
         return $googleEvent;

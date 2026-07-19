@@ -1,34 +1,46 @@
-/.phpunit.cache
+# ── Dépendances / build ───────────────────────────────────────────────────
 /node_modules
+/vendor
 /public/build
 /public/hot
 /public/storage
+
+# ── Laravel ───────────────────────────────────────────────────────────────
+/.phpunit.cache
 /storage/*.key
 /storage/pail
 /bootstrap/cache/*.php
-/vendor
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+/database/database.sqlite
+
+# ── Environnement / configuration locale ────────────────────────────────
 .env
 .env.backup
 .env.production
 .phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
 /auth.json
+
+# ── Secrets / identifiants ──────────────────────────────────────────────
+ionos_deploy_key
+ionos_deploy_key.pub
+*cloud_service_account_credentials.json
+
+# ── Éditeurs / IDE ────────────────────────────────────────────────────────
 /.fleet
 /.idea
 /.nova
 /.vscode
 /.zed
+
+# ── Logs ──────────────────────────────────────────────────────────────────
 npm-debug.log
 yarn-error.log
+
+# ── Scratch / scripts locaux ─────────────────────────────────────────────
 todo*.md
 fix-perms.sh
 test_webhook.sh
-/database/database.sqlite
 /debug/**
-ionos_deploy_key
-ionos_deploy_key.pub
-cloud_service_account_credentials.json
+database/seeders/LocalCalendarsSeeder.php

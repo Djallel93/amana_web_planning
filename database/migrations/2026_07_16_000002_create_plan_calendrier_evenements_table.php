@@ -10,8 +10,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Table de suivi des événements Google Calendar créés pour le planning.
  *
- * Remplace la résolution "par nom + date" faite côté Make.com par un suivi
- * exact de l'event_id Google Calendar renvoyé à la création, pour que les
+ * Assure un suivi exact de l'event_id Google Calendar renvoyé à la création
+ * (plutôt qu'une résolution "par nom + date"), pour que les
  * modifications/suppressions ultérieures appellent directement
  * events.patch(calendarId, eventId) / events.delete(calendarId, eventId).
  *

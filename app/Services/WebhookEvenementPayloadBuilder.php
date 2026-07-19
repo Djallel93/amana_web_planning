@@ -9,7 +9,7 @@ use App\Models\Evenement;
 
 /**
  * Construit le payload consommé par SynchroniserGoogleCalendar pour les
- * événements organisationnels (ex-Make.com, cible `evenement`).
+ * événements organisationnels (cible `evenement`).
  *
  * Structure du payload :
  * {
@@ -26,7 +26,7 @@ use App\Models\Evenement;
  *
  * `id_evenement` permet à GoogleCalendarPayloadMapper de retrouver/mettre à
  * jour la ligne ref_evenements_calendriers correspondante (event_id exact) —
- * plus de résolution par nom + date comme du temps de Make.com.
+ * pas de résolution par nom + date.
  * `calendar_ids` contient des identifiants Google Calendar (calendarId), pas
  * des noms — voir Evenement::calendarIds().
  */
@@ -62,7 +62,7 @@ class WebhookEvenementPayloadBuilder
      * Retire récursivement les champs dont la valeur est `null` (et
      * uniquement `null` — les valeurs "fausses" mais significatives comme
      * `false`, `0`, `''` ou `[]` sont conservées). Évite d'envoyer à
-     * Make.com des clés dont la valeur ne serait pas exploitable.
+     * l'API Google Calendar des clés dont la valeur ne serait pas exploitable.
      */
     private function sansChampsNull(array $data): array
     {

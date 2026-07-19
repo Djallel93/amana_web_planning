@@ -13,16 +13,16 @@ use Illuminate\Support\Facades\Schema;
  * Jusqu'ici, une seule colonne `description` servait à la fois :
  *   - côté app (formulaire d'inscription, page Disponibilités) : un
  *     résumé court, à destination des membres, de ce que couvre la tâche ;
- *   - côté webhook Make.com (champ `description` envoyé dans le body de
- *     l'événement Google Calendar) : un texte plus long/formaté, à
- *     destination de la personne assignée ce jour-là.
+ *   - côté événement Google Calendar (champ `description` envoyé dans le
+ *     body de l'événement) : un texte plus long/formaté, à destination de
+ *     la personne assignée ce jour-là.
  *
  * Ces deux usages n'ont pas le même public ni le même format (l'un est une
  * phrase de présentation générale, l'autre un texte d'instructions parfois
  * long avec puces/emojis) — on les sépare donc en deux colonnes :
  *   - `description`            : reste le texte affiché dans l'app (inchangé).
  *   - `description_calendrier` : nouveau, texte envoyé dans le body de
- *                                 l'événement Google Calendar via le webhook.
+ *                                 l'événement Google Calendar.
  *                                 Nullable — un texte vide n'empêche pas la
  *                                 création de l'événement calendrier.
  */

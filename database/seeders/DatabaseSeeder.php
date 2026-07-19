@@ -39,56 +39,62 @@ class DatabaseSeeder extends Seeder
         // ── 3. Tâches planifiables ─────────────────────────────────────────
 
         // Textes longs envoyés dans le body de l'événement Google Calendar —
-        // repris des textes historiquement utilisés côté Make.com (avant la
-        // bascule vers l'API Google Calendar directe), conservés ici pour
-        // rester la source unique de vérité.
+        // source unique de vérité pour ces descriptions.
         $descCalRappelSandwich = <<<'TXT'
-PRÉPARER LES SANDWICHS :
-Tu es assigné à AMANA FOOD aujourd'hui. Pense à préparer les sandwichs en avance !
-TXT;
+            🥪 PRÉPARER LES SANDWICHS
+
+            👋 Tu es assigné à AMANA FOOD aujourd'hui.
+            ⏰ Pense à préparer les sandwichs en avance !
+            TXT;
 
         $descCalEntree = <<<'TXT'
-ENTRÉE :
-Responsabilités :
-• Accueillir les frères et indiquer la salle aux nouveaux
-• Ouvrir la porte du bâtiment
-• Éviter les regroupements dans les couloirs
-• Surveiller l'entrée
-• Nettoyage/rangement des couloirs
+            🚪 ENTRÉE
 
-⚠️ IMPORTANT : tu as également une tâche AMANA FOOD après le cours (vérifie ton calendrier).
-TXT;
+            📋 Responsabilités :
+            • 👋 Accueillir les frères et indiquer la salle aux nouveaux
+            • 🔓 Ouvrir la porte du bâtiment
+            • 🚶 Éviter les regroupements dans les couloirs
+            • 👀 Surveiller l'entrée
+            • 🧹 Nettoyage / rangement des couloirs
+
+            ⚠️ IMPORTANT : tu as également une tâche 🍽️ AMANA FOOD après le cours (vérifie ton calendrier).
+            TXT;
 
         $descCalAssistanceAmanaFood = <<<'TXT'
-ASSISTANCE AMANA FOOD :
-Tu es assigné à l'ENTRÉE, tu dois donc également assister la personne à AMANA FOOD après le cours.
-TXT;
+            🤝 ASSISTANCE AMANA FOOD
+
+            🍽️ Tu es assigné à l'ENTRÉE.
+            ➡️ Tu dois également assister la personne à AMANA FOOD après le cours.
+            TXT;
 
         $descCalMektaba = <<<'TXT'
-MEKTABA :
-Responsabilités :
-• Accueillir les frères à l'entrée du local
-• S'occuper des achats de la mektaba avant et après le cours
-• Surveiller la marchandise
-• Compter le nombre de présents lors de l'assise
-• Nettoyage/rangement de la mektaba
-TXT;
+            📚 MEKTABA
+
+            📋 Responsabilités :
+            • 👋 Accueillir les frères à l'entrée du local
+            • 🛒 S'occuper des achats de la mektaba avant et après le cours
+            • 👀 Surveiller la marchandise
+            • 👥 Compter le nombre de présents lors de l'assise
+            • 🧹 Nettoyage / rangement de la mektaba
+            TXT;
 
         $descCalSalle = <<<'TXT'
-SALLE :
-Responsabilités :
-• Assister le frère Réda en cas de nécessité pendant et après l'assise
-• Mise en place des tables pour les cours du week-end après l'assise
-• Nettoyage/rangement de la salle
-TXT;
+            🏛️ SALLE
+
+            📋 Responsabilités :
+            • 🤝 Assister le frère Réda en cas de nécessité pendant et après l'assise
+            • 🪑 Mise en place des tables pour les cours du week-end après l'assise
+            • 🧹 Nettoyage / rangement de la salle
+            TXT;
 
         $descCalAmanaFood = <<<'TXT'
-AMANA FOOD :
-Responsabilités :
-• Préparation des sandwichs/repas en amont du cours
-• Tenir le stand AMANA FOOD après le cours
-• Nettoyage/rangement du stand
-TXT;
+            🍽️ AMANA FOOD
+
+            📋 Responsabilités :
+            • 🥪 Préparation des sandwichs / repas en amont du cours
+            • 🍴 Tenir le stand AMANA FOOD après le cours
+            • 🧹 Nettoyage / rangement du stand
+            TXT;
 
         $taches = [
             // Tâches actives (rotation du scheduler)
@@ -152,7 +158,7 @@ TXT;
             ],
             [
                 'code' => 'message_bot',
-                'libelle' => 'Message Général',
+                'libelle' => 'Message Bot',
                 'actif' => false,
                 'description' => '',
                 'description_calendrier' => '',

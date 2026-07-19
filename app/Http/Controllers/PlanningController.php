@@ -8,9 +8,11 @@ namespace App\Http\Controllers;
 use App\Helpers\DateHelper;
 use App\Http\Requests\Planning\PlanningExportRequest;
 use App\Http\Requests\Planning\PlanningGenerateRequest;
+use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Creneau;
 use App\Services\SchedulerMain;
 use App\Services\Statistics;
+use App\Services\WebhookPayloadBuilder;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +28,7 @@ class PlanningController extends Controller
     public function __construct(
         private readonly SchedulerMain $scheduler,
         private readonly Statistics $stats,
+        private readonly WebhookPayloadBuilder $webhookBuilder,
     ) {
     }
 
@@ -199,7 +202,10 @@ class PlanningController extends Controller
         if ($type === 'total') {
             $ids = array_column($generated, 'id');
             $nb = Creneau::whereIn('id', $ids)->count();
+
+            $this->dispatchWebhookDeleteCreneaux($ids);
             Creneau::whereIn('id', $ids)->delete();
+
             session()->forget('last_generated_creneaux');
 
             audit('delete', 'planning', null, ['rollback' => 'total', 'count' => $nb], null);
@@ -227,6 +233,8 @@ class PlanningController extends Controller
         $allowedIds = array_column($generated, 'id');
         $safeDelete = array_intersect($toDelete, $allowedIds);
         $nb = count($safeDelete);
+
+        $this->dispatchWebhookDeleteCreneaux($safeDelete);
         Creneau::whereIn('id', $safeDelete)->delete();
 
         $remaining = array_filter($generated, fn($item) => !in_array($item['id'], $safeDelete));
@@ -240,6 +248,41 @@ class PlanningController extends Controller
 
         return redirect()->route('planning.generate.form')
             ->with('success', "Annulation partielle : {$nb} créneau(x) supprimé(s).");
+    }
+
+    /**
+     * Envoie un DELETE Google Calendar pour chaque créneau, AVANT sa
+     * suppression en base (voir PlanningEditController::dispatchWebhookDeleteCreneau(),
+     * même principe, exact même risque documenté sur buildForDeleteCreneau() :
+     * le créneau doit encore exister pour connaître ses tâches bloquées par
+     * événement).
+     *
+     * Échec de synchronisation Google Calendar sur un créneau → loggé, mais
+     * n'empêche PAS la suppression de continuer pour les autres créneaux ni
+     * la suppression en base : un rollback doit rester possible même si
+     * Google Calendar est temporairement indisponible, plutôt que de laisser
+     * l'admin bloqué avec un planning qu'il ne peut plus annuler.
+     */
+    private function dispatchWebhookDeleteCreneaux(array $creneauIds): void
+    {
+        $creneaux = Creneau::with('evenements.tachesBloquees')->whereIn('id', $creneauIds)->get();
+
+        foreach ($creneaux as $creneau) {
+            try {
+                $payload = $this->webhookBuilder->buildForDeleteCreneau($creneau);
+                SynchroniserGoogleCalendar::dispatchSync($payload, 'delete');
+
+                Log::info('[PlanningController] Synchronisation Google Calendar (delete, rollback)', [
+                    'creneau_id' => $creneau->id,
+                    'date' => $creneau->date->toDateString(),
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('[PlanningController] Échec synchronisation Google Calendar (delete, rollback)', [
+                    'creneau_id' => $creneau->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 
     public function rollbackDismiss(): RedirectResponse

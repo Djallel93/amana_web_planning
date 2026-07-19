@@ -10,6 +10,7 @@ use App\Models\Personne;
 use App\Models\Role;
 use App\Notifications\CandidatureValideeNotification;
 use App\Notifications\CandidatureValideeDejaInscritNotification;
+use App\Services\CalendarSharingService;
 use App\Services\RoleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class CandidaturesController extends Controller
 {
     public function __construct(
         private readonly RoleService $roleService,
+        private readonly CalendarSharingService $calendarSharing,
     ) {
     }
 
@@ -62,6 +64,8 @@ class CandidaturesController extends Controller
 
         $this->roleService->syncRolePlanning($personne, $roleCode);
 
+        $echecsPartage = $this->calendarSharing->partagerPourNouveauMembre($personne->email, $roleCode);
+
         $dejaMotDePasse = !empty($personne->password);
 
         if ($dejaMotDePasse) {
@@ -99,7 +103,17 @@ class CandidaturesController extends Controller
             'deja_mot_de_passe' => $dejaMotDePasse,
         ]);
 
-        return redirect()->route('admin.candidatures.index')->with('success', $messageFlash);
+        $redirect = redirect()->route('admin.candidatures.index')->with('success', $messageFlash);
+
+        if (!empty($echecsPartage)) {
+            $listeCalendriers = collect($echecsPartage)
+                ->map(fn(array $e) => "{$e['nom']} ({$e['erreur']})")
+                ->implode(', ');
+
+            $redirect->with('warning', "Attention : le partage automatique a échoué pour {$listeCalendriers}. Vérifiez le registre des calendriers dans Paramètres.");
+        }
+
+        return $redirect;
     }
 
     public function refuser(int $id): RedirectResponse

@@ -28,6 +28,7 @@ class CalendrierGoogle extends Model
         'nom',
         'description',
         'actif',
+        'inclure_nouveaux_membres',
         'derniere_verification_at',
     ];
 
@@ -35,6 +36,7 @@ class CalendrierGoogle extends Model
     {
         return [
             'actif' => 'boolean',
+            'inclure_nouveaux_membres' => 'boolean',
             'derniere_verification_at' => 'datetime',
         ];
     }

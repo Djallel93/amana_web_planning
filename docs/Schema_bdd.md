@@ -26,7 +26,7 @@ La base de données est organisée en trois groupes fonctionnels :
 > - `plan_bilans_quotidiens` — bilan quotidien (Amana food + Présences), un enregistrement partagé par date
 > - `ref_evenements_calendriers` — synchronisation Google Calendar par événement, **plusieurs calendriers par événement** possible (remplace l'ancienne colonne `ref_evenements.calendar_name`, supprimée)
 > - Tâche `annulation_cours` (dans `ref_taches`, `actif = false`) + ses paramètres `calendar_annulation_cours` / `offset_annulation_cours_debut` / `offset_annulation_cours_fin` (dans `ref_settings`) — support du bouton **« 🚫 Annulation cours »** du planning
-> - `ref_evenements_calendriers.google_calendar_id` / `google_event_id` — remplace l'ancienne intégration Make.com par un appel direct à l'API Google Calendar v3 ; `calendar_name` reste un libellé d'affichage, `google_calendar_id` est l'identifiant réellement envoyé à l'API
+> - `ref_evenements_calendriers.google_calendar_id` / `google_event_id` — appel direct à l'API Google Calendar v3 ; `calendar_name` reste un libellé d'affichage, `google_calendar_id` est l'identifiant réellement envoyé à l'API
 > - `plan_calendrier_evenements` — équivalent côté planning : suivi de l'`event_id` Google Calendar par (créneau, code de tâche, calendrier), pour que les mises à jour/suppressions ciblent l'événement exact au lieu d'une recherche par nom + date
 > - `ref_calendriers_google` — registre manuel des calendriers connus (un compte de service ne peut pas découvrir automatiquement les calendriers qui lui sont partagés, voir la section dédiée plus bas) ; remplace la découverte dynamique initialement prévue via `calendarList.list()`
 
@@ -374,7 +374,7 @@ Calendriers Google Calendar sur lesquels un événement organisationnel est sync
 
 > Contrainte unique : `(id_evenement, calendar_name)` — un même calendrier ne peut pas être ajouté deux fois au même événement.
 >
-> **Aucune ligne pour un événement donné** = pas de synchronisation calendrier. Si au moins une ligne existe, `EvenementsController` dispatche un job `SynchroniserGoogleCalendar` (API Google Calendar directe, ex-Make.com) à chaque `create`, `update` ou `delete` de l'événement, via `WebhookEvenementPayloadBuilder` — le payload envoie alors `calendar_ids` (tableau JSON de tous les identifiants Google Calendar liés), pas un nom. `google_event_id` est ensuite utilisé pour les `PATCH`/`DELETE` suivants — plus de recherche par nom + date côté Google Calendar. Voir README, section Intégration Google Calendar.
+> **Aucune ligne pour un événement donné** = pas de synchronisation calendrier. Si au moins une ligne existe, `EvenementsController` dispatche un job `SynchroniserGoogleCalendar` (API Google Calendar directe) à chaque `create`, `update` ou `delete` de l'événement, via `WebhookEvenementPayloadBuilder` — le payload envoie alors `calendar_ids` (tableau JSON de tous les identifiants Google Calendar liés), pas un nom. `google_event_id` est ensuite utilisé pour les `PATCH`/`DELETE` suivants — plus de recherche par nom + date côté Google Calendar. Voir README, section Intégration Google Calendar.
 >
 > Cette table est **indépendante** des clés `calendar_*` de `ref_settings`, qui configurent les calendriers des **tâches du planning** (entree, mektaba, etc.), pas des événements organisationnels.
 
@@ -491,7 +491,7 @@ Suivi des événements Google Calendar créés pour le planning — équivalent,
 >
 > **Pourquoi une table dédiée plutôt que des colonnes sur `plan_creneaux_taches`** : sur les 10 codes `ref_taches` pouvant produire un événement calendrier pour un créneau, seuls 5 (`entree`, `mektaba`, `salle`, `amana_food`, `cours`) sont assignables et ont une ligne dans `plan_creneaux_taches`. Les 5 autres (`rappel_sandwich`, `assistance_amana_food`, `annonce_cours`, `message_bot`, `annulation_cours`) sont calculés à la volée par `WebhookPayloadBuilder` à chaque construction de payload et n'ont jamais de ligne dédiée — il n'y a donc pas de colonne commune sur laquelle accrocher `google_event_id` pour ces 5 codes.
 >
-> **Utilisation** : `SynchroniserGoogleCalendar` consulte cette table avant tout `PATCH`/`DELETE` pour retrouver l'`event_id` exact — plus de recherche par nom + date côté Google Calendar (ancien comportement Make.com). Alimentée en upsert après chaque création/modification réussie.
+> **Utilisation** : `SynchroniserGoogleCalendar` consulte cette table avant tout `PATCH`/`DELETE` pour retrouver l'`event_id` exact — plus de recherche par nom + date côté Google Calendar. Alimentée en upsert après chaque création/modification réussie.
 >
 > **Suppression synchrone (`dispatchSync`)** : `id_planning` porte `onDelete('cascade')` — quand un créneau est supprimé, ses lignes de suivi le sont aussi. Les sites d'appel qui suppriment un créneau/désassignent une tâche dispatchent donc leur synchronisation Google Calendar `DELETE` de façon **synchrone**, avant la suppression en cascade, pour pouvoir encore lire l'`event_id` au moment du `DELETE` — voir le docblock de `SynchroniserGoogleCalendar`.
 

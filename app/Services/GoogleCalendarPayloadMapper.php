@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 /**
  * Aplati les payloads produits par WebhookPayloadBuilder /
  * WebhookEvenementPayloadBuilder (structure imbriquée `creneaux[].taches[]`
- * ou `evenement{}`, pensée à l'origine pour Make.com) en une liste plate
+ * ou `evenement{}`) en une liste plate
  * d'opérations Google Calendar unitaires, consommée par
  * SynchroniserGoogleCalendar.
  *
@@ -39,7 +39,6 @@ use Illuminate\Support\Collection;
  *     end: string|null,
  *     date_debut: string|null,
  *     date_fin: string|null,
- *     attendee_email: string|null,
  * }
  */
 class GoogleCalendarPayloadMapper
@@ -150,7 +149,6 @@ class GoogleCalendarPayloadMapper
                 'end' => isset($ligne['heure_fin'])
                     ? Carbon::parse("{$date} {$ligne['heure_fin']}", 'Europe/Paris')->toIso8601String()
                     : null,
-                'attendee_email' => $ligne['email'] ?? null,
             ];
         }
 

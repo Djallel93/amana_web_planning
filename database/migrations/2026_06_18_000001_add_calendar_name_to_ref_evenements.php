@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
  * Ajoute la colonne calendar_name à ref_evenements.
  *
  * Permet de configurer par événement le calendrier Google Calendar
- * cible dans lequel Make.com créera l'événement.
+ * cible dans lequel l'événement sera créé.
  * Null = pas de synchronisation calendrier demandée.
  */
 return new class extends Migration {

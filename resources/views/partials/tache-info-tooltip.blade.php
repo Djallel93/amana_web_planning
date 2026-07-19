@@ -85,6 +85,27 @@
                 var trigger = e.target.closest && e.target.closest('.js-tache-tooltip-trigger');
                 if (trigger && trigger === currentTrigger) hideTooltip();
             });
+            // Tactile (mobile) : ni mouseover (pas de souris) ni focusin
+            // (les navigateurs mobiles ne mettent pas systématiquement le
+            // focus sur un <button> au tap) ne se déclenchent de façon
+            // fiable. On bascule l'affichage au tap, et on ferme sur un tap
+            // en dehors du déclencheur/de la bulle.
+            document.addEventListener('click', function (e) {
+                var trigger = e.target.closest && e.target.closest('.js-tache-tooltip-trigger');
+
+                if (trigger) {
+                    if (trigger === currentTrigger) {
+                        hideTooltip();
+                    } else {
+                        showTooltip(trigger);
+                    }
+                    return;
+                }
+
+                if (currentTrigger && !bubble.contains(e.target)) {
+                    hideTooltip();
+                }
+            });
             // Le tableau scrolle horizontalement (overflow-x-auto) : on repositionne
             // la bulle si le déclencheur bouge pendant qu'elle est affichée.
             document.addEventListener('scroll', function () {

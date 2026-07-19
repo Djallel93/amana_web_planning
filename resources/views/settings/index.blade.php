@@ -36,6 +36,13 @@
             </span>
         </div>
 
+        <div class="flex items-start gap-2 mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
+            <span class="flex-shrink-0 mt-px">👥</span>
+            <span>
+                La colonne <strong>Nouveaux bénévoles</strong> contrôle si ce calendrier est partagé automatiquement, via l'API Google Calendar, avec l'adresse email d'une personne dès que sa candidature est validée. Le niveau d'accès accordé dépend du rôle attribué : lecture seule pour bénévole/membre, modification pour gestionnaire, gestion complète (droits + partage) pour admin.
+            </span>
+        </div>
+
         @if($calendriersGoogle->isEmpty())
             <p class="text-[12.5px] text-ink-muted mb-4">Aucun calendrier enregistré pour le moment.</p>
         @else
@@ -46,6 +53,7 @@
                             <th class="py-2 pr-3 font-semibold">Nom</th>
                             <th class="py-2 pr-3 font-semibold">Calendar ID</th>
                             <th class="py-2 pr-3 font-semibold">État</th>
+                            <th class="py-2 pr-3 font-semibold">Nouveaux bénévoles</th>
                             <th class="py-2 pr-3 font-semibold">Dernière vérification</th>
                             <th class="py-2 font-semibold text-right">Actions</th>
                         </tr>
@@ -62,6 +70,26 @@
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-3 text-ink-muted">Inactif</span>
                                     @endif
                                 </td>
+                                <td class="py-2.5 pr-3">
+                                    <form action="{{ route('calendriers-google.update', $cal) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="nom" value="{{ $cal->nom }}">
+                                        <input type="hidden" name="description" value="{{ $cal->description }}">
+                                        <input type="hidden" name="actif" value="{{ $cal->actif ? '1' : '0' }}">
+                                        <input type="hidden" name="inclure_nouveaux_membres" value="{{ $cal->inclure_nouveaux_membres ? '0' : '1' }}">
+                                        <button type="submit"
+                                            role="switch"
+                                            aria-checked="{{ $cal->inclure_nouveaux_membres ? 'true' : 'false' }}"
+                                            aria-label="Inclure « {{ $cal->nom }} » lors de l'ajout d'un nouveau bénévole"
+                                            title="{{ $cal->inclure_nouveaux_membres ? 'Ce calendrier est partagé automatiquement avec les nouveaux bénévoles validés' : 'Ce calendrier n\'est pas partagé automatiquement avec les nouveaux bénévoles' }}"
+                                            class="relative inline-flex items-center h-5 w-9 rounded-full transition-colors cursor-pointer border-0
+                                                   {{ $cal->inclure_nouveaux_membres ? 'bg-accent' : 'bg-surface-3' }}">
+                                            <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform
+                                                         {{ $cal->inclure_nouveaux_membres ? 'translate-x-[18px]' : 'translate-x-[3px]' }}"></span>
+                                        </button>
+                                    </form>
+                                </td>
                                 <td class="py-2.5 pr-3 text-ink-muted">
                                     {{ $cal->derniere_verification_at?->diffForHumans() ?? '—' }}
                                 </td>
@@ -76,6 +104,7 @@
                                         <input type="hidden" name="nom" value="{{ $cal->nom }}">
                                         <input type="hidden" name="description" value="{{ $cal->description }}">
                                         <input type="hidden" name="actif" value="{{ $cal->actif ? '0' : '1' }}">
+                                        <input type="hidden" name="inclure_nouveaux_membres" value="{{ $cal->inclure_nouveaux_membres ? '1' : '0' }}">
                                         <button type="submit" class="text-[11.5px] font-semibold text-ink-muted hover:underline mr-3">
                                             {{ $cal->actif ? 'Désactiver' : 'Activer' }}
                                         </button>
