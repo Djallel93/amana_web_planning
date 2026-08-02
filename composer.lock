@@ -8,11 +8,17 @@
     "packages": [
         {
             "name": "amana/shared",
-            "version": "dev-main",
-            "dist": {
-                "type": "path",
-                "url": "../amana_shared",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Djallel93/amana_shared.git",
                 "reference": "692b9e1a7ff686380045fa5b035f1527fa0193a9"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Djallel93/amana_shared/zipball/692b9e1a7ff686380045fa5b035f1527fa0193a9",
+                "reference": "692b9e1a7ff686380045fa5b035f1527fa0193a9",
+                "shasum": ""
             },
             "require": {
                 "illuminate/auth": "^13.0",
@@ -55,10 +61,11 @@
                 "laravel",
                 "shared"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "source": "https://github.com/Djallel93/amana_shared/tree/v1.0.0",
+                "issues": "https://github.com/Djallel93/amana_shared/issues"
+            },
+            "time": "2026-07-25T15:29:42+00:00"
         },
         {
             "name": "barryvdh/laravel-dompdf",
@@ -8766,9 +8773,7 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {
-        "amana/shared": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
