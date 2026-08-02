@@ -1,0 +1,124 @@
+/*
+ * public/css/custom.css
+ * Styles résiduels propres au planning uniquement — le shell générique
+ * (sidebar, hamburger, flash, scrollbar, jetons de couleur) a déménagé
+ * dans @amana/shared-ui/styles/amana-shared.css (voir resources/css/app.css).
+ * Importé dans resources/css/app.css, compilé par Vite.
+ *
+ * Contient uniquement :
+ *  - Chips tâches (couleurs sémantiques AMANA planning)
+ *  - Table restrictions : colonnes tâches colorées
+ *  - Tâches vides / ligne "moi" / séparateur jour
+ *  - Filter chips planning (état actif géré par JS via classList 'active')
+ */
+
+/* ── Chips couleurs tâches ── */
+.chip-entree {
+    background: #eff6ff;
+    color: #2563eb;
+}
+.chip-mektaba {
+    background: #ecfdf5;
+    color: #059669;
+}
+.chip-salle {
+    background: #fffbeb;
+    color: #d97706;
+}
+.chip-amana_food {
+    background: #fff1f2;
+    color: #e11d48;
+}
+.chip-cours {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+.chip-absence {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+/* ── Table restrictions : colonnes tâches colorées ── */
+.sub-entree {
+    color: #2563eb;
+}
+.sub-mektaba {
+    color: #059669;
+}
+.sub-salle {
+    color: #d97706;
+}
+.sub-amana_food {
+    color: #e11d48;
+}
+
+/* ── Tâches vides ── */
+.tache-vide {
+    color: #d1d5db;
+    font-style: italic;
+    font-size: 0.75rem;
+}
+
+/* ── Ligne "moi" dans les tables ── */
+.my-row {
+    background: #f0f9ff !important;
+}
+.my-row:hover {
+    background: #e0f2fe !important;
+}
+.my-row td:first-child::after {
+    content: " (moi)";
+    font-size: 0.6875rem;
+    font-weight: 400;
+    color: #0369a1;
+    margin-left: 5px;
+}
+
+/* ── Séparateur jour (restrictions table) ── */
+.jour-separator {
+    border-left: 2px solid #0369a1 !important;
+}
+
+/* ── Filter chips planning (état actif géré par JS via classList 'active') ── */
+.filter-chip.active {
+    background: #0369a1 !important;
+    color: #ffffff !important;
+    border-color: #0369a1 !important;
+}
+
+/* ── Mode sombre : overrides pour les couleurs codées en dur ci-dessus ── */
+.dark .chip-entree {
+    background: rgba(37, 99, 235, 0.18);
+    color: #60a5fa;
+}
+.dark .chip-mektaba {
+    background: rgba(5, 150, 105, 0.18);
+    color: #34d399;
+}
+.dark .chip-salle {
+    background: rgba(217, 119, 6, 0.18);
+    color: #fbbf24;
+}
+.dark .chip-amana_food {
+    background: rgba(225, 29, 72, 0.18);
+    color: #fb7185;
+}
+.dark .chip-cours {
+    background: rgba(124, 58, 237, 0.18);
+    color: #a78bfa;
+}
+.dark .chip-absence {
+    background: rgba(107, 114, 128, 0.22);
+    color: #9ca3af;
+}
+
+.dark .tache-vide {
+    color: #484f58;
+}
+
+.dark .my-row {
+    background: rgba(3, 105, 161, 0.15) !important;
+}
+.dark .my-row:hover {
+    background: rgba(3, 105, 161, 0.22) !important;
+}

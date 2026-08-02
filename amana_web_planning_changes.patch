@@ -1,0 +1,1639 @@
+diff --git a/.env.example b/.env.example
+index 5884283..dd1a5a8 100644
+--- a/.env.example
++++ b/.env.example
+@@ -227,10 +227,3 @@ LOG_LEVEL=info
+ # Minimum severity level that gets logged. 'debug' logs everything,
+ # including verbose internal detail — consider 'error' or 'warning'
+ # for production to reduce log noise/size and avoid leaking detail.
+-
+-
+-# ───────────────────────────────────────────────────────────────────────────
+-# MISC 
+-# ───────────────────────────────────────────────────────────────────────────
+-
+-APP_EMERGENCY_KEY=$APP_EMERGENCY_KEY
+\ No newline at end of file
+diff --git a/.github/deploy/.env.production.template b/.github/deploy/.env.production.template
+index 79a22f4..31e8a29 100644
+--- a/.github/deploy/.env.production.template
++++ b/.github/deploy/.env.production.template
+@@ -229,10 +229,3 @@ LOG_LEVEL=info
+ # Minimum severity level that gets logged. 'debug' logs everything,
+ # including verbose internal detail — consider 'error' or 'warning'
+ # for production to reduce log noise/size and avoid leaking detail.
+-
+-
+-# ───────────────────────────────────────────────────────────────────────────
+-# MISC 
+-# ───────────────────────────────────────────────────────────────────────────
+-
+-APP_EMERGENCY_KEY=${APP_EMERGENCY_KEY}
+\ No newline at end of file
+diff --git a/.github/workflows/deploy.yaml b/.github/workflows/deploy.yaml
+index 5344b19..c10645b 100644
+--- a/.github/workflows/deploy.yaml
++++ b/.github/workflows/deploy.yaml
+@@ -97,7 +97,6 @@ jobs:
+           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+           GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}
+-          APP_EMERGENCY_KEY: ${{ secrets.APP_EMERGENCY_KEY }}
+         run: |
+           envsubst < .github/deploy/.env.production.template > deploy/.env
+           # sanity check: fail fast if a placeholder was left unresolved
+diff --git a/README.md b/README.md
+index cd94dd3..d0fc6f7 100644
+--- a/README.md
++++ b/README.md
+@@ -290,6 +290,8 @@ ### 🏖️ Absences (`/absences`)
+ - Un membre ne peut ajouter/supprimer que ses propres absences
+ - Admin/gestionnaire peut gérer les absences de tout le monde
+ 
++**Synchronisation Google Calendar :** chaque absence (création/modification/suppression) est synchronisée comme un événement **journée entière**, en **couleur grise fixe (Graphite, colorId 8, non configurable)**, sur le calendrier défini par le paramètre **Calendriers → Absences** dans `/parametres` (laisser vide pour désactiver la synchronisation). Voir `App\Services\WebhookAbsencePayloadBuilder` et [Intégration Google Calendar](#intégration-google-calendar-api-directe). Contrairement aux événements organisationnels (potentiellement diffusés sur plusieurs calendriers), une absence n'a qu'un seul calendrier cible possible ; le suivi `google_calendar_id`/`google_event_id` est stocké directement sur `plan_absences` plutôt que dans une table pivot dédiée.
++
+ ---
+ 
+ ### 🔒 Disponibilités (`/restrictions`)
+@@ -374,13 +376,22 @@ ### ⚙️ Paramètres (`/parametres`)
+ | --------------------- | -------------------- | ---------------------------------------------------------------------------- |
+ | Inscriptions ouvertes | Admin uniquement     | Active ou désactive le formulaire public `/inscription`                      |
+ | Heure du cours & Lieu | Admin + Gestionnaire | Heure de référence pour les horaires webhook ; adresse physique              |
+-| Calendriers Google    | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement (planning) |
++| Calendriers Google    | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement (planning), y compris le calendrier des absences |
++| Couleurs Google Calendar | Admin + Gestionnaire | Couleur (colorId Google Calendar 1-11, avec pastille d'aperçu) par tâche/événement spécial — voir ci-dessous |
+ | Décalages des tâches  | Admin + Gestionnaire | Offsets en minutes (positif = après le cours, négatif = avant)               |
+ 
+ > Tous ces paramètres sont stockés dans `ref_settings` et lus dynamiquement — il n'y a pas de valeur en `.env` pour ces réglages.
+ >
+ > Ne pas confondre avec le champ **« Calendriers Google Calendar »** (sélection multiple) du formulaire d'un événement organisationnel individuel (`/evenements/creer`) — ceux-ci sont stockés directement sur l'événement dans `ref_evenements_calendriers` (un événement peut avoir plusieurs calendriers), pas dans `ref_settings`.
+ 
++#### Couleurs Google Calendar par tâche/événement spécial
++
++Chaque tâche (`entree`, `mektaba`, `salle`, `amana_food`, `cours`) et chaque événement spécial webhook (`rappel_sandwich`, `assistance_amana_food`, `annonce_cours`, `message_bot`, `annulation_cours`) a une couleur Google Calendar configurable (`couleur_<code>` dans `ref_settings`), affichée avec le nom de la couleur **et une pastille d'aperçu** — voir `resources/views/partials/color-select.blade.php`, partagé avec le sélecteur de couleur du formulaire d'événement (`/evenements/creer`).
++
++Si un paramètre `couleur_<code>` est laissé vide, `WebhookPayloadBuilder` retombe sur le mapping fixe historique (`App\Helpers\GoogleCalendarColors::TACHES`) — aucun comportement ne change tant que la section n'est pas éditée.
++
++Les absences ont une couleur **fixe non configurable** (Graphite/gris, colorId `8`) — voir la section Absences (`/absences`) plus bas.
++
+ ---
+ 
+ ### 👥 Personnes (`/personnes`)
+@@ -458,8 +469,8 @@ ### Création d'un compte (3 chemins possibles)
+     C --> H[Statut : Validé\ndirectement]
+     H --> I[Admin envoie\nlien reset via formulaire\nmot de passe oublié]
+ 
+-    D --> J[Outil d'urgence\n/urgence-hash]
+-    J --> K[Hash bcrypt généré\n→ coller dans phpMyAdmin]
++    D --> J[Tinker en SSH\nsur le serveur IONOS]
++    J --> K[Mot de passe défini\ndirectement en base]
+ 
+     G --> L[Membre se connecte ✅]
+     I --> L
+@@ -478,54 +489,26 @@ ### Réinitialisation du mot de passe — cas normaux
+ 
+ Pour renvoyer manuellement un lien à un utilisateur depuis l'interface admin, aller dans **Candidatures → Renvoyer l'invitation**.
+ 
+-### Outil d'urgence post-déploiement — `/urgence-hash`
+-
+-Sur IONOS Deploy Now, il n'y a **pas de SSH interactif** et `php artisan tinker` (mode interactif) est inaccessible. Si les emails ne fonctionnent pas encore au premier déploiement, il est impossible de recevoir un lien de réinitialisation. L'outil `/urgence-hash` résout ce problème.
+-
+-#### Principe
+-
+-L'outil génère un **hash bcrypt** à partir d'un mot de passe saisi dans le navigateur, puis affiche la requête SQL prête à exécuter dans **phpMyAdmin**. Il ne modifie rien en base de données — c'est l'administrateur qui applique la requête manuellement.
+-
+-#### Activation
+-
+-Ajouter la variable suivante dans le `.env` sur IONOS (via le panneau Deploy Now ou SFTP) :
+-
+-```env
+-APP_EMERGENCY_KEY=une-cle-secrete-tres-longue-et-aleatoire
+-```
++### Définir un mot de passe en urgence — Tinker en SSH
+ 
+-La route est **entièrement désactivée** (retourne HTTP 404) si `APP_EMERGENCY_KEY` est absent ou vide. Elle ne nécessite aucune authentification — la clé secrète dans l'URL en tient lieu.
++Le pipeline de déploiement (`.github/workflows/deploy.yaml`) se connecte à IONOS **en SSH**, ce qui rend `php artisan tinker` accessible directement sur le serveur — la route dédiée `/urgence-hash` qui existait avant (pour un hébergement sans accès SSH interactif) a été retirée : elle exposait un mécanisme de contournement d'authentification supplémentaire à maintenir et sécuriser (clé secrète en `.env`, route publique) pour un besoin désormais couvert nativement par l'accès serveur.
+ 
+ #### Utilisation
+ 
+-1. Visiter `https://votredomaine.com/urgence-hash?key=une-cle-secrete-tres-longue-et-aleatoire`
+-2. Saisir le nouveau mot de passe (8 caractères minimum) et le confirmer.
+-3. Cliquer sur **Générer le hash bcrypt**.
+-4. La page affiche le hash et la requête SQL suivante (cliquer pour copier) :
+-
+-```sql
+-UPDATE ref_personnes
+-SET password = '$2y$12$...(hash généré)...'
+-WHERE email = 'votre@email.com';
+-```
+-
+-1. Exécuter cette requête dans **phpMyAdmin** sur la base de données de production.
+-2. Se connecter normalement sur `/login`.
+-
+-#### Désactivation après usage
+-
+-⚠️ **Retirer la clé après utilisation** pour fermer la trappe d'urgence :
+-
+-```env
+-# Supprimer ou vider cette ligne dans le .env IONOS :
+-APP_EMERGENCY_KEY=
+-```
+-
+-Puis redéployer ou vider le cache de configuration :
+-
+-```bash
+-php artisan config:cache
+-```
++1. Se connecter en SSH au serveur (`IONOS_SSH_USER@IONOS_SSH_HOST`, voir secrets GitHub Actions).
++2. Depuis `IONOS_REMOTE_PATH` :
++   ```bash
++   {chemin du binaire PHP CLI IONOS, ex. php8.4-cli} artisan tinker
++   ```
++3. Dans Tinker :
++   ```php
++   $p = \App\Models\Personne::where('email', 'votre@email.com')->first();
++   $p->password = bcrypt('nouveau-mot-de-passe');
++   $p->save();
++   ```
++4. `exit`, puis se connecter normalement sur `/login`.
++
++Aucune clé secrète supplémentaire à provisionner/retirer, aucune route publique — l'accès est protégé par la clé SSH elle-même (`IONOS_SSH_PRIVATE_KEY`).
+ 
+ ### Commande planifiée — expiration des échanges
+ 
+@@ -1188,9 +1171,6 @@ ### Variables `.env` de production
+ QUEUE_CONNECTION=sync               # Obligatoire sur hébergement partagé (pas de worker persistant)
+ 
+ GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=...
+-
+-# Outil d'urgence — retirer après usage
+-APP_EMERGENCY_KEY=
+ ```
+ 
+ > ⚠️ **`MAIL_SCHEME=null`** (la chaîne littérale) est une erreur fréquente. Sur IONOS avec le port 587 (STARTTLS), la valeur doit être **vide** (`MAIL_SCHEME=`) ou absente du `.env`. La valeur `null` en texte perturbe Symfony Mailer et bloque silencieusement l'envoi des emails.
+@@ -1202,12 +1182,11 @@ ### Checklist premier déploiement
+ | 1     | Définir tous les secrets/variables GitHub requis           | Voir [docs/installation.md § Configuration requise](docs/installation.md#configuration-requise--secrets--variables-github) |
+ | 2     | Déployer via GitHub Actions (push sur `main`)          | Pipeline vert dans l'onglet **Actions** de GitHub                                                                          |
+ | 3     | Vérifier que la migration s'est exécutée                   | Aller dans phpMyAdmin — les tables existent (`migrate:fresh --seed` au premier déploiement)                                |
+-| 4     | Définir le mot de passe du premier admin                   | Voir [Outil d'urgence `/urgence-hash`](#outil-durgence-post-déploiement----urgence-hash)                                   |
++| 4     | Définir le mot de passe du premier admin                   | Voir [Définir un mot de passe en urgence — Tinker en SSH](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)              |
+ | 5     | Se connecter et aller sur **Diagnostic SMTP**              | Sidebar → 🔧 Diagnostic SMTP                                                                                               |
+ | 6     | Envoyer un email de test depuis le diagnostic              | Vérifier la réception + `laravel.log`                                                                                      |
+ | 7     | Configurer les paramètres (heure, lieu, calendriers)       | `/parametres` — enregistrer d'abord les calendriers dans le registre, avant de les sélectionner par tâche |
+ | 7bis  | Vérifier le compte de service Google Calendar               | `php artisan amana:tester-google-calendar --create` (SSH) — voir [Intégration Google Calendar](#intégration-google-calendar-api-directe) |
+-| 8     | Retirer le secret `APP_EMERGENCY_KEY` (vide) et redéployer | Le champ `?key=` de `/urgence-hash` ne doit plus fonctionner                                                               |
+ 
+ ### Diagnostic SMTP — `/diagnostic-mail`
+ 
+@@ -1228,7 +1207,7 @@ ### Contraintes de l'hébergement partagé IONOS
+ 
+ | Contrainte                                | Impact                                                      | Contournement                                                                                                         |
+ | ----------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+-| SSH réservé au déploiement automatisé     | Pas de session interactive pratique pour du débogage ad hoc | `php artisan tinker` reste possible en SSH mais n'est pas le flux normal ; outil `/urgence-hash` pour les hash bcrypt |
++| SSH réservé au déploiement automatisé     | Pas de session interactive pratique pour du débogage ad hoc | `php artisan tinker` reste possible en SSH — c'est le flux recommandé pour un reset de mot de passe en urgence (voir [Définir un mot de passe en urgence](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)) |
+ | Pas de worker de queue persistant         | Les jobs `ShouldQueue` doivent s'exécuter immédiatement     | `QUEUE_CONNECTION=sync` dans `.env`                                                                                   |
+ | Logs serveur séparés de Laravel           | `access.log.*` ≠ `laravel.log`                              | Lire `storage/logs/laravel.log` via SFTP ou phpMyAdmin                                                                |
+ | `storage/` exclu du déploiement récurrent | Le dossier est préservé entre déploiements                  | `rsync` exclut explicitement `storage/` dans le job `deploy` du pipeline                                              |
+diff --git a/app/Helpers/GoogleCalendarColors.php b/app/Helpers/GoogleCalendarColors.php
+index d82600d..77b0df0 100644
+--- a/app/Helpers/GoogleCalendarColors.php
++++ b/app/Helpers/GoogleCalendarColors.php
+@@ -44,6 +44,14 @@ class GoogleCalendarColors
+      *
+      * @var array<string, string>
+      */
++    /**
++     * Couleur fixe (non configurable) utilisée pour TOUTES les absences
++     * synchronisées sur Google Calendar — colorId 8 = Graphite (gris),
++     * cf. PALETTE ci-dessus. Contrairement à TACHES, aucun paramètre
++     * `couleur_absence` n'existe : le gris est imposé, pas un défaut.
++     */
++    public const ABSENCE = '8';
++
+     public const TACHES = [
+         'entree'                 => '7',  // Paon (bleu)     — aligné chip-entree
+         'mektaba'                => '10', // Basilic (vert)  — aligné chip-mektaba
+diff --git a/app/Http/Controllers/AbsencesController.php b/app/Http/Controllers/AbsencesController.php
+index e73d17e..630c860 100644
+--- a/app/Http/Controllers/AbsencesController.php
++++ b/app/Http/Controllers/AbsencesController.php
+@@ -7,12 +7,15 @@
+ 
+ use App\Http\Requests\Absences\StoreAbsenceRequest;
+ use App\Http\Requests\Absences\UpdateAbsenceRequest;
++use App\Jobs\SynchroniserGoogleCalendar;
+ use App\Models\Absence;
+ use App\Models\Personne;
+ use App\Services\AbsenceRegenerationService;
++use App\Services\WebhookAbsencePayloadBuilder;
+ use Illuminate\Http\JsonResponse;
+ use Illuminate\Http\RedirectResponse;
+ use Illuminate\Support\Facades\Auth;
++use Illuminate\Support\Facades\Log;
+ use Illuminate\View\View;
+ 
+ /**
+@@ -36,6 +39,7 @@ class AbsencesController extends Controller
+ {
+     public function __construct(
+         private readonly AbsenceRegenerationService $regenerationService,
++        private readonly WebhookAbsencePayloadBuilder $webhookBuilder,
+     ) {
+     }
+ 
+@@ -94,6 +98,8 @@ public function store(StoreAbsenceRequest $request): RedirectResponse
+ 
+         audit('create', 'absences', $absence->id, null, $absence->toArray());
+ 
++        $this->dispatchWebhookUpsert($absence, 'post');
++
+         $message = "Absence ajoutée pour {$personne->prenom} {$personne->nom}.";
+ 
+         $regeneration = $this->regenerationService->regenererSiNecessaire($absence);
+@@ -145,6 +151,8 @@ public function update(UpdateAbsenceRequest $request, int $id): JsonResponse
+ 
+         audit('update', 'absences', $absence->id, $avant, $absence->toArray());
+ 
++        $this->dispatchWebhookUpsert($absence, 'patch');
++
+         $message = "Absence de {$absence->personne->prenom} {$absence->personne->nom} mise à jour.";
+ 
+         $regeneration = $this->regenerationService->regenererSiNecessaire($absence);
+@@ -190,6 +198,8 @@ public function destroy(int $id): RedirectResponse
+             ? "{$absence->personne->prenom} {$absence->personne->nom}"
+             : "ID {$absence->id_personne}";
+ 
++        $this->dispatchWebhookDelete($absence);
++
+         $absence->delete();
+ 
+         audit('delete', 'absences', $id, $avant, null);
+@@ -197,4 +207,57 @@ public function destroy(int $id): RedirectResponse
+         return redirect()->route('absences.index')
+             ->with('success', "Absence de {$nomPers} supprimée.");
+     }
++
++    // ── Private : synchronisation Google Calendar ────────────────────────
++
++    /**
++     * Dispatche une synchronisation Google Calendar (upsert) si un
++     * calendrier `calendar_absence` est configuré.
++     *
++     * @param string $method 'post' (création) ou 'patch' (modification)
++     */
++    private function dispatchWebhookUpsert(Absence $absence, string $method): void
++    {
++        if (!$this->webhookBuilder->hasCalendarSync()) {
++            return;
++        }
++
++        try {
++            $payload = $this->webhookBuilder->buildUpsert($absence);
++            SynchroniserGoogleCalendar::dispatch($payload, $method, 'absence');
++            Log::info('[AbsencesController] Synchronisation Google Calendar dispatchée', [
++                'id' => $absence->id,
++                'method' => strtoupper($method),
++            ]);
++        } catch (\Throwable $e) {
++            Log::error('[AbsencesController] Échec dispatch synchronisation upsert', [
++                'id' => $absence->id,
++                'error' => $e->getMessage(),
++            ]);
++        }
++    }
++
++    /**
++     * Dispatche une suppression Google Calendar (synchrone) si un
++     * calendrier était configuré au moment de la création de cette absence
++     * — voir docblock de SynchroniserGoogleCalendar pour le choix du mode
++     * synchrone (dispatchSync) sur les DELETE.
++     */
++    private function dispatchWebhookDelete(Absence $absence): void
++    {
++        if (!$absence->google_event_id) {
++            return;
++        }
++
++        try {
++            $payload = $this->webhookBuilder->buildDelete($absence);
++            SynchroniserGoogleCalendar::dispatchSync($payload, 'delete', 'absence');
++            Log::info('[AbsencesController] Synchronisation Google Calendar (delete)', ['id' => $absence->id]);
++        } catch (\Throwable $e) {
++            Log::error('[AbsencesController] Échec synchronisation Google Calendar (delete)', [
++                'id' => $absence->id,
++                'error' => $e->getMessage(),
++            ]);
++        }
++    }
+ }
+diff --git a/app/Http/Controllers/EmergencyController.php b/app/Http/Controllers/EmergencyController.php
+deleted file mode 100644
+index 93cedb0..0000000
+--- a/app/Http/Controllers/EmergencyController.php
++++ /dev/null
+@@ -1,81 +0,0 @@
+-<?php
+-// app/Http/Controllers/EmergencyController.php
+-
+-declare(strict_types=1);
+-
+-namespace App\Http\Controllers;
+-
+-use Illuminate\Http\RedirectResponse;
+-use Illuminate\Http\Request;
+-use Illuminate\Support\Facades\Hash;
+-use Illuminate\View\View;
+-
+-/**
+- * Outil d'urgence post-déploiement : génère un hash bcrypt à copier dans phpMyAdmin.
+- *
+- * IMPORTANT : cette route est entièrement désactivée si APP_EMERGENCY_KEY
+- * n'est pas défini dans le .env. Elle ne modifie RIEN en base de données —
+- * elle affiche uniquement le hash bcrypt que l'admin doit coller manuellement
+- * dans phpMyAdmin sur la colonne `password` de `ref_personnes`.
+- *
+- * Désactiver après usage : retirer APP_EMERGENCY_KEY du .env puis
+- * exécuter `php artisan config:cache`.
+- *
+- * Route : GET|POST /urgence-hash?key=APP_EMERGENCY_KEY
+- */
+-class EmergencyController extends Controller
+-{
+-    /**
+-     * Vérifie que la clé d'urgence est configurée et valide.
+-     * Retourne false (et abort 404) si la fonctionnalité est désactivée.
+-     */
+-    private function verifierCle(string|null $key): bool
+-    {
+-        $configuredKey = config('app.emergency_key');
+-
+-        // Désactivé si la clé n'est pas définie dans .env
+-        if (empty($configuredKey)) {
+-            abort(404);
+-        }
+-
+-        return hash_equals($configuredKey, (string) $key);
+-    }
+-
+-    /**
+-     * Affiche le formulaire de génération de hash.
+-     */
+-    public function show(Request $request): View
+-    {
+-        $key = $request->query('key', '');
+-        $this->verifierCle($key);
+-
+-        return view('emergency.hash', [
+-            'key' => $key,
+-            'hash' => null,
+-        ]);
+-    }
+-
+-    /**
+-     * Génère et affiche le hash bcrypt — ne touche pas la base de données.
+-     */
+-    public function generate(Request $request): View
+-    {
+-        $key = $request->input('key', '');
+-        $this->verifierCle($key);
+-
+-        $request->validate([
+-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+-        ], [
+-            'password.required' => 'Le mot de passe est obligatoire.',
+-            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+-            'password.confirmed' => 'Les mots de passe ne correspondent pas.',
+-        ]);
+-
+-        $hash = Hash::make($request->input('password'));
+-
+-        return view('emergency.hash', [
+-            'key' => $key,
+-            'hash' => $hash,
+-        ]);
+-    }
+-}
+\ No newline at end of file
+diff --git a/app/Http/Controllers/SettingsController.php b/app/Http/Controllers/SettingsController.php
+index e243e52..d45b984 100644
+--- a/app/Http/Controllers/SettingsController.php
++++ b/app/Http/Controllers/SettingsController.php
+@@ -47,6 +47,7 @@ public function index(): View
+         $decalagesGroupes = $this->grouperDecalages($decalages);
+         $inscription = $settings->only(['inscription_ouverte']);
+         $calendriers = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'calendar_'));
++        $couleurs = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'couleur_'));
+         $calendriersGoogle = CalendrierGoogle::orderBy('nom')->get();
+ 
+         /** @var \App\Models\Personne $user */
+@@ -59,6 +60,7 @@ public function index(): View
+             'settings',
+             'inscription',
+             'calendriers',
++            'couleurs',
+             'calendriersGoogle',
+             'user',
+         ));
+diff --git a/app/Jobs/SynchroniserGoogleCalendar.php b/app/Jobs/SynchroniserGoogleCalendar.php
+index df65eba..68adc06 100644
+--- a/app/Jobs/SynchroniserGoogleCalendar.php
++++ b/app/Jobs/SynchroniserGoogleCalendar.php
+@@ -5,6 +5,7 @@
+ 
+ namespace App\Jobs;
+ 
++use App\Models\Absence;
+ use App\Models\CalendrierEvenement;
+ use App\Models\EvenementCalendrier;
+ use App\Services\GoogleCalendarPayloadMapper;
+@@ -54,7 +55,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
+     public int $backoff = 60;
+ 
+     private const METHODES_AUTORISEES = ['post', 'patch', 'delete'];
+-    private const CIBLES_AUTORISEES = ['planning', 'evenement'];
++    private const CIBLES_AUTORISEES = ['planning', 'evenement', 'absence'];
+ 
+     public function __construct(
+         private readonly array $payload,
+@@ -75,9 +76,11 @@ public function handle(GoogleCalendarService $google, GoogleCalendarPayloadMappe
+         $cible = in_array($this->cible, self::CIBLES_AUTORISEES, true) ? $this->cible : 'planning';
+         $methode = in_array($this->method, self::METHODES_AUTORISEES, true) ? $this->method : 'post';
+ 
+-        $operations = $cible === 'evenement'
+-            ? $mapper->mapEvenement($this->payload)
+-            : $mapper->mapPlanning($this->payload);
++        $operations = match ($cible) {
++            'evenement' => $mapper->mapEvenement($this->payload),
++            'absence' => $mapper->mapAbsence($this->payload),
++            default => $mapper->mapPlanning($this->payload),
++        };
+ 
+         if (empty($operations)) {
+             Log::info('[SynchroniserGoogleCalendar] Aucune opération à synchroniser (0 calendrier configuré).', [
+@@ -133,7 +136,11 @@ public function handle(GoogleCalendarService $google, GoogleCalendarPayloadMappe
+         // Action 'webhook' conservée telle quelle (voir docs/Schema_bdd.md,
+         // liste des valeurs `audit_logs.action`) — renommer casserait tout
+         // filtrage/dashboard existant basé sur cette valeur.
+-        audit('webhook', $cible === 'evenement' ? 'evenements' : 'planning', null, null, $resume);
++        audit('webhook', match ($cible) {
++            'evenement' => 'evenements',
++            'absence' => 'absences',
++            default => 'planning',
++        }, null, null, $resume);
+     }
+ 
+     // ── Private : upsert (post/patch) ────────────────────────────────────
+@@ -147,9 +154,48 @@ private function upsert(GoogleCalendarService $google, array $operation): void
+             return;
+         }
+ 
++        if ($operation['scope'] === 'absence') {
++            $this->upsertAbsence($google, $operation, $body);
++            return;
++        }
++
+         $this->upsertPlanning($google, $operation, $body);
+     }
+ 
++    /**
++     * Contrairement à upsertEvenement()/upsertPlanning(), pas de table de
++     * suivi dédiée à consulter : une absence n'a qu'un seul calendrier
++     * cible possible, donc google_calendar_id/google_event_id vivent
++     * directement sur plan_absences (voir migration
++     * add_google_calendar_tracking_to_plan_absences_table).
++     */
++    private function upsertAbsence(GoogleCalendarService $google, array $operation, array $body): void
++    {
++        $absence = Absence::find($operation['id_absence']);
++        if (!$absence) {
++            Log::warning('[SynchroniserGoogleCalendar] Absence introuvable — opération ignorée.', [
++                'operation' => $operation,
++            ]);
++            return;
++        }
++
++        // L'event_id connu n'est réutilisable que s'il a été créé sur le
++        // MÊME calendrier — si `calendar_absence` a changé entre-temps, on
++        // recrée plutôt que de patcher un event_id qui vit sur l'ancien
++        // calendrier (patch échouerait avec un 404 de toute façon, mais
++        // autant l'anticiper explicitement).
++        $eventIdConnu = $absence->google_calendar_id === $operation['calendar_id']
++            ? $absence->google_event_id
++            : null;
++
++        $eventId = $this->patchOuCree($google, $operation['calendar_id'], $eventIdConnu, $body);
++
++        $absence->forceFill([
++            'google_calendar_id' => $operation['calendar_id'],
++            'google_event_id' => $eventId,
++        ])->save();
++    }
++
+     private function upsertPlanning(GoogleCalendarService $google, array $operation, array $body): void
+     {
+         $ligne = CalendrierEvenement::where('id_planning', $operation['id_planning'])
+@@ -221,6 +267,20 @@ private function patchOuCree(GoogleCalendarService $google, string $calendarId,
+ 
+     private function supprimer(GoogleCalendarService $google, array $operation): void
+     {
++        if ($operation['scope'] === 'absence') {
++            $absence = Absence::find($operation['id_absence']);
++            if (!$absence || !$absence->google_event_id) {
++                Log::info('[SynchroniserGoogleCalendar] Rien à supprimer (aucun event_id connu).', ['operation' => $operation]);
++                return;
++            }
++            // Pas de mise à jour de la ligne après coup : AbsencesController::destroy()
++            // supprime déjà plan_absences juste après avoir construit ce payload
++            // (voir WebhookAbsencePayloadBuilder::buildDelete()) — la ligne
++            // entière disparaît, pas besoin de nettoyer les colonnes de suivi.
++            $google->deleteEvent($operation['calendar_id'], $absence->google_event_id);
++            return;
++        }
++
+         if ($operation['scope'] === 'evenement') {
+             $ligne = EvenementCalendrier::where('id_evenement', $operation['id_evenement'])
+                 ->where('google_calendar_id', $operation['calendar_id'])
+@@ -248,12 +308,13 @@ private function supprimer(GoogleCalendarService $google, array $operation): voi
+ 
+     private function buildEventBody(array $operation): array
+     {
+-        if ($operation['scope'] === 'evenement') {
++        if ($operation['scope'] === 'evenement' || $operation['scope'] === 'absence') {
+             return [
+                 'summary' => $operation['summary'],
+                 'description' => $operation['description'],
+                 'date_debut' => $operation['date_debut'],
+                 'date_fin' => $operation['date_fin'],
++                'color_id' => $operation['color_id'] ?? null,
+             ];
+         }
+ 
+@@ -262,6 +323,7 @@ private function buildEventBody(array $operation): array
+             'description' => $operation['description'],
+             'start' => $operation['start'],
+             'end' => $operation['end'],
++            'color_id' => $operation['color_id'] ?? null,
+         ];
+     }
+ }
+diff --git a/app/Models/Absence.php b/app/Models/Absence.php
+index c31515f..b67c8f4 100644
+--- a/app/Models/Absence.php
++++ b/app/Models/Absence.php
+@@ -16,7 +16,20 @@ class Absence extends Model
+     protected $table = 'plan_absences';
+     public $timestamps = false;
+ 
+-    protected $fillable = ['id_personne', 'date_debut', 'date_fin', 'raison'];
++    /**
++     * google_calendar_id / google_event_id ne sont jamais soumis par le
++     * formulaire absences (StoreAbsenceRequest/UpdateAbsenceRequest ne les
++     * valident pas) — seulement écrits par SynchroniserGoogleCalendar après
++     * synchronisation, sur le même modèle qu'EvenementCalendrier.
++     */
++    protected $fillable = [
++        'id_personne',
++        'date_debut',
++        'date_fin',
++        'raison',
++        'google_calendar_id',
++        'google_event_id',
++    ];
+ 
+     protected $casts = [
+         'date_debut' => 'date',
+diff --git a/app/Services/GoogleCalendarPayloadMapper.php b/app/Services/GoogleCalendarPayloadMapper.php
+index 22683c4..168b2e1 100644
+--- a/app/Services/GoogleCalendarPayloadMapper.php
++++ b/app/Services/GoogleCalendarPayloadMapper.php
+@@ -27,11 +27,12 @@
+  * 'planning', ref_evenements_calendriers pour 'evenement').
+  *
+  * @phpstan-type GoogleCalendarOperation array{
+- *     scope: 'planning'|'evenement',
++ *     scope: 'planning'|'evenement'|'absence',
+  *     id_planning?: int,
+  *     id_tache?: int,
+  *     code?: string,
+  *     id_evenement?: int,
++ *     id_absence?: int,
+  *     calendar_id: string,
+  *     summary: string,
+  *     description: string|null,
+@@ -116,6 +117,39 @@ public function mapEvenement(array $payload): array
+         return $operations;
+     }
+ 
++    /**
++     * Convertit un payload 'absence' ({absence: {...}}) en liste
++     * d'opérations (0 ou 1 — une absence n'a qu'un seul calendrier cible
++     * possible, contrairement aux événements organisationnels).
++     * Une absence journée entière — pas d'heure_debut/heure_fin.
++     *
++     * @return array<int, array<string, mixed>>
++     */
++    public function mapAbsence(array $payload): array
++    {
++        $absence = $payload['absence'] ?? null;
++        $calendarId = $absence['calendar_id'] ?? null;
++        if (!$absence || !isset($absence['id_absence']) || !$calendarId) {
++            return [];
++        }
++
++        return [[
++            'scope' => 'absence',
++            'id_absence' => (int) $absence['id_absence'],
++            'calendar_id' => $calendarId,
++            'summary' => $absence['nom'] ?? '',
++            'description' => $absence['description'] ?? null,
++            'date_debut' => $absence['date_debut'] ?? null,
++            // Google Calendar : la date de fin d'un événement all-day est
++            // EXCLUSIVE — +1 jour par rapport à date_fin (inclusive côté
++            // métier), comme pour mapEvenement().
++            'date_fin' => isset($absence['date_fin'])
++                ? Carbon::parse($absence['date_fin'])->addDay()->toDateString()
++                : null,
++            'color_id' => $absence['couleur'] ?? null,
++        ]];
++    }
++
+     // ── Private ───────────────────────────────────────────────────────────
+ 
+     private function mapPlanningLigne(int $idPlanning, ?string $date, array $ligne): array
+diff --git a/app/Services/WebhookAbsencePayloadBuilder.php b/app/Services/WebhookAbsencePayloadBuilder.php
+new file mode 100644
+index 0000000..d076589
+--- /dev/null
++++ b/app/Services/WebhookAbsencePayloadBuilder.php
+@@ -0,0 +1,113 @@
++<?php
++// app/Services/WebhookAbsencePayloadBuilder.php
++
++declare(strict_types=1);
++
++namespace App\Services;
++
++use App\Helpers\GoogleCalendarColors;
++use App\Models\Absence;
++use App\Models\Setting;
++
++/**
++ * Construit le payload consommé par SynchroniserGoogleCalendar pour les
++ * absences (cible `absence`).
++ *
++ * Une absence se synchronise comme un événement Google Calendar "journée
++ * entière" (comme les événements organisationnels — voir
++ * WebhookEvenementPayloadBuilder), mais avec deux différences volontaires :
++ *   - un SEUL calendrier cible possible (paramètre `calendar_absence`),
++ *     pas une liste — une absence individuelle n'a pas vocation à être
++ *     diffusée sur plusieurs calendriers comme un événement organisationnel ;
++ *   - une couleur FIXE (GoogleCalendarColors::ABSENCE, gris), non
++ *     configurable — voir point 4 du ticket.
++ *
++ * Structure du payload :
++ * {
++ *   "absence": {
++ *     "id_absence": 42,
++ *     "nom": "Absence — Prénom Nom",
++ *     "date_debut": "2026-08-01",
++ *     "date_fin": "2026-08-10",
++ *     "description": "Raison éventuelle...",
++ *     "couleur": "8",
++ *     "calendar_id": "xxxx@group.calendar.google.com"  // absent si calendar_absence vide
++ *   }
++ * }
++ *
++ * `id_absence` permet à GoogleCalendarPayloadMapper/SynchroniserGoogleCalendar
++ * de retrouver/mettre à jour la ligne plan_absences correspondante
++ * (google_calendar_id/google_event_id), sans résolution par nom + date.
++ */
++class WebhookAbsencePayloadBuilder
++{
++    /**
++     * Payload pour une création ou modification d'absence (POST/PATCH).
++     * Retourne un payload avec `calendar_id` absent si aucun calendrier
++     * n'est configuré (`calendar_absence` vide) — l'appelant doit vérifier
++     * hasCalendarSync() avant de dispatcher, comme pour les événements.
++     */
++    public function buildUpsert(Absence $absence): array
++    {
++        if (!$absence->relationLoaded('personne')) {
++            $absence->load('personne');
++        }
++
++        $personne = $absence->personne;
++        $nomPersonne = $personne ? trim($personne->prenom . ' ' . $personne->nom) : 'Personne inconnue';
++
++        return [
++            'absence' => $this->sansChampsNull([
++                'id_absence'  => $absence->id,
++                'nom'         => "Absence — {$nomPersonne}",
++                'date_debut'  => $absence->date_debut->toDateString(),
++                'date_fin'    => $absence->date_fin->toDateString(),
++                'description' => $absence->raison ?: null,
++                'couleur'     => GoogleCalendarColors::ABSENCE,
++                'calendar_id' => $this->calendarId(),
++            ]),
++        ];
++    }
++
++    /**
++     * Payload pour une suppression d'absence (DELETE). `id_absence` suffit
++     * à GoogleCalendarPayloadMapper pour retrouver l'event_id Google
++     * Calendar à supprimer (via plan_absences.google_event_id).
++     *
++     * ⚠️ À appeler AVANT la suppression effective en base (voir
++     * AbsencesController::destroy()) — plan_absences doit encore exister
++     * pour connaître son google_calendar_id/google_event_id.
++     */
++    public function buildDelete(Absence $absence): array
++    {
++        return [
++            'absence' => $this->sansChampsNull([
++                'id_absence'  => $absence->id,
++                'calendar_id' => $absence->google_calendar_id,
++            ]),
++        ];
++    }
++
++    /**
++     * Retourne true si un calendrier cible est configuré pour les absences
++     * — même rôle que Evenement::hasCalendarSync(), mais un seul calendrier
++     * possible ici (paramètre unique, pas de table pivot).
++     */
++    public function hasCalendarSync(): bool
++    {
++        return !empty($this->calendarId());
++    }
++
++    // ── Private ───────────────────────────────────────────────────────────
++
++    private function calendarId(): ?string
++    {
++        $valeur = Setting::get('calendar_absence', 'planning');
++        return $valeur !== null && $valeur !== '' ? (string) $valeur : null;
++    }
++
++    private function sansChampsNull(array $data): array
++    {
++        return array_filter($data, fn($v) => $v !== null);
++    }
++}
+diff --git a/app/Services/WebhookPayloadBuilder.php b/app/Services/WebhookPayloadBuilder.php
+index 83b0b40..b3ea844 100644
+--- a/app/Services/WebhookPayloadBuilder.php
++++ b/app/Services/WebhookPayloadBuilder.php
+@@ -432,7 +432,7 @@ private function ligneAvecAssignation(
+             'heure_fin' => $fin,
+             'calendar_ids' => $this->getCalendarIds($cleHoraire),
+             'description' => $tacheRef?->description_calendrier ?? '',
+-            'color_id' => GoogleCalendarColors::TACHES[$code] ?? null,
++            'color_id' => $this->getCouleur($code),
+         ];
+     }
+ 
+@@ -547,6 +547,20 @@ private function getCalendarIds(string $code): array
+         return $valeur ? [$valeur] : [];
+     }
+ 
++    /**
++     * Couleur Google Calendar (colorId) pour un code donné : priorité au
++     * paramètre `couleur_<code>` (éditable dans Paramètres → Couleurs),
++     * repli sur GoogleCalendarColors::TACHES si le paramètre n'existe pas
++     * encore ou a été laissé vide.
++     */
++    private function getCouleur(string $code): ?string
++    {
++        $valeur = Setting::get("couleur_{$code}", 'planning');
++        return $valeur !== null && $valeur !== ''
++            ? (string) $valeur
++            : (GoogleCalendarColors::TACHES[$code] ?? null);
++    }
++
+     private function calculerHoraires(string $code, string $date, string $heureCours): array
+     {
+         $offsetDebut = Setting::get("offset_{$code}_debut", 'planning');
+diff --git a/config/app.php b/config/app.php
+index 9d19e3f..46e9934 100644
+--- a/config/app.php
++++ b/config/app.php
+@@ -123,17 +123,4 @@
+         'store' => env('APP_MAINTENANCE_STORE', 'database'),
+     ],
+ 
+-    /*
+-    |--------------------------------------------------------------------------
+-    | Clé d'urgence post-déploiement
+-    |--------------------------------------------------------------------------
+-    |
+-    | Quand APP_EMERGENCY_KEY est défini dans .env, la route /urgence-hash
+-    | devient accessible et permet de générer un hash bcrypt à copier dans
+-    | phpMyAdmin. Laisser vide (ou absent) pour désactiver complètement la route.
+-    |
+-    */
+-
+-    'emergency_key' => env('APP_EMERGENCY_KEY', ''),
+-
+ ];
+\ No newline at end of file
+diff --git a/database/migrations/2026_07_19_000001_add_google_calendar_tracking_to_plan_absences_table.php b/database/migrations/2026_07_19_000001_add_google_calendar_tracking_to_plan_absences_table.php
+new file mode 100644
+index 0000000..1a9ad9c
+--- /dev/null
++++ b/database/migrations/2026_07_19_000001_add_google_calendar_tracking_to_plan_absences_table.php
+@@ -0,0 +1,42 @@
++<?php
++// database/migrations/2026_07_19_000001_add_google_calendar_tracking_to_plan_absences_table.php
++
++declare(strict_types=1);
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++/**
++ * Ajoute le suivi de synchronisation Google Calendar à plan_absences.
++ *
++ * Contrairement à ref_evenements (table pivot ref_evenements_calendriers,
++ * car un événement peut être synchronisé sur PLUSIEURS calendriers), une
++ * absence n'est jamais synchronisée que sur UN SEUL calendrier cible (voir
++ * paramètre `calendar_absence`) — une simple paire de colonnes directement
++ * sur plan_absences suffit donc, pas besoin de table pivot dédiée.
++ *
++ * google_calendar_id : calendarId Google Calendar cible au moment de la
++ *   synchronisation (copie de la valeur du paramètre `calendar_absence` à
++ *   cet instant — permet de retrouver le bon calendrier pour un
++ *   update/delete même si le paramètre a changé depuis).
++ * google_event_id : renseigné après la première création réussie côté
++ *   Google Calendar (voir SynchroniserGoogleCalendar), réutilisé tel quel
++ *   pour les mises à jour/suppressions suivantes.
++ */
++return new class extends Migration {
++    public function up(): void
++    {
++        Schema::table('plan_absences', function (Blueprint $table) {
++            $table->string('google_calendar_id', 200)->nullable()->after('raison');
++            $table->string('google_event_id', 200)->nullable()->after('google_calendar_id');
++        });
++    }
++
++    public function down(): void
++    {
++        Schema::table('plan_absences', function (Blueprint $table) {
++            $table->dropColumn(['google_calendar_id', 'google_event_id']);
++        });
++    }
++};
+diff --git a/database/migrations/2026_07_19_000002_add_couleur_and_calendar_absence_settings.php b/database/migrations/2026_07_19_000002_add_couleur_and_calendar_absence_settings.php
+new file mode 100644
+index 0000000..296a94c
+--- /dev/null
++++ b/database/migrations/2026_07_19_000002_add_couleur_and_calendar_absence_settings.php
+@@ -0,0 +1,97 @@
++<?php
++// database/migrations/2026_07_19_000002_add_couleur_and_calendar_absence_settings.php
++
++declare(strict_types=1);
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Support\Facades\DB;
++
++/**
++ * Ajoute les paramètres ref_settings pour :
++ *   - `couleur_<code>` (10 lignes) : colorId Google Calendar par tâche/
++ *     événement spécial, éditable dans Paramètres → Couleurs. Valeur par
++ *     défaut = mapping actuel de GoogleCalendarColors::TACHES, pour ne rien
++ *     changer visuellement tant que personne ne touche à cette section.
++ *   - `calendar_absence` : calendrier Google Calendar cible pour la
++ *     synchronisation des absences (événements journée entière, couleur
++ *     Graphite fixe — voir WebhookAbsencePayloadBuilder).
++ *
++ * SettingsController::update() ne met à jour QUE des clés déjà présentes en
++ * base (voir sa garde `if (!$existe) continue;`) — ces lignes doivent donc
++ * exister AVANT que la section Couleurs / le sélecteur de calendrier
++ * d'absences ne soient utilisables, d'où cette migration plutôt qu'une
++ * simple mise à jour du seeder (qui ne retourne pas en production).
++ */
++return new class extends Migration {
++    public function up(): void
++    {
++        $idApp = DB::table('ref_applications')->where('code', 'planning')->value('id');
++
++        if (!$idApp) {
++            return;
++        }
++
++        $couleurs = [
++            ['cle' => 'couleur_entree', 'valeur' => '7', 'libelle' => 'Entrée'],
++            ['cle' => 'couleur_mektaba', 'valeur' => '10', 'libelle' => 'Mektaba'],
++            ['cle' => 'couleur_salle', 'valeur' => '5', 'libelle' => 'Salle'],
++            ['cle' => 'couleur_amana_food', 'valeur' => '11', 'libelle' => 'Amana Food'],
++            ['cle' => 'couleur_cours', 'valeur' => '3', 'libelle' => 'Cours'],
++            ['cle' => 'couleur_rappel_sandwich', 'valeur' => '6', 'libelle' => 'Rappel Sandwich'],
++            ['cle' => 'couleur_assistance_amana_food', 'valeur' => '9', 'libelle' => 'Assistance Amana Food'],
++            ['cle' => 'couleur_annonce_cours', 'valeur' => '8', 'libelle' => 'Annonce Cours'],
++            ['cle' => 'couleur_message_bot', 'valeur' => '1', 'libelle' => 'Message Bot'],
++            ['cle' => 'couleur_annulation_cours', 'valeur' => '4', 'libelle' => 'Annulation Cours'],
++        ];
++
++        foreach ($couleurs as $c) {
++            DB::table('ref_settings')->updateOrInsert(
++                ['id_application' => $idApp, 'cle' => $c['cle']],
++                [
++                    'valeur' => $c['valeur'],
++                    'type' => 'string',
++                    'libelle' => $c['libelle'],
++                    'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.',
++                ]
++            );
++        }
++
++        DB::table('ref_settings')->updateOrInsert(
++            ['id_application' => $idApp, 'cle' => 'calendar_absence'],
++            [
++                'valeur' => '',
++                'type' => 'string',
++                'libelle' => 'Absences',
++                'description' => 'Calendrier Google Calendar dans lequel les absences sont synchronisées (journée entière, couleur grise fixe). Laisser vide pour ne pas synchroniser les absences.',
++            ]
++        );
++    }
++
++    public function down(): void
++    {
++        $idApp = DB::table('ref_applications')->where('code', 'planning')->value('id');
++
++        if (!$idApp) {
++            return;
++        }
++
++        $cles = [
++            'couleur_entree',
++            'couleur_mektaba',
++            'couleur_salle',
++            'couleur_amana_food',
++            'couleur_cours',
++            'couleur_rappel_sandwich',
++            'couleur_assistance_amana_food',
++            'couleur_annonce_cours',
++            'couleur_message_bot',
++            'couleur_annulation_cours',
++            'calendar_absence',
++        ];
++
++        DB::table('ref_settings')
++            ->where('id_application', $idApp)
++            ->whereIn('cle', $cles)
++            ->delete();
++    }
++};
+diff --git a/database/seeders/DatabaseSeeder.php b/database/seeders/DatabaseSeeder.php
+index c1a9dbd..52a0b1d 100644
+--- a/database/seeders/DatabaseSeeder.php
++++ b/database/seeders/DatabaseSeeder.php
+@@ -317,6 +317,25 @@ public function run(): void
+             ['cle' => 'calendar_annonce_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => null],
+             ['cle' => 'calendar_message_bot', 'valeur' => '', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => null],
+             ['cle' => 'calendar_annulation_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => null],
++            // Calendrier cible pour la synchronisation des absences (journée
++            // entière, couleur Graphite fixe — voir WebhookAbsencePayloadBuilder).
++            ['cle' => 'calendar_absence', 'valeur' => '', 'type' => 'string', 'libelle' => 'Absences', 'description' => 'Calendrier Google Calendar dans lequel les absences sont synchronisées (journée entière, couleur grise fixe). Laisser vide pour ne pas synchroniser les absences.'],
++
++            // ── E. Couleurs Google Calendar par tâche/événement spécial ─────
++            // colorId (1 à 11, voir GoogleCalendarColors::PALETTE), éditable
++            // dans Paramètres → Couleurs. Valeurs par défaut alignées sur
++            // GoogleCalendarColors::TACHES pour ne rien changer visuellement
++            // tant que personne n'y touche.
++            ['cle' => 'couleur_entree', 'valeur' => '7', 'type' => 'string', 'libelle' => 'Entrée', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
++            ['cle' => 'couleur_mektaba', 'valeur' => '10', 'type' => 'string', 'libelle' => 'Mektaba', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
++            ['cle' => 'couleur_salle', 'valeur' => '5', 'type' => 'string', 'libelle' => 'Salle', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
++            ['cle' => 'couleur_amana_food', 'valeur' => '11', 'type' => 'string', 'libelle' => 'Amana Food', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
++            ['cle' => 'couleur_cours', 'valeur' => '3', 'type' => 'string', 'libelle' => 'Cours', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
++            ['cle' => 'couleur_rappel_sandwich', 'valeur' => '6', 'type' => 'string', 'libelle' => 'Rappel Sandwich', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
++            ['cle' => 'couleur_assistance_amana_food', 'valeur' => '9', 'type' => 'string', 'libelle' => 'Assistance Amana Food', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
++            ['cle' => 'couleur_annonce_cours', 'valeur' => '8', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
++            ['cle' => 'couleur_message_bot', 'valeur' => '1', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
++            ['cle' => 'couleur_annulation_cours', 'valeur' => '4', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+         ];
+ 
+         foreach ($settings as $s) {
+diff --git a/docs/installation.md b/docs/installation.md
+index ed504a7..18d6cac 100644
+--- a/docs/installation.md
++++ b/docs/installation.md
+@@ -332,7 +332,6 @@ ### Configuration requise — Secrets & Variables GitHub
+ | `MAIL_USERNAME`         | Compte SMTP (aussi utilisé comme adresse d'expédition)                       |
+ | `MAIL_PASSWORD`         | Mot de passe SMTP                                                            |
+ | `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` | Clé JSON du compte de service Google Cloud (Calendar API), encodée en base64 |
+-| `APP_EMERGENCY_KEY`     | Clé de l'outil d'urgence `/urgence-hash` — laisser vide sauf besoin ponctuel |
+ | `IONOS_SSH_PRIVATE_KEY` | Clé SSH privée pour se connecter au serveur IONOS                            |
+ | `IONOS_SSH_USER`        | Utilisateur SSH IONOS                                                        |
+ | `IONOS_SSH_HOST`        | Hôte SSH IONOS                                                               |
+@@ -345,7 +344,7 @@ ### Configuration requise — Secrets & Variables GitHub
+ | `IONOS_REMOTE_PATH`  | Chemin absolu du webspace sur le serveur IONOS (ex. `/homepages/.../htdocs`)                        |
+ | `IONOS_PHP_CLI_PATH` | Chemin du binaire PHP CLI sur IONOS (souvent différent du `php` du PATH, ex. `/usr/bin/php8.4-cli`) |
+ 
+-> Les secrets/variables `DB_*`, `MAIL_*`, `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` et `APP_EMERGENCY_KEY` sont substitués tels quels dans `.github/deploy/.env.production.template` — pour ajouter un nouveau paramètre `.env` de production, l'ajouter au template **et** créer le secret/variable GitHub correspondant, sous peine d'échec du job `build` (placeholder non résolu).
++> Les secrets/variables `DB_*`, `MAIL_*` et `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` sont substitués tels quels dans `.github/deploy/.env.production.template` — pour ajouter un nouveau paramètre `.env` de production, l'ajouter au template **et** créer le secret/variable GitHub correspondant, sous peine d'échec du job `build` (placeholder non résolu).
+ 
+ ### Concurrence et sécurité du pipeline
+ 
+@@ -375,13 +374,19 @@ #### Via l'interface (recommandé)
+ 3. Saisir `admin@amana.fr`
+ 4. Suivre le lien reçu par email (ou dans `storage/logs/laravel.log` si `MAIL_MAILER=log`)
+ 
+-#### Via l'outil d'urgence `/urgence-hash` (si SMTP non opérationnel)
++#### Via Tinker en SSH sur le serveur (si SMTP non opérationnel)
+ 
+-1. Définir le secret GitHub `APP_EMERGENCY_KEY` (voir tableau des secrets ci-dessus) et redéployer, ou l'éditer directement dans le `.env` du serveur en urgence
+-2. Visiter `https://votredomaine.com/urgence-hash?key=une-cle-secrete`
+-3. Générer le hash bcrypt
+-4. Exécuter la requête SQL affichée dans phpMyAdmin
+-5. **Retirer `APP_EMERGENCY_KEY`** (secret GitHub vide + redéploiement, ou `.env` serveur) après usage
++> Remplace l'ancien outil `/urgence-hash`, retiré du projet — le déploiement SSH vers IONOS étant opérationnel, `php artisan tinker` sur le serveur couvre le même besoin sans exposer de route publique ni de clé secrète supplémentaire à gérer.
++
++1. Se connecter en SSH au serveur IONOS (`IONOS_SSH_USER@IONOS_SSH_HOST`)
++2. Depuis `IONOS_REMOTE_PATH`, lancer `{chemin du binaire PHP CLI IONOS, ex. php8.4-cli} artisan tinker`
++3. Dans Tinker :
++   ```php
++   $p = \App\Models\Personne::where('email', 'admin@amana.fr')->first();
++   $p->password = bcrypt('nouveau-mot-de-passe');
++   $p->save();
++   ```
++4. `exit` pour quitter Tinker
+ 
+ ---
+ 
+diff --git a/public/css/custom.css b/public/css/custom.css
+index 5a4dd03..89a204a 100644
+--- a/public/css/custom.css
++++ b/public/css/custom.css
+@@ -159,6 +159,10 @@ .chip-cours {
+     background: #f5f3ff;
+     color: #7c3aed;
+ }
++.chip-absence {
++    background: #f3f4f6;
++    color: #4b5563;
++}
+ 
+ /* ── Table restrictions : colonnes tâches colorées ── */
+ .sub-entree {
+@@ -286,6 +290,10 @@ .dark .chip-cours {
+     background: rgba(124, 58, 237, 0.18);
+     color: #a78bfa;
+ }
++.dark .chip-absence {
++    background: rgba(107, 114, 128, 0.22);
++    color: #9ca3af;
++}
+ 
+ .dark .tache-vide {
+     color: #484f58;
+diff --git a/resources/views/emergency/hash.blade.php b/resources/views/emergency/hash.blade.php
+deleted file mode 100644
+index 9675e57..0000000
+--- a/resources/views/emergency/hash.blade.php
++++ /dev/null
+@@ -1,300 +0,0 @@
+-{{-- resources/views/emergency/hash.blade.php --}}
+-{{--
+-Vue d'urgence post-déploiement.
+-Accessible uniquement si APP_EMERGENCY_KEY est défini dans .env.
+-Ne modifie rien en base — génère un hash bcrypt à coller dans phpMyAdmin.
+---}}
+-<!DOCTYPE html>
+-<html lang="fr">
+-
+-<head>
+-    <meta charset="UTF-8">
+-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+-    <title>Outil d'urgence — AMANA</title>
+-    <style>
+-        *,
+-        *::before,
+-        *::after {
+-            box-sizing: border-box;
+-            margin: 0;
+-            padding: 0;
+-        }
+-
+-        body {
+-            font-family: system-ui, -apple-system, sans-serif;
+-            background: #fef2f2;
+-            min-height: 100vh;
+-            display: flex;
+-            align-items: center;
+-            justify-content: center;
+-            padding: 24px;
+-        }
+-
+-        .card {
+-            background: white;
+-            border: 2px solid #fca5a5;
+-            border-radius: 12px;
+-            padding: 32px;
+-            max-width: 540px;
+-            width: 100%;
+-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+-        }
+-
+-        .header {
+-            display: flex;
+-            align-items: center;
+-            gap: 12px;
+-            margin-bottom: 8px;
+-        }
+-
+-        .icon {
+-            font-size: 28px;
+-            flex-shrink: 0;
+-        }
+-
+-        h1 {
+-            font-size: 18px;
+-            font-weight: 700;
+-            color: #991b1b;
+-        }
+-
+-        .warning {
+-            background: #fff7ed;
+-            border: 1px solid #fed7aa;
+-            border-radius: 8px;
+-            padding: 12px 16px;
+-            font-size: 13px;
+-            color: #92400e;
+-            margin-bottom: 24px;
+-            line-height: 1.6;
+-        }
+-
+-        .form-group {
+-            margin-bottom: 16px;
+-        }
+-
+-        label {
+-            display: block;
+-            font-size: 13px;
+-            font-weight: 600;
+-            color: #374151;
+-            margin-bottom: 6px;
+-        }
+-
+-        input[type="password"] {
+-            width: 100%;
+-            padding: 10px 14px;
+-            border: 1.5px solid #d1d5db;
+-            border-radius: 8px;
+-            font-size: 14px;
+-            color: #111827;
+-            outline: none;
+-            transition: border-color 0.15s;
+-        }
+-
+-        input[type="password"]:focus {
+-            border-color: #dc2626;
+-            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+-        }
+-
+-        .error {
+-            font-size: 12px;
+-            color: #dc2626;
+-            margin-top: 4px;
+-        }
+-
+-        button {
+-            width: 100%;
+-            padding: 11px;
+-            background: #dc2626;
+-            color: white;
+-            border: none;
+-            border-radius: 8px;
+-            font-size: 14px;
+-            font-weight: 600;
+-            cursor: pointer;
+-            transition: background 0.15s;
+-            margin-top: 8px;
+-        }
+-
+-        button:hover {
+-            background: #b91c1c;
+-        }
+-
+-        .result {
+-            margin-top: 24px;
+-            background: #f0fdf4;
+-            border: 2px solid #86efac;
+-            border-radius: 8px;
+-            padding: 20px;
+-        }
+-
+-        .result-title {
+-            font-size: 13px;
+-            font-weight: 700;
+-            color: #166534;
+-            margin-bottom: 12px;
+-            display: flex;
+-            align-items: center;
+-            gap: 8px;
+-        }
+-
+-        .hash-box {
+-            background: #1e293b;
+-            color: #86efac;
+-            font-family: 'Courier New', monospace;
+-            font-size: 11.5px;
+-            padding: 14px;
+-            border-radius: 6px;
+-            word-break: break-all;
+-            line-height: 1.5;
+-            margin-bottom: 12px;
+-            cursor: pointer;
+-            border: 2px solid transparent;
+-            transition: border-color 0.15s;
+-        }
+-
+-        .hash-box:hover {
+-            border-color: #86efac;
+-        }
+-
+-        .copy-hint {
+-            font-size: 11.5px;
+-            color: #166534;
+-            margin-bottom: 14px;
+-        }
+-
+-        .sql-box {
+-            background: #1e293b;
+-            color: #93c5fd;
+-            font-family: 'Courier New', monospace;
+-            font-size: 11.5px;
+-            padding: 14px;
+-            border-radius: 6px;
+-            word-break: break-all;
+-            line-height: 1.6;
+-            cursor: pointer;
+-            border: 2px solid transparent;
+-            transition: border-color 0.15s;
+-        }
+-
+-        .sql-box:hover {
+-            border-color: #93c5fd;
+-        }
+-
+-        .sql-label {
+-            font-size: 12px;
+-            font-weight: 600;
+-            color: #166534;
+-            margin: 12px 0 6px;
+-        }
+-
+-        .disable-note {
+-            margin-top: 20px;
+-            padding: 12px 14px;
+-            background: #fef2f2;
+-            border: 1px solid #fca5a5;
+-            border-radius: 8px;
+-            font-size: 12px;
+-            color: #991b1b;
+-            line-height: 1.6;
+-        }
+-
+-        .copied-toast {
+-            display: none;
+-            font-size: 12px;
+-            color: #166534;
+-            font-weight: 600;
+-            margin-top: 6px;
+-        }
+-    </style>
+-</head>
+-
+-<body>
+-    <div class="card">
+-        <div class="header">
+-            <span class="icon">🔐</span>
+-            <h1>Outil d'urgence — Génération de hash</h1>
+-        </div>
+-
+-        <div class="warning">
+-            ⚠️ <strong>Outil d'urgence post-déploiement.</strong><br>
+-            Cet outil génère un hash bcrypt à copier manuellement dans phpMyAdmin.
+-            <strong>Aucune modification de la base de données n'est effectuée ici.</strong><br>
+-            Désactivez-le après usage en retirant <code>APP_EMERGENCY_KEY</code> du <code>.env</code>.
+-        </div>
+-
+-        <form method="POST" action="{{ route('emergency.hash.generate') }}">
+-            @csrf
+-            <input type="hidden" name="key" value="{{ $key }}">
+-
+-            <div class="form-group">
+-                <label for="password">Nouveau mot de passe</label>
+-                <input type="password" id="password" name="password" required minlength="8"
+-                    placeholder="8 caractères minimum" autocomplete="new-password">
+-                @error('password')
+-                    <div class="error">{{ $message }}</div>
+-                @enderror
+-            </div>
+-
+-            <div class="form-group">
+-                <label for="password_confirmation">Confirmer le mot de passe</label>
+-                <input type="password" id="password_confirmation" name="password_confirmation" required
+-                    placeholder="Répéter le mot de passe" autocomplete="new-password">
+-            </div>
+-
+-            <button type="submit">🔑 Générer le hash bcrypt</button>
+-        </form>
+-
+-        @if($hash)
+-            <div class="result">
+-                <div class="result-title">✅ Hash généré — cliquez pour copier</div>
+-
+-                <div class="hash-box" onclick="copyToClipboard(this, '{{ addslashes($hash) }}')"
+-                    title="Cliquer pour copier">{{ $hash }}</div>
+-                <div class="copy-hint">👆 Cliquez sur le hash pour le copier dans le presse-papiers.</div>
+-
+-                <div class="sql-label">Requête SQL à exécuter dans phpMyAdmin :</div>
+-                @php
+-                    $sql = "UPDATE ref_personnes SET password = '" . addslashes($hash) . "' WHERE email = 'votre@email.com';";
+-                @endphp
+-                <div class="sql-box" onclick="copyToClipboard(this, {{ json_encode($sql) }})" title="Cliquer pour copier">
+-                    UPDATE ref_personnes<br>
+-                    SET password = '<span style="color:#fde68a;">{{ $hash }}</span>'<br>
+-                    WHERE email = '<span style="color:#fde68a;">votre@email.com</span>';
+-                </div>
+-                <div class="copy-hint" style="margin-top:6px;">
+-                    ⚠️ Remplacez <strong>votre@email.com</strong> par l'email réel du compte à mettre à jour.
+-                </div>
+-
+-                <div class="disable-note">
+-                    🔒 <strong>Désactiver après usage :</strong> retirez <code>APP_EMERGENCY_KEY</code>
+-                    du <code>.env</code>, puis exécutez <code>php artisan config:cache</code>
+-                    ou redéployez.
+-                </div>
+-            </div>
+-        @endif
+-    </div>
+-
+-    <script>
+-        function copyToClipboard(el, text) {
+-            navigator.clipboard.writeText(text).then(function () {
+-                const orig = el.style.borderColor;
+-                el.style.borderColor = '#22c55e';
+-                setTimeout(() => el.style.borderColor = orig, 1500);
+-            }).catch(function () {
+-                // Fallback pour navigateurs sans clipboard API
+-                const ta = document.createElement('textarea');
+-                ta.value = text;
+-                ta.style.position = 'fixed';
+-                ta.style.opacity = '0';
+-                document.body.appendChild(ta);
+-                ta.select();
+-                document.execCommand('copy');
+-                document.body.removeChild(ta);
+-            });
+-        }
+-    </script>
+-</body>
+-
+-</html>
+\ No newline at end of file
+diff --git a/resources/views/evenements/form.blade.php b/resources/views/evenements/form.blade.php
+index c77052d..caae432 100644
+--- a/resources/views/evenements/form.blade.php
++++ b/resources/views/evenements/form.blade.php
+@@ -85,16 +85,13 @@ class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base
+                     <label for="couleur" class="text-xs font-bold text-ink tracking-[0.2px]">
+                         Couleur Google Calendar <span class="text-ink-muted font-normal">(optionnel)</span>
+                     </label>
+-                    <select id="couleur" name="couleur"
+-                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition cursor-pointer
+-                                   focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+-                        <option value="">Couleur par défaut du calendrier</option>
+-                        @foreach(\App\Helpers\GoogleCalendarColors::PALETTE as $id => $couleur)
+-                            <option value="{{ $id }}" {{ (string) $couleurActuelle === (string) $id ? 'selected' : '' }}>
+-                                {{ $couleur['nom'] }}
+-                            </option>
+-                        @endforeach
+-                    </select>
++                    @include('partials.color-select', [
++                        'id' => 'couleur',
++                        'name' => 'couleur',
++                        'selected' => $couleurActuelle,
++                        'allowEmpty' => true,
++                        'emptyLabel' => 'Couleur par défaut du calendrier',
++                    ])
+                     <span class="text-[11.5px] text-ink-muted">
+                         Uniquement appliquée si l'événement est synchronisé avec au moins un calendrier ci-dessous.
+                     </span>
+diff --git a/resources/views/partials/color-select.blade.php b/resources/views/partials/color-select.blade.php
+new file mode 100644
+index 0000000..5244897
+--- /dev/null
++++ b/resources/views/partials/color-select.blade.php
+@@ -0,0 +1,73 @@
++{{-- resources/views/partials/color-select.blade.php --}}
++{{--
++    <select> de couleur Google Calendar + pastille de couleur affichant un
++    aperçu de la couleur sélectionnée, mise à jour en direct au changement.
++
++    Un <select> natif ne permet pas d'afficher de façon fiable une couleur
++    dans chaque <option> sur tous les navigateurs — on affiche donc la
++    pastille À CÔTÉ du select plutôt que dedans, mise à jour par un seul
++    script partagé (@once) au changement de sélection.
++
++    Props (via $attributes du @include) :
++      - name           (string)      Nom du champ (ex: "couleur" ou "settings[couleur_entree]")
++      - id             (string)      Id HTML du select
++      - selected       (string|null) Valeur actuellement sélectionnée (colorId '1'-'11' ou '')
++      - allowEmpty     (bool)        Si true, ajoute une option vide "Couleur par défaut…" en tête
++      - emptyLabel     (string)      Libellé de l'option vide (si allowEmpty)
++--}}
++@php
++    $allowEmpty = $allowEmpty ?? false;
++    $emptyLabel = $emptyLabel ?? 'Couleur par défaut du calendrier';
++    $selectedValue = (string) ($selected ?? '');
++    $currentHex = \App\Helpers\GoogleCalendarColors::PALETTE[$selectedValue]['hex'] ?? 'transparent';
++@endphp
++
++<div class="flex items-center gap-2">
++    <select
++        id="{{ $id }}"
++        name="{{ $name }}"
++        data-color-select
++        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition cursor-pointer
++               focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
++    >
++        @if($allowEmpty)
++            <option value="" data-hex="transparent" {{ $selectedValue === '' ? 'selected' : '' }}>
++                {{ $emptyLabel }}
++            </option>
++        @endif
++        @foreach(\App\Helpers\GoogleCalendarColors::PALETTE as $colorId => $couleur)
++            <option value="{{ $colorId }}" data-hex="{{ $couleur['hex'] }}" {{ $selectedValue === (string) $colorId ? 'selected' : '' }}>
++                {{ $couleur['nom'] }}
++            </option>
++        @endforeach
++    </select>
++    <span
++        data-color-swatch
++        class="w-8 h-8 rounded-full border-[1.5px] border-surface-border flex-shrink-0"
++        style="background-color: {{ $currentHex }};"
++        aria-hidden="true"
++    ></span>
++</div>
++
++@once
++    <script>
++        (function () {
++            // Un seul listener délégué : couvre tous les <select data-color-select>
++            // présents sur la page (formulaire événement, page Paramètres…),
++            // y compris ceux ajoutés dynamiquement plus tard.
++            document.addEventListener('change', function (e) {
++                var select = e.target.closest && e.target.closest('[data-color-select]');
++                if (!select) return;
++
++                var swatch = select.parentElement
++                    ? select.parentElement.querySelector('[data-color-swatch]')
++                    : null;
++                if (!swatch) return;
++
++                var option = select.options[select.selectedIndex];
++                var hex = option ? option.getAttribute('data-hex') : null;
++                swatch.style.backgroundColor = hex || 'transparent';
++            });
++        })();
++    </script>
++@endonce
+diff --git a/resources/views/partials/tache-info-tooltip.blade.php b/resources/views/partials/tache-info-tooltip.blade.php
+index 2f99097..c820dfa 100644
+--- a/resources/views/partials/tache-info-tooltip.blade.php
++++ b/resources/views/partials/tache-info-tooltip.blade.php
+@@ -36,6 +36,22 @@ class="hidden fixed z-[9999] pointer-events-none w-max max-w-[220px] px-2.5 py-1
+             var bubble = document.getElementById('tache-tooltip-bubble');
+             var currentTrigger = null;
+ 
++            // Sur mobile, un tap déclenche dans l'ordre : touchstart, puis
++            // (événements souris synthétiques) mouseover, mousedown, focus,
++            // mouseup, click. Sans garde, le mouseover synthétique ouvrait
++            // déjà la bulle (currentTrigger = trigger) AVANT que le click
++            // (juste après) ne la referme aussitôt en la prenant pour un
++            // second tap sur un déclencheur déjà ouvert — la bulle
++            // n'apparaissait donc jamais visuellement au toucher.
++            // touchstart précède toujours ce mouseover synthétique : on
++            // l'utilise pour désactiver définitivement les listeners
++            // hover dès la première interaction tactile détectée, et
++            // laisser le seul listener click piloter l'ouverture/fermeture.
++            var usingTouch = false;
++            document.addEventListener('touchstart', function () {
++                usingTouch = true;
++            }, { passive: true, once: true });
++
+             function showTooltip(trigger) {
+                 var text = trigger.getAttribute('data-tooltip');
+                 if (!text) return;
+@@ -70,10 +86,12 @@ function hideTooltip() {
+             }
+ 
+             document.addEventListener('mouseover', function (e) {
++                if (usingTouch) return;
+                 var trigger = e.target.closest && e.target.closest('.js-tache-tooltip-trigger');
+                 if (trigger) showTooltip(trigger);
+             });
+             document.addEventListener('mouseout', function (e) {
++                if (usingTouch) return;
+                 var trigger = e.target.closest && e.target.closest('.js-tache-tooltip-trigger');
+                 if (trigger && trigger === currentTrigger) hideTooltip();
+             });
+diff --git a/resources/views/settings/index.blade.php b/resources/views/settings/index.blade.php
+index b696206..01aefa0 100644
+--- a/resources/views/settings/index.blade.php
++++ b/resources/views/settings/index.blade.php
+@@ -312,6 +312,7 @@ class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base
+                     'calendar_annonce_cours'         => ['libelle' => 'Annonce Cours',        'chip' => 'annonce_cours'],
+                     'calendar_message_bot'           => ['libelle' => 'Message Bot',          'chip' => 'message_bot'],
+                     'calendar_annulation_cours'       => ['libelle' => 'Annulation Cours',     'chip' => 'annulation_cours'],
++                    'calendar_absence'                => ['libelle' => 'Absences',             'chip' => 'absence'],
+                 ];
+             @endphp
+ 
+@@ -346,6 +347,57 @@ class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base
+         </div>
+     </div>
+ 
++    {{-- ═══════════════════════════════════════
++        SECTION 3bis — Couleurs Google Calendar
++    ════════════════════════════════════════ --}}
++    <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
++        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
++            <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🎨</div>
++            <span class="font-heading text-[14px] font-semibold text-ink">Couleurs Google Calendar</span>
++        </div>
++        <div class="px-5 py-5">
++            <p class="text-[12.5px] text-ink-muted mb-5 leading-relaxed">
++                Couleur utilisée pour chaque tâche/événement spécial lors de la synchronisation Google Calendar.
++            </p>
++
++            @php
++                // Même liste de codes que $calendarChips ci-dessus (hors
++                // absences, dont la couleur grise est fixe — voir point 4).
++                $couleurChips = [
++                    'couleur_entree'                => ['libelle' => 'Entrée',                'chip' => 'entree'],
++                    'couleur_mektaba'               => ['libelle' => 'Mektaba',               'chip' => 'mektaba'],
++                    'couleur_salle'                 => ['libelle' => 'Salle',                 'chip' => 'salle'],
++                    'couleur_amana_food'            => ['libelle' => 'Amana Food',            'chip' => 'amana_food'],
++                    'couleur_cours'                 => ['libelle' => 'Cours',                 'chip' => 'cours'],
++                    'couleur_rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',       'chip' => 'rappel_sandwich'],
++                    'couleur_assistance_amana_food' => ['libelle' => 'Assistance Amana Food', 'chip' => 'assistance_amana_food'],
++                    'couleur_annonce_cours'         => ['libelle' => 'Annonce Cours',         'chip' => 'annonce_cours'],
++                    'couleur_message_bot'           => ['libelle' => 'Message Bot',           'chip' => 'message_bot'],
++                    'couleur_annulation_cours'      => ['libelle' => 'Annulation Cours',      'chip' => 'annulation_cours'],
++                ];
++            @endphp
++
++            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
++                @foreach($couleurChips as $cle => $meta)
++                    @if(isset($couleurs[$cle]))
++                        <div class="flex flex-col gap-1.5">
++                            <label for="{{ $cle }}" class="text-xs font-bold text-ink tracking-[0.2px]">
++                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold chip-{{ $meta['chip'] }}">
++                                    {{ $meta['libelle'] }}
++                                </span>
++                            </label>
++                            @include('partials.color-select', [
++                                'id' => $cle,
++                                'name' => "settings[{$cle}]",
++                                'selected' => $couleurs[$cle]['valeur_raw'],
++                            ])
++                        </div>
++                    @endif
++                @endforeach
++            </div>
++        </div>
++    </div>
++
+     {{-- ═══════════════════════════════════════
+         SECTION 4 — Décalages des tâches
+     ════════════════════════════════════════ --}}
+diff --git a/routes/web.php b/routes/web.php
+index 5879ae3..fd1621f 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -12,7 +12,6 @@
+ use App\Http\Controllers\CalendriersController;
+ use App\Http\Controllers\DiagnosticController;
+ use App\Http\Controllers\EchangeController;
+-use App\Http\Controllers\EmergencyController;
+ use App\Http\Controllers\GuideController;
+ use App\Http\Controllers\MonPlanningController;
+ use App\Http\Controllers\PlanningController;
+@@ -33,10 +32,6 @@
+ 
+ Route::get('/', fn() => redirect()->route('planning.index'));
+ 
+-// ── Outil d'urgence post-déploiement — génère un hash bcrypt (désactivé si APP_EMERGENCY_KEY vide) ──
+-Route::get('/urgence-hash', [EmergencyController::class, 'show'])->name('emergency.hash.show');
+-Route::post('/urgence-hash', [EmergencyController::class, 'generate'])->name('emergency.hash.generate');
+-
+ // ── Authentification ──────────────────────────────────────────────────────
+ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+ Route::post('/login', [AuthController::class, 'login'])
