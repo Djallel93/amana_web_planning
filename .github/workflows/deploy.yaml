@@ -110,7 +110,7 @@ jobs:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           DB_COMMUN_HOST: ${{ secrets.DB_COMMUN_HOST }}
-          DB_COMMUN_NAME: ${{ secrets.DB_COMMUN_NAME }}
+          DB_COMMUN_DATABASE: ${{ secrets.DB_COMMUN_DATABASE }}
           DB_COMMUN_USERNAME: ${{ secrets.DB_COMMUN_USERNAME }}
           DB_COMMUN_PASSWORD: ${{ secrets.DB_COMMUN_PASSWORD }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
