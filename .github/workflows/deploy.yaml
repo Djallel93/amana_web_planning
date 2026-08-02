@@ -170,6 +170,15 @@ jobs:
             find . -type d -not -name "logs" -exec chmod 775 {} \;
             chmod -R o+w storage bootstrap/cache
 
+            if [ "$RUN_SHARED_MIGRATION" = "true" ]; then
+              echo "==> Explicitly requested: running amana:migrate-shared (amana_commun)"
+              $PHP_BIN artisan amana:migrate-shared --force
+
+              echo "==> Registering 'planning' in amana_commun (idempotent)"
+              $PHP_BIN artisan db:seed --class="Database\\Seeders\\PlanningApplicationSeeder" --force
+              $PHP_BIN artisan db:seed --class="Database\\Seeders\\PlanningSettingsSeeder" --force
+            fi
+
             MARKER="storage/.bootstrapped"
             if [ "$FORCE_FRESH" = "true" ] || [ ! -f "\$MARKER" ]; then
               echo "==> First deploy detected (or fresh install forced): running migrate:fresh --seed"
@@ -178,11 +187,6 @@ jobs:
             else
               echo "==> Recurring deploy: running migrate"
               $PHP_BIN artisan migrate --force
-            fi
-
-            if [ "$RUN_SHARED_MIGRATION" = "true" ]; then
-              echo "==> Explicitly requested: running amana:migrate-shared (amana_commun)"
-              $PHP_BIN artisan amana:migrate-shared --force
             fi
 
             $PHP_BIN artisan optimize:clear
