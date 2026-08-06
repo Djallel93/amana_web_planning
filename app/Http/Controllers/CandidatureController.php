@@ -11,7 +11,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use Amana\Shared\Models\Personne;
+use App\Models\Personne;
 use Amana\Shared\Models\Setting;
 use App\Models\Restriction;
 use App\Models\Tache;
