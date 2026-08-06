@@ -6,7 +6,7 @@ declare(strict_types=1);
 namespace App\Notifications\Echanges;
 
 use App\Models\Echange;
-use App\Notifications\Concerns\EmbedsLogo;
+use Amana\Shared\Notifications\Concerns\EmbedsLogo;
 
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;

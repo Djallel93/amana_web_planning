@@ -4,14 +4,14 @@
 
 <head>
     <title>Rappel — AMANA Planning</title>
-    @include('emails.partials._head')
+    @include('amana-shared::emails.partials._head')
 </head>
 
 <body>
     <div class="shell">
         <div class="wrapper">
 
-            @include('emails.partials._header', [
+            @include('amana-shared::emails.partials._header', [
                 'badge' => $badge,
                 'title' => 'Rappel de créneau',
                 'titleSub' => $titleSub,
@@ -43,13 +43,13 @@
                     </tr>
                 </table>
 
-                @include('emails.partials._hadith')
+                @include('amana-shared::emails.partials._hadith')
 
-                @include('emails.partials._closing')
+                @include('amana-shared::emails.partials._closing')
 
             </div>
 
-            @include('emails.partials._footer')
+            @include('amana-shared::emails.partials._footer')
 
         </div>
     </div>

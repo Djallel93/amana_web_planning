@@ -3,12 +3,12 @@
 <html lang="fr" dir="ltr">
 <head>
     <title>Demande annulée — AMANA</title>
-    @include('emails.partials._head')
+    @include('amana-shared::emails.partials._head')
 </head>
 <body>
 <div class="shell">
     <div class="wrapper">
-        @include('emails.partials._header', [
+        @include('amana-shared::emails.partials._header', [
             'badge'    => 'Demande annulée',
             'title'    => 'Une demande d\'échange a été annulée',
             'titleSub' => 'AMANA Planning',
@@ -23,9 +23,9 @@
                 ({{ $echange->tacheCible->libelle }}).
                 Votre planning n'a pas été modifié.
             </p>
-            @include('emails.partials._closing')
+            @include('amana-shared::emails.partials._closing')
         </div>
-        @include('emails.partials._footer')
+        @include('amana-shared::emails.partials._footer')
     </div>
 </div>
 </body>
