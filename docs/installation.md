@@ -320,21 +320,21 @@ flowchart LR
 
 **Secrets** (`Repository secrets`) :
 
-| Secret                  | Description                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `APP_KEY`               | Clé Laravel (`php artisan key:generate --show` pour en générer une)          |
-| `DB_HOST`               | Hôte de la base de données MySQL/MariaDB IONOS                               |
-| `DB_NAME`               | Nom de la base                                                               |
-| `DB_USERNAME`           | Utilisateur DB                                                               |
-| `DB_PASSWORD`           | Mot de passe DB                                                              |
-| `MAIL_HOST`             | Hôte SMTP (ex. `smtp.ionos.fr`)                                              |
-| `MAIL_PORT`             | Port SMTP (587 avec STARTTLS)                                                |
-| `MAIL_USERNAME`         | Compte SMTP (aussi utilisé comme adresse d'expédition)                       |
-| `MAIL_PASSWORD`         | Mot de passe SMTP                                                            |
+| Secret                               | Description                                                                  |
+| ------------------------------------ | ---------------------------------------------------------------------------- |
+| `APP_KEY`                            | Clé Laravel (`php artisan key:generate --show` pour en générer une)          |
+| `DB_HOST`                            | Hôte de la base de données MySQL/MariaDB IONOS                               |
+| `DB_NAME`                            | Nom de la base                                                               |
+| `DB_USERNAME`                        | Utilisateur DB                                                               |
+| `DB_PASSWORD`                        | Mot de passe DB                                                              |
+| `MAIL_HOST`                          | Hôte SMTP (ex. `smtp.ionos.fr`)                                              |
+| `MAIL_PORT`                          | Port SMTP (587 avec STARTTLS)                                                |
+| `MAIL_USERNAME`                      | Compte SMTP (aussi utilisé comme adresse d'expédition)                       |
+| `MAIL_PASSWORD`                      | Mot de passe SMTP                                                            |
 | `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` | Clé JSON du compte de service Google Cloud (Calendar API), encodée en base64 |
-| `IONOS_SSH_PRIVATE_KEY` | Clé SSH privée pour se connecter au serveur IONOS                            |
-| `IONOS_SSH_USER`        | Utilisateur SSH IONOS                                                        |
-| `IONOS_SSH_HOST`        | Hôte SSH IONOS                                                               |
+| `IONOS_SSH_PRIVATE_KEY`              | Clé SSH privée pour se connecter au serveur IONOS                            |
+| `IONOS_SSH_USER`                     | Utilisateur SSH IONOS                                                        |
+| `IONOS_SSH_HOST`                     | Hôte SSH IONOS                                                               |
 
 **Variables** (`Repository variables`) :
 
@@ -381,55 +381,57 @@ Onglet **Actions** du dépôt GitHub → sélectionner l'exécution → chaque �
 1. Se connecter en SSH au serveur IONOS (`IONOS_SSH_USER@IONOS_SSH_HOST`)
 2. Depuis `IONOS_REMOTE_PATH`, lancer `{chemin du binaire PHP CLI IONOS, ex. php8.4-cli} artisan tinker`
 3. Dans Tinker :
-   ```php
-   $p = \App\Models\Personne::where('email', 'admin@amana.fr')->first();
-   $p->password = bcrypt('nouveau-mot-de-passe');
-   $p->save();
-   ```
+
+    ```php
+    $p = \App\Models\Personne::where('email', 'admin@amana.fr')->first();
+    $p->password = bcrypt('nouveau-mot-de-passe');
+    $p->save();
+    ```
+
 4. `exit` pour quitter Tinker
 
 ---
 
 ## Référence des routes principales
 
-| Méthode | URL                                             | Nom                            | Accès              | Description                                                                             |
-| ------- | ----------------------------------------------- | ------------------------------ | ------------------ | --------------------------------------------------------------------------------------- |
-| GET     | `/`                                             | —                              | Public             | Redirige vers `/planning`                                                               |
-| GET     | `/login`                                        | `login`                        | Public             | Formulaire de connexion                                                                 |
-| GET     | `/inscription`                                  | `inscription`                  | Public             | Formulaire d'inscription publique                                                       |
-| GET     | `/planning`                                     | `planning.index`               | Connecté           | Vue principale du planning                                                              |
-| GET     | `/planning/data`                                | `planning.data`                | Connecté           | JSON consommé par le composant Vue `PlanningGrid`                                       |
-| GET     | `/mon-planning`                                 | `mon-planning`                 | Connecté           | Vue personnelle                                                                         |
-| GET     | `/planning/stats`                               | `planning.statistics`          | Connecté           | Statistiques                                                                            |
-| GET     | `/planning/export`                              | `planning.export.form`         | Connecté           | Formulaire export PDF                                                                   |
-| POST    | `/planning/export/pdf`                          | `planning.export.pdf`          | Connecté           | Génération PDF                                                                          |
-| GET     | `/planning/generer`                             | `planning.generate.form`       | Gestionnaire+Admin | Formulaire de génération                                                                |
-| POST    | `/planning/generer`                             | `planning.generate`            | Gestionnaire+Admin | Génération effective                                                                    |
-| POST    | `/planning/generer/apercu`                      | `planning.preview`             | Gestionnaire+Admin | Prévisualisation dry-run                                                                |
-| POST    | `/planning/overlap/cancel`                      | `planning.overlap.cancel`      | Gestionnaire+Admin | Annule la confirmation de chevauchement                                                 |
-| POST    | `/planning/rollback`                            | `planning.rollback`            | Gestionnaire+Admin | Rollback post-génération                                                                |
-| POST    | `/planning/rollback/dismiss`                    | `planning.rollback.dismiss`    | Gestionnaire+Admin | Ferme la session de rollback                                                            |
-| POST    | `/planning/creneau`                             | `planning.edit.create-creneau` | Gestionnaire+Admin | Crée un créneau manuellement                                                            |
-| DELETE  | `/planning/creneau/{id}`                        | `planning.edit.delete-creneau` | Gestionnaire+Admin | Supprime un créneau entier                                                              |
-| PATCH   | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.assignation`    | Gestionnaire+Admin | Réassigne une tâche                                                                     |
-| DELETE  | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.unassign`       | Gestionnaire+Admin | Désassigne une tâche                                                                    |
-| POST    | `/planning/annulation-cours`                    | `planning.annulation-cours`    | Gestionnaire+Admin | **Annule le cours d'une date** — désassigne tout, bloque la date, nettoie le calendrier |
-| GET     | `/absences`                                     | `absences.index`               | Connecté           | Liste des absences                                                                      |
-| GET     | `/restrictions`                                 | `restrictions.index`           | Connecté           | Grille des disponibilités                                                               |
-| GET     | `/evenements`                                   | `evenements.index`             | Connecté           | Liste des événements                                                                    |
-| GET     | `/evenements/creer`                             | `evenements.create`            | Gestionnaire+Admin | Formulaire de création d'événement (calendriers multiples)                              |
-| GET     | `/bilan`                                        | `bilan.index`                  | Connecté           | Bilan quotidien (Amana Food + Présences)                                                |
-| GET     | `/bilan/statistiques`                           | `bilan.statistiques`           | Connecté           | Statistiques du bilan quotidien                                                         |
-| GET     | `/parametres`                                   | `settings.index`               | Gestionnaire+Admin | Paramètres de l'application (inclut le registre des calendriers Google Calendar)        |
-| POST    | `/parametres/calendriers-google`                | `calendriers-google.store`     | Gestionnaire+Admin | Ajoute un calendrier au registre (vérifié via `calendars.get()`)                         |
-| PATCH   | `/parametres/calendriers-google/{id}`           | `calendriers-google.update`    | Gestionnaire+Admin | Modifie nom/description/statut actif d'un calendrier enregistré                          |
-| DELETE  | `/parametres/calendriers-google/{id}`           | `calendriers-google.destroy`   | Gestionnaire+Admin | Retire un calendrier du registre                                                         |
-| POST    | `/parametres/calendriers-google/{id}/verifier`  | `calendriers-google.verifier`  | Gestionnaire+Admin | Revérifie l'accès à un calendrier déjà enregistré                                         |
-| GET     | `/personnes`                                    | `personnes.index`              | Admin              | Liste des membres                                                                       |
-| GET     | `/admin/candidatures`                           | `admin.candidatures.index`     | Admin              | Tableau de bord des candidatures                                                        |
-| GET     | `/admin/echanges`                               | `admin.echanges.index`         | Gestionnaire+Admin | Gestion des échanges                                                                    |
-| GET     | `/diagnostic-mail`                              | `diagnostic.mail.index`        | Admin              | Diagnostic SMTP                                                                         |
-| GET     | `/echanges`                                     | `echanges.index`               | Connecté           | Mes échanges                                                                            |
+| Méthode | URL                                             | Nom                            | Accès              | Description                                                                                                          |
+| ------- | ----------------------------------------------- | ------------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/`                                             | —                              | Public             | Redirige vers `/planning`                                                                                            |
+| GET     | `/login`                                        | `login`                        | Public             | Formulaire de connexion                                                                                              |
+| GET     | `/inscription`                                  | `inscription`                  | Public             | Formulaire d'inscription publique                                                                                    |
+| GET     | `/planning`                                     | `planning.index`               | Connecté           | Vue principale du planning                                                                                           |
+| GET     | `/planning/data`                                | `planning.data`                | Connecté           | JSON consommé par le composant Vue `PlanningGrid`                                                                    |
+| GET     | `/mon-planning`                                 | `mon-planning`                 | Connecté           | Vue personnelle                                                                                                      |
+| GET     | `/planning/stats`                               | `planning.statistics`          | Connecté           | Statistiques                                                                                                         |
+| GET     | `/planning/export`                              | `planning.export.form`         | Connecté           | Formulaire export PDF                                                                                                |
+| POST    | `/planning/export/pdf`                          | `planning.export.pdf`          | Connecté           | Génération PDF                                                                                                       |
+| GET     | `/planning/generer`                             | `planning.generate.form`       | Gestionnaire+Admin | Formulaire de génération                                                                                             |
+| POST    | `/planning/generer`                             | `planning.generate`            | Gestionnaire+Admin | Génération effective                                                                                                 |
+| POST    | `/planning/generer/apercu`                      | `planning.preview`             | Gestionnaire+Admin | Prévisualisation dry-run                                                                                             |
+| POST    | `/planning/overlap/cancel`                      | `planning.overlap.cancel`      | Gestionnaire+Admin | Annule la confirmation de chevauchement                                                                              |
+| POST    | `/planning/rollback`                            | `planning.rollback`            | Gestionnaire+Admin | Rollback post-génération                                                                                             |
+| POST    | `/planning/rollback/dismiss`                    | `planning.rollback.dismiss`    | Gestionnaire+Admin | Ferme la session de rollback                                                                                         |
+| POST    | `/planning/creneau`                             | `planning.edit.create-creneau` | Gestionnaire+Admin | Crée un créneau manuellement                                                                                         |
+| DELETE  | `/planning/creneau/{id}`                        | `planning.edit.delete-creneau` | Gestionnaire+Admin | Supprime un créneau entier                                                                                           |
+| PATCH   | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.assignation`    | Gestionnaire+Admin | Réassigne une tâche                                                                                                  |
+| DELETE  | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.unassign`       | Gestionnaire+Admin | Désassigne une tâche                                                                                                 |
+| POST    | `/planning/annulation-cours`                    | `planning.annulation-cours`    | Gestionnaire+Admin | **Annule le cours d'une date** — désassigne tout, bloque la date, nettoie le calendrier                              |
+| GET     | `/absences`                                     | `absences.index`               | Connecté           | Liste des absences                                                                                                   |
+| GET     | `/restrictions`                                 | `restrictions.index`           | Connecté           | Grille des disponibilités                                                                                            |
+| GET     | `/evenements`                                   | `evenements.index`             | Connecté           | Liste des événements                                                                                                 |
+| GET     | `/evenements/creer`                             | `evenements.create`            | Gestionnaire+Admin | Formulaire de création d'événement (calendriers multiples)                                                           |
+| GET     | `/bilan`                                        | `bilan.index`                  | Connecté           | Bilan quotidien (Amana Food + Présences)                                                                             |
+| GET     | `/bilan/statistiques`                           | `bilan.statistiques`           | Connecté           | Statistiques du bilan quotidien                                                                                      |
+| GET     | `/parametres`                                   | `settings.index`               | Gestionnaire+Admin | Paramètres de l'application (inclut le registre des calendriers Google Calendar)                                     |
+| POST    | `/parametres/calendriers-google`                | `calendriers-google.store`     | Gestionnaire+Admin | Ajoute un calendrier au registre (vérifié via `calendars.get()`)                                                     |
+| PATCH   | `/parametres/calendriers-google/{id}`           | `calendriers-google.update`    | Gestionnaire+Admin | Modifie nom/description/statut actif d'un calendrier enregistré                                                      |
+| DELETE  | `/parametres/calendriers-google/{id}`           | `calendriers-google.destroy`   | Gestionnaire+Admin | Retire un calendrier du registre                                                                                     |
+| POST    | `/parametres/calendriers-google/{id}/verifier`  | `calendriers-google.verifier`  | Gestionnaire+Admin | Revérifie l'accès à un calendrier déjà enregistré                                                                    |
+| GET     | `/personnes`                                    | `personnes.index`              | Admin              | Liste des membres                                                                                                    |
+| GET     | `/admin/candidatures`                           | `admin.candidatures.index`     | Admin              | Tableau de bord des candidatures                                                                                     |
+| GET     | `/admin/echanges`                               | `admin.echanges.index`         | Gestionnaire+Admin | Gestion des échanges                                                                                                 |
+| GET     | `/diagnostic-mail`                              | `diagnostic.mail.index`        | Admin              | Diagnostic SMTP                                                                                                      |
+| GET     | `/echanges`                                     | `echanges.index`               | Connecté           | Mes échanges                                                                                                         |
 | GET     | `/api/calendriers`                              | `calendriers.index`            | Connecté           | JSON — calendriers Google Calendar **enregistrés** dans `ref_calendriers_google` (lecture DB, dropdown de recherche) |
 
 ---
