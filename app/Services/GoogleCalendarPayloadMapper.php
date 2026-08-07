@@ -177,7 +177,7 @@ class GoogleCalendarPayloadMapper
                 'id_tache' => $idTache,
                 'code' => $code,
                 'calendar_id' => $calendarId,
-                'summary' => $ligne['nom'] ?? $code,
+                'summary' => $this->buildSummary($ligne['nom'] ?? $code, $ligne['assigne'] ?? null),
                 'description' => $this->buildDescription($ligne),
                 'start' => isset($ligne['heure_debut'])
                     ? Carbon::parse("{$date} {$ligne['heure_debut']}", 'Europe/Paris')->toIso8601String()
@@ -190,6 +190,45 @@ class GoogleCalendarPayloadMapper
         }
 
         return $operations;
+    }
+
+    /**
+     * Préfixe le titre (summary) de l'événement Google Calendar avec les
+     * initiales de la personne assignée, ex. "JD - Entrée". Pas de préfixe
+     * si le créneau n'est pas assigné (assigne null/vide) — le titre reste
+     * juste le nom de la tâche.
+     */
+    private function buildSummary(string $nom, ?string $assigne): string
+    {
+        $initiales = $this->initiales($assigne);
+        return $initiales ? "{$initiales} - {$nom}" : $nom;
+    }
+
+    /**
+     * Extrait les initiales (première lettre du premier mot + première
+     * lettre du dernier mot, majuscules) d'un nom complet "Prénom Nom".
+     * Gère les noms/prénoms composés en ne prenant que le premier et le
+     * dernier mot de la chaîne (ex. "Jean-Pierre Da Silva" → "JD").
+     * Retourne null si $assigne est vide/null ou ne contient aucune lettre
+     * exploitable (garde-fou, ne devrait pas arriver en pratique).
+     */
+    private function initiales(?string $assigne): ?string
+    {
+        $assigne = trim((string) $assigne);
+        if ($assigne === '') {
+            return null;
+        }
+
+        $mots = preg_split('/\s+/', $assigne, -1, PREG_SPLIT_NO_EMPTY);
+        if (!$mots) {
+            return null;
+        }
+
+        $premiere = mb_strtoupper(mb_substr($mots[0], 0, 1));
+        $derniere = mb_strtoupper(mb_substr($mots[count($mots) - 1], 0, 1));
+
+        $initiales = $premiere . $derniere;
+        return $initiales !== '' ? $initiales : null;
     }
 
     /**

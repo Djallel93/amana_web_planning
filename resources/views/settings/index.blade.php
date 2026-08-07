@@ -31,14 +31,14 @@
     <div class="px-5 py-5">
         <div class="flex items-start gap-2 mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
             <span class="flex-shrink-0 mt-px">ℹ️</span>
-            <span>
-                Un compte de service Google ne peut pas "découvrir" automatiquement les calendriers qui lui sont partagés — chaque calendrier doit être enregistré ici <strong>une fois</strong>, avec son ID Google Calendar (copié depuis Google Calendar → ⚙️ Paramètres du calendrier concerné → <strong>Intégrer l'agenda</strong> → « ID de l'agenda »). L'accès est vérifié automatiquement à l'ajout. Voir <code>docs/google_service_account.md</code> pour le détail.
+            <span class="min-w-0 break-words">
+                Un compte de service Google ne peut pas "découvrir" automatiquement les calendriers qui lui sont partagés — chaque calendrier doit être enregistré ici <strong>une fois</strong>, avec son ID Google Calendar (copié depuis Google Calendar → ⚙️ Paramètres du calendrier concerné → <strong>Intégrer l'agenda</strong> → « ID de l'agenda »). L'accès est vérifié automatiquement à l'ajout. Voir <code class="break-all">docs/google_service_account.md</code> pour le détail.
             </span>
         </div>
 
         <div class="flex items-start gap-2 mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
             <span class="flex-shrink-0 mt-px">👥</span>
-            <span>
+            <span class="min-w-0 break-words">
                 La colonne <strong>Nouveaux bénévoles</strong> contrôle si ce calendrier est partagé automatiquement, via l'API Google Calendar, avec l'adresse email d'une personne dès que sa candidature est validée. Le niveau d'accès accordé dépend du rôle attribué : lecture seule pour bénévole/membre, modification pour gestionnaire, gestion complète (droits + partage) pour admin.
             </span>
         </div>
@@ -287,110 +287,83 @@
 
 
     {{-- ═══════════════════════════════════════
-        SECTION 3 — Calendriers Google Calendar
+        SECTION 3 — Calendriers & Couleurs Google Calendar
+        (fusion des anciennes sections "Calendriers" et "Couleurs" — un
+        calendrier ET une couleur se choisissent désormais côte à côte,
+        par tâche/événement, dans la même carte.)
     ════════════════════════════════════════ --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
-            <span class="font-heading text-[14px] font-semibold text-ink">Calendriers Google Calendar</span>
+            <span class="font-heading text-[14px] font-semibold text-ink">Calendriers &amp; Couleurs Google Calendar</span>
         </div>
         <div class="px-5 py-5">
             <p class="text-[12.5px] text-ink-muted mb-5 leading-relaxed">
-                Calendrier Google Calendar dans lequel chaque type d'événement sera créé.
-                Laissez vide pour ne synchroniser aucun événement de ce type.
+                Pour chaque type d'événement : le calendrier Google Calendar dans lequel il sera créé (laissez vide pour ne rien synchroniser)
+                et la couleur utilisée lors de la synchronisation.
             </p>
 
             @php
+                // Couleur non éditable pour les absences (grise fixe — voir
+                // GoogleCalendarColors::ABSENCE) : pas de champ couleur pour
+                // cette ligne, uniquement le calendrier cible.
                 $calendarChips = [
-                    'calendar_entree'                => ['libelle' => 'Entrée',               'chip' => 'entree'],
-                    'calendar_mektaba'               => ['libelle' => 'Mektaba',              'chip' => 'mektaba'],
-                    'calendar_salle'                 => ['libelle' => 'Salle',                'chip' => 'salle'],
-                    'calendar_amana_food'            => ['libelle' => 'Amana Food',           'chip' => 'amana_food'],
-                    'calendar_cours'                 => ['libelle' => 'Cours',                'chip' => 'cours'],
-                    'calendar_rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',      'chip' => 'rappel_sandwich'],
-                    'calendar_assistance_amana_food' => ['libelle' => 'Assistance Amana Food','chip' => 'assistance_amana_food'],
-                    'calendar_annonce_cours'         => ['libelle' => 'Annonce Cours',        'chip' => 'annonce_cours'],
-                    'calendar_message_bot'           => ['libelle' => 'Message Bot',          'chip' => 'message_bot'],
-                    'calendar_annulation_cours'       => ['libelle' => 'Annulation Cours',     'chip' => 'annulation_cours'],
-                    'calendar_absence'                => ['libelle' => 'Absences',             'chip' => 'absence'],
+                    'entree'                => ['libelle' => 'Entrée',                'chip' => 'entree',                'couleur' => true],
+                    'mektaba'               => ['libelle' => 'Mektaba',               'chip' => 'mektaba',               'couleur' => true],
+                    'salle'                 => ['libelle' => 'Salle',                 'chip' => 'salle',                 'couleur' => true],
+                    'amana_food'            => ['libelle' => 'Amana Food',            'chip' => 'amana_food',            'couleur' => true],
+                    'cours'                 => ['libelle' => 'Cours',                 'chip' => 'cours',                 'couleur' => true],
+                    'rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',       'chip' => 'rappel_sandwich',       'couleur' => true],
+                    'assistance_amana_food' => ['libelle' => 'Assistance Amana Food', 'chip' => 'assistance_amana_food', 'couleur' => true],
+                    'annonce_cours'         => ['libelle' => 'Annonce Cours',         'chip' => 'annonce_cours',         'couleur' => true],
+                    'message_bot'           => ['libelle' => 'Message Bot',           'chip' => 'message_bot',           'couleur' => true],
+                    'annulation_cours'      => ['libelle' => 'Annulation Cours',      'chip' => 'annulation_cours',      'couleur' => true],
+                    'absence'               => ['libelle' => 'Absences',              'chip' => 'absence',               'couleur' => false],
                 ];
             @endphp
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                @foreach($calendarChips as $cle => $meta)
-                    @if(isset($calendriers[$cle]))
-                        @php $cal = $calendriers[$cle]; @endphp
-                        <div class="flex flex-col gap-1.5">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                @foreach($calendarChips as $code => $meta)
+                    @php
+                        $cleCalendar = "calendar_{$code}";
+                        $cleCouleur = "couleur_{$code}";
+                    @endphp
+                    @if(isset($calendriers[$cleCalendar]))
+                        <div class="flex flex-col gap-1.5 p-3 rounded-lg border border-surface-3 bg-surface-2/40">
                             <label class="text-xs font-bold text-ink tracking-[0.2px]">
                                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold chip-{{ $meta['chip'] }}">
                                     {{ $meta['libelle'] }}
                                 </span>
                             </label>
-                            {{--
-                                Point de montage SearchableSelect.vue.
-                                Le composant crée lui-même son <input type="hidden">
-                                via le prop inputName — pas besoin d'en déclarer un ici.
-                            --}}
-                            <div
-                                data-searchable-select
-                                data-api-url="{{ route('calendriers.index') }}"
-                                data-input-name="settings[{{ $cle }}]"
-                                data-input-id="{{ $cle }}_vue"
-                                data-current-value="{{ addslashes($cal['valeur_raw']) }}"
-                                data-placeholder="Sélectionner…"
-                                style="margin-top:2px;"
-                            ></div>
-                        </div>
-                    @endif
-                @endforeach
-            </div>
-        </div>
-    </div>
-
-    {{-- ═══════════════════════════════════════
-        SECTION 3bis — Couleurs Google Calendar
-    ════════════════════════════════════════ --}}
-    <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
-        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🎨</div>
-            <span class="font-heading text-[14px] font-semibold text-ink">Couleurs Google Calendar</span>
-        </div>
-        <div class="px-5 py-5">
-            <p class="text-[12.5px] text-ink-muted mb-5 leading-relaxed">
-                Couleur utilisée pour chaque tâche/événement spécial lors de la synchronisation Google Calendar.
-            </p>
-
-            @php
-                // Même liste de codes que $calendarChips ci-dessus (hors
-                // absences, dont la couleur grise est fixe — voir point 4).
-                $couleurChips = [
-                    'couleur_entree'                => ['libelle' => 'Entrée',                'chip' => 'entree'],
-                    'couleur_mektaba'               => ['libelle' => 'Mektaba',               'chip' => 'mektaba'],
-                    'couleur_salle'                 => ['libelle' => 'Salle',                 'chip' => 'salle'],
-                    'couleur_amana_food'            => ['libelle' => 'Amana Food',            'chip' => 'amana_food'],
-                    'couleur_cours'                 => ['libelle' => 'Cours',                 'chip' => 'cours'],
-                    'couleur_rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',       'chip' => 'rappel_sandwich'],
-                    'couleur_assistance_amana_food' => ['libelle' => 'Assistance Amana Food', 'chip' => 'assistance_amana_food'],
-                    'couleur_annonce_cours'         => ['libelle' => 'Annonce Cours',         'chip' => 'annonce_cours'],
-                    'couleur_message_bot'           => ['libelle' => 'Message Bot',           'chip' => 'message_bot'],
-                    'couleur_annulation_cours'      => ['libelle' => 'Annulation Cours',      'chip' => 'annulation_cours'],
-                ];
-            @endphp
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                @foreach($couleurChips as $cle => $meta)
-                    @if(isset($couleurs[$cle]))
-                        <div class="flex flex-col gap-1.5">
-                            <label for="{{ $cle }}" class="text-xs font-bold text-ink tracking-[0.2px]">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold chip-{{ $meta['chip'] }}">
-                                    {{ $meta['libelle'] }}
-                                </span>
-                            </label>
-                            @include('partials.color-select', [
-                                'id' => $cle,
-                                'name' => "settings[{$cle}]",
-                                'selected' => $couleurs[$cle]['valeur_raw'],
-                            ])
+                            <div class="grid grid-cols-1 {{ $meta['couleur'] ? 'sm:grid-cols-[1fr_auto]' : '' }} gap-3 items-start">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-[10.5px] font-semibold text-ink-muted uppercase tracking-wide">Calendrier</span>
+                                    {{--
+                                        Point de montage SearchableSelect.vue.
+                                        Le composant crée lui-même son <input type="hidden">
+                                        via le prop inputName — pas besoin d'en déclarer un ici.
+                                    --}}
+                                    <div
+                                        data-searchable-select
+                                        data-api-url="{{ route('calendriers.index') }}"
+                                        data-input-name="settings[{{ $cleCalendar }}]"
+                                        data-input-id="{{ $cleCalendar }}_vue"
+                                        data-current-value="{{ addslashes($calendriers[$cleCalendar]['valeur_raw']) }}"
+                                        data-placeholder="Sélectionner…"
+                                        style="margin-top:2px;"
+                                    ></div>
+                                </div>
+                                @if($meta['couleur'] && isset($couleurs[$cleCouleur]))
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-[10.5px] font-semibold text-ink-muted uppercase tracking-wide">Couleur</span>
+                                        @include('partials.color-select', [
+                                            'id' => $cleCouleur,
+                                            'name' => "settings[{$cleCouleur}]",
+                                            'selected' => $couleurs[$cleCouleur]['valeur_raw'],
+                                        ])
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     @endif
                 @endforeach

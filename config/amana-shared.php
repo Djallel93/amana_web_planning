@@ -65,19 +65,15 @@ return [
     | Navigation de la sidebar
     |--------------------------------------------------------------------------
     |
-    | LIMITATION CONNUE : contrairement à l'ancienne sidebar codée en dur,
-    | ce tableau ne porte pas de compteurs dynamiques (badges "3 échanges en
-    | attente", "2 candidatures"...) — un config/*.php ne peut pas contenir
-    | de closures sans casser `php artisan config:cache`. Les items
-    | 'Mes échanges', 'Échanges' (admin) et 'Candidatures' ont donc perdu
-    | leur badge nav-badge par rapport à l'ancienne sidebar. Deux options
-    | pour les récupérer :
-    |   1. Publier la vue (php artisan vendor:publish --tag=amana-shared-views)
-    |      et ajouter les @php $nb = ...::count(); @endphp + badge à la main
-    |      dans resources/views/vendor/amana-shared/layouts/partials/sidebar.blade.php
-    |      (l'app reprend alors la main sur CE fichier uniquement).
-    |   2. Ne rien faire — c'est un compromis accepté de la centralisation.
-    | Décision à prendre par AMANA, pas encore tranchée à ce stade.
+    | Ce tableau reste un simple tableau statique (compatible
+    | `config:cache`) — il ne porte volontairement aucun compteur
+    | dynamique en dur. Les badges nav (ex. "3 candidatures en attente")
+    | sont résolus séparément, à chaque rendu, via
+    | Amana\Shared\Contracts\NavBadgeProvider : voir la liaison
+    | NavBadgeProvider::class → App\Services\NavBadges::class dans
+    | AppServiceProvider::register(), indexée par nom de route ('route'
+    | ci-dessous). Un item de nav sans entrée correspondante dans
+    | NavBadges::counts() n'affiche simplement aucun badge.
     */
     'nav' => [
         ['section' => 'Planning'],

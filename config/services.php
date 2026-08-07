@@ -24,6 +24,17 @@ return [
     'google' => [
         'calendar' => [
             'service_account_json_base64' => env('GOOGLE_SERVICE_ACCOUNT_JSON_BASE64'),
+            // Calendriers pré-enregistrés au déploiement — voir
+            // database/seeders/CalendriersGoogleSeeder.php. Lu via config()
+            // plutôt que env() directement dans le seeder : un cache de
+            // config laissé par un déploiement précédent (php artisan
+            // optimize / config:cache) rendrait un env() direct silencieux
+            // (toujours null), alors que config() reste fiable car ce
+            // fichier est justement ce qui est mis en cache.
+            'preseed' => [
+                ['id' => env('GOOGLE_CALENDAR_ID_1'), 'nom' => env('GOOGLE_CALENDAR_NOM_1', 'AMANA - Planning')],
+                ['id' => env('GOOGLE_CALENDAR_ID_2'), 'nom' => env('GOOGLE_CALENDAR_NOM_2', 'AMANA - Communications')],
+            ],
         ],
     ],
 

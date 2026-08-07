@@ -118,6 +118,10 @@ jobs:
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
           GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}
+          GOOGLE_CALENDAR_ID_1: ${{ vars.GOOGLE_CALENDAR_ID_1 }}
+          GOOGLE_CALENDAR_NOM_1: ${{ vars.GOOGLE_CALENDAR_NOM_1 }}
+          GOOGLE_CALENDAR_ID_2: ${{ vars.GOOGLE_CALENDAR_ID_2 }}
+          GOOGLE_CALENDAR_NOM_2: ${{ vars.GOOGLE_CALENDAR_NOM_2 }}
         run: |
           envsubst < .github/deploy/.env.production.template > deploy/.env
           # sanity check: fail fast if a placeholder was left unresolved
@@ -177,6 +181,9 @@ jobs:
               echo "==> Registering 'planning' in amana_commun (idempotent)"
               $PHP_BIN artisan db:seed --class="Database\\Seeders\\PlanningApplicationSeeder" --force
               $PHP_BIN artisan db:seed --class="Database\\Seeders\\PlanningSettingsSeeder" --force
+
+              echo "==> Registering known Google Calendar IDs (idempotent)"
+              $PHP_BIN artisan db:seed --class="Database\\Seeders\\CalendriersGoogleSeeder" --force
             fi
 
             MARKER="storage/.bootstrapped"
