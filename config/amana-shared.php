@@ -88,8 +88,8 @@ return [
         ['route' => 'restrictions.index', 'label' => 'Disponibilités', 'icon' => '🔒', 'route_pattern' => 'restrictions.*'],
 
         ['section' => 'Bilan'],
-        ['route' => 'bilan.index', 'label' => 'Saisie', 'icon' => '🧾'],
-        ['route' => 'bilan.statistiques', 'label' => 'Statistiques', 'icon' => '📊'],
+        ['route' => 'bilan.index', 'label' => 'Saisie', 'icon' => '🧾', 'role' => 'membre'],
+        ['route' => 'bilan.statistiques', 'label' => 'Statistiques', 'icon' => '📊', 'role' => 'membre'],
 
         ['section' => 'Gestion'],
         ['route' => 'planning.generate.form', 'label' => 'Générer', 'icon' => '✨', 'role' => 'gestionnaire', 'route_pattern' => 'planning.generate*'],

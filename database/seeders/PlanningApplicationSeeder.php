@@ -41,13 +41,20 @@ class PlanningApplicationSeeder extends Seeder
 
         $planningId = $commun->table('ref_applications')->where('code', 'planning')->value('id');
 
-        // Pas de rôle 'benevole' pour planning — Personne::isBenevole() du
-        // modèle partagé retombe sur isAdmin()||isGestionnaire() en son
-        // absence, ce qui reste correct pour cette app.
+        // 'benevole' pour planning : rôle d'accès restreint, borné aux tâches
+        // entree/salle/amana_food (voir config/planning.php +
+        // Personne::peutFaireTache()) — ajouté le 08/08/2026. Contrairement à
+        // amana_web_familles (où benevole est AU-DESSUS de membre, cf. le
+        // docblock de Amana\Shared\Http\Middleware\EnsureRole), ici benevole
+        // est un rôle EN DESSOUS de membre : aucune route/nav de planning ne
+        // s'appuie sur le rôle 'membre' comme porte d'accès (seuls
+        // 'gestionnaire'/'admin' le sont), donc cette différence de
+        // hiérarchie n'a aucun impact ici.
         $roles = [
             ['code' => 'admin', 'libelle' => 'Administrateur'],
             ['code' => 'gestionnaire', 'libelle' => 'Gestionnaire'],
             ['code' => 'membre', 'libelle' => 'Membre'],
+            ['code' => 'benevole', 'libelle' => 'Bénévole'],
         ];
 
         foreach ($roles as $role) {

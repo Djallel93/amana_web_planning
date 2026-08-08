@@ -84,8 +84,10 @@ Route::middleware('auth')->group(function () {
     // ── Guide d'utilisation — tous les membres connectés (contenu adapté au rôle) ──
     Route::get('/guide', [GuideController::class, 'index'])->name('guide.index');
 
-    // ── Bilan quotidien (Amana food + Présences) — tous les membres connectés ──
-    Route::prefix('bilan')->name('bilan.')->group(function () {
+    // ── Bilan quotidien (Amana food + Présences) — membre et au-dessus ──
+    // (exclut le rôle 'benevole', restreint à entree/salle/amana_food côté
+    // planning — voir config/planning.php et Personne::peutFaireTache()).
+    Route::prefix('bilan')->name('bilan.')->middleware('role:membre')->group(function () {
         Route::get('/', [BilanController::class, 'index'])->name('index');
         Route::get('/data', [BilanController::class, 'show'])->name('data.show');
         Route::post('/data/amana-food', [BilanController::class, 'storeAmanaFood'])->name('data.store.amana-food');
