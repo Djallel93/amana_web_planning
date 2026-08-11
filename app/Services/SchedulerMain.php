@@ -290,6 +290,51 @@ class SchedulerMain
         })->toArray();
     }
 
+    /**
+     * Régénère le planning à partir d'une date impactée, en préservant la
+     * longueur de l'horizon déjà généré. Logique commune extraite de
+     * AbsenceRegenerationService (régénération automatique suite à une
+     * absence) et réutilisée par EvenementRegenerationService (régénération
+     * automatique suite à la création/modification/import d'événements) :
+     *   1. Recule au vendredi de la semaine si la date impactée n'en est pas un
+     *      (les créneaux n'existent que le vendredi et le samedi).
+     *   2. Calcule le nombre de semaines nécessaires pour couvrir jusqu'à la
+     *      dernière date déjà générée (sans raccourcir le planning existant).
+     *   3. Régénère (génère un nouveau `Carbon` — l'appelant garde sa propre
+     *      instance intacte) et construit l'instantané de rollback, alimenté
+     *      en session comme après une génération manuelle.
+     *
+     * @return array{resultat: array, dateDebutRegen: string, semaines: int, regenererDepuis: Carbon}
+     */
+    public function regenerateFromImpactedDate(Carbon $premiereDateImpactee): array
+    {
+        $regenererDepuis = $premiereDateImpactee->copy();
+        if (!$regenererDepuis->isFriday()) {
+            $regenererDepuis = $regenererDepuis->subDay();
+        }
+
+        $derniereDateGeneree = Creneau::max('date');
+        $dernierVendredi = $derniereDateGeneree ? Carbon::parse($derniereDateGeneree) : $regenererDepuis->copy();
+        if (!$dernierVendredi->isFriday()) {
+            $dernierVendredi = $dernierVendredi->subDay();
+        }
+
+        $semaines = max(1, (int) floor($regenererDepuis->diffInDays($dernierVendredi) / 7) + 1);
+        $dateDebutRegen = $regenererDepuis->toDateString();
+
+        $resultat = $this->generateSchedule($dateDebutRegen, $semaines);
+
+        $lastGenerated = $this->buildRollbackSnapshot($dateDebutRegen, $semaines);
+        session(['last_generated_creneaux' => $lastGenerated]);
+
+        return [
+            'resultat' => $resultat,
+            'dateDebutRegen' => $dateDebutRegen,
+            'semaines' => $semaines,
+            'regenererDepuis' => $regenererDepuis,
+        ];
+    }
+
     private function cleanExistingCreneaux(Carbon $depuis): void
     {
         $nb = Creneau::where('date', '>=', $depuis->toDateString())->count();

@@ -11,11 +11,18 @@
         <p class="text-[13px] text-ink-muted mt-1">Vacances, Ramadan, événements spéciaux…</p>
     </div>
     @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
-        <a href="{{ route('evenements.create') }}"
-           class="inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg
-                  shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px transition-all no-underline min-h-[44px]">
-            + Créer un événement
-        </a>
+        <div class="flex gap-2.5">
+            <a href="{{ route('evenements.import') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg
+                      transition-colors no-underline min-h-[44px]">
+                📥 Importer CSV
+            </a>
+            <a href="{{ route('evenements.create') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg
+                      shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px transition-all no-underline min-h-[44px]">
+                + Créer un événement
+            </a>
+        </div>
     @endif
 </div>
 

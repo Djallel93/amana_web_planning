@@ -7,7 +7,6 @@ namespace App\Services;
 
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Absence;
-use App\Models\Creneau;
 use App\Models\CreneauTache;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -75,41 +74,17 @@ class AbsenceRegenerationService
             return null; // Aucune assignation existante n'est concernée
         }
 
-        // Les créneaux ne sont générés que le Vendredi et le Samedi. Si la
-        // date impactée est un Samedi, on régénère depuis le Vendredi de la
-        // même semaine pour ne pas laisser ce Samedi hors de la fenêtre
-        // régénérée (DateHelper::premierVendredi avance uniquement en avant).
-        $regenererDepuis = Carbon::parse($premiereDateImpactee);
-        if (!$regenererDepuis->isFriday()) {
-            $regenererDepuis = $regenererDepuis->copy()->subDay();
-        }
-
-        // ── 2. Calculer le nombre de semaines pour couvrir tout l'horizon
-        //       déjà généré, afin de ne pas raccourcir le planning existant ──
-        $derniereDateGeneree = Creneau::max('date');
-        if ($derniereDateGeneree) {
-            $dernierVendredi = Carbon::parse($derniereDateGeneree);
-            if (!$dernierVendredi->isFriday()) {
-                $dernierVendredi = $dernierVendredi->subDay();
-            }
-        } else {
-            // Ne devrait pas arriver : on vient de trouver un créneau assigné
-            // ci-dessus, donc au moins un créneau existe forcément.
-            $dernierVendredi = $regenererDepuis;
-        }
-
-        $semaines = max(1, (int) floor($regenererDepuis->diffInDays($dernierVendredi) / 7) + 1);
-        $dateDebutRegen = $regenererDepuis->toDateString();
-
         Log::info('[AbsenceRegenerationService] Régénération automatique suite à absence', [
             'id_absence' => $absence->id,
             'id_personne' => $absence->id_personne,
-            'date_debut_regen' => $dateDebutRegen,
-            'semaines' => $semaines,
+            'premiere_date_impactee' => $premiereDateImpactee,
         ]);
 
         try {
-            $resultat = $this->scheduler->generateSchedule($dateDebutRegen, $semaines);
+            // Voir SchedulerMain::regenerateFromImpactedDate() pour le détail
+            // du recul au vendredi et du calcul du nombre de semaines
+            // nécessaires pour ne pas raccourcir l'horizon déjà généré.
+            $regen = $this->scheduler->regenerateFromImpactedDate(Carbon::parse($premiereDateImpactee));
         } catch (\Throwable $e) {
             Log::error('[AbsenceRegenerationService] Échec de la régénération automatique', [
                 'id_absence' => $absence->id,
@@ -122,26 +97,21 @@ class AbsenceRegenerationService
             ];
         }
 
-        // ── 3. Alimenter le même mécanisme de rollback que la génération
-        //       manuelle, pour que l'admin garde une porte de sortie ────────
-        $lastGenerated = $this->scheduler->buildRollbackSnapshot($dateDebutRegen, $semaines);
-        session(['last_generated_creneaux' => $lastGenerated]);
-
-        audit('generate', 'planning', null, null, array_merge($resultat, [
+        audit('generate', 'planning', null, null, array_merge($regen['resultat'], [
             'declencheur' => 'absence',
             'id_absence' => $absence->id,
             'id_personne' => $absence->id_personne,
         ]));
 
-        $payload = app(WebhookPayloadBuilder::class)->build($dateDebutRegen, $semaines);
+        $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines']);
         SynchroniserGoogleCalendar::dispatch($payload, 'post');
         Log::info('[AbsenceRegenerationService] Synchronisation Google Calendar dispatchée en queue (POST) suite à régénération automatique.');
 
-        $dateLabel = $regenererDepuis->locale('fr')->isoFormat('D MMMM YYYY');
+        $dateLabel = $regen['regenererDepuis']->locale('fr')->isoFormat('D MMMM YYYY');
 
         return [
             'message' => "Planning régénéré automatiquement à partir du {$dateLabel} "
-                . "({$resultat['jours_generes']} jours, {$resultat['non_assignes']} non assigné(s)) "
+                . "({$regen['resultat']['jours_generes']} jours, {$regen['resultat']['non_assignes']} non assigné(s)) "
                 . 'pour tenir compte de cette absence.',
         ];
     }

@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fe9f67df73700faf992091e8c3c9720b",
+    "content-hash": "c3af0e40b90c4b152950bfb6bcefc5d8",
     "packages": [
         {
             "name": "amana/shared",
-            "version": "v1.0.5",
+            "version": "v1.0.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Djallel93/amana_shared.git",
-                "reference": "78430a3907eac04937b33367c8654c0fe62d1e7d"
+                "reference": "11f463fd13989f8ddd85f64ea6278887384efc17"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Djallel93/amana_shared/zipball/78430a3907eac04937b33367c8654c0fe62d1e7d",
-                "reference": "78430a3907eac04937b33367c8654c0fe62d1e7d",
+                "url": "https://api.github.com/repos/Djallel93/amana_shared/zipball/11f463fd13989f8ddd85f64ea6278887384efc17",
+                "reference": "11f463fd13989f8ddd85f64ea6278887384efc17",
                 "shasum": ""
             },
             "require": {
@@ -62,10 +62,10 @@
                 "shared"
             ],
             "support": {
-                "source": "https://github.com/Djallel93/amana_shared/tree/v1.0.5",
+                "source": "https://github.com/Djallel93/amana_shared/tree/v1.0.7",
                 "issues": "https://github.com/Djallel93/amana_shared/issues"
             },
-            "time": "2026-08-08T13:14:31+00:00"
+            "time": "2026-08-11T15:46:36+00:00"
         },
         {
             "name": "barryvdh/laravel-dompdf",

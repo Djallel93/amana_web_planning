@@ -207,6 +207,10 @@ Route::middleware('auth')->group(function () {
 
         Route::middleware('role:gestionnaire')->group(function () {
             Route::get('/creer', [EvenementsController::class, 'create'])->name('create');
+            Route::get('/import', [EvenementsController::class, 'import'])->name('import');
+            Route::post('/import', [EvenementsController::class, 'storeImport'])->name('import.store');
+            Route::post('/import/manuel', [EvenementsController::class, 'storeManualImport'])->name('import.manuel');
+            Route::get('/import/modele', [EvenementsController::class, 'downloadTemplate'])->name('import.template');
             Route::post('/', [EvenementsController::class, 'store'])->name('store');
             Route::get('/{id}/editer', [EvenementsController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
             Route::put('/{id}', [EvenementsController::class, 'update'])->name('update')->where('id', '[0-9]+');

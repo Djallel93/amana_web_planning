@@ -13,6 +13,7 @@ import SwapRequestModal from "@/components/mon-planning/SwapRequestModal.vue";
 import SearchableSelect from "@/components/shared/SearchableSelect.vue";
 import HoraireSettings from "@/components/settings/HoraireSettings.vue";
 import EventTaskBlocker from "@/components/evenements/EventTaskBlocker.vue";
+import BulkEvenementImport from "@/components/evenements/BulkEvenementImport.vue";
 import GeneratePreview from "@/components/planning-generate/GeneratePreview.vue";
 import PlanningGrid from "@/components/planning/PlanningGrid.vue";
 import EditAbsenceModal from "@/components/absences/EditAbsenceModal.vue";
@@ -112,4 +113,31 @@ document
             },
         });
         app.mount(el);
+    });
+
+// ── Montage BulkEvenementImport (saisie manuelle multi-lignes) ────────────
+// evenements/import.blade.php — un seul point de montage par page. Les
+// données (tâches, palette de couleurs, URL API calendriers) et l'état de
+// réhydratation après erreur de validation (old('rows'), messages
+// d'erreur) sont sérialisés en JSON côté Blade dans des data-attributes,
+// même stratégie que le bloc SearchableSelect ci-dessus.
+document
+    .querySelectorAll<HTMLElement>("[data-bulk-evenement-import]")
+    .forEach((el) => {
+        const taches = JSON.parse(el.dataset.taches ?? "[]");
+        const couleurs = JSON.parse(el.dataset.couleurs ?? "[]");
+        const calendarsApiUrl = el.dataset.calendarsApiUrl ?? "";
+        const oldRows = JSON.parse(el.dataset.oldRows ?? "[]");
+        const errors = JSON.parse(el.dataset.errors ?? "{}");
+
+        createApp({
+            render: () =>
+                h(BulkEvenementImport, {
+                    taches,
+                    couleurs,
+                    calendarsApiUrl,
+                    oldRows,
+                    errors,
+                }),
+        }).mount(el);
     });
