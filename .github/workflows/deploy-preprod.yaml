@@ -1,9 +1,9 @@
-name: Build and Deploy to IONOS (SFTP/SSH)
+name: Build and Deploy to IONOS (SFTP/SSH) — Preprod
 
 on:
   push:
     branches:
-      - main
+      - develop
   workflow_dispatch:
     inputs:
       force_fresh_install:
@@ -11,14 +11,9 @@ on:
         required: false
         default: false
         type: boolean
-      run_shared_migration:
-        description: "Run 'php artisan amana:migrate-shared' after deploy. Only needed when amana/shared ships new shared migrations - never runs automatically on a normal push. See amana_shared/README.md."
-        required: false
-        default: false
-        type: boolean
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: deploy-preprod-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -36,18 +31,6 @@ jobs:
         with:
           php-version: "8.4"
           tools: composer:2
-
-      # amana/shared (Composer) et @amana/shared-ui (npm) sont des dépôts
-      # privés référencés par HTTPS (voir composer.json "repositories" et
-      # package.json "dependencies"). Cette réécriture d'URL git rend TOUT
-      # accès https://github.com/... authentifié pour le reste du job — elle
-      # couvre donc à la fois `composer install` et `npm ci` en une seule
-      # étape, sans fichier auth.json ni .npmrc à gérer séparément.
-      # AMANA_REPOS_PAT : Personal Access Token GitHub (fine-grained),
-      # lecture seule, scope Contents sur amana_shared + amana_shared_ui.
-      - name: Configure git access for private amana/* repos
-        run: |
-          git config --global url."https://x-access-token:${{ secrets.AMANA_REPOS_PAT }}@github.com/".insteadOf "https://github.com/"
 
       - name: Install PHP dependencies
         run: composer install --optimize-autoloader --no-dev --no-interaction
@@ -85,24 +68,25 @@ jobs:
     name: Deploy over SFTP/SSH
     needs: build
     runs-on: ubuntu-latest
-    environment: production
+    environment: preprod
     steps:
-      # Runs first so its default `git clean -ffdx` doesn't wipe out the
-      # artifact downloaded in the next step (both share GITHUB_WORKSPACE).
-      - name: Checkout (for .env template only)
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            .github/deploy/.env.production.template
-          sparse-checkout-cone-mode: false
-
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: app-build
           path: deploy
 
-      - name: Render production .env
+      # Only needed to access .github/deploy/.env.preprod.template,
+      # which was stripped from the build artifact above. Sparse checkout
+      # keeps this fast and avoids pulling in anything else.
+      - name: Checkout (for .env template only)
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .github/deploy/.env.preprod.template
+          sparse-checkout-cone-mode: false
+
+      - name: Render preprod .env
         env:
           APP_KEY: ${{ secrets.APP_KEY }}
           APP_URL: ${{ vars.APP_URL }}
@@ -110,21 +94,15 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_COMMUN_HOST: ${{ secrets.DB_COMMUN_HOST }}
-          DB_COMMUN_DATABASE: ${{ secrets.DB_COMMUN_DATABASE }}
-          DB_COMMUN_USERNAME: ${{ secrets.DB_COMMUN_USERNAME }}
-          DB_COMMUN_PASSWORD: ${{ secrets.DB_COMMUN_PASSWORD }}
           MAIL_HOST: ${{ secrets.MAIL_HOST }}
           MAIL_PORT: ${{ secrets.MAIL_PORT }}
           MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
           MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          GOOGLE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 }}
-          GOOGLE_CALENDAR_ID_1: ${{ vars.GOOGLE_CALENDAR_ID_1 }}
-          GOOGLE_CALENDAR_NOM_1: ${{ vars.GOOGLE_CALENDAR_NOM_1 }}
-          GOOGLE_CALENDAR_ID_2: ${{ vars.GOOGLE_CALENDAR_ID_2 }}
-          GOOGLE_CALENDAR_NOM_2: ${{ vars.GOOGLE_CALENDAR_NOM_2 }}
+          MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+          MAKE_WEBHOOK_APIKEY: ${{ secrets.MAKE_WEBHOOK_APIKEY }}
+          APP_EMERGENCY_KEY: ${{ secrets.APP_EMERGENCY_KEY }}
         run: |
-          envsubst < .github/deploy/.env.production.template > deploy/.env
+          envsubst < .github/deploy/.env.preprod.template > deploy/.env
           # sanity check: fail fast if a placeholder was left unresolved
           if grep -q '\${' deploy/.env; then
             echo "::error::One or more secrets are missing - .env still contains unresolved placeholders"
@@ -165,7 +143,6 @@ jobs:
       - name: Run post-deploy commands
         env:
           FORCE_FRESH: ${{ inputs.force_fresh_install }}
-          RUN_SHARED_MIGRATION: ${{ inputs.run_shared_migration }}
           PHP_BIN: ${{ vars.IONOS_PHP_CLI_PATH }}
         run: |
           ssh ${{ secrets.IONOS_SSH_USER }}@${{ secrets.IONOS_SSH_HOST }} bash -s <<EOF
@@ -174,18 +151,6 @@ jobs:
             find . -type f -not -path "./storage/logs/*" -exec chmod 664 {} \;
             find . -type d -not -name "logs" -exec chmod 775 {} \;
             chmod -R o+w storage bootstrap/cache
-
-            if [ "$RUN_SHARED_MIGRATION" = "true" ]; then
-              echo "==> Explicitly requested: running amana:migrate-shared (amana_commun)"
-              $PHP_BIN artisan amana:migrate-shared --force
-
-              echo "==> Registering 'planning' in amana_commun (idempotent)"
-              $PHP_BIN artisan db:seed --class="Database\\Seeders\\PlanningApplicationSeeder" --force
-              $PHP_BIN artisan db:seed --class="Database\\Seeders\\PlanningSettingsSeeder" --force
-
-              echo "==> Registering known Google Calendar IDs (idempotent)"
-              $PHP_BIN artisan db:seed --class="Database\\Seeders\\CalendriersGoogleSeeder" --force
-            fi
 
             MARKER="storage/.bootstrapped"
             if [ "$FORCE_FRESH" = "true" ] || [ ! -f "\$MARKER" ]; then
@@ -203,16 +168,8 @@ jobs:
             $PHP_BIN artisan up
           EOF
 
-      - name: Clear Cloudflare Cache
+      - name: Clear Cloudflare/WP Super Cache
         run: |
-          curl \
-            --silent \
-            --show-error \
-            --fail \
-            --request POST \
-            --header "Authorization: Bearer ${{ secrets.CACHE_CLEAR_TOKEN }}" \
-            --header "Content-Type: application/json" \
-            --data '{"purge_everything":true}' \
-            "${{ vars.CACHE_CLEAR_URL }}" \
-            --output response.json \
-            --write-out "HTTP %{http_code}\n"
+          curl -sS -f "${{ vars.CACHE_CLEAR_URL }}?token=${{ secrets.CACHE_CLEAR_TOKEN }}" \
+            -o response.json -w "HTTP %{http_code}\n"
+          cat response.json
