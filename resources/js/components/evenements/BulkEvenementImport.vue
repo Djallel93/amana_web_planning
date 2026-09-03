@@ -18,7 +18,10 @@
 -->
 <script setup lang="ts">
 import { ref } from "vue";
-import SearchableSelect from "@/components/shared/SearchableSelect.vue";
+// 04/09/2026 : SearchableSelect promu vers @amana/shared-ui (roadmap mobile
+// §4.3/step 7) — plus d'import local, mêmes props qu'avant, comportement
+// identique (voir amana_shared_ui/src/components/SearchableSelect.vue).
+import { SearchableSelect } from "@amana/shared-ui";
 
 interface Tache {
     id: number;
@@ -76,14 +79,18 @@ function hydrateRow(source: Partial<Row> | undefined): Row {
         description: source.description ?? "",
         couleur: source.couleur ?? "",
         taches: Array.isArray(source.taches) ? source.taches.map(Number) : [],
-        calendar_ids: Array.isArray(source.calendar_ids) ? source.calendar_ids : [],
+        calendar_ids: Array.isArray(source.calendar_ids)
+            ? source.calendar_ids
+            : [],
     };
 }
 
 // Réhydratation après une erreur de validation (old('rows')) — sinon 2
 // lignes vides par défaut.
 const rows = ref<Row[]>(
-    props.oldRows.length > 0 ? props.oldRows.map(hydrateRow) : [emptyRow(), emptyRow()],
+    props.oldRows.length > 0
+        ? props.oldRows.map(hydrateRow)
+        : [emptyRow(), emptyRow()],
 );
 
 function addRow(): void {
@@ -113,15 +120,17 @@ function toggleTache(row: Row, tacheId: number): void {
             :key="index"
             class="bg-surface-2 rounded-xl border border-surface-border overflow-hidden"
         >
-            <div class="flex items-center justify-between gap-2.5 px-4 py-3 border-b border-surface-3 bg-surface-3">
-                <span class="font-heading text-[12.5px] font-semibold text-ink">Événement {{ index + 1 }}</span>
+            <div
+                class="flex items-center justify-between gap-2.5 px-4 py-3 border-b border-surface-3 bg-surface-3"
+            >
+                <span class="font-heading text-[12.5px] font-semibold text-ink"
+                    >Événement {{ index + 1 }}</span
+                >
                 <button
                     type="button"
                     @click="removeRow(index)"
                     :disabled="rows.length <= 1"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-semibold rounded-md transition-colors cursor-pointer
-                           border border-rose-200 text-rose-600 bg-transparent hover:bg-rose-50
-                           disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-semibold rounded-md transition-colors cursor-pointer border border-rose-200 text-rose-600 bg-transparent hover:bg-rose-50 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
                     🗑️ Supprimer
                 </button>
@@ -140,17 +149,26 @@ function toggleTache(row: Row, tacheId: number): void {
                         maxlength="150"
                         required
                         placeholder="Ex : Vacances Noël, Ramadan…"
-                        class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition
-                               focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
-                        :class="errorFor(index, 'nom') ? 'border-rose-400' : 'border-ink-faint'"
+                        class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        :class="
+                            errorFor(index, 'nom')
+                                ? 'border-rose-400'
+                                : 'border-ink-faint'
+                        "
+                    />
+                    <span
+                        v-if="errorFor(index, 'nom')"
+                        class="text-xs text-rose-600"
+                        >{{ errorFor(index, "nom") }}</span
                     >
-                    <span v-if="errorFor(index, 'nom')" class="text-xs text-rose-600">{{ errorFor(index, "nom") }}</span>
                 </div>
 
                 <!-- Dates -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-ink tracking-[0.2px]">
+                        <label
+                            class="text-xs font-bold text-ink tracking-[0.2px]"
+                        >
                             Date de début <span class="text-rose-500">*</span>
                         </label>
                         <input
@@ -158,14 +176,23 @@ function toggleTache(row: Row, tacheId: number): void {
                             :name="`rows[${index}][date_debut]`"
                             v-model="row.date_debut"
                             required
-                            class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition
-                                   focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
-                            :class="errorFor(index, 'date_debut') ? 'border-rose-400' : 'border-ink-faint'"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            :class="
+                                errorFor(index, 'date_debut')
+                                    ? 'border-rose-400'
+                                    : 'border-ink-faint'
+                            "
+                        />
+                        <span
+                            v-if="errorFor(index, 'date_debut')"
+                            class="text-xs text-rose-600"
+                            >{{ errorFor(index, "date_debut") }}</span
                         >
-                        <span v-if="errorFor(index, 'date_debut')" class="text-xs text-rose-600">{{ errorFor(index, "date_debut") }}</span>
                     </div>
                     <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-ink tracking-[0.2px]">
+                        <label
+                            class="text-xs font-bold text-ink tracking-[0.2px]"
+                        >
                             Date de fin <span class="text-rose-500">*</span>
                         </label>
                         <input
@@ -174,58 +201,78 @@ function toggleTache(row: Row, tacheId: number): void {
                             v-model="row.date_fin"
                             :min="row.date_debut || undefined"
                             required
-                            class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition
-                                   focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
-                            :class="errorFor(index, 'date_fin') ? 'border-rose-400' : 'border-ink-faint'"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            :class="
+                                errorFor(index, 'date_fin')
+                                    ? 'border-rose-400'
+                                    : 'border-ink-faint'
+                            "
+                        />
+                        <span
+                            v-if="errorFor(index, 'date_fin')"
+                            class="text-xs text-rose-600"
+                            >{{ errorFor(index, "date_fin") }}</span
                         >
-                        <span v-if="errorFor(index, 'date_fin')" class="text-xs text-rose-600">{{ errorFor(index, "date_fin") }}</span>
                     </div>
                 </div>
 
                 <!-- Description -->
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-bold text-ink tracking-[0.2px]">
-                        Description <span class="text-ink-muted font-normal">(optionnel)</span>
+                        Description
+                        <span class="text-ink-muted font-normal"
+                            >(optionnel)</span
+                        >
                     </label>
                     <textarea
                         :name="`rows[${index}][description]`"
                         v-model="row.description"
                         rows="2"
                         placeholder="Notes complémentaires…"
-                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition resize-y
-                               focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition resize-y focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                     ></textarea>
                 </div>
 
                 <!-- Couleur -->
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-bold text-ink tracking-[0.2px]">
-                        Couleur Google Calendar <span class="text-ink-muted font-normal">(optionnel)</span>
+                        Couleur Google Calendar
+                        <span class="text-ink-muted font-normal"
+                            >(optionnel)</span
+                        >
                     </label>
                     <select
                         :name="`rows[${index}][couleur]`"
                         v-model="row.couleur"
-                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition cursor-pointer
-                               focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition cursor-pointer focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                     >
-                        <option value="">Couleur par défaut du calendrier</option>
-                        <option v-for="c in couleurs" :key="c.id" :value="c.id">{{ c.nom }}</option>
+                        <option value="">
+                            Couleur par défaut du calendrier
+                        </option>
+                        <option v-for="c in couleurs" :key="c.id" :value="c.id">
+                            {{ c.nom }}
+                        </option>
                     </select>
                 </div>
 
                 <!-- Tâches bloquées -->
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-bold text-ink tracking-[0.2px]">
-                        Tâches bloquées <span class="text-ink-muted font-normal">(optionnel — vide = informatif)</span>
+                        Tâches bloquées
+                        <span class="text-ink-muted font-normal"
+                            >(optionnel — vide = informatif)</span
+                        >
                     </label>
                     <div class="flex flex-wrap gap-2">
                         <label
                             v-for="t in taches"
                             :key="t.id"
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold cursor-pointer border transition-colors select-none"
-                            :class="row.taches.includes(t.id)
-                                ? 'bg-rose-50 border-rose-300 text-rose-700'
-                                : 'bg-surface border-surface-border text-ink-muted hover:border-ink-faint'"
+                            :class="
+                                row.taches.includes(t.id)
+                                    ? 'bg-rose-50 border-rose-300 text-rose-700'
+                                    : 'bg-surface border-surface-border text-ink-muted hover:border-ink-faint'
+                            "
                         >
                             <input
                                 type="checkbox"
@@ -234,7 +281,7 @@ function toggleTache(row: Row, tacheId: number): void {
                                 :value="t.id"
                                 :checked="row.taches.includes(t.id)"
                                 @change="toggleTache(row, t.id)"
-                            >
+                            />
                             {{ t.libelle }}
                         </label>
                     </div>
@@ -243,7 +290,10 @@ function toggleTache(row: Row, tacheId: number): void {
                 <!-- Calendriers -->
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-bold text-ink tracking-[0.2px]">
-                        Calendriers Google Calendar <span class="text-ink-muted font-normal">(optionnel)</span>
+                        Calendriers Google Calendar
+                        <span class="text-ink-muted font-normal"
+                            >(optionnel)</span
+                        >
                     </label>
                     <SearchableSelect
                         :api-url="calendarsApiUrl"
@@ -251,6 +301,7 @@ function toggleTache(row: Row, tacheId: number): void {
                         multiple
                         :input-name="`rows[${index}][calendar_ids]`"
                         placeholder="Sélectionner un ou plusieurs calendriers…"
+                        error-message="Impossible de contacter Google Calendar. Vérifiez la configuration Google Calendar."
                     />
                 </div>
             </div>
@@ -259,8 +310,7 @@ function toggleTache(row: Row, tacheId: number): void {
         <button
             type="button"
             @click="addRow"
-            class="inline-flex items-center gap-2 self-start px-4 py-2.5 border-[1.5px] border-dashed border-accent text-accent hover:bg-sky-50
-                   text-[13px] font-semibold rounded-lg transition-colors cursor-pointer min-h-[44px] bg-transparent"
+            class="inline-flex items-center gap-2 self-start px-4 py-2.5 border-[1.5px] border-dashed border-accent text-accent hover:bg-sky-50 text-[13px] font-semibold rounded-lg transition-colors cursor-pointer min-h-[44px] bg-transparent"
         >
             ➕ Ajouter un événement
         </button>

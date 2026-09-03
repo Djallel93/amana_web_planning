@@ -166,13 +166,13 @@ defineExpose({ open });
             <div class="flex gap-2">
                 <button
                     @click="continuer"
-                    class="flex-1 min-h-[48px] px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    class="btn-touch flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                     Continuer
                 </button>
                 <button
                     @click="close"
-                    class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer min-h-[48px]"
+                    class="btn-touch px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer"
                 >
                     Annuler
                 </button>
@@ -206,7 +206,7 @@ defineExpose({ open });
                 <button
                     @click="confirmer"
                     :disabled="submitting"
-                    class="flex-1 min-h-[48px] px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    class="btn-touch flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                     {{
                         submitting
@@ -217,7 +217,7 @@ defineExpose({ open });
                 <button
                     @click="retour"
                     :disabled="submitting"
-                    class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer min-h-[48px] disabled:opacity-50"
+                    class="btn-touch px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                 >
                     ← Retour
                 </button>

@@ -162,13 +162,13 @@ defineExpose({ open });
                 <button
                     @click="submit"
                     :disabled="creating"
-                    class="flex-1 min-h-[48px] px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(3,105,161,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    class="btn-touch flex-1 px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(3,105,161,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                     {{ creating ? "⏳ Création…" : "➕ Créer le créneau" }}
                 </button>
                 <button
                     @click="close"
-                    class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer min-h-[48px]"
+                    class="btn-touch px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer"
                 >
                     Annuler
                 </button>

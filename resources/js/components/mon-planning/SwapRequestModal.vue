@@ -20,31 +20,31 @@
     Slot        : un créneau disponible pour l'échange (réponse API)
 -->
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { Modal } from '@amana/shared-ui';
-import { useModal } from '@amana/shared-ui';
-import { useToast } from '@amana/shared-ui';
-import { useConfirm } from '@amana/shared-ui';
+import { ref, computed, watch } from "vue";
+import { Modal } from "@amana/shared-ui";
+import { useModal } from "@amana/shared-ui";
+import { useToast } from "@amana/shared-ui";
+import { useConfirm } from "@amana/shared-ui";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 // Ces interfaces décrivent exactement la forme des données qu'on manipule.
 // Si l'API change un nom de champ, TS nous le signalera immédiatement.
 
 interface SwapContext {
-    creneauId:    number;
-    tacheId:      number;
+    creneauId: number;
+    tacheId: number;
     tacheLibelle: string;
-    dateLabel:    string;   // ex. "vendredi 14 mars 2025"
+    dateLabel: string; // ex. "vendredi 14 mars 2025"
 }
 
 interface Slot {
-    creneau_id:    number;
-    tache_id:      number;
-    personne_id:   number;
-    personne_nom:  string;
-    date:          string;  // ISO "2025-03-14"
-    date_label:    string;  // "vendredi 14 mars 2025"
-    jour:          string;  // "Vendredi"
+    creneau_id: number;
+    tache_id: number;
+    personne_id: number;
+    personne_nom: string;
+    date: string; // ISO "2025-03-14"
+    date_label: string; // "vendredi 14 mars 2025"
+    jour: string; // "Vendredi"
     tache_libelle: string;
 }
 
@@ -56,18 +56,18 @@ const toast = useToast();
 const { ask } = useConfirm();
 
 // ── État local ────────────────────────────────────────────────────────────
-type LoadState = 'idle' | 'loading' | 'loaded' | 'error';
+type LoadState = "idle" | "loading" | "loaded" | "error";
 
-const slots         = ref<Slot[]>([]);
-const loadState     = ref<LoadState>('idle');
-const selectedSlot  = ref<Slot | null>(null);
-const submitting    = ref(false);
+const slots = ref<Slot[]>([]);
+const loadState = ref<LoadState>("idle");
+const selectedSlot = ref<Slot | null>(null);
+const submitting = ref(false);
 
 // ── Filtre par plage de dates (du/au) ────────────────────────────────────
 // Filtrage purement client : tous les slots futurs pour la tâche sont déjà
 // chargés en une fois, donc pas besoin de round-trip serveur pour filtrer.
-const dateFrom = ref('');
-const dateTo   = ref('');
+const dateFrom = ref("");
+const dateTo = ref("");
 
 const filteredSlots = computed(() => {
     return slots.value.filter((slot) => {
@@ -79,7 +79,9 @@ const filteredSlots = computed(() => {
 
 // computed : le bouton "Envoyer" n'est actif que si un slot est sélectionné
 // et qu'on n'est pas en train de soumettre.
-const canSubmit = computed(() => selectedSlot.value !== null && !submitting.value);
+const canSubmit = computed(
+    () => selectedSlot.value !== null && !submitting.value,
+);
 
 // ── Fermeture avec confirmation si une sélection est en attente ───────────
 // Pas de watch() nécessaire ici comme dans EditAbsenceModal : "dirty" se
@@ -90,7 +92,8 @@ const dirty = computed(() => selectedSlot.value !== null);
 async function requestClose(): Promise<void> {
     if (dirty.value) {
         const ok = await ask({
-            message: 'Vous avez sélectionné un créneau mais la demande n\'a pas été envoyée. Fermer quand même ?',
+            message:
+                "Vous avez sélectionné un créneau mais la demande n'a pas été envoyée. Fermer quand même ?",
         });
         if (!ok) return;
     }
@@ -111,16 +114,19 @@ watch(filteredSlots, (visible) => {
 // querySelector<HTMLMetaElement> : le générique dit à TS que le résultat
 // est un HTMLMetaElement (qui a .content), pas juste Element.
 function getCsrf(): string {
-    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? '';
+    return (
+        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+            ?.content ?? ""
+    );
 }
 
 // ── Ouverture ─────────────────────────────────────────────────────────────
 async function open(context: SwapContext): Promise<void> {
-    slots.value        = [];
+    slots.value = [];
     selectedSlot.value = null;
-    dateFrom.value      = '';
-    dateTo.value        = '';
-    loadState.value    = 'loading';
+    dateFrom.value = "";
+    dateTo.value = "";
+    loadState.value = "loading";
     modal.open(context);
     await loadSlots(context.creneauId, context.tacheId);
 }
@@ -133,14 +139,14 @@ async function loadSlots(creneauId: number, tacheId: number): Promise<void> {
     const url = `${window.MonPlanningConfig.routeSlots}?creneau_id=${creneauId}&tache_id=${tacheId}`;
 
     try {
-        const res  = await fetch(url, {
-            headers: { 'X-CSRF-TOKEN': getCsrf(), 'Accept': 'application/json' },
+        const res = await fetch(url, {
+            headers: { "X-CSRF-TOKEN": getCsrf(), Accept: "application/json" },
         });
-        const data = await res.json() as Slot[];
-        slots.value     = data;
-        loadState.value = 'loaded';
+        const data = (await res.json()) as Slot[];
+        slots.value = data;
+        loadState.value = "loaded";
     } catch {
-        loadState.value = 'error';
+        loadState.value = "error";
     }
 }
 
@@ -152,22 +158,25 @@ async function submit(): Promise<void> {
 
     try {
         const res = await fetch(window.MonPlanningConfig.routeStore, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': getCsrf(),
-                'Accept': 'application/json',
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": getCsrf(),
+                Accept: "application/json",
             },
             body: JSON.stringify({
                 creneau_demandeur_id: modal.data.value.creneauId,
-                tache_demandeur_id:   modal.data.value.tacheId,
-                creneau_cible_id:     selectedSlot.value.creneau_id,
-                tache_cible_id:       selectedSlot.value.tache_id,
-                personne_cible_id:    selectedSlot.value.personne_id,
+                tache_demandeur_id: modal.data.value.tacheId,
+                creneau_cible_id: selectedSlot.value.creneau_id,
+                tache_cible_id: selectedSlot.value.tache_id,
+                personne_cible_id: selectedSlot.value.personne_id,
             }),
         });
 
-        const data = await res.json() as { success: boolean; message: string };
+        const data = (await res.json()) as {
+            success: boolean;
+            message: string;
+        };
 
         if (data.success) {
             modal.close();
@@ -175,10 +184,10 @@ async function submit(): Promise<void> {
             // Rechargement après que le toast est visible — identique à l'original.
             setTimeout(() => window.location.reload(), 2500);
         } else {
-            toast.error(data.message || 'Erreur lors de la demande.');
+            toast.error(data.message || "Erreur lors de la demande.");
         }
     } catch {
-        toast.error('Erreur réseau.');
+        toast.error("Erreur réseau.");
     } finally {
         submitting.value = false;
     }
@@ -203,10 +212,10 @@ declare global {
 
 window.openSwapModal = (btn: HTMLElement) => {
     open({
-        creneauId:    parseInt(btn.dataset.creneauId    ?? '0'),
-        tacheId:      parseInt(btn.dataset.tacheId      ?? '0'),
-        tacheLibelle: btn.dataset.tacheLibelle           ?? '',
-        dateLabel:    btn.dataset.date                   ?? '',
+        creneauId: parseInt(btn.dataset.creneauId ?? "0"),
+        tacheId: parseInt(btn.dataset.tacheId ?? "0"),
+        tacheLibelle: btn.dataset.tacheLibelle ?? "",
+        dateLabel: btn.dataset.date ?? "",
     });
 };
 </script>
@@ -220,55 +229,74 @@ window.openSwapModal = (btn: HTMLElement) => {
         max-w-md au lieu de max-w-sm (le modal swap est plus large — liste de slots).
     -->
     <Modal :open="modal.isOpen.value" @close="requestClose" maxWidth="max-w-md">
-
         <!-- Slot header : icône + titre -->
         <template #header>
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔄</div>
-            <span class="font-heading text-[14px] font-semibold text-ink flex-1">
+            <div
+                class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
+            >
+                🔄
+            </div>
+            <span
+                class="font-heading text-[14px] font-semibold text-ink flex-1"
+            >
                 Demander un échange de créneau
             </span>
         </template>
 
         <!-- Slot default : corps du modal -->
         <div class="flex flex-col gap-4">
-
             <!-- Contexte : mon créneau -->
-            <div class="flex items-center gap-3 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg">
+            <div
+                class="flex items-center gap-3 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg"
+            >
                 <span class="text-xl flex-shrink-0">📅</span>
                 <div>
                     <div class="font-bold text-[13.5px] text-ink">
-                        {{ modal.data.value?.dateLabel ?? '—' }}
+                        {{ modal.data.value?.dateLabel ?? "—" }}
                     </div>
                     <div class="text-[12.5px] text-ink-muted mt-0.5">
-                        🔄 Tâche : {{ modal.data.value?.tacheLibelle ?? '—' }}
+                        🔄 Tâche : {{ modal.data.value?.tacheLibelle ?? "—" }}
                     </div>
                 </div>
             </div>
 
             <!-- Sélection du slot cible -->
             <div>
-                <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2">
+                <p
+                    class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2"
+                >
                     Choisir le créneau avec lequel échanger
                 </p>
 
                 <!-- Filtre par plage de dates -->
-                <div v-if="loadState === 'loaded' && slots.length" class="flex items-center gap-2 mb-3">
+                <div
+                    v-if="loadState === 'loaded' && slots.length"
+                    class="flex items-center gap-2 mb-3"
+                >
                     <input
-                        type="date" v-model="dateFrom" aria-label="Du"
-                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition
-                               focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        type="date"
+                        v-model="dateFrom"
+                        aria-label="Du"
+                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    />
+                    <span class="text-[12px] text-ink-muted flex-shrink-0"
+                        >→</span
                     >
-                    <span class="text-[12px] text-ink-muted flex-shrink-0">→</span>
                     <input
-                        type="date" v-model="dateTo" aria-label="Au" :min="dateFrom"
-                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition
-                               focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
-                    >
+                        type="date"
+                        v-model="dateTo"
+                        aria-label="Au"
+                        :min="dateFrom"
+                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    />
                     <button
                         v-if="dateFrom || dateTo"
                         type="button"
                         class="text-[11.5px] text-ink-muted hover:text-ink underline flex-shrink-0 cursor-pointer bg-transparent"
-                        @click="dateFrom = ''; dateTo = ''"
+                        @click="
+                            dateFrom = '';
+                            dateTo = '';
+                        "
                     >
                         Réinitialiser
                     </button>
@@ -293,17 +321,19 @@ window.openSwapModal = (btn: HTMLElement) => {
                 <!-- Aucun créneau disponible du tout -->
                 <div
                     v-else-if="loadState === 'loaded' && !slots.length"
-                    class="text-center py-8 px-4 text-[13.5px] text-ink-muted
-                           bg-surface-2 rounded-lg border border-surface-border"
+                    class="text-center py-8 px-4 text-[13.5px] text-ink-muted bg-surface-2 rounded-lg border border-surface-border"
                 >
                     😕 Aucun créneau disponible pour cet échange.
                 </div>
 
                 <!-- Aucun créneau dans la plage de dates filtrée -->
                 <div
-                    v-else-if="loadState === 'loaded' && slots.length && !filteredSlots.length"
-                    class="text-center py-8 px-4 text-[13.5px] text-ink-muted
-                           bg-surface-2 rounded-lg border border-surface-border"
+                    v-else-if="
+                        loadState === 'loaded' &&
+                        slots.length &&
+                        !filteredSlots.length
+                    "
+                    class="text-center py-8 px-4 text-[13.5px] text-ink-muted bg-surface-2 rounded-lg border border-surface-border"
                 >
                     😕 Aucun créneau dans cette plage de dates.
                 </div>
@@ -322,11 +352,12 @@ window.openSwapModal = (btn: HTMLElement) => {
                     <label
                         v-for="slot in filteredSlots"
                         :key="`${slot.creneau_id}-${slot.tache_id}`"
-                        class="flex items-center gap-3 px-4 py-3 border-[1.5px]
-                               rounded-lg cursor-pointer transition-colors"
-                        :class="selectedSlot === slot
-                            ? 'border-accent bg-sky-50'
-                            : 'border-surface-border hover:border-accent hover:bg-sky-50'"
+                        class="flex items-center gap-3 px-4 py-3 border-[1.5px] rounded-lg cursor-pointer transition-colors"
+                        :class="
+                            selectedSlot === slot
+                                ? 'border-accent bg-sky-50'
+                                : 'border-surface-border hover:border-accent hover:bg-sky-50'
+                        "
                     >
                         <input
                             type="radio"
@@ -334,11 +365,14 @@ window.openSwapModal = (btn: HTMLElement) => {
                             class="w-4 h-4 accent-accent flex-shrink-0"
                             :checked="selectedSlot === slot"
                             @change="selectedSlot = slot"
-                        >
+                        />
                         <div class="flex-1 min-w-0">
-                            <div class="font-semibold text-[13px] text-ink">{{ slot.date_label }}</div>
+                            <div class="font-semibold text-[13px] text-ink">
+                                {{ slot.date_label }}
+                            </div>
                             <div class="text-[12px] text-ink-muted mt-0.5">
-                                {{ slot.tache_libelle }} · avec <strong>{{ slot.personne_nom }}</strong>
+                                {{ slot.tache_libelle }} · avec
+                                <strong>{{ slot.personne_nom }}</strong>
                             </div>
                         </div>
                     </label>
@@ -349,11 +383,7 @@ window.openSwapModal = (btn: HTMLElement) => {
         <!-- Slot footer : boutons d'action -->
         <template #footer>
             <button
-                class="flex-1 min-h-[48px] px-4 py-2.5 bg-accent hover:bg-accent-dark
-                       text-white text-[13px] font-bold rounded-lg transition-all cursor-pointer
-                       flex items-center justify-center gap-1.5
-                       disabled:opacity-40 disabled:cursor-not-allowed
-                       shadow-[0_3px_12px_rgba(3,105,161,0.3)]"
+                class="btn-touch flex-1 px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_3px_12px_rgba(3,105,161,0.3)]"
                 :disabled="!canSubmit"
                 @click="submit"
             >
@@ -361,9 +391,7 @@ window.openSwapModal = (btn: HTMLElement) => {
                 <span v-else>🔄 Envoyer la demande</span>
             </button>
             <button
-                class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted
-                       hover:bg-surface-3 hover:text-ink text-[13px] font-semibold
-                       rounded-lg transition-colors cursor-pointer bg-transparent min-h-[48px]"
+                class="btn-touch px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer bg-transparent"
                 @click="requestClose"
             >
                 Annuler

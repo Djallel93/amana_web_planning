@@ -116,7 +116,10 @@
             <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Détail par personne</span>
         </div>
-        <div class="overflow-x-auto">
+        {{-- Tableau desktop (≥ md) — voir carte mobile juste après. 04/09/2026 :
+             seule vue de cette app qui n'avait pas encore ce fallback (voir
+             absences/evenements/restrictions/index dans ce même dossier). --}}
+        <div class="hidden md:block overflow-x-auto">
             <table class="w-full border-collapse text-[13px]">
                 <thead>
                     <tr>
@@ -156,6 +159,46 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+
+        {{-- Cartes mobile (< md) — 04/09/2026. 10 colonnes par personne :
+             même traitement "dense/2D → carte" que PlanningGrid.vue
+             (voir amana_shared/docs/mobile-patterns.md) — total mis en
+             avant, répartition par tâche en grille de chips
+             grid-cols-2 sm:grid-cols-3 (courtes étiquettes, taille de
+             contenu adaptée à ce nombre de colonnes fixes sur téléphone). --}}
+        <div class="md:hidden divide-y divide-surface-3">
+            @foreach($stats['personnes'] as $nom)
+                @php
+                    $total  = $stats['taskCounts'][$nom] ?? 0;
+                    $dc     = $stats['dayCounts'][$nom] ?? ['vendredis'=>0,'samedis'=>0];
+                    $tp     = $stats['tasksByPerson'][$nom] ?? [];
+                    $consec = $stats['consecutiveDays'][$nom] ?? 0;
+                    $abs    = $stats['absenceDays'][$nom] ?? 0;
+                @endphp
+                <div class="px-4 py-3.5">
+                    <div class="flex items-center justify-between gap-2 mb-2.5">
+                        <div class="font-semibold text-[13.5px] text-ink">{{ $nom }}</div>
+                        <div class="flex items-baseline gap-1 flex-shrink-0">
+                            <span class="font-heading text-[18px] font-bold text-ink leading-none">{{ $total }}</span>
+                            <span class="text-[10.5px] text-ink-muted uppercase tracking-wide">total</span>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11.5px] mb-2.5">
+                        <div class="px-2 py-1 rounded bg-surface-2 text-ink-muted">Ven. <span class="font-semibold text-ink">{{ $dc['vendredis'] }}</span></div>
+                        <div class="px-2 py-1 rounded bg-surface-2 text-ink-muted">Sam. <span class="font-semibold text-ink">{{ $dc['samedis'] }}</span></div>
+                        <div class="px-2 py-1 rounded bg-surface-2 text-[#2563eb]">Entrée <span class="font-semibold">{{ $tp['entree'] ?? 0 }}</span></div>
+                        <div class="px-2 py-1 rounded bg-surface-2 text-[#059669]">Mektaba <span class="font-semibold">{{ $tp['mektaba'] ?? 0 }}</span></div>
+                        <div class="px-2 py-1 rounded bg-surface-2 text-[#d97706]">Salle <span class="font-semibold">{{ $tp['salle'] ?? 0 }}</span></div>
+                        <div class="px-2 py-1 rounded bg-surface-2 text-[#e11d48]">Amana Food <span class="font-semibold">{{ $tp['amana_food'] ?? 0 }}</span></div>
+                        <div class="px-2 py-1 rounded bg-surface-2 text-[#7c3aed]">Cours <span class="font-semibold">{{ $tp['cours'] ?? 0 }}</span></div>
+                    </div>
+                    <div class="flex items-center gap-3 text-[11.5px]">
+                        <span class="{{ $consec > 2 ? 'text-rose-600 font-bold' : 'text-ink-muted' }}">Consécutifs : {{ $consec }}</span>
+                        <span class="{{ $abs > 0 ? 'text-amber-600 font-semibold' : 'text-ink-faint' }}">Absences : {{ $abs ?: '—' }}</span>
+                    </div>
+                </div>
+            @endforeach
         </div>
     </div>
 

@@ -256,7 +256,7 @@ defineExpose({ open });
                     <button
                         @click="save"
                         :disabled="saving"
-                        class="w-full sm:w-auto px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg shadow-[0_2px_10px_rgba(3,105,161,0.3)] transition-all cursor-pointer min-h-[44px] whitespace-nowrap disabled:opacity-50"
+                        class="btn-touch w-full sm:w-auto px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg shadow-[0_2px_10px_rgba(3,105,161,0.3)] transition-all cursor-pointer whitespace-nowrap disabled:opacity-50"
                     >
                         {{ saving ? "…" : "Enregistrer" }}
                     </button>
@@ -275,13 +275,13 @@ defineExpose({ open });
                 <div class="flex gap-2 flex-wrap">
                     <button
                         @click="unassign"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px] bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
+                        class="btn-touch inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
                     >
                         ✕ Désassigner
                     </button>
                     <button
                         @click="deleteCreneau"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px] bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
+                        class="btn-touch inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
                     >
                         🗑️ Supprimer le créneau
                     </button>

@@ -10,7 +10,10 @@ import {
     registerConfirmForms,
 } from "@amana/shared-ui";
 import SwapRequestModal from "@/components/mon-planning/SwapRequestModal.vue";
-import SearchableSelect from "@/components/shared/SearchableSelect.vue";
+// 04/09/2026 : SearchableSelect promu vers @amana/shared-ui (roadmap mobile
+// §4.3/step 7) — plus d'import local, mêmes props qu'avant, comportement
+// identique (voir amana_shared_ui/src/components/SearchableSelect.vue).
+import { SearchableSelect } from "@amana/shared-ui";
 import HoraireSettings from "@/components/settings/HoraireSettings.vue";
 import EventTaskBlocker from "@/components/evenements/EventTaskBlocker.vue";
 import BulkEvenementImport from "@/components/evenements/BulkEvenementImport.vue";
@@ -108,6 +111,11 @@ document
                     inputName,
                     inputId,
                     multiple,
+                    // Préserve le message d'erreur d'origine, spécifique à
+                    // Google Calendar (04/09/2026) — le message par défaut
+                    // du composant partagé est générique.
+                    errorMessage:
+                        "Impossible de contacter Google Calendar. Vérifiez la configuration Google Calendar.",
                     ...(placeholder ? { placeholder } : {}),
                 });
             },
