@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\CalendrierResource;
 use App\Models\CalendrierGoogle;
 use Illuminate\Http\JsonResponse;
 
@@ -33,12 +34,7 @@ class CalendriersController extends Controller
     {
         $calendars = CalendrierGoogle::where('actif', true)
             ->orderBy('nom')
-            ->get()
-            ->map(fn(CalendrierGoogle $c) => [
-                'id' => $c->calendar_id,
-                'name' => $c->nom,
-            ])
-            ->values();
+            ->get();
 
         if ($calendars->isEmpty()) {
             return response()->json([
@@ -47,6 +43,6 @@ class CalendriersController extends Controller
             ]);
         }
 
-        return response()->json(['calendars' => $calendars]);
+        return response()->json(['calendars' => CalendrierResource::collection($calendars)]);
     }
 }

@@ -202,7 +202,7 @@ window.openEditAbsenceModal = (btn: HTMLElement) => {
 </script>
 
 <template>
-    <Modal :open="modal.isOpen.value" @close="requestClose" maxWidth="max-w-md">
+    <Modal :open="modal.isOpen.value" @close="requestClose" max-width="max-w-md">
         <template #header>
             <div
                 class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"

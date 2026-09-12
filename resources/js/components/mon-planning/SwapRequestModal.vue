@@ -228,7 +228,7 @@ window.openSwapModal = (btn: HTMLElement) => {
                                       sélectionné mais pas encore envoyé.
         max-w-md au lieu de max-w-sm (le modal swap est plus large — liste de slots).
     -->
-    <Modal :open="modal.isOpen.value" @close="requestClose" maxWidth="max-w-md">
+    <Modal :open="modal.isOpen.value" @close="requestClose" max-width="max-w-md">
         <!-- Slot header : icône + titre -->
         <template #header>
             <div

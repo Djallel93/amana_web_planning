@@ -1,0 +1,22 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    # On scope volontairement à app/ pour le premier passage : database/,
+    # tests/ et routes/ ont des besoins/patterns différents (factories,
+    # closures de routes) et gonfleraient le bruit initial sans proportion
+    # avec la valeur ajoutée. À élargir plus tard une fois le niveau app/
+    # stabilisé.
+    paths:
+        - app
+
+    # Niveau de départ volontairement bas (voir
+    # https://phpstan.org/user-guide/rule-levels pour l'échelle 0-9).
+    # Objectif : monter d'un niveau toutes les quelques semaines au fur et
+    # à mesure que le code s'adapte, plutôt que de viser un niveau élevé
+    # dès le départ et de crouler sous les faux positifs Laravel. Ne pas
+    # sauter plusieurs niveaux d'un coup — régénérer la baseline
+    # (`composer analyse -- --generate-baseline`) à chaque montée de
+    # niveau pour absorber les nouveaux signalements sur le code existant.
+    level: 3

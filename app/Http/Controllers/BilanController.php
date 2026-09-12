@@ -7,6 +7,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Bilan\StoreBilanAmanaFoodRequest;
 use App\Http\Requests\Bilan\StoreBilanPresenceRequest;
+use App\Http\Resources\Bilan\BilanResource;
+use App\Http\Resources\Bilan\BilanSerieResource;
 use App\Models\Bilan;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
@@ -57,7 +59,7 @@ class BilanController extends Controller
 
     /**
      * Retourne le bilan enregistré pour une date donnée, ou des valeurs à
-     * NULL si aucun bilan n'existe encore pour cette date (voir serialize()).
+     * NULL si aucun bilan n'existe encore pour cette date (voir BilanResource).
      *
      * GET /bilan/data?date=YYYY-MM-DD
      */
@@ -70,7 +72,7 @@ class BilanController extends Controller
         $date  = $request->query('date');
         $bilan = Bilan::with(['personneMajFood', 'personneMajPresence'])->whereDate('date', $date)->first();
 
-        return response()->json($this->serialize($date, $bilan));
+        return response()->json(new BilanResource(['date' => $date, 'bilan' => $bilan]));
     }
 
     /**
@@ -112,7 +114,7 @@ class BilanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Bilan Amana food enregistré.',
-            'bilan'   => $this->serialize($date, $bilan),
+            'bilan'   => new BilanResource(['date' => $date, 'bilan' => $bilan]),
         ]);
     }
 
@@ -155,7 +157,7 @@ class BilanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Bilan Présences enregistré.',
-            'bilan'   => $this->serialize($date, $bilan),
+            'bilan'   => new BilanResource(['date' => $date, 'bilan' => $bilan]),
         ]);
     }
 
@@ -204,7 +206,7 @@ class BilanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Bilan Amana food réinitialisé pour cette date (pas de cours).',
-            'bilan'   => $this->serialize($date, $bilan),
+            'bilan'   => new BilanResource(['date' => $date, 'bilan' => $bilan]),
         ]);
     }
 
@@ -253,41 +255,8 @@ class BilanController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Bilan Présences réinitialisé pour cette date (pas de cours).',
-            'bilan'   => $this->serialize($date, $bilan),
+            'bilan'   => new BilanResource(['date' => $date, 'bilan' => $bilan]),
         ]);
-    }
-
-    /**
-     * Sérialise un bilan (ou son absence) pour le format attendu par BilanView.vue.
-     * Chaque groupe (Amana food / Présences) porte sa propre méta de dernière
-     * modification, puisqu'ils sont enregistrés indépendamment.
-     *
-     * NULL vs 0 : montantCarte/montantEspece/nbPresents/nbEnLigne restent à
-     * `null` quand la colonne l'est en base (pas de `?? 0` ici) — c'est au
-     * frontend d'afficher un champ vide plutôt qu'un 0 trompeur.
-     */
-    private function serialize(string $date, ?Bilan $bilan): array
-    {
-        /** @var \App\Models\Personne|null $user */
-        $user = Auth::user();
-
-        return [
-            'date'                  => $date,
-            'montantCarte'          => $bilan?->montant_carte  !== null ? (float) $bilan->montant_carte  : null,
-            'montantEspece'         => $bilan?->montant_espece !== null ? (float) $bilan->montant_espece : null,
-            'nbPresents'            => $bilan?->nb_presents,
-            'nbEnLigne'             => $bilan?->nb_en_ligne,
-            'existe'                => $bilan !== null,
-            'derniereMajFood'       => $bilan?->maj_food_at?->locale('fr')->isoFormat('D MMM YYYY [à] HH:mm'),
-            'derniereMajFoodPar'    => $bilan?->personneMajFood
-                ? $bilan->personneMajFood->prenom . ' ' . $bilan->personneMajFood->nom
-                : null,
-            'derniereMajPresence'    => $bilan?->maj_presence_at?->locale('fr')->isoFormat('D MMM YYYY [à] HH:mm'),
-            'derniereMajPresencePar' => $bilan?->personneMajPresence
-                ? $bilan->personneMajPresence->prenom . ' ' . $bilan->personneMajPresence->nom
-                : null,
-            'peutReinitialiser' => (bool) ($user?->isAdmin() || $user?->isGestionnaire()),
-        ];
     }
 
     /**
@@ -325,27 +294,14 @@ class BilanController extends Controller
         $responsables = $this->responsablesParDate($from, $to);
 
         // NULL vs 0 : un groupe (Amana food / Présences) est "sans cours" si
-        // ses colonnes sont NULL — on propage le null dans la série pour que
-        // le graphique affiche un trou plutôt qu'un 0 trompeur ce jour-là.
-        $serie = $bilans->map(function (Bilan $bilan) use ($responsables) {
-            $date = $bilan->date->toDateString();
-            $r    = $responsables[$date] ?? [];
-
-            $montantCarte  = $bilan->montant_carte  !== null ? (float) $bilan->montant_carte  : null;
-            $montantEspece = $bilan->montant_espece !== null ? (float) $bilan->montant_espece : null;
-
-            return [
-                'date'                 => $date,
-                'totalPresence'        => $bilan->nb_presents !== null ? $bilan->nb_presents + ($bilan->nb_en_ligne ?? 0) : null,
-                'totalMontant'         => $montantCarte !== null ? $montantCarte + ($montantEspece ?? 0) : null,
-                'nbPresents'           => $bilan->nb_presents,
-                'nbEnLigne'            => $bilan->nb_en_ligne,
-                'montantCarte'         => $montantCarte,
-                'montantEspece'        => $montantEspece,
-                'responsableAmanaFood' => $r['amana_food'] ?? null,
-                'responsableMektaba'   => $r['mektaba'] ?? null,
-            ];
-        })->values();
+        // ses colonnes sont NULL — BilanSerieResource propage le null dans
+        // la série pour que le graphique affiche un trou plutôt qu'un 0
+        // trompeur ce jour-là. $responsables est déjà résolu pour toute la
+        // période en une seule passe (voir responsablesParDate()) ; on
+        // l'injecte par jour plutôt que de le recalculer par ressource.
+        $serie = $bilans->map(
+            fn(Bilan $bilan) => new BilanSerieResource($bilan, $responsables[$bilan->date->toDateString()] ?? [])
+        )->values();
 
         // ── Nombre de créneaux existants sur la période (taux de remplissage) ──
         $nbCreneaux = Creneau::whereBetween('date', [$from, $to])->count();

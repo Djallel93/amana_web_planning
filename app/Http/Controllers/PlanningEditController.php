@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\Personnes\PersonneResource;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
@@ -59,10 +60,7 @@ class PlanningEditController extends Controller
             ->orderBy('prenom')
             ->get(['id', 'nom', 'prenom']);
 
-        return response()->json($personnes->map(fn($p) => [
-            'id' => $p->id,
-            'label' => $p->prenom . ' ' . $p->nom,
-        ]));
+        return response()->json(PersonneResource::collection($personnes));
     }
 
     /**

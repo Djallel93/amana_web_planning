@@ -203,7 +203,7 @@ defineExpose({ open });
 </script>
 
 <template>
-    <Modal :open="isOpen" @close="close" maxWidth="max-w-sm">
+    <Modal :open="isOpen" @close="close" max-width="max-w-sm">
         <template #header>
             <div
                 class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
