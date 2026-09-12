@@ -11,11 +11,18 @@
         <p class="text-[13px] text-ink-muted mt-1">Vacances, Ramadan, événements spéciaux…</p>
     </div>
     @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
-        <a href="{{ route('evenements.create') }}"
-           class="inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg
-                  shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px transition-all no-underline min-h-[44px]">
-            + Créer un événement
-        </a>
+        <div class="flex gap-2.5">
+            <a href="{{ route('evenements.import') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg
+                      transition-colors no-underline min-h-[44px]">
+                📥 Importer CSV
+            </a>
+            <a href="{{ route('evenements.create') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-semibold rounded-lg
+                      shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px transition-all no-underline min-h-[44px]">
+                + Créer un événement
+            </a>
+        </div>
     @endif
 </div>
 
@@ -96,7 +103,7 @@
                                        class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
                                        title="Modifier">✏️</a>
                                     <form action="{{ route('evenements.destroy', $evt->id) }}" method="POST"
-                                          onsubmit="return confirm('Supprimer « {{ $evt->nom }} » ?')">
+                                          data-confirm="Supprimer « {{ $evt->nom }} » ?" data-confirm-danger>
                                         @csrf @method('DELETE')
                                         <button type="submit"
                                                 class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
@@ -158,7 +165,7 @@
                             <a href="{{ route('evenements.edit', $evt->id) }}"
                                class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm no-underline min-h-[44px] min-w-[44px]">✏️</a>
                             <form action="{{ route('evenements.destroy', $evt->id) }}" method="POST"
-                                  onsubmit="return confirm('Supprimer « {{ $evt->nom }} » ?')">
+                                  data-confirm="Supprimer « {{ $evt->nom }} » ?" data-confirm-danger>
                                 @csrf @method('DELETE')
                                 <button type="submit"
                                         class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm cursor-pointer min-h-[44px] min-w-[44px]">🗑️</button>

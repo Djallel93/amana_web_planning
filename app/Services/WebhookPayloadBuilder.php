@@ -6,23 +6,32 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Helpers\DateHelper;
+use App\Helpers\GoogleCalendarColors;
 use App\Models\Creneau;
-use App\Models\Evenement;
-use App\Models\Setting;
+use Amana\Shared\Models\Setting;
 use App\Models\Tache;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Construit les payloads JSON envoyés vers Make.com pour le planning.
+ * Construit les payloads consommés par SynchroniserGoogleCalendar pour
+ * synchroniser le planning avec Google Calendar (appel API direct).
  *
- * Format (juin 2026) : la racine se limite strictement à `lieu` + `creneaux`.
+ * Format (juil. 2026) : la racine se limite strictement à `lieu` + `creneaux`.
  * `taches`, `evenements_speciaux` et `evenements_sociaux` sont des TABLEAUX
- * (et non plus des objets indexés par code). `evenements` (organisationnels,
- * type Ramadan/Vacances) est un tableau informatif {nom, description} —
- * sans horaires, puisqu'un événement organisationnel couvre des jours entiers.
+ * (et non plus des objets indexés par code). Les événements organisationnels
+ * (type Ramadan/Vacances) ne figurent PAS dans ces payloads de créneaux : ils
+ * sont déjà envoyés individuellement à leur création/modification via
+ * WebhookEvenementPayloadBuilder::buildUpsert(), les retraiter ici serait
+ * redondant.
  *
- * Chaque méthode correspond à un verbe HTTP précis envoyé par EnvoyerWebhookMake :
+ * Chaque ligne (`taches`/`evenements_speciaux`/`evenements_sociaux`) porte un
+ * champ `code` (code ref_taches) et chaque créneau porte un `id_planning` —
+ * utilisés par GoogleCalendarPayloadMapper pour retrouver/mettre à jour la
+ * ligne plan_calendrier_evenements correspondante (event_id exact), sans
+ * quoi seul `nom` (libellé d'affichage) serait disponible.
+ *
+ * Chaque méthode correspond à un verbe HTTP précis envoyé par SynchroniserGoogleCalendar :
  *   - build()                 → POST   génération complète
  *   - buildForCreation()      → POST   créneau créé manuellement (vide)
  *   - buildForReassignation() → PATCH  réassignation d'une tâche
@@ -101,7 +110,7 @@ class WebhookPayloadBuilder
      * `evenements_sociaux` dédiée pour le code `annulation_cours`, envoyée
      * exactement comme n'importe quel autre événement social (POST, même
      * structure que build()/buildForCreation()) — pas de type de payload
-     * distinct côté Make.com.
+     * distinct côté Google Calendar.
      */
     public function buildForAnnulationCours(Creneau $creneau): array
     {
@@ -150,7 +159,7 @@ class WebhookPayloadBuilder
      * Payload pour l'exécution d'un échange validé. Contient TOUJOURS les
      * deux créneaux affectés (date A + date B), même si l'un des deux est
      * désormais dans le passé — l'échange étant validé et réellement
-     * exécuté en base, Make.com doit être tenu à jour pour garder
+     * exécuté en base, Google Calendar doit être tenu à jour pour garder
      * l'historique cohérent (pas de filtre sur la date).
      *
      * $creneauA/$tacheA et $creneauB/$tacheB représentent les deux slots
@@ -176,7 +185,7 @@ class WebhookPayloadBuilder
     /**
      * Payload de suppression pour une tâche désassignée (bouton "✕ Désassigner").
      * Pas de nom_complet/email — uniquement de quoi localiser l'événement
-     * calendrier côté Make.com (horaires + calendrier cible).
+     * calendrier côté Google Calendar (horaires + calendrier cible).
      */
     public function buildForUnassignation(Creneau $creneau, Tache $tache): array
     {
@@ -185,6 +194,7 @@ class WebhookPayloadBuilder
         $date = Carbon::parse($creneau->date)->toDateString();
 
         $creneauPayload = [
+            'id_planning' => $creneau->id,
             'date' => $date,
             'taches' => [
                 $this->ligneSuppression($tache->code, $toutesLesTaches->get($tache->code), $date, $heureCours),
@@ -204,7 +214,7 @@ class WebhookPayloadBuilder
     /**
      * Payload de suppression pour un créneau supprimé en intégralité.
      * Liste toutes les tâches + événements spéciaux/sociaux susceptibles
-     * d'avoir un événement calendrier créé, pour que Make.com nettoie tout
+     * d'avoir un événement calendrier créé, pour que la synchronisation nettoie tout
      * en une fois.
      *
      * ⚠️ À appeler AVANT la suppression effective en base — le créneau doit
@@ -255,6 +265,7 @@ class WebhookPayloadBuilder
             'lieu' => $this->lieu(),
             'creneaux' => [
                 [
+                    'id_planning' => $creneau->id,
                     'date' => $date,
                     'taches' => $taches,
                     'evenements_speciaux' => $eventsSpeciaux,
@@ -262,6 +273,43 @@ class WebhookPayloadBuilder
                 ]
             ],
         ];
+    }
+
+    // ── Lecture seule : un seul créneau, par date exacte ──────────────────
+
+    /**
+     * Retourne les mêmes lignes `taches`/`evenements_speciaux` que
+     * build()/buildForCreation() (mêmes règles métier : offsets,
+     * rappel_sandwich qui suit amana_food, assistance_amana_food qui suit
+     * entree…), mais pour UNE SEULE date exacte plutôt qu'une plage de
+     * semaines à partir du prochain vendredi.
+     *
+     * Utilisé par RappelService pour les rappels par email (3 jours avant /
+     * jour J / 3h avant) — sans dupliquer la logique d'assignation ici.
+     * `evenements_sociaux` (annonce_cours, message_bot) est volontairement
+     * omis : ces entrées n'ont jamais d'assignation (`assigne`/`email` =
+     * null), donc rien à envoyer comme rappel pour elles.
+     *
+     * @return array{id_planning: int, date: string, taches: array, evenements_speciaux: array}|null
+     *         null si aucun créneau (plan_creneaux) n'existe à cette date.
+     */
+    public function buildPourDate(string $date): ?array
+    {
+        $creneau = Creneau::with(['taches.tache', 'taches.personne', 'evenements.tachesBloquees'])
+            ->where('date', $date)
+            ->first();
+
+        if (!$creneau) {
+            return null;
+        }
+
+        $heureCours = Setting::get('heure_cours', 'planning') ?? '20:00';
+        $toutesLesTaches = Tache::all()->keyBy('code');
+
+        $entry = $this->buildCreneauComplet($creneau, $toutesLesTaches, $heureCours);
+        unset($entry['evenements_sociaux']);
+
+        return $entry;
     }
 
     // ── Private : construction d'un créneau complet (POST) ───────────────
@@ -315,14 +363,17 @@ class WebhookPayloadBuilder
             $this->ligneAvecAssignation('message_bot', null, $taches->get('message_bot'), $date, $heureCours),
         ];
 
-        $evenementsOrganisationnels = $creneau->evenements->map(fn(Evenement $e) => [
-            'nom' => $e->nom,
-            'description' => $e->description ?? '',
-        ])->values()->all();
+        // NB : les événements organisationnels (Ramadan, vacances…) ne sont
+        // volontairement PAS inclus ici — ils sont déjà envoyés à Google Calendar
+        // individuellement (POST/PATCH) au moment de leur création/modification
+        // via WebhookEvenementPayloadBuilder::buildUpsert(), donc les
+        // retraiter à chaque génération de planning serait redondant.
+        // $creneau->evenements reste chargé/utilisé par tachesBloqueesCodes()
+        // ci-dessus pour savoir quelles tâches exclure de $tachesPayload.
 
         return [
+            'id_planning' => $creneau->id,
             'date' => $date,
-            'evenements' => $evenementsOrganisationnels,
             'taches' => $tachesPayload,
             'evenements_speciaux' => $eventsSpeciaux,
             'evenements_sociaux' => $eventsSociaux,
@@ -342,6 +393,7 @@ class WebhookPayloadBuilder
         $personne = $ct?->personne;
 
         $entry = [
+            'id_planning' => $creneau->id,
             'date' => $date,
             'taches' => [
                 $this->ligneAvecAssignation($tache->code, $personne, $taches->get($tache->code), $date, $heureCours),
@@ -372,13 +424,15 @@ class WebhookPayloadBuilder
         [$debut, $fin] = $fixe ?? $this->calculerHoraires($cleHoraire, $date, $heureCours);
 
         return [
+            'code' => $code,
             'nom' => $tacheRef?->libelle ?? ucfirst(str_replace('_', ' ', $code)),
             'assigne' => $personne ? trim($personne->prenom . ' ' . $personne->nom) : null,
             'email' => $personne?->email,
             'heure_debut' => $debut,
             'heure_fin' => $fin,
-            'calendar_names' => $this->getCalendarNames($cleHoraire),
-            'description' => $tacheRef?->description ?? '',
+            'calendar_ids' => $this->getCalendarIds($cleHoraire),
+            'description' => $tacheRef?->description_calendrier ?? '',
+            'color_id' => $this->getCouleur($code),
         ];
     }
 
@@ -395,10 +449,11 @@ class WebhookPayloadBuilder
         [$debut, $fin] = $fixe ?? $this->calculerHoraires($cleHoraire, $date, $heureCours);
 
         return [
+            'code' => $code,
             'nom' => $tacheRef?->libelle ?? ucfirst(str_replace('_', ' ', $code)),
             'heure_debut' => $debut,
             'heure_fin' => $fin,
-            'calendar_names' => $this->getCalendarNames($cleHoraire),
+            'calendar_ids' => $this->getCalendarIds($cleHoraire),
         ];
     }
 
@@ -474,19 +529,36 @@ class WebhookPayloadBuilder
     }
 
     /**
-     * Retourne les calendriers Google Calendar cibles pour un code donné.
+     * Retourne les identifiants Google Calendar (calendarId) cibles pour un
+     * code donné. `ref_settings.calendar_<code>` stocke désormais l'ID
+     * Google Calendar directement (plus un nom — voir le dropdown alimenté
+     * par le registre `ref_calendriers_google`, CalendriersController).
      *
      * Aujourd'hui un seul calendrier est configurable par code dans les
-     * Paramètres (une valeur ref_settings par calendar_<code>), mais le
-     * payload expose déjà un tableau — si demain plusieurs calendriers
-     * doivent être configurables pour un même code, seul ce point change.
+     * Paramètres, mais le payload expose déjà un tableau — si demain
+     * plusieurs calendriers doivent être configurables pour un même code,
+     * seul ce point change.
      *
      * @return array<int, string>
      */
-    private function getCalendarNames(string $code): array
+    private function getCalendarIds(string $code): array
     {
         $valeur = Setting::get("calendar_{$code}", 'planning');
         return $valeur ? [$valeur] : [];
+    }
+
+    /**
+     * Couleur Google Calendar (colorId) pour un code donné : priorité au
+     * paramètre `couleur_<code>` (éditable dans Paramètres → Couleurs),
+     * repli sur GoogleCalendarColors::TACHES si le paramètre n'existe pas
+     * encore ou a été laissé vide.
+     */
+    private function getCouleur(string $code): ?string
+    {
+        $valeur = Setting::get("couleur_{$code}", 'planning');
+        return $valeur !== null && $valeur !== ''
+            ? (string) $valeur
+            : (GoogleCalendarColors::TACHES[$code] ?? null);
     }
 
     private function calculerHoraires(string $code, string $date, string $heureCours): array

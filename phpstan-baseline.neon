@@ -1,0 +1,16 @@
+# Baseline générée par `vendor/bin/phpstan analyse --generate-baseline`.
+#
+# ⚠️ CE FICHIER EST UN PLACEHOLDER — NON GÉNÉRÉ RÉELLEMENT.
+# L'environnement utilisé pour préparer ce patch n'a pas d'accès réseau à
+# Packagist, donc `composer install` (et par conséquent `phpstan analyse`)
+# n'a pas pu être exécuté ici. Avant de merger ce patch :
+#
+#   composer install
+#   vendor/bin/phpstan analyse --generate-baseline
+#
+# ...et committer le fichier phpstan-baseline.neon réellement produit à la
+# place de celui-ci (il listera les signalements existants sur app/ au
+# niveau 3, pour qu'ils n'empêchent pas cette tâche — qui est "ajouter
+# l'outil", pas "corriger tout l'existant" — de passer).
+parameters:
+    ignoreErrors: []

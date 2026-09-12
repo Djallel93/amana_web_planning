@@ -65,12 +65,8 @@ return new class extends Migration {
             $table->index('expires_at');
 
             // ── Clés étrangères ────────────────────────────────────────────
-            $table->foreign('id_personne_demandeur')
-                ->references('id')->on('ref_personnes')
-                ->onDelete('cascade');
-            $table->foreign('id_personne_cible')
-                ->references('id')->on('ref_personnes')
-                ->onDelete('cascade');
+            // FK vers ref_personnes retirée : table hors DB (amana_commun) — relation Eloquent uniquement.
+            // FK vers ref_personnes retirée : table hors DB (amana_commun) — relation Eloquent uniquement.
             $table->foreign('id_creneau_demandeur')
                 ->references('id')->on('plan_creneaux')
                 ->onDelete('cascade');
@@ -83,9 +79,7 @@ return new class extends Migration {
             $table->foreign('id_tache_cible')
                 ->references('id')->on('ref_taches')
                 ->onDelete('restrict');
-            $table->foreign('approuve_par')
-                ->references('id')->on('ref_personnes')
-                ->onDelete('set null');
+            // FK vers ref_personnes retirée : table hors DB (amana_commun) — relation Eloquent uniquement.
         });
     }
 

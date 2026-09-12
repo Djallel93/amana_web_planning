@@ -4,14 +4,14 @@
 
 <head>
     <title>Bienvenue chez AMANA</title>
-    @include('emails.partials._head')
+    @include('amana-shared::emails.partials._head')
 </head>
 
 <body>
     <div class="shell">
         <div class="wrapper">
 
-            @include('emails.partials._header', [
+            @include('amana-shared::emails.partials._header', [
                 'badge' => 'Candidature validée',
                 'title' => 'Bienvenue parmi nous&nbsp;!',
                 'titleSub' => 'AMANA Planning',
@@ -53,14 +53,14 @@
                     'featuresLabel' => 'Une fois connecté, vous pourrez',
                 ])
 
-                @include('emails.partials._hadith')
+                @include('amana-shared::emails.partials._hadith')
 
-                @include('emails.partials._closing')
+                @include('amana-shared::emails.partials._closing')
 
        
      </div>
 
-            @include('emails.partials._footer')
+            @include('amana-shared::emails.partials._footer')
 
         </div>
     </div>

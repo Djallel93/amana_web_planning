@@ -3,15 +3,17 @@
 
 declare(strict_types=1);
 
+use Amana\Shared\Http\Controllers\ActivityStatsController;
+use Amana\Shared\Http\Controllers\AuditLogController;
+use Amana\Shared\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\CandidaturesController;
-use App\Http\Controllers\Admin\AuditLogController;
-use App\Http\Controllers\Admin\ActiviteController;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BilanController;
+use App\Http\Controllers\CalendrierGoogleController;
 use App\Http\Controllers\CalendriersController;
+use App\Http\Controllers\CandidatureController;
 use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EchangeController;
-use App\Http\Controllers\EmergencyController;
+use App\Http\Controllers\GuideController;
 use App\Http\Controllers\MonPlanningController;
 use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\PlanningApiController;
@@ -31,10 +33,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn() => redirect()->route('planning.index'));
 
-// ── Outil d'urgence post-déploiement — génère un hash bcrypt (désactivé si APP_EMERGENCY_KEY vide) ──
-Route::get('/urgence-hash', [EmergencyController::class, 'show'])->name('emergency.hash.show');
-Route::post('/urgence-hash', [EmergencyController::class, 'generate'])->name('emergency.hash.generate');
-
 // ── Authentification ──────────────────────────────────────────────────────
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])
@@ -51,11 +49,11 @@ Route::get('/nouveau-mot-de-passe/{token}', [AuthController::class, 'showResetPa
 Route::post('/nouveau-mot-de-passe', [AuthController::class, 'resetPassword'])->name('password.update');
 
 // ── Inscription publique ──────────────────────────────────────────────────
-Route::get('/inscription', [AuthController::class, 'showInscription'])
+Route::get('/inscription', [CandidatureController::class, 'showInscription'])
     ->name('inscription')
     ->middleware('throttle:20,1');
 
-Route::post('/inscription', [AuthController::class, 'inscription'])
+Route::post('/inscription', [CandidatureController::class, 'inscription'])
     ->name('inscription.submit')
     ->middleware('throttle:5,1');
 
@@ -83,16 +81,30 @@ Route::middleware('auth')->group(function () {
     // ── Mon planning (vue personnelle) — tous les membres connectés ────────
     Route::get('/mon-planning', [MonPlanningController::class, 'index'])->name('mon-planning');
 
-    // ── Bilan quotidien (Amana food + Présences) — tous les membres connectés ──
-    Route::prefix('bilan')->name('bilan.')->group(function () {
+    // ── Guide d'utilisation — tous les membres connectés (contenu adapté au rôle) ──
+    Route::get('/guide', [GuideController::class, 'index'])->name('guide.index');
+
+    // ── Bilan quotidien (Amana food + Présences) — membre et au-dessus ──
+    // (exclut le rôle 'benevole', restreint à entree/salle/amana_food côté
+    // planning — voir config/planning.php et Personne::peutFaireTache()).
+    Route::prefix('bilan')->name('bilan.')->middleware('role:membre')->group(function () {
         Route::get('/', [BilanController::class, 'index'])->name('index');
         Route::get('/data', [BilanController::class, 'show'])->name('data.show');
-        Route::post('/data', [BilanController::class, 'store'])->name('data.store');
+        Route::post('/data/amana-food', [BilanController::class, 'storeAmanaFood'])->name('data.store.amana-food');
+        Route::post('/data/presence', [BilanController::class, 'storePresence'])->name('data.store.presence');
+
+        // Réinitialisation (mise à NULL) d'un groupe pour une date —
+        // gestionnaires et admins uniquement (role:gestionnaire = admin OU gestionnaire, cf. EnsureRole).
+        Route::middleware('role:gestionnaire')->group(function () {
+            Route::post('/data/amana-food/reset', [BilanController::class, 'resetAmanaFood'])->name('data.reset.amana-food');
+            Route::post('/data/presence/reset', [BilanController::class, 'resetPresence'])->name('data.reset.presence');
+        });
+
         Route::get('/statistiques', [BilanController::class, 'statistiques'])->name('statistiques');
         Route::get('/statistiques/data', [BilanController::class, 'statistiquesData'])->name('statistiques.data');
     });
 
-    // ── API interne — liste des calendriers Make.com (tous rôles) ─────────
+    // ── API interne — liste des calendriers Google Calendar (tous rôles) ──
     Route::get('/api/calendriers', [CalendriersController::class, 'index'])->name('calendriers.index');
 
     // ── Diagnostic SMTP — admin uniquement ────────────────────────────────
@@ -158,6 +170,17 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:gestionnaire')->group(function () {
         Route::get('/parametres', [SettingsController::class, 'index'])->name('settings.index');
         Route::post('/parametres', [SettingsController::class, 'update'])->name('settings.update');
+
+        // Registre des calendriers Google Calendar — voir CalendrierGoogleController
+        // (découverte automatique impossible pour un compte de service, voir
+        // docs/google_service_account.md, section "Pourquoi il faut enregistrer
+        // les calendriers manuellement").
+        Route::prefix('parametres/calendriers-google')->name('calendriers-google.')->group(function () {
+            Route::post('/', [CalendrierGoogleController::class, 'store'])->name('store');
+            Route::patch('/{calendrierGoogle}', [CalendrierGoogleController::class, 'update'])->name('update');
+            Route::delete('/{calendrierGoogle}', [CalendrierGoogleController::class, 'destroy'])->name('destroy');
+            Route::post('/{calendrierGoogle}/verifier', [CalendrierGoogleController::class, 'verifier'])->name('verifier');
+        });
     });
 
     // ── Restrictions ───────────────────────────────────────────────────────
@@ -184,6 +207,10 @@ Route::middleware('auth')->group(function () {
 
         Route::middleware('role:gestionnaire')->group(function () {
             Route::get('/creer', [EvenementsController::class, 'create'])->name('create');
+            Route::get('/import', [EvenementsController::class, 'import'])->name('import');
+            Route::post('/import', [EvenementsController::class, 'storeImport'])->name('import.store');
+            Route::post('/import/manuel', [EvenementsController::class, 'storeManualImport'])->name('import.manuel');
+            Route::get('/import/modele', [EvenementsController::class, 'downloadTemplate'])->name('import.template');
             Route::post('/', [EvenementsController::class, 'store'])->name('store');
             Route::get('/{id}/editer', [EvenementsController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
             Route::put('/{id}', [EvenementsController::class, 'update'])->name('update')->where('id', '[0-9]+');
@@ -216,8 +243,8 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::prefix('activite')->name('activite.')->group(function () {
-            Route::get('/', [ActiviteController::class, 'index'])->name('index');
-            Route::get('/data', [ActiviteController::class, 'data'])->name('data');
+            Route::get('/', [ActivityStatsController::class, 'index'])->name('index');
+            Route::get('/data', [ActivityStatsController::class, 'data'])->name('data');
         });
     });
 

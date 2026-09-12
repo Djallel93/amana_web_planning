@@ -108,7 +108,7 @@
                             </form>
 
                             <form action="{{ route('admin.candidatures.refuser', $candidat->id) }}" method="POST"
-                                  onsubmit="return confirm('Refuser la candidature de {{ $candidat->prenom }} {{ $candidat->nom }} ?')">
+                                  data-confirm="Refuser la candidature de {{ $candidat->prenom }} {{ $candidat->nom }} ?" data-confirm-danger>
                                 @csrf
                                 <button type="submit"
                                         class="w-full min-h-[44px] px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[13px] rounded-lg cursor-pointer transition-colors flex items-center justify-center gap-1.5">
@@ -127,10 +127,24 @@
 
 @push('scripts')
 <script>
+// confirm() natif est synchrone ; window.amanaConfirm() (voir
+// resources/js/lib/confirmForms.ts) est asynchrone — on intercepte donc la
+// soumission, on attend la réponse de l'utilisateur dans la boîte stylée,
+// puis on soumet nous-mêmes le formulaire si confirmé. Un message dynamique
+// (rôle sélectionné) empêche d'utiliser le simple attribut data-confirm,
+// figé au rendu Blade — voir les autres formulaires de cette page pour le
+// cas statique.
 function confirmValidation(form) {
     const sel   = form.querySelector('select[name="role"]');
     const label = sel.options[sel.selectedIndex].text.trim();
-    return confirm(`Valider cette candidature avec le rôle "${label}" ?\nUn email d'invitation sera envoyé.`);
+
+    window.amanaConfirm({
+        message: `Valider cette candidature avec le rôle "${label}" ?\nUn email d'invitation sera envoyé.`,
+    }).then((confirmed) => {
+        if (confirmed) form.submit();
+    });
+
+    return false;
 }
 </script>
 @endpush

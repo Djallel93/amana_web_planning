@@ -21,6 +21,16 @@ class CreneauTache extends Model
     public $incrementing = false;
     protected $primaryKey = null;
 
+    /**
+     * Voir Restriction::getConnectionName() pour le detail du piège évité
+     * ici (héritage de connexion depuis Personne via
+     * Personne::creneauxTaches()).
+     */
+    public function getConnectionName(): ?string
+    {
+        return config('database.default');
+    }
+
     protected $fillable = ['id_planning', 'id_tache', 'id_personne'];
 
     public function creneau(): BelongsTo

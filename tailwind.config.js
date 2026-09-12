@@ -1,86 +1,32 @@
 /** @type {import('tailwindcss').Config} */
+import amanaPreset from '@amana/shared-ui/tailwind-preset';
+
 export default {
+    presets: [amanaPreset],
     darkMode: 'class',
 
     content: [
-        // Blade — inchangé
         './resources/views/**/*.blade.php',
-        // JS/TS — on étend pour inclure TypeScript et les Single File Components Vue
         './resources/js/**/*.{js,ts,vue}',
+        './node_modules/@amana/shared-ui/src/**/*.{js,ts,vue}',
+        // CRITIQUE : sans cette ligne, Tailwind ne scanne jamais les vues
+        // Blade du package partagé (login, sidebar, layout principal,
+        // paramètres/journal/activité génériques) — leurs classes ne sont
+        // alors jamais générées dans le CSS compilé, même si le HTML les
+        // référence correctement. Symptômes observés sans cette ligne :
+        // padding du layout principal disparu, panneau gauche de la page
+        // de connexion cassé, badge de rôle sans style, sidebar dont les
+        // classes structurelles (position, largeur) manquent.
+        './vendor/amana/shared/resources/views/**/*.blade.php',
+        // Filet de sécurité pour le développement local avec
+        // composer.local.json (voir docs/local-development.md) : si jamais
+        // le lien symbolique vendor/amana/shared n'est pas suivi
+        // correctement par le scanner de contenu, ce chemin direct vers le
+        // dossier frère fonctionne quel que soit le mode d'installation.
+        // Ignoré silencieusement (aucune erreur) s'il n'existe pas, comme
+        // sur un serveur où amana/shared est installé via le dépôt git.
+        '../amana_shared/resources/views/**/*.blade.php',
     ],
-
-    theme: {
-        extend: {
-            colors: {
-                accent: {
-                    DEFAULT: '#0369a1',
-                    dark:    '#0284c7',
-                    light:   '#0ea5e9',
-                },
-                // surface/ink sont pilotées par des variables CSS (voir
-                // resources/css/app.css, blocs :root et .dark) plutôt que
-                // des valeurs hexadécimales fixes, afin qu'un simple ajout
-                // de la classe .dark sur <html> retheme toute l'app sans
-                // avoir à toucher aux composants qui utilisent déjà ces
-                // classes (bg-surface, text-ink, border-surface-border…).
-                surface: {
-                    DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
-                    2:       'rgb(var(--color-surface-2) / <alpha-value>)',
-                    3:       'rgb(var(--color-surface-3) / <alpha-value>)',
-                    border:  'rgb(var(--color-surface-border) / <alpha-value>)',
-                },
-                ink: {
-                    DEFAULT: 'rgb(var(--color-ink) / <alpha-value>)',
-                    light:   'rgb(var(--color-ink-light) / <alpha-value>)',
-                    muted:   'rgb(var(--color-ink-muted) / <alpha-value>)',
-                    faint:   'rgb(var(--color-ink-faint) / <alpha-value>)',
-                },
-                // La sidebar reste volontairement toujours sombre, qu'on
-                // soit en mode clair ou sombre — c'est une barre de
-                // navigation à identité fixe, pas une "surface" de contenu.
-                sidebar: {
-                    DEFAULT: '#0c1e2e',
-                    2:       '#0f2740',
-                },
-            },
-
-            fontFamily: {
-                body:    ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
-                heading: ['"Sora"', 'system-ui', 'sans-serif'],
-            },
-
-            borderRadius: {
-                sm:      '6px',
-                DEFAULT: '10px',
-                lg:      '14px',
-                xl:      '20px',
-            },
-
-            boxShadow: {
-                sm:      '0 1px 3px rgba(13,17,23,0.07), 0 1px 2px rgba(13,17,23,0.04)',
-                DEFAULT: '0 4px 12px rgba(13,17,23,0.08), 0 2px 4px rgba(13,17,23,0.05)',
-                lg:      '0 12px 32px rgba(13,17,23,0.12), 0 4px 8px rgba(13,17,23,0.06)',
-                glow:    '0 0 0 3px rgba(3,105,161,0.25)',
-            },
-
-            spacing: {
-                sidebar: 'var(--sidebar-width)',
-                topbar:  '56px',
-            },
-
-            width: {
-                sidebar: 'var(--sidebar-width)',
-            },
-
-            height: {
-                topbar: '56px',
-            },
-
-            minHeight: {
-                topbar: '56px',
-            },
-        },
-    },
 
     plugins: [
         require('@tailwindcss/forms'),

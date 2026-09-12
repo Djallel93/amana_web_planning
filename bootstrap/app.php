@@ -4,8 +4,8 @@
 
 declare(strict_types=1);
 
-use App\Http\Middleware\EnsureAuthenticated;
-use App\Http\Middleware\EnsureRole;
+use Amana\Shared\Http\Middleware\EnsureAuthenticated;
+use Amana\Shared\Http\Middleware\EnsureRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,14 +18,14 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
 
-        // ── Middlewares d'authentification ────────────────────────────────
+        // ── Middlewares d'authentification (amana/shared) ──────────────────
         //
         // 'auth'      : vérifie que l'utilisateur est connecté.
         //               Redirige vers /login si ce n'est pas le cas.
-        //               Remplace l'ancien EnsureAuthenticated standalone.
         //
         // 'role'      : vérifie qu'un utilisateur connecté possède le rôle
-        //               requis dans l'application 'planning'.
+        //               requis dans l'application courante (voir
+        //               config('amana-shared.app_code') = 'planning').
         //               Usage dans routes/web.php :
         //                 Route::middleware('role:admin')
         //                 Route::middleware('role:membre')

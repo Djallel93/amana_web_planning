@@ -6,6 +6,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    @include('partials.favicon')
     <title>
         @if($success && $action === 'accepte') Échange confirmé
         @elseif($success && $action === 'refuse') Échange refusé

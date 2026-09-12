@@ -16,8 +16,8 @@
 -->
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import Modal from "@/components/shared/Modal.vue";
-import { useToast } from "@/composables/useToast";
+import { Modal } from '@amana/shared-ui';
+import { useToast } from '@amana/shared-ui';
 
 const emit = defineEmits<{
     cancelled: []; // signal au parent : recharger les données du planning
@@ -130,7 +130,7 @@ defineExpose({ open });
 </script>
 
 <template>
-    <Modal :open="isOpen" @close="close" maxWidth="max-w-md">
+    <Modal :open="isOpen" @close="close" max-width="max-w-md">
         <template #header>
             <div
                 class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
@@ -166,13 +166,13 @@ defineExpose({ open });
             <div class="flex gap-2">
                 <button
                     @click="continuer"
-                    class="flex-1 min-h-[48px] px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    class="btn-touch flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
                     Continuer
                 </button>
                 <button
                     @click="close"
-                    class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer min-h-[48px]"
+                    class="btn-touch px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer"
                 >
                     Annuler
                 </button>
@@ -206,7 +206,7 @@ defineExpose({ open });
                 <button
                     @click="confirmer"
                     :disabled="submitting"
-                    class="flex-1 min-h-[48px] px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    class="btn-touch flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                     {{
                         submitting
@@ -217,7 +217,7 @@ defineExpose({ open });
                 <button
                     @click="retour"
                     :disabled="submitting"
-                    class="px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer min-h-[48px] disabled:opacity-50"
+                    class="btn-touch px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                 >
                     ← Retour
                 </button>

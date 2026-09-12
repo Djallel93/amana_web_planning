@@ -32,14 +32,20 @@ import {
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler);
 
 // ── Types ─────────────────────────────────────────────────────────────────
+// NULL vs 0 : un champ à `null` signifie "pas de cours ce jour-là" (jour de
+// semaine, vacances, cours annulé…), distinct de 0 qui est une vraie valeur
+// saisie (ex. 0 € collecté, 0 personne en ligne). Voir BilanController et
+// Bilan pour le détail. totalPresence/totalMontant sont null dès que leur
+// groupe (Présences / Amana food) l'est, pour que Chart.js affiche un trou
+// dans la courbe plutôt qu'un 0 trompeur.
 interface SeriePoint {
     date:                 string; // ISO "2026-06-12"
-    totalPresence:        number;
-    totalMontant:         number;
-    nbPresents:           number;
-    nbEnLigne:            number;
-    montantCarte:         number;
-    montantEspece:        number;
+    totalPresence:        number | null;
+    totalMontant:         number | null;
+    nbPresents:           number | null;
+    nbEnLigne:            number | null;
+    montantCarte:         number | null;
+    montantEspece:        number | null;
     responsableAmanaFood: string | null;
     responsableMektaba:   string | null;
 }
@@ -204,6 +210,9 @@ function renderChart(): void {
                             if (!point) return '';
 
                             if (item.dataset.label === 'Présence totale') {
+                                if (point.totalPresence === null) {
+                                    return 'Pas de cours ce jour-là';
+                                }
                                 return [
                                     `Présence totale : ${point.totalPresence}`,
                                     `  · Présents : ${point.nbPresents}`,
@@ -212,10 +221,13 @@ function renderChart(): void {
                                 ];
                             }
 
+                            if (point.totalMontant === null) {
+                                return 'Pas de cours ce jour-là';
+                            }
                             return [
                                 `Montant total : ${fmtEuro(point.totalMontant)}`,
-                                `  · Carte : ${fmtEuro(point.montantCarte)}`,
-                                `  · Espèces : ${fmtEuro(point.montantEspece)}`,
+                                `  · Carte : ${fmtEuro(point.montantCarte ?? 0)}`,
+                                `  · Espèces : ${fmtEuro(point.montantEspece ?? 0)}`,
                                 `Responsable amana food : ${point.responsableAmanaFood ?? '—'}`,
                             ];
                         },

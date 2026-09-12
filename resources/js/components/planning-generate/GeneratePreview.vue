@@ -13,8 +13,8 @@
 -->
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { useToast } from '@/composables/useToast';
-import { useConfirm } from '@/composables/useConfirm';
+import { useToast } from '@amana/shared-ui';
+import { useConfirm } from '@amana/shared-ui';
 
 const toast = useToast();
 const { ask } = useConfirm();

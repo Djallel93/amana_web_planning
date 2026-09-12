@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Jobs\EnvoyerWebhookMake;
+use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Echange;
@@ -32,7 +32,7 @@ use Illuminate\Support\Str;
  *   - Approbation admin/gestionnaire
  *   - Annulation par le demandeur
  *   - Expiration des demandes en attente
- *   - Dispatch du webhook Make.com (PATCH) une fois l'échange exécuté
+ *   - Dispatch de la synchronisation Google Calendar (PATCH) une fois l'échange exécuté
  */
 class EchangeService
 {
@@ -332,7 +332,7 @@ class EchangeService
         $echange->demandeur->notify(new EchangeAccepteNotification($echange, 'demandeur'));
         $echange->cible->notify(new EchangeAccepteNotification($echange, 'cible'));
 
-        // ── Webhook Make.com : PATCH avec les deux créneaux affectés ────────
+        // ── Synchronisation Google Calendar : PATCH avec les deux créneaux affectés ─
         $this->dispatchWebhookEchange($echange);
 
         return $echange;
@@ -347,10 +347,6 @@ class EchangeService
      */
     private function dispatchWebhookEchange(Echange $echange): void
     {
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
         try {
             $payload = $this->webhookBuilder->buildForEchange(
                 $echange->creneauCible,
@@ -359,13 +355,13 @@ class EchangeService
                 $echange->tacheDemandeur,
             );
 
-            EnvoyerWebhookMake::dispatch($payload, 'patch');
+            SynchroniserGoogleCalendar::dispatch($payload, 'patch');
 
-            Log::info('[EchangeService] Webhook PATCH dispatché (échange exécuté)', [
+            Log::info('[EchangeService] Synchronisation Google Calendar dispatchée (échange exécuté)', [
                 'echange_id' => $echange->id,
             ]);
         } catch (\Throwable $e) {
-            Log::error('[EchangeService] Échec dispatch webhook PATCH (échange)', [
+            Log::error('[EchangeService] Échec dispatch synchronisation Google Calendar (échange)', [
                 'echange_id' => $echange->id,
                 'error' => $e->getMessage(),
             ]);

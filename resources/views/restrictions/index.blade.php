@@ -227,6 +227,28 @@
     </div>
 @endif
 
+{{-- ── Description des tâches ──────────────────────────────────────────────
+     Cartes en bas de page (même gabarit visuel que les cartes de stats de
+     bilan/statistiques.blade.php), une par tâche active, pour rappeler à
+     quoi correspond chaque tâche avant de cocher ses disponibilités. --}}
+@if($taches->isNotEmpty())
+    <div class="mt-7">
+        <h2 class="font-heading text-[15px] font-semibold text-ink mb-3">À quoi correspond chaque tâche ?</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            @foreach($taches as $tache)
+                <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $tache->code }} mb-2">
+                        {{ $tache->libelle }}
+                    </span>
+                    <p class="text-[12.5px] text-ink-muted leading-relaxed">
+                        {{ $tache->description ?: 'Aucune description renseignée.' }}
+                    </p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
+
 @endsection
 
 @push('scripts')

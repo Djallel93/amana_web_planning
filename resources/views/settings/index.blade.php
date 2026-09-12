@@ -20,6 +20,133 @@
 --}}
 <div id="vue-horaire-settings"></div>
 
+{{-- ═══════════════════════════════════════
+    SECTION 2bis — Registre des calendriers Google Calendar
+════════════════════════════════════════ --}}
+<div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
+    <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+        <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
+        <span class="font-heading text-[14px] font-semibold text-ink">Registre des calendriers Google Calendar</span>
+    </div>
+    <div class="px-5 py-5">
+        <div class="flex items-start gap-2 mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
+            <span class="flex-shrink-0 mt-px">ℹ️</span>
+            <span class="min-w-0 break-words">
+                Un compte de service Google ne peut pas "découvrir" automatiquement les calendriers qui lui sont partagés — chaque calendrier doit être enregistré ici <strong>une fois</strong>, avec son ID Google Calendar (copié depuis Google Calendar → ⚙️ Paramètres du calendrier concerné → <strong>Intégrer l'agenda</strong> → « ID de l'agenda »). L'accès est vérifié automatiquement à l'ajout. Voir <code class="break-all">docs/google_service_account.md</code> pour le détail.
+            </span>
+        </div>
+
+        <div class="flex items-start gap-2 mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
+            <span class="flex-shrink-0 mt-px">👥</span>
+            <span class="min-w-0 break-words">
+                La colonne <strong>Nouveaux bénévoles</strong> contrôle si ce calendrier est partagé automatiquement, via l'API Google Calendar, avec l'adresse email d'une personne dès que sa candidature est validée. Le niveau d'accès accordé dépend du rôle attribué : lecture seule pour bénévole/membre, modification pour gestionnaire, gestion complète (droits + partage) pour admin.
+            </span>
+        </div>
+
+        @if($calendriersGoogle->isEmpty())
+            <p class="text-[12.5px] text-ink-muted mb-4">Aucun calendrier enregistré pour le moment.</p>
+        @else
+            <div class="overflow-x-auto mb-5">
+                <table class="w-full text-[12.5px]">
+                    <thead>
+                        <tr class="text-left text-ink-muted border-b border-surface-3">
+                            <th class="py-2 pr-3 font-semibold">Nom</th>
+                            <th class="py-2 pr-3 font-semibold">Calendar ID</th>
+                            <th class="py-2 pr-3 font-semibold">État</th>
+                            <th class="py-2 pr-3 font-semibold">Nouveaux bénévoles</th>
+                            <th class="py-2 pr-3 font-semibold">Dernière vérification</th>
+                            <th class="py-2 font-semibold text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($calendriersGoogle as $cal)
+                            <tr class="border-b border-surface-3 last:border-0">
+                                <td class="py-2.5 pr-3 font-medium text-ink">{{ $cal->nom }}</td>
+                                <td class="py-2.5 pr-3 font-mono text-[11.5px] text-ink-muted">{{ $cal->calendar_id }}</td>
+                                <td class="py-2.5 pr-3">
+                                    @if($cal->actif)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">Actif</span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-3 text-ink-muted">Inactif</span>
+                                    @endif
+                                </td>
+                                <td class="py-2.5 pr-3">
+                                    <form action="{{ route('calendriers-google.update', $cal) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="nom" value="{{ $cal->nom }}">
+                                        <input type="hidden" name="description" value="{{ $cal->description }}">
+                                        <input type="hidden" name="actif" value="{{ $cal->actif ? '1' : '0' }}">
+                                        <input type="hidden" name="inclure_nouveaux_membres" value="{{ $cal->inclure_nouveaux_membres ? '0' : '1' }}">
+                                        <button type="submit"
+                                            role="switch"
+                                            aria-checked="{{ $cal->inclure_nouveaux_membres ? 'true' : 'false' }}"
+                                            aria-label="Inclure « {{ $cal->nom }} » lors de l'ajout d'un nouveau bénévole"
+                                            title="{{ $cal->inclure_nouveaux_membres ? 'Ce calendrier est partagé automatiquement avec les nouveaux bénévoles validés' : 'Ce calendrier n\'est pas partagé automatiquement avec les nouveaux bénévoles' }}"
+                                            class="relative inline-flex items-center h-5 w-9 rounded-full transition-colors cursor-pointer border-0
+                                                   {{ $cal->inclure_nouveaux_membres ? 'bg-accent' : 'bg-surface-3' }}">
+                                            <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform
+                                                         {{ $cal->inclure_nouveaux_membres ? 'translate-x-[18px]' : 'translate-x-[3px]' }}"></span>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="py-2.5 pr-3 text-ink-muted">
+                                    {{ $cal->derniere_verification_at?->diffForHumans() ?? '—' }}
+                                </td>
+                                <td class="py-2.5 text-right whitespace-nowrap">
+                                    <form action="{{ route('calendriers-google.verifier', $cal) }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" class="text-[11.5px] font-semibold text-accent hover:underline mr-3">Vérifier</button>
+                                    </form>
+                                    <form action="{{ route('calendriers-google.update', $cal) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="nom" value="{{ $cal->nom }}">
+                                        <input type="hidden" name="description" value="{{ $cal->description }}">
+                                        <input type="hidden" name="actif" value="{{ $cal->actif ? '0' : '1' }}">
+                                        <input type="hidden" name="inclure_nouveaux_membres" value="{{ $cal->inclure_nouveaux_membres ? '1' : '0' }}">
+                                        <button type="submit" class="text-[11.5px] font-semibold text-ink-muted hover:underline mr-3">
+                                            {{ $cal->actif ? 'Désactiver' : 'Activer' }}
+                                        </button>
+                                    </form>
+                                    <form action="{{ route('calendriers-google.destroy', $cal) }}" method="POST" class="inline" data-confirm="Retirer « {{ $cal->nom }} » du registre ? Les événements déjà créés sur Google Calendar ne seront pas affectés — seuls les nouveaux formulaires ne le proposeront plus." data-confirm-danger>
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-[11.5px] font-semibold text-rose-600 hover:underline">Retirer</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
+        {{-- Formulaire d'ajout --}}
+        <form action="{{ route('calendriers-google.store') }}" method="POST" class="border-t border-surface-3 pt-4">
+            @csrf
+            <p class="text-xs font-bold text-ink tracking-[0.2px] mb-3">Ajouter un calendrier</p>
+            <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-start">
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-semibold text-ink-muted">Nom d'affichage</label>
+                    <input type="text" name="nom" value="{{ old('nom') }}" placeholder="ex. AMANA - Planning" required maxlength="200"
+                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] text-ink bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent/30">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-[11px] font-semibold text-ink-muted">Calendar ID</label>
+                    <input type="text" name="calendar_id" value="{{ old('calendar_id') }}" placeholder="xxxx@group.calendar.google.com" required maxlength="200"
+                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] font-mono text-ink bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent/30">
+                </div>
+                <button type="submit" class="self-end px-4 py-2 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 whitespace-nowrap">
+                    Ajouter et vérifier
+                </button>
+            </div>
+            @error('calendar_id')<span class="block mt-2 text-xs text-rose-600">{{ $message }}</span>@enderror
+            @error('nom')<span class="block mt-2 text-xs text-rose-600">{{ $message }}</span>@enderror
+        </form>
+    </div>
+</div>
+
 <form action="{{ route('settings.update') }}" method="POST" id="settingsForm">
     @csrf
 
@@ -158,59 +285,85 @@
         </div>
     </div>
 
+
     {{-- ═══════════════════════════════════════
-        SECTION 3 — Calendriers Google Calendar
+        SECTION 3 — Calendriers & Couleurs Google Calendar
+        (fusion des anciennes sections "Calendriers" et "Couleurs" — un
+        calendrier ET une couleur se choisissent désormais côte à côte,
+        par tâche/événement, dans la même carte.)
     ════════════════════════════════════════ --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
             <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
-            <span class="font-heading text-[14px] font-semibold text-ink">Calendriers Google Calendar</span>
+            <span class="font-heading text-[14px] font-semibold text-ink">Calendriers &amp; Couleurs Google Calendar</span>
         </div>
         <div class="px-5 py-5">
             <p class="text-[12.5px] text-ink-muted mb-5 leading-relaxed">
-                Nom du calendrier Google Calendar dans lequel chaque type d'événement sera créé.
-                Laissez vide pour utiliser le calendrier par défaut configuré dans Make.com.
+                Pour chaque type d'événement : le calendrier Google Calendar dans lequel il sera créé (laissez vide pour ne rien synchroniser)
+                et la couleur utilisée lors de la synchronisation.
             </p>
 
             @php
+                // Couleur non éditable pour les absences (grise fixe — voir
+                // GoogleCalendarColors::ABSENCE) : pas de champ couleur pour
+                // cette ligne, uniquement le calendrier cible.
                 $calendarChips = [
-                    'calendar_entree'                => ['libelle' => 'Entrée',               'chip' => 'entree'],
-                    'calendar_mektaba'               => ['libelle' => 'Mektaba',              'chip' => 'mektaba'],
-                    'calendar_salle'                 => ['libelle' => 'Salle',                'chip' => 'salle'],
-                    'calendar_amana_food'            => ['libelle' => 'Amana Food',           'chip' => 'amana_food'],
-                    'calendar_cours'                 => ['libelle' => 'Cours',                'chip' => 'cours'],
-                    'calendar_rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',      'chip' => 'rappel_sandwich'],
-                    'calendar_assistance_amana_food' => ['libelle' => 'Assistance Amana Food','chip' => 'assistance_amana_food'],
-                    'calendar_annonce_cours'         => ['libelle' => 'Annonce Cours',        'chip' => 'annonce_cours'],
-                    'calendar_message_bot'           => ['libelle' => 'Message Bot',          'chip' => 'message_bot'],
-                    'calendar_annulation_cours'       => ['libelle' => 'Annulation Cours',     'chip' => 'annulation_cours'],
+                    'entree'                => ['libelle' => 'Entrée',                'chip' => 'entree',                'couleur' => true],
+                    'mektaba'               => ['libelle' => 'Mektaba',               'chip' => 'mektaba',               'couleur' => true],
+                    'salle'                 => ['libelle' => 'Salle',                 'chip' => 'salle',                 'couleur' => true],
+                    'amana_food'            => ['libelle' => 'Amana Food',            'chip' => 'amana_food',            'couleur' => true],
+                    'cours'                 => ['libelle' => 'Cours',                 'chip' => 'cours',                 'couleur' => true],
+                    'rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',       'chip' => 'rappel_sandwich',       'couleur' => true],
+                    'assistance_amana_food' => ['libelle' => 'Assistance Amana Food', 'chip' => 'assistance_amana_food', 'couleur' => true],
+                    'annonce_cours'         => ['libelle' => 'Annonce Cours',         'chip' => 'annonce_cours',         'couleur' => true],
+                    'message_bot'           => ['libelle' => 'Message Bot',           'chip' => 'message_bot',           'couleur' => true],
+                    'annulation_cours'      => ['libelle' => 'Annulation Cours',      'chip' => 'annulation_cours',      'couleur' => true],
+                    'absence'               => ['libelle' => 'Absences',              'chip' => 'absence',               'couleur' => false],
                 ];
             @endphp
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                @foreach($calendarChips as $cle => $meta)
-                    @if(isset($calendriers[$cle]))
-                        @php $cal = $calendriers[$cle]; @endphp
-                        <div class="flex flex-col gap-1.5">
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                @foreach($calendarChips as $code => $meta)
+                    @php
+                        $cleCalendar = "calendar_{$code}";
+                        $cleCouleur = "couleur_{$code}";
+                    @endphp
+                    @if(isset($calendriers[$cleCalendar]))
+                        <div class="flex flex-col gap-1.5 p-3 rounded-lg border border-surface-3 bg-surface-2/40">
                             <label class="text-xs font-bold text-ink tracking-[0.2px]">
                                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold chip-{{ $meta['chip'] }}">
                                     {{ $meta['libelle'] }}
                                 </span>
                             </label>
-                            {{--
-                                Point de montage SearchableSelect.vue.
-                                Le composant crée lui-même son <input type="hidden">
-                                via le prop inputName — pas besoin d'en déclarer un ici.
-                            --}}
-                            <div
-                                data-searchable-select
-                                data-api-url="{{ route('calendriers.index') }}"
-                                data-input-name="settings[{{ $cle }}]"
-                                data-input-id="{{ $cle }}_vue"
-                                data-current-value="{{ addslashes($cal['valeur_raw']) }}"
-                                data-placeholder="Sélectionner…"
-                                style="margin-top:2px;"
-                            ></div>
+                            <div class="grid grid-cols-1 {{ $meta['couleur'] ? 'sm:grid-cols-[1fr_auto]' : '' }} gap-3 items-start">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-[10.5px] font-semibold text-ink-muted uppercase tracking-wide">Calendrier</span>
+                                    {{--
+                                        Point de montage SearchableSelect.vue.
+                                        Le composant crée lui-même son <input type="hidden">
+                                        via le prop inputName — pas besoin d'en déclarer un ici.
+                                    --}}
+                                    <div
+                                        data-searchable-select
+                                        data-api-url="{{ route('calendriers.index') }}"
+                                        data-input-name="settings[{{ $cleCalendar }}]"
+                                        data-input-id="{{ $cleCalendar }}_vue"
+                                        data-current-value="{{ addslashes($calendriers[$cleCalendar]['valeur_raw']) }}"
+                                        data-placeholder="Sélectionner…"
+                                        style="margin-top:2px;"
+                                    ></div>
+                                </div>
+                                @if($meta['couleur'] && isset($couleurs[$cleCouleur]))
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-[10.5px] font-semibold text-ink-muted uppercase tracking-wide">Couleur</span>
+                                        @include('partials.color-select', [
+                                            'id' => $cleCouleur,
+                                            'name' => "settings[{$cleCouleur}]",
+                                            'selected' => $couleurs[$cleCouleur]['valeur_raw'],
+                                        ])
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     @endif
                 @endforeach

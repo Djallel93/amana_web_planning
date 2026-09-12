@@ -5,9 +5,9 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\Application;
+use Amana\Shared\Models\Application;
 use App\Models\Personne;
-use App\Models\Role;
+use Amana\Shared\Models\Role;
 use App\Models\Tache;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -37,26 +37,167 @@ class DatabaseSeeder extends Seeder
         $this->command->info('✅ Application planning : OK');
 
         // ── 3. Tâches planifiables ─────────────────────────────────────────
+
+        // Textes longs envoyés dans le body de l'événement Google Calendar —
+        // source unique de vérité pour ces descriptions.
+        $descCalRappelSandwich = <<<'TXT'
+            🥪 PRÉPARER LES SANDWICHS
+
+            👋 Tu es assigné à AMANA FOOD aujourd'hui.
+            ⏰ Pense à préparer les sandwichs en avance !
+            TXT;
+
+        $descCalEntree = <<<'TXT'
+            🚪 ENTRÉE
+
+            📋 Responsabilités :
+            • 👋 Accueillir les frères et indiquer la salle aux nouveaux
+            • 🔓 Ouvrir la porte du bâtiment
+            • 🚶 Éviter les regroupements dans les couloirs
+            • 👀 Surveiller l'entrée
+            • 🧹 Nettoyage / rangement des couloirs
+
+            ⚠️ IMPORTANT : tu as également une tâche 🍽️ AMANA FOOD après le cours (vérifie ton calendrier).
+            TXT;
+
+        $descCalAssistanceAmanaFood = <<<'TXT'
+            🤝 ASSISTANCE AMANA FOOD
+
+            🍽️ Tu es assigné à l'ENTRÉE.
+            ➡️ Tu dois également assister la personne à AMANA FOOD après le cours.
+            TXT;
+
+        $descCalMektaba = <<<'TXT'
+            📚 MEKTABA
+
+            📋 Responsabilités :
+            • 👋 Accueillir les frères à l'entrée du local
+            • 🛒 S'occuper des achats de la mektaba avant et après le cours
+            • 👀 Surveiller la marchandise
+            • 👥 Compter le nombre de présents lors de l'assise
+            • 🧹 Nettoyage / rangement de la mektaba
+            TXT;
+
+        $descCalSalle = <<<'TXT'
+            🏛️ SALLE
+
+            📋 Responsabilités :
+            • 🤝 Assister le frère Réda en cas de nécessité pendant et après l'assise
+            • 🪑 Mise en place des tables pour les cours du week-end après l'assise
+            • 🧹 Nettoyage / rangement de la salle
+            TXT;
+
+        $descCalAmanaFood = <<<'TXT'
+            🍽️ AMANA FOOD
+
+            📋 Responsabilités :
+            • 🥪 Préparation des sandwichs / repas en amont du cours
+            • 🍴 Tenir le stand AMANA FOOD après le cours
+            • 🧹 Nettoyage / rangement du stand
+            TXT;
+
+        $descCalMessageBot = <<<'TXT'
+            ℹ️ Salam ‘alaykoum !
+            Nous mettons à votre disposition notre assistant virtuel sur Telegram pour permettre à ceux qui ne sont pas présents de poser leurs questions en lien direct avec les conférences du week-end.
+
+            ⚠️ Merci de poser uniquement des questions liées au sujet de la conférence du jour.
+            💬 Des sessions dédiées seront ouvertes plus tard pour les questions hors sujet (fiqh général, vie quotidienne, etc.).
+
+            Pour poser votre question, suivez le lien ci-dessous :
+            📲 https://t.me/AmanaQuestionsBot
+
+            👉🏼 Les questions en lien avec la conférence sont regroupées et présentées à notre frère Réda, selon le temps disponible.
+
+            Jazakum Allāhu khayran.
+
+            https://t.me/AMANA_LIVE
+            TXT;
+
         $taches = [
             // Tâches actives (rotation du scheduler)
-            ['code' => 'entree', 'libelle' => 'Entrée', 'actif' => true, 'description' => ''],
-            ['code' => 'mektaba', 'libelle' => 'Mektaba', 'actif' => true, 'description' => ''],
-            ['code' => 'salle', 'libelle' => 'Salle', 'actif' => true, 'description' => ''],
-            ['code' => 'amana_food', 'libelle' => 'Amana Food', 'actif' => true, 'description' => ''],
-            ['code' => 'cours', 'libelle' => 'Cours', 'actif' => true, 'description' => 'Animation du cours'],
+            [
+                'code' => 'entree',
+                'libelle' => 'Entrée',
+                'actif' => true,
+                'description' => "Accueillir les frères à l'entrée, orienter les nouveaux vers la salle, surveiller les couloirs et le bâtiment. Inclut une tâche Amana Food après le cours.",
+                'description_calendrier' => $descCalEntree,
+            ],
+            [
+                'code' => 'mektaba',
+                'libelle' => 'Mektaba',
+                'actif' => true,
+                'description' => "Accueillir les frères à l'entrée du local, gérer les achats et la marchandise de la mektaba, compter les présents et ranger après le cours.",
+                'description_calendrier' => $descCalMektaba,
+            ],
+            [
+                'code' => 'salle',
+                'libelle' => 'Salle',
+                'actif' => true,
+                'description' => "Assister le frère Réda pendant et après l'assise, préparer la salle pour les cours du week-end et ranger après le cours.",
+                'description_calendrier' => $descCalSalle,
+            ],
+            [
+                'code' => 'amana_food',
+                'libelle' => 'Amana Food',
+                'actif' => true,
+                'description' => 'Préparer les sandwichs/repas avant le cours, tenir le stand après le cours et ranger le stand.',
+                'description_calendrier' => $descCalAmanaFood,
+            ],
+            [
+                'code' => 'cours',
+                'libelle' => 'Cours',
+                'actif' => true,
+                'description' => 'Animation du cours',
+                'description_calendrier' => '',
+            ],
 
             // Tâches inactives (webhook uniquement)
-            ['code' => 'rappel_sandwich', 'libelle' => 'Rappel Sandwich', 'actif' => false, 'description' => ''],
-            ['code' => 'assistance_amana_food', 'libelle' => 'Assistance Amana Food', 'actif' => false, 'description' => ''],
-            ['code' => 'annonce_cours', 'libelle' => 'Annonce Cours', 'actif' => false, 'description' => ''],
-            ['code' => 'message_bot', 'libelle' => 'Message Général', 'actif' => false, 'description' => ''],
-            ['code' => 'annulation_cours', 'libelle' => 'Annulation Cours', 'actif' => false, 'description' => ''],
+            [
+                'code' => 'rappel_sandwich',
+                'libelle' => 'Rappel Sandwich',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => $descCalRappelSandwich,
+            ],
+            [
+                'code' => 'assistance_amana_food',
+                'libelle' => 'Assistance Amana Food',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => $descCalAssistanceAmanaFood,
+            ],
+            [
+                'code' => 'annonce_cours',
+                'libelle' => 'Annonce Cours',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => '',
+            ],
+            [
+                'code' => 'message_bot',
+                'libelle' => 'Message Bot',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => $descCalMessageBot,
+            ],
+            [
+                'code' => 'annulation_cours',
+                'libelle' => 'Annulation Cours',
+                'actif' => false,
+                'description' => '',
+                'description_calendrier' => '',
+            ],
         ];
 
         foreach ($taches as $t) {
             Tache::updateOrCreate(
                 ['code' => $t['code']],
-                ['libelle' => $t['libelle'], 'actif' => $t['actif'], 'description' => $t['description']]
+                [
+                    'libelle' => $t['libelle'],
+                    'actif' => $t['actif'],
+                    'description' => $t['description'],
+                    'description_calendrier' => $t['description_calendrier'],
+                ]
             );
         }
         $this->command->info('✅ Tâches insérées/mises à jour : ' . count($taches));
@@ -97,13 +238,13 @@ class DatabaseSeeder extends Seeder
             ->first();
 
         if ($roleAdmin) {
-            $dejaAttribue = DB::table('ref_personnes_roles')
+            $dejaAttribue = DB::connection(config('amana-shared.connection', 'commun'))->table('ref_personnes_roles')
                 ->where('id_personne', $admin->id)
                 ->where('id_role', $roleAdmin->id)
                 ->exists();
 
             if (!$dejaAttribue) {
-                DB::table('ref_personnes_roles')->insert([
+                DB::connection(config('amana-shared.connection', 'commun'))->table('ref_personnes_roles')->insert([
                     'id_personne' => $admin->id,
                     'id_role' => $roleAdmin->id,
                     'date_attribution' => now()->toDateString(),
@@ -154,24 +295,51 @@ class DatabaseSeeder extends Seeder
             ['cle' => 'offset_annulation_cours_debut', 'valeur' => '-360', 'type' => 'integer', 'libelle' => 'Annulation cours : début (min)', 'description' => 'Message d\'annulation automatique envoyé lorsque le cours est annulé pour cette date.'],
             ['cle' => 'offset_annulation_cours_fin', 'valeur' => '-345', 'type' => 'integer', 'libelle' => 'Annulation cours : fin (min)', 'description' => 'Message d\'annulation automatique envoyé lorsque le cours est annulé pour cette date.'],
 
-            // ── D. Noms de calendriers Google Calendar ─────────────────────
-            // Chaque valeur est le nom exact du calendrier Google Calendar dans
-            // lequel Make.com créera les événements pour cette tâche/événement.
-            // Si vide → Make.com utilise son calendrier par défaut.
-            ['cle' => 'calendar_entree', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Entrée', 'description' => null],
-            ['cle' => 'calendar_mektaba', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Mektaba', 'description' => null],
-            ['cle' => 'calendar_salle', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Salle', 'description' => null],
-            ['cle' => 'calendar_amana_food', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Amana Food', 'description' => null],
-            ['cle' => 'calendar_cours', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Cours', 'description' => null],
-            ['cle' => 'calendar_rappel_sandwich', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Rappel Sandwich', 'description' => null],
-            ['cle' => 'calendar_assistance_amana_food', 'valeur' => 'AMANA - Planning', 'type' => 'string', 'libelle' => 'Assistance Amana Food', 'description' => null],
-            ['cle' => 'calendar_annonce_cours', 'valeur' => 'AMANA - Communications', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => null],
-            ['cle' => 'calendar_message_bot', 'valeur' => 'AMANA - Communications', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => null],
-            ['cle' => 'calendar_annulation_cours', 'valeur' => 'AMANA - Communications', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => null],
+            // ── D. Calendriers Google Calendar (identifiants) ───────────────
+            // Chaque valeur est l'ID Google Calendar (calendarId, ex :
+            // "xxxx@group.calendar.google.com") dans lequel l'événement sera
+            // créé pour cette tâche/événement — résolu et sélectionné via le
+            // dropdown de /parametres (alimenté par
+            // GoogleCalendarService::listCalendars()), jamais saisi à la
+            // main. Laissées vides ici : les vrais identifiants dépendent
+            // des calendriers Google réels de l'environnement cible et
+            // doivent être choisis après le premier déploiement, une fois
+            // le compte de service partagé sur les calendriers concernés.
+            // Une valeur vide = pas de synchronisation pour ce code (voir
+            // WebhookPayloadBuilder::getCalendarIds()).
+            ['cle' => 'calendar_entree', 'valeur' => '', 'type' => 'string', 'libelle' => 'Entrée', 'description' => null],
+            ['cle' => 'calendar_mektaba', 'valeur' => '', 'type' => 'string', 'libelle' => 'Mektaba', 'description' => null],
+            ['cle' => 'calendar_salle', 'valeur' => '', 'type' => 'string', 'libelle' => 'Salle', 'description' => null],
+            ['cle' => 'calendar_amana_food', 'valeur' => '', 'type' => 'string', 'libelle' => 'Amana Food', 'description' => null],
+            ['cle' => 'calendar_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Cours', 'description' => null],
+            ['cle' => 'calendar_rappel_sandwich', 'valeur' => '', 'type' => 'string', 'libelle' => 'Rappel Sandwich', 'description' => null],
+            ['cle' => 'calendar_assistance_amana_food', 'valeur' => '', 'type' => 'string', 'libelle' => 'Assistance Amana Food', 'description' => null],
+            ['cle' => 'calendar_annonce_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => null],
+            ['cle' => 'calendar_message_bot', 'valeur' => '', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => null],
+            ['cle' => 'calendar_annulation_cours', 'valeur' => '', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => null],
+            // Calendrier cible pour la synchronisation des absences (journée
+            // entière, couleur Graphite fixe — voir WebhookAbsencePayloadBuilder).
+            ['cle' => 'calendar_absence', 'valeur' => '', 'type' => 'string', 'libelle' => 'Absences', 'description' => 'Calendrier Google Calendar dans lequel les absences sont synchronisées (journée entière, couleur grise fixe). Laisser vide pour ne pas synchroniser les absences.'],
+
+            // ── E. Couleurs Google Calendar par tâche/événement spécial ─────
+            // colorId (1 à 11, voir GoogleCalendarColors::PALETTE), éditable
+            // dans Paramètres → Couleurs. Valeurs par défaut alignées sur
+            // GoogleCalendarColors::TACHES pour ne rien changer visuellement
+            // tant que personne n'y touche.
+            ['cle' => 'couleur_entree', 'valeur' => '7', 'type' => 'string', 'libelle' => 'Entrée', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_mektaba', 'valeur' => '10', 'type' => 'string', 'libelle' => 'Mektaba', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_salle', 'valeur' => '5', 'type' => 'string', 'libelle' => 'Salle', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_amana_food', 'valeur' => '11', 'type' => 'string', 'libelle' => 'Amana Food', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_cours', 'valeur' => '3', 'type' => 'string', 'libelle' => 'Cours', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_rappel_sandwich', 'valeur' => '6', 'type' => 'string', 'libelle' => 'Rappel Sandwich', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_assistance_amana_food', 'valeur' => '9', 'type' => 'string', 'libelle' => 'Assistance Amana Food', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_annonce_cours', 'valeur' => '8', 'type' => 'string', 'libelle' => 'Annonce Cours', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_message_bot', 'valeur' => '1', 'type' => 'string', 'libelle' => 'Message Bot', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
+            ['cle' => 'couleur_annulation_cours', 'valeur' => '4', 'type' => 'string', 'libelle' => 'Annulation Cours', 'description' => 'Couleur Google Calendar (colorId 1-11) utilisée pour synchroniser cette tâche/cet événement.'],
         ];
 
         foreach ($settings as $s) {
-            DB::table('ref_settings')->updateOrInsert(
+            DB::connection(config('amana-shared.connection', 'commun'))->table('ref_settings')->updateOrInsert(
                 ['id_application' => $planning->id, 'cle' => $s['cle']],
                 [
                     'valeur' => $s['valeur'],

@@ -101,7 +101,7 @@
                             @if($isAttente)
                                 <div class="flex gap-1.5 flex-wrap">
                                     <form action="{{ route('admin.echanges.approuver', $echange->id) }}" method="POST"
-                                          onsubmit="return confirm('Approuver et exécuter cet échange immédiatement ?')">
+                                          data-confirm="Approuver et exécuter cet échange immédiatement ?">
                                         @csrf
                                         <button type="submit"
                                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px]
@@ -110,7 +110,7 @@
                                         </button>
                                     </form>
                                     <form action="{{ route('admin.echanges.refuser', $echange->id) }}" method="POST"
-                                          onsubmit="return confirm('Refuser cet échange ? Le demandeur sera notifié.')">
+                                          data-confirm="Refuser cet échange ? Le demandeur sera notifié." data-confirm-danger>
                                         @csrf
                                         <button type="submit"
                                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px]
@@ -180,7 +180,7 @@
                 @if($isAttente)
                     <div class="flex gap-2 flex-wrap">
                         <form action="{{ route('admin.echanges.approuver', $echange->id) }}" method="POST"
-                              onsubmit="return confirm('Approuver cet échange ?')">
+                              data-confirm="Approuver cet échange ?">
                             @csrf
                             <button type="submit"
                                     class="inline-flex items-center gap-1 px-3 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px]
@@ -189,7 +189,7 @@
                             </button>
                         </form>
                         <form action="{{ route('admin.echanges.refuser', $echange->id) }}" method="POST"
-                              onsubmit="return confirm('Refuser cet échange ?')">
+                              data-confirm="Refuser cet échange ?" data-confirm-danger>
                             @csrf
                             <button type="submit"
                                     class="inline-flex items-center gap-1 px-3 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px]

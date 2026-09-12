@@ -4,14 +4,14 @@
 
 <head>
     <title>Accès activé — AMANA Planning</title>
-    @include('emails.partials._head')
+    @include('amana-shared::emails.partials._head')
 </head>
 
 <body>
     <div class="shell">
         <div class="wrapper">
 
-            @include('emails.partials._header', [
+            @include('amana-shared::emails.partials._header', [
                 'badge' => 'Candidature validée',
                 'title' => 'Votre accès est activé&nbsp;!',
                 'titleSub' => 'AMANA Planning',
@@ -62,13 +62,13 @@
                     'featuresLabel' => 'Depuis AMANA Planning, vous pouvez',
                 ])
 
-                @include('emails.partials._closing')
+                @include('amana-shared::emails.partials._closing')
 
        
      </
 div>
 
-            @include('emails.partials._footer')
+            @include('amana-shared::emails.partials._footer')
 
         </div>
     </div>

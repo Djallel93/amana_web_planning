@@ -18,9 +18,9 @@
 -->
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import Modal from "@/components/shared/Modal.vue";
-import { useToast } from "@/composables/useToast";
-import { useConfirm } from "@/composables/useConfirm";
+import { Modal } from '@amana/shared-ui';
+import { useToast } from '@amana/shared-ui';
+import { useConfirm } from '@amana/shared-ui';
 import type { AssignContext, PersonneAssignee } from "@/types/planning";
 import { TACHES_META } from "@/types/planning";
 
@@ -203,7 +203,7 @@ defineExpose({ open });
 </script>
 
 <template>
-    <Modal :open="isOpen" @close="close" maxWidth="max-w-sm">
+    <Modal :open="isOpen" @close="close" max-width="max-w-sm">
         <template #header>
             <div
                 class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
@@ -256,7 +256,7 @@ defineExpose({ open });
                     <button
                         @click="save"
                         :disabled="saving"
-                        class="w-full sm:w-auto px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg shadow-[0_2px_10px_rgba(3,105,161,0.3)] transition-all cursor-pointer min-h-[44px] whitespace-nowrap disabled:opacity-50"
+                        class="btn-touch w-full sm:w-auto px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg shadow-[0_2px_10px_rgba(3,105,161,0.3)] transition-all cursor-pointer whitespace-nowrap disabled:opacity-50"
                     >
                         {{ saving ? "…" : "Enregistrer" }}
                     </button>
@@ -275,13 +275,13 @@ defineExpose({ open });
                 <div class="flex gap-2 flex-wrap">
                     <button
                         @click="unassign"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px] bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
+                        class="btn-touch inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
                     >
                         ✕ Désassigner
                     </button>
                     <button
                         @click="deleteCreneau"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px] bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
+                        class="btn-touch inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
                     >
                         🗑️ Supprimer le créneau
                     </button>

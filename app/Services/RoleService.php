@@ -5,9 +5,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Application;
+use Amana\Shared\Models\Application;
 use App\Models\Personne;
-use App\Models\Role;
+use Amana\Shared\Models\Role;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -95,7 +95,7 @@ class RoleService
         $planningRoleIds = Role::where('id_application', $app->id)->pluck('id')->toArray();
 
         if (!empty($planningRoleIds)) {
-            DB::table('ref_personnes_roles')
+            DB::connection(config('amana-shared.connection', 'commun'))->table('ref_personnes_roles')
                 ->where('id_personne', $personne->id)
                 ->whereIn('id_role', $planningRoleIds)
                 ->delete();
@@ -107,7 +107,7 @@ class RoleService
             ->first();
 
         if ($role) {
-            DB::table('ref_personnes_roles')->insert([
+            DB::connection(config('amana-shared.connection', 'commun'))->table('ref_personnes_roles')->insert([
                 'id_personne' => $personne->id,
                 'id_role' => $role->id,
                 'date_attribution' => now()->toDateString(),

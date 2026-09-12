@@ -171,15 +171,14 @@ CACHE_STORE=database
 
 MAIL_MAILER=log
 
-MAKE_WEBHOOK_URL=
-MAKE_WEBHOOK_APIKEY=
+GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=
 ```
 
 > **`MAIL_MAILER=log`** : les emails s'écrivent dans `storage/logs/laravel.log` au lieu d'être envoyés — pratique en développement.
 >
 > **`HEURE_COURS` est obsolète** et ignorée. L'heure du cours est gérée via **Paramètres → Heure du cours** dans l'interface.
 >
-> **`MAKE_WEBHOOK_URL` vide** : aucun webhook n'est envoyé (la queue le journalise et ignore silencieusement l'appel) — pratique pour développer sans polluer un vrai scénario Make.com. Voir README, section Intégration Make.com, pour le format exact des payloads envoyés (planning, événements, annulation de cours).
+> **`GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` vide** : aucune synchronisation Google Calendar n'est effectuée (la queue le journalise et ignore silencieusement l'appel) — pratique pour développer sans toucher à un vrai calendrier. Pour l'activer en local, voir [docs/google_service_account.md](google_service_account.md) pour la procédure complète (création du compte de service Google Cloud, partage des calendriers, encodage en base64).
 
 ### 12. Permissions des dossiers
 
@@ -321,23 +320,21 @@ flowchart LR
 
 **Secrets** (`Repository secrets`) :
 
-| Secret                  | Description                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `APP_KEY`               | Clé Laravel (`php artisan key:generate --show` pour en générer une)          |
-| `DB_HOST`               | Hôte de la base de données MySQL/MariaDB IONOS                               |
-| `DB_NAME`               | Nom de la base                                                               |
-| `DB_USERNAME`           | Utilisateur DB                                                               |
-| `DB_PASSWORD`           | Mot de passe DB                                                              |
-| `MAIL_HOST`             | Hôte SMTP (ex. `smtp.ionos.fr`)                                              |
-| `MAIL_PORT`             | Port SMTP (587 avec STARTTLS)                                                |
-| `MAIL_USERNAME`         | Compte SMTP (aussi utilisé comme adresse d'expédition)                       |
-| `MAIL_PASSWORD`         | Mot de passe SMTP                                                            |
-| `MAKE_WEBHOOK_URL`      | URL du scénario Make.com (planning + événements)                             |
-| `MAKE_WEBHOOK_APIKEY`   | Clé envoyée dans le header `x-make-apikey` de chaque appel webhook           |
-| `APP_EMERGENCY_KEY`     | Clé de l'outil d'urgence `/urgence-hash` — laisser vide sauf besoin ponctuel |
-| `IONOS_SSH_PRIVATE_KEY` | Clé SSH privée pour se connecter au serveur IONOS                            |
-| `IONOS_SSH_USER`        | Utilisateur SSH IONOS                                                        |
-| `IONOS_SSH_HOST`        | Hôte SSH IONOS                                                               |
+| Secret                               | Description                                                                  |
+| ------------------------------------ | ---------------------------------------------------------------------------- |
+| `APP_KEY`                            | Clé Laravel (`php artisan key:generate --show` pour en générer une)          |
+| `DB_HOST`                            | Hôte de la base de données MySQL/MariaDB IONOS                               |
+| `DB_NAME`                            | Nom de la base                                                               |
+| `DB_USERNAME`                        | Utilisateur DB                                                               |
+| `DB_PASSWORD`                        | Mot de passe DB                                                              |
+| `MAIL_HOST`                          | Hôte SMTP (ex. `smtp.ionos.fr`)                                              |
+| `MAIL_PORT`                          | Port SMTP (587 avec STARTTLS)                                                |
+| `MAIL_USERNAME`                      | Compte SMTP (aussi utilisé comme adresse d'expédition)                       |
+| `MAIL_PASSWORD`                      | Mot de passe SMTP                                                            |
+| `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` | Clé JSON du compte de service Google Cloud (Calendar API), encodée en base64 |
+| `IONOS_SSH_PRIVATE_KEY`              | Clé SSH privée pour se connecter au serveur IONOS                            |
+| `IONOS_SSH_USER`                     | Utilisateur SSH IONOS                                                        |
+| `IONOS_SSH_HOST`                     | Hôte SSH IONOS                                                               |
 
 **Variables** (`Repository variables`) :
 
@@ -347,7 +344,7 @@ flowchart LR
 | `IONOS_REMOTE_PATH`  | Chemin absolu du webspace sur le serveur IONOS (ex. `/homepages/.../htdocs`)                        |
 | `IONOS_PHP_CLI_PATH` | Chemin du binaire PHP CLI sur IONOS (souvent différent du `php` du PATH, ex. `/usr/bin/php8.4-cli`) |
 
-> Les secrets/variables `DB_*`, `MAIL_*`, `MAKE_WEBHOOK_*` et `APP_EMERGENCY_KEY` sont substitués tels quels dans `.github/deploy/.env.production.template` — pour ajouter un nouveau paramètre `.env` de production, l'ajouter au template **et** créer le secret/variable GitHub correspondant, sous peine d'échec du job `build` (placeholder non résolu).
+> Les secrets/variables `DB_*`, `MAIL_*` et `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` sont substitués tels quels dans `.github/deploy/.env.production.template` — pour ajouter un nouveau paramètre `.env` de production, l'ajouter au template **et** créer le secret/variable GitHub correspondant, sous peine d'échec du job `build` (placeholder non résolu).
 
 ### Concurrence et sécurité du pipeline
 
@@ -377,53 +374,65 @@ Onglet **Actions** du dépôt GitHub → sélectionner l'exécution → chaque �
 3. Saisir `admin@amana.fr`
 4. Suivre le lien reçu par email (ou dans `storage/logs/laravel.log` si `MAIL_MAILER=log`)
 
-#### Via l'outil d'urgence `/urgence-hash` (si SMTP non opérationnel)
+#### Via Tinker en SSH sur le serveur (si SMTP non opérationnel)
 
-1. Définir le secret GitHub `APP_EMERGENCY_KEY` (voir tableau des secrets ci-dessus) et redéployer, ou l'éditer directement dans le `.env` du serveur en urgence
-2. Visiter `https://votredomaine.com/urgence-hash?key=une-cle-secrete`
-3. Générer le hash bcrypt
-4. Exécuter la requête SQL affichée dans phpMyAdmin
-5. **Retirer `APP_EMERGENCY_KEY`** (secret GitHub vide + redéploiement, ou `.env` serveur) après usage
+> Remplace l'ancien outil `/urgence-hash`, retiré du projet — le déploiement SSH vers IONOS étant opérationnel, `php artisan tinker` sur le serveur couvre le même besoin sans exposer de route publique ni de clé secrète supplémentaire à gérer.
+
+1. Se connecter en SSH au serveur IONOS (`IONOS_SSH_USER@IONOS_SSH_HOST`)
+2. Depuis `IONOS_REMOTE_PATH`, lancer `{chemin du binaire PHP CLI IONOS, ex. php8.4-cli} artisan tinker`
+3. Dans Tinker :
+
+    ```php
+    $p = \App\Models\Personne::where('email', 'admin@amana.fr')->first();
+    $p->password = bcrypt('nouveau-mot-de-passe');
+    $p->save();
+    ```
+
+4. `exit` pour quitter Tinker
 
 ---
 
 ## Référence des routes principales
 
-| Méthode | URL                                             | Nom                            | Accès              | Description                                                                             |
-| ------- | ----------------------------------------------- | ------------------------------ | ------------------ | --------------------------------------------------------------------------------------- |
-| GET     | `/`                                             | —                              | Public             | Redirige vers `/planning`                                                               |
-| GET     | `/login`                                        | `login`                        | Public             | Formulaire de connexion                                                                 |
-| GET     | `/inscription`                                  | `inscription`                  | Public             | Formulaire d'inscription publique                                                       |
-| GET     | `/planning`                                     | `planning.index`               | Connecté           | Vue principale du planning                                                              |
-| GET     | `/planning/data`                                | `planning.data`                | Connecté           | JSON consommé par le composant Vue `PlanningGrid`                                       |
-| GET     | `/mon-planning`                                 | `mon-planning`                 | Connecté           | Vue personnelle                                                                         |
-| GET     | `/planning/stats`                               | `planning.statistics`          | Connecté           | Statistiques                                                                            |
-| GET     | `/planning/export`                              | `planning.export.form`         | Connecté           | Formulaire export PDF                                                                   |
-| POST    | `/planning/export/pdf`                          | `planning.export.pdf`          | Connecté           | Génération PDF                                                                          |
-| GET     | `/planning/generer`                             | `planning.generate.form`       | Gestionnaire+Admin | Formulaire de génération                                                                |
-| POST    | `/planning/generer`                             | `planning.generate`            | Gestionnaire+Admin | Génération effective                                                                    |
-| POST    | `/planning/generer/apercu`                      | `planning.preview`             | Gestionnaire+Admin | Prévisualisation dry-run                                                                |
-| POST    | `/planning/overlap/cancel`                      | `planning.overlap.cancel`      | Gestionnaire+Admin | Annule la confirmation de chevauchement                                                 |
-| POST    | `/planning/rollback`                            | `planning.rollback`            | Gestionnaire+Admin | Rollback post-génération                                                                |
-| POST    | `/planning/rollback/dismiss`                    | `planning.rollback.dismiss`    | Gestionnaire+Admin | Ferme la session de rollback                                                            |
-| POST    | `/planning/creneau`                             | `planning.edit.create-creneau` | Gestionnaire+Admin | Crée un créneau manuellement                                                            |
-| DELETE  | `/planning/creneau/{id}`                        | `planning.edit.delete-creneau` | Gestionnaire+Admin | Supprime un créneau entier                                                              |
-| PATCH   | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.assignation`    | Gestionnaire+Admin | Réassigne une tâche                                                                     |
-| DELETE  | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.unassign`       | Gestionnaire+Admin | Désassigne une tâche                                                                    |
-| POST    | `/planning/annulation-cours`                    | `planning.annulation-cours`    | Gestionnaire+Admin | **Annule le cours d'une date** — désassigne tout, bloque la date, nettoie le calendrier |
-| GET     | `/absences`                                     | `absences.index`               | Connecté           | Liste des absences                                                                      |
-| GET     | `/restrictions`                                 | `restrictions.index`           | Connecté           | Grille des disponibilités                                                               |
-| GET     | `/evenements`                                   | `evenements.index`             | Connecté           | Liste des événements                                                                    |
-| GET     | `/evenements/creer`                             | `evenements.create`            | Gestionnaire+Admin | Formulaire de création d'événement (calendriers multiples)                              |
-| GET     | `/bilan`                                        | `bilan.index`                  | Connecté           | Bilan quotidien (Amana Food + Présences)                                                |
-| GET     | `/bilan/statistiques`                           | `bilan.statistiques`           | Connecté           | Statistiques du bilan quotidien                                                         |
-| GET     | `/parametres`                                   | `settings.index`               | Gestionnaire+Admin | Paramètres de l'application                                                             |
-| GET     | `/personnes`                                    | `personnes.index`              | Admin              | Liste des membres                                                                       |
-| GET     | `/admin/candidatures`                           | `admin.candidatures.index`     | Admin              | Tableau de bord des candidatures                                                        |
-| GET     | `/admin/echanges`                               | `admin.echanges.index`         | Gestionnaire+Admin | Gestion des échanges                                                                    |
-| GET     | `/diagnostic-mail`                              | `diagnostic.mail.index`        | Admin              | Diagnostic SMTP                                                                         |
-| GET     | `/echanges`                                     | `echanges.index`               | Connecté           | Mes échanges                                                                            |
-| GET     | `/api/calendriers`                              | `calendriers.index`            | Connecté           | JSON — liste des calendriers Make.com (dropdown de recherche)                           |
+| Méthode | URL                                             | Nom                            | Accès              | Description                                                                                                          |
+| ------- | ----------------------------------------------- | ------------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| GET     | `/`                                             | —                              | Public             | Redirige vers `/planning`                                                                                            |
+| GET     | `/login`                                        | `login`                        | Public             | Formulaire de connexion                                                                                              |
+| GET     | `/inscription`                                  | `inscription`                  | Public             | Formulaire d'inscription publique                                                                                    |
+| GET     | `/planning`                                     | `planning.index`               | Connecté           | Vue principale du planning                                                                                           |
+| GET     | `/planning/data`                                | `planning.data`                | Connecté           | JSON consommé par le composant Vue `PlanningGrid`                                                                    |
+| GET     | `/mon-planning`                                 | `mon-planning`                 | Connecté           | Vue personnelle                                                                                                      |
+| GET     | `/planning/stats`                               | `planning.statistics`          | Connecté           | Statistiques                                                                                                         |
+| GET     | `/planning/export`                              | `planning.export.form`         | Connecté           | Formulaire export PDF                                                                                                |
+| POST    | `/planning/export/pdf`                          | `planning.export.pdf`          | Connecté           | Génération PDF                                                                                                       |
+| GET     | `/planning/generer`                             | `planning.generate.form`       | Gestionnaire+Admin | Formulaire de génération                                                                                             |
+| POST    | `/planning/generer`                             | `planning.generate`            | Gestionnaire+Admin | Génération effective                                                                                                 |
+| POST    | `/planning/generer/apercu`                      | `planning.preview`             | Gestionnaire+Admin | Prévisualisation dry-run                                                                                             |
+| POST    | `/planning/overlap/cancel`                      | `planning.overlap.cancel`      | Gestionnaire+Admin | Annule la confirmation de chevauchement                                                                              |
+| POST    | `/planning/rollback`                            | `planning.rollback`            | Gestionnaire+Admin | Rollback post-génération                                                                                             |
+| POST    | `/planning/rollback/dismiss`                    | `planning.rollback.dismiss`    | Gestionnaire+Admin | Ferme la session de rollback                                                                                         |
+| POST    | `/planning/creneau`                             | `planning.edit.create-creneau` | Gestionnaire+Admin | Crée un créneau manuellement                                                                                         |
+| DELETE  | `/planning/creneau/{id}`                        | `planning.edit.delete-creneau` | Gestionnaire+Admin | Supprime un créneau entier                                                                                           |
+| PATCH   | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.assignation`    | Gestionnaire+Admin | Réassigne une tâche                                                                                                  |
+| DELETE  | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.unassign`       | Gestionnaire+Admin | Désassigne une tâche                                                                                                 |
+| POST    | `/planning/annulation-cours`                    | `planning.annulation-cours`    | Gestionnaire+Admin | **Annule le cours d'une date** — désassigne tout, bloque la date, nettoie le calendrier                              |
+| GET     | `/absences`                                     | `absences.index`               | Connecté           | Liste des absences                                                                                                   |
+| GET     | `/restrictions`                                 | `restrictions.index`           | Connecté           | Grille des disponibilités                                                                                            |
+| GET     | `/evenements`                                   | `evenements.index`             | Connecté           | Liste des événements                                                                                                 |
+| GET     | `/evenements/creer`                             | `evenements.create`            | Gestionnaire+Admin | Formulaire de création d'événement (calendriers multiples)                                                           |
+| GET     | `/bilan`                                        | `bilan.index`                  | Connecté           | Bilan quotidien (Amana Food + Présences)                                                                             |
+| GET     | `/bilan/statistiques`                           | `bilan.statistiques`           | Connecté           | Statistiques du bilan quotidien                                                                                      |
+| GET     | `/parametres`                                   | `settings.index`               | Gestionnaire+Admin | Paramètres de l'application (inclut le registre des calendriers Google Calendar)                                     |
+| POST    | `/parametres/calendriers-google`                | `calendriers-google.store`     | Gestionnaire+Admin | Ajoute un calendrier au registre (vérifié via `calendars.get()`)                                                     |
+| PATCH   | `/parametres/calendriers-google/{id}`           | `calendriers-google.update`    | Gestionnaire+Admin | Modifie nom/description/statut actif d'un calendrier enregistré                                                      |
+| DELETE  | `/parametres/calendriers-google/{id}`           | `calendriers-google.destroy`   | Gestionnaire+Admin | Retire un calendrier du registre                                                                                     |
+| POST    | `/parametres/calendriers-google/{id}/verifier`  | `calendriers-google.verifier`  | Gestionnaire+Admin | Revérifie l'accès à un calendrier déjà enregistré                                                                    |
+| GET     | `/personnes`                                    | `personnes.index`              | Admin              | Liste des membres                                                                                                    |
+| GET     | `/admin/candidatures`                           | `admin.candidatures.index`     | Admin              | Tableau de bord des candidatures                                                                                     |
+| GET     | `/admin/echanges`                               | `admin.echanges.index`         | Gestionnaire+Admin | Gestion des échanges                                                                                                 |
+| GET     | `/diagnostic-mail`                              | `diagnostic.mail.index`        | Admin              | Diagnostic SMTP                                                                                                      |
+| GET     | `/echanges`                                     | `echanges.index`               | Connecté           | Mes échanges                                                                                                         |
+| GET     | `/api/calendriers`                              | `calendriers.index`            | Connecté           | JSON — calendriers Google Calendar **enregistrés** dans `ref_calendriers_google` (lecture DB, dropdown de recherche) |
 
 ---
 

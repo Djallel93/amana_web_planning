@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\Planning\BanniereResource;
+use App\Http\Resources\Planning\CreneauResource;
 use App\Models\Creneau;
 use App\Models\Evenement;
 use Illuminate\Http\JsonResponse;
@@ -118,72 +120,8 @@ class PlanningApiController extends PlanningController
             'dimanche' => $weekSunday->toDateString(),
             'datesExistantes' => $creneauxSemaine->pluck('date')->map(fn($d) => $d->toDateString())->values(),
             'evenementBloquantTotal' => $evtToutBloque ? $evtToutBloque['evenement']->nom : null,
-            'bannieres' => collect($bannièresSemaine)->map(fn($b) => [
-                'nom' => $b['evenement']->nom,
-                'dateLabel' => $this->formatBanniereDate($b),
-                'informatif' => $b['informatif'],
-                'tachesBloquees' => $b['informatif']
-                    ? []
-                    : $b['evenement']->tachesBloquees->map(fn($t) => [
-                        'code' => $t->code,
-                        'libelle' => $t->libelle,
-                    ])->values(),
-            ])->values(),
-            'creneaux' => $creneauxSemaine->map(fn($c) => $this->serializeCreneau($c))->values(),
+            'bannieres' => collect($bannièresSemaine)->map(fn($b) => BanniereResource::make($b))->values(),
+            'creneaux' => $creneauxSemaine->map(fn($c) => CreneauResource::make($c))->values(),
         ];
-    }
-
-    /**
-     * Sérialise un créneau — équivalent JSON d'une ligne <tr> de _week-block.
-     */
-    private function serializeCreneau(Creneau $c): array
-    {
-        $tachesMap = $c->taches->keyBy(fn($t) => $t->tache?->code);
-        $tachesBloqueesCodes = $c->tachesBloqueesCodes();
-        $nomEvtBloquants = $c->evenements
-            ->filter(fn($e) => $e->tachesBloquees->isNotEmpty())
-            ->pluck('nom')
-            ->implode(', ');
-        $nbTaches = $c->taches->count();
-        $toutBloque = $tachesBloqueesCodes->count() >= $nbTaches && $tachesBloqueesCodes->isNotEmpty();
-
-        $taches = collect(['entree', 'mektaba', 'salle', 'amana_food', 'cours'])->map(function ($code) use ($tachesMap, $tachesBloqueesCodes, $nomEvtBloquants) {
-            $ct = $tachesMap->get($code);
-            $personne = $ct?->personne;
-
-            return [
-                'code' => $code,
-                'tacheId' => $ct?->id_tache,
-                'bloquee' => $tachesBloqueesCodes->contains($code),
-                'evenementBloquant' => $tachesBloqueesCodes->contains($code) ? $nomEvtBloquants : null,
-                'personne' => $personne ? [
-                    'id' => $personne->id,
-                    'label' => $personne->prenom . ' ' . $personne->nom,
-                ] : null,
-            ];
-        });
-
-        return [
-            'id' => $c->id,
-            'date' => $c->date->toDateString(),
-            'dateLabel' => $c->date->locale('fr')->isoFormat('D MMM YYYY'),
-            'jour' => $c->jour,
-            'toutBloque' => $toutBloque,
-            'partielBloque' => !$toutBloque && $tachesBloqueesCodes->isNotEmpty(),
-            'evenements' => $c->evenements->pluck('nom')->implode(', ') ?: null,
-            'taches' => $taches,
-        ];
-    }
-
-    /**
-     * Formate la plage de dates d'une bannière, identique à _week-block.blade.php.
-     */
-    private function formatBanniereDate(array $bannière): string
-    {
-        $debutStr = $bannière['debut_semaine']->locale('fr')->isoFormat('D MMM');
-        $finStr = $bannière['fin_semaine']->locale('fr')->isoFormat('D MMM');
-        $mêmeJour = $bannière['debut_semaine']->isSameDay($bannière['fin_semaine']);
-
-        return $mêmeJour ? $debutStr : "{$debutStr} – {$finStr}";
     }
 }

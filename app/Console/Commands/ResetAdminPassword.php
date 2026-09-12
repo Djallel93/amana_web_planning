@@ -129,7 +129,7 @@ class ResetAdminPassword extends Command
                 ->firstWhere('code', 'admin');
 
             if ($roleAdmin) {
-                $dejaAttribue = DB::table('ref_personnes_roles')
+                $dejaAttribue = DB::connection(config('amana-shared.connection', 'commun'))->table('ref_personnes_roles')
                     ->where('id_personne', $admin->id)
                     ->where('id_role', $roleAdmin->id)
                     ->exists();

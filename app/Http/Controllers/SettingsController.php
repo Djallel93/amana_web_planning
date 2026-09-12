@@ -5,47 +5,45 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\Setting;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Amana\Shared\Http\Controllers\SettingsControllerBase;
+use Amana\Shared\Models\Setting;
+use App\Models\CalendrierGoogle;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
- * Contrôleur pour les paramètres de l'application planning.
+ * Paramètres du planning — étend SettingsControllerBase (amana/shared) pour
+ * son regroupement d'affichage propre au métier planning (horaires,
+ * décalages par tâche, calendriers Google, couleurs). update() est hérité
+ * tel quel de la base — la seule chose propre à planning y était déjà
+ * paramétrable via appCode()/adminOnlyKeys().
  *
  * Accès route : gestionnaire + admin (middleware 'role:gestionnaire').
- *
- * Restriction interne :
- *   - Le paramètre `inscription_ouverte` est réservé aux admins.
- *     Un gestionnaire peut voir la section mais ne peut pas la modifier.
- *
- * Routes :
- *   GET  /parametres  → index()   Affiche tous les paramètres groupés
- *   POST /parametres  → update()  Sauvegarde un ou tous les paramètres
+ * `inscription_ouverte` reste réservé aux admins (adminOnlyKeys()).
  */
-class SettingsController extends Controller
+class SettingsController extends SettingsControllerBase
 {
-    private const APP_CODE = 'planning';
+    protected function appCode(): string
+    {
+        return 'planning';
+    }
 
-    /**
-     * Clés réservées aux administrateurs — ignorées si soumises par un gestionnaire.
-     */
-    private const ADMIN_ONLY_KEYS = ['inscription_ouverte'];
+    protected function adminOnlyKeys(): array
+    {
+        return ['inscription_ouverte'];
+    }
 
-    /**
-     * Affiche tous les paramètres planning groupés par catégorie.
-     */
     public function index(): View
     {
-        $settings = Setting::allForApp(self::APP_CODE);
+        $settings = Setting::allForApp($this->appCode());
 
         $horaires = $settings->only(['heure_cours', 'lieu']);
         $decalages = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'offset_'));
         $decalagesGroupes = $this->grouperDecalages($decalages);
         $inscription = $settings->only(['inscription_ouverte']);
         $calendriers = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'calendar_'));
+        $couleurs = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'couleur_'));
+        $calendriersGoogle = CalendrierGoogle::orderBy('nom')->get();
 
         /** @var \App\Models\Personne $user */
         $user = Auth::user();
@@ -57,71 +55,10 @@ class SettingsController extends Controller
             'settings',
             'inscription',
             'calendriers',
+            'couleurs',
+            'calendriersGoogle',
             'user',
         ));
-    }
-
-    /**
-     * Sauvegarde les paramètres soumis via le formulaire.
-     *
-     * Les clés dans ADMIN_ONLY_KEYS ne sont mises à jour que si l'utilisateur
-     * connecté est un administrateur. Un gestionnaire peut soumettre le
-     * formulaire complet : ces clés seront silencieusement ignorées.
-     */
-    public function update(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'settings' => ['required', 'array'],
-            'settings.*' => ['nullable', 'string', 'max:500'],
-        ]);
-
-        /** @var \App\Models\Personne $user */
-        $user = Auth::user();
-        $settingsInput = $request->input('settings', []);
-
-        $avant = Setting::allForApp(self::APP_CODE)
-            ->map(fn($s) => $s['valeur_raw'])
-            ->toArray();
-
-        $idApp = DB::table('ref_applications')
-            ->where('code', self::APP_CODE)
-            ->value('id');
-
-        if (!$idApp) {
-            return redirect()->route('settings.index')
-                ->with('error', 'Application planning introuvable.');
-        }
-
-        $apres = [];
-        foreach ($settingsInput as $cle => $valeur) {
-            // Clé réservée aux admins : ignorer si l'utilisateur n'est pas admin
-            if (in_array($cle, self::ADMIN_ONLY_KEYS, true) && !$user->isAdmin()) {
-                continue;
-            }
-
-            $existe = DB::table('ref_settings')
-                ->where('id_application', $idApp)
-                ->where('cle', $cle)
-                ->exists();
-
-            if (!$existe) {
-                continue;
-            }
-
-            $valeur = trim((string) $valeur);
-
-            DB::table('ref_settings')
-                ->where('id_application', $idApp)
-                ->where('cle', $cle)
-                ->update(['valeur' => $valeur]);
-
-            $apres[$cle] = $valeur;
-        }
-
-        audit('update', 'settings', null, $avant, $apres);
-
-        return redirect()->route('settings.index')
-            ->with('success', 'Paramètres enregistrés avec succès.');
     }
 
     // ── Helpers privés ─────────────────────────────────────────────────────

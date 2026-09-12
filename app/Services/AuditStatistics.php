@@ -5,8 +5,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\AuditLog;
-use App\Models\Personne;
+use Amana\Shared\Contracts\ActivityStatisticsProvider;
+use Amana\Shared\Helpers\AuditHelper;
+use Amana\Shared\Models\AuditLog;
 use Illuminate\Support\Collection;
 
 /**
@@ -15,10 +16,15 @@ use Illuminate\Support\Collection;
  * Distinct de Statistics.php (équilibrage de la rotation des tâches) et de
  * Bilan (présence/collecte du jour) : ce service mesure l'activité dans
  * l'application elle-même — qui fait quoi, et à quelle fréquence — à partir
- * de la table audit_logs, déjà alimentée par le helper audit() dans toute
- * l'application. Aucune nouvelle table n'est nécessaire.
+ * de la table audit_logs (amana_commun), déjà alimentée par le helper
+ * audit() dans toute l'application. Aucune nouvelle table n'est nécessaire.
+ *
+ * Implémente Amana\Shared\Contracts\ActivityStatisticsProvider — lié dans
+ * AppServiceProvider::register() pour que
+ * Amana\Shared\Http\Controllers\ActivityStatsController (partagé) délègue
+ * son calcul ici.
  */
-class AuditStatistics
+class AuditStatistics implements ActivityStatisticsProvider
 {
     /**
      * Calcule toutes les métriques d'activité pour une période donnée.
@@ -28,7 +34,10 @@ class AuditStatistics
      */
     public function computeAll(string $from, string $to): array
     {
+        // Scopé à cette application — audit_logs est partagée entre plusieurs
+        // apps AMANA (voir id_application).
         $logs = AuditLog::with('personne')
+            ->where('id_application', AuditHelper::applicationId())
             ->whereDate('created_at', '>=', $from)
             ->whereDate('created_at', '<=', $to)
             ->get();

@@ -79,6 +79,10 @@ return [
             'table' => 'password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
+            // password_reset_tokens vit dans amana_commun depuis la migration
+            // vers amana/shared — Laravel accepte nativement une connexion
+            // dédiée ici (PasswordBrokerManager::resolve() lit cette clé).
+            'connection' => env('AMANA_COMMUN_CONNECTION', 'commun'),
         ],
     ],
 

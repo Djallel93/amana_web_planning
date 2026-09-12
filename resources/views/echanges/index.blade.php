@@ -114,7 +114,7 @@
                     @if($echange->statut === 'en_attente' && $isDemandeur)
                         <div class="mt-3 flex gap-2 flex-wrap">
                             <form action="{{ route('echanges.destroy', $echange->id) }}" method="POST"
-                                  onsubmit="return confirm('Annuler cette demande d\'échange ?')">
+                                  data-confirm="Annuler cette demande d'échange ?" data-confirm-danger>
                                 @csrf @method('DELETE')
                                 <button type="submit"
                                         class="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px]

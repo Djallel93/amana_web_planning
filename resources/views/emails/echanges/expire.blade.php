@@ -3,12 +3,12 @@
 <html lang="fr" dir="ltr">
 <head>
     <title>Échange expiré — AMANA</title>
-    @include('emails.partials._head')
+    @include('amana-shared::emails.partials._head')
 </head>
 <body>
 <div class="shell">
     <div class="wrapper">
-        @include('emails.partials._header', [
+        @include('amana-shared::emails.partials._header', [
             'badge'    => 'Échange expiré',
             'title'    => 'Votre demande d\'échange a expiré',
             'titleSub' => 'AMANA Planning',
@@ -26,9 +26,9 @@
             <div class="cta-wrap">
                 <a href="{{ $urlPlanning }}" class="cta-button">📅 &nbsp; Voir mon planning</a>
             </div>
-            @include('emails.partials._closing')
+            @include('amana-shared::emails.partials._closing')
         </div>
-        @include('emails.partials._footer')
+        @include('amana-shared::emails.partials._footer')
     </div>
 </div>
 </body>

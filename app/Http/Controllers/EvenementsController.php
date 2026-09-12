@@ -5,38 +5,44 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Helpers\GoogleCalendarColors;
+use App\Http\Requests\Evenements\ImportEvenementsManuelRequest;
+use App\Http\Requests\Evenements\ImportEvenementsRequest;
 use App\Http\Requests\Evenements\StoreEvenementRequest;
 use App\Http\Requests\Evenements\UpdateEvenementRequest;
-use App\Jobs\EnvoyerWebhookMake;
-use App\Models\Creneau;
-use App\Models\CreneauTache;
+use App\Jobs\SynchroniserGoogleCalendar;
+use App\Models\CalendrierGoogle;
 use App\Models\Evenement;
 use App\Models\Tache;
+use App\Services\EvenementCsvImporter;
+use App\Services\EvenementRegenerationService;
 use App\Services\WebhookEvenementPayloadBuilder;
-use App\Services\WebhookPayloadBuilder;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Contrôleur CRUD pour les événements organisationnels.
+ * Contrôleur CRUD (+ import CSV en masse) pour les événements
+ * organisationnels.
  *
- * Chaque opération create/update/delete déclenche un webhook Make.com
- * si l'événement a au moins un calendrier configuré, avec le verbe HTTP
- * correspondant (POST / PATCH / DELETE).
+ * Chaque opération create/update/delete synchronise directement Google
+ * Calendar (SynchroniserGoogleCalendar) si l'événement a au moins un
+ * calendrier configuré : POST/PATCH en queue (upsert), DELETE en
+ * synchrone — voir le docblock de SynchroniserGoogleCalendar pour le détail
+ * de ce choix (lié à l'onDelete('cascade') sur ref_evenements_calendriers).
  *
  * Si l'événement couvre des dates pour lesquelles un planning a déjà été
- * généré, les créneaux existants (futurs uniquement — voir syncCreneauLinks)
- * sont mis à jour pour refléter le nouvel événement : bannière informative
- * dans tous les cas, et désassignation réelle des tâches nouvellement
- * bloquées si l'événement est bloquant.
+ * généré, EvenementRegenerationService régénère automatiquement le planning
+ * depuis la première date impactée — voir son docblock pour le détail de
+ * pourquoi une régénération complète a remplacé l'ancien patch ciblé
+ * créneau par créneau (syncCreneauLinks, retiré).
  */
 class EvenementsController extends Controller
 {
     public function __construct(
         private readonly WebhookEvenementPayloadBuilder $webhookBuilder,
-        private readonly WebhookPayloadBuilder $planningWebhookBuilder,
+        private readonly EvenementRegenerationService $regenerationService,
     ) {
     }
 
@@ -59,26 +65,169 @@ class EvenementsController extends Controller
     {
         $data = $request->validated();
         $tacheIds = $data['taches'] ?? [];
-        $calendarNames = $data['calendar_names'] ?? [];
-        unset($data['taches'], $data['calendar_names']);
+        $calendarIds = $data['calendar_ids'] ?? [];
+        unset($data['taches'], $data['calendar_ids']);
 
         $evenement = Evenement::create($data);
         $evenement->tachesBloquees()->sync($tacheIds);
-        $this->syncCalendriers($evenement, $calendarNames);
+        $this->syncCalendriers($evenement, $calendarIds);
 
         audit('create', 'evenements', $evenement->id, null, array_merge(
             $evenement->toArray(),
-            ['taches_bloquees' => $tacheIds, 'calendar_names' => $calendarNames]
+            ['taches_bloquees' => $tacheIds, 'calendar_ids' => $calendarIds]
         ));
 
         $evenement->load('tachesBloquees');
         $this->dispatchWebhookUpsert($evenement, 'post');
 
-        $resultat = $this->syncCreneauLinks($evenement);
+        $message = "Événement « {$evenement->nom} » créé.";
+        $regeneration = $this->regenerationService->regenererSiNecessaire($evenement);
+        if ($regeneration !== null) {
+            $message .= ' ' . $regeneration['message'];
+        }
 
-        return redirect()->route('evenements.index')
-            ->with('success', "Événement « {$evenement->nom} » créé.")
-            ->with('warning', $this->buildPastDatesWarning($resultat, $evenement));
+        return redirect()->route('evenements.index')->with('success', $message);
+    }
+
+    /**
+     * Affiche le formulaire d'import en masse — deux méthodes indépendantes
+     * sur la même page : upload CSV (voir EvenementCsvImporter) ou saisie
+     * manuelle multi-lignes (BulkEvenementImport.vue, voir storeManualImport()).
+     */
+    public function import(): View
+    {
+        $taches = Tache::actif()->orderBy('id')->get(['id', 'code', 'libelle']);
+        $couleurs = collect(GoogleCalendarColors::PALETTE)
+            ->map(fn(array $c, string $id) => ['id' => $id, 'nom' => $c['nom']])
+            ->values();
+
+        return view('evenements.import', compact('taches', 'couleurs'));
+    }
+
+    /**
+     * Traite le fichier CSV envoyé — import "tout ou rien" (voir docblock
+     * de EvenementCsvImporter) : si une seule ligne est invalide, RIEN
+     * n'est créé et le détail des erreurs est renvoyé au formulaire.
+     *
+     * Une fois les événements créés (transaction unique), la synchronisation
+     * Google Calendar par événement et la régénération du planning (si des
+     * créneaux futurs sont impactés) sont déclenchées comme pour une
+     * création manuelle — voir finalizeImport(), commun avec
+     * storeManualImport().
+     */
+    public function storeImport(ImportEvenementsRequest $request, EvenementCsvImporter $importer): RedirectResponse
+    {
+        $parsed = $importer->validate($request->file('csv'));
+
+        if (!empty($parsed['errors'])) {
+            return redirect()->route('evenements.import')
+                ->with('import_errors', $parsed['errors'])
+                ->with('error', count($parsed['errors']) . " ligne(s) invalide(s) — aucun événement n'a été importé. Corrigez le fichier et réessayez.");
+        }
+
+        if (empty($parsed['rows'])) {
+            return redirect()->route('evenements.import')
+                ->with('error', 'Le fichier ne contient aucune ligne de données.');
+        }
+
+        try {
+            $evenements = $importer->import($parsed['rows']);
+        } catch (\Throwable $e) {
+            Log::error('[EvenementsController] Échec de l\'import CSV', ['error' => $e->getMessage()]);
+
+            return redirect()->route('evenements.import')
+                ->with('error', "Échec de l'import : " . $e->getMessage());
+        }
+
+        return $this->finalizeImport($evenements);
+    }
+
+    /**
+     * Traite la saisie manuelle de plusieurs événements (section "Saisie
+     * manuelle" de evenements/import.blade.php, formulaire dynamique
+     * BulkEvenementImport.vue) — alternative à l'upload CSV pour les mêmes
+     * résultats. "Tout ou rien" garanti par ImportEvenementsManuelRequest :
+     * la validation de TOUTES les lignes se fait avant que cette méthode ne
+     * s'exécute — si une seule ligne est invalide, Laravel redirige
+     * automatiquement vers le formulaire avec les erreurs et les valeurs
+     * saisies (old('rows')), sans qu'aucun événement n'ait été créé.
+     *
+     * Réutilise EvenementCsvImporter::import() (transaction unique + audit
+     * + pivots) : cette méthode ne contient rien de spécifique au CSV, elle
+     * attend déjà des lignes pré-résolues (tache_ids en entiers,
+     * calendar_ids en identifiants Google Calendar bruts) — exactement ce
+     * que produisent les checkboxes et le SearchableSelect du formulaire
+     * manuel, sans résolution de codes/noms nécessaire ici.
+     */
+    public function storeManualImport(ImportEvenementsManuelRequest $request, EvenementCsvImporter $importer): RedirectResponse
+    {
+        $rows = collect($request->validated('rows'))
+            ->map(function (array $row) {
+                $calendarIds = array_values(array_unique(array_filter($row['calendar_ids'] ?? [])));
+
+                return [
+                    'nom' => trim($row['nom']),
+                    'date_debut' => $row['date_debut'],
+                    'date_fin' => $row['date_fin'],
+                    'description' => trim((string) ($row['description'] ?? '')) ?: null,
+                    'couleur' => $row['couleur'] ?? null ?: null,
+                    'tache_ids' => array_values(array_unique($row['taches'] ?? [])),
+                    'calendar_ids' => $calendarIds,
+                    'calendar_noms' => $this->resolveCalendarNames($calendarIds),
+                ];
+            })
+            ->all();
+
+        try {
+            $evenements = $importer->import($rows);
+        } catch (\Throwable $e) {
+            Log::error('[EvenementsController] Échec de la saisie manuelle en masse', ['error' => $e->getMessage()]);
+
+            return redirect()->route('evenements.import')
+                ->withInput()
+                ->with('error', "Échec de l'import : " . $e->getMessage());
+        }
+
+        return $this->finalizeImport($evenements);
+    }
+
+    /**
+     * Sert un fichier CSV modèle (en-tête + une ligne d'exemple) pour
+     * l'import en masse.
+     */
+    public function downloadTemplate(): Response
+    {
+        $csv = "nom;date_debut;date_fin;description;couleur;taches;calendriers\n"
+            . "Ramadan;2026-03-01;2026-03-30;Fermeture pendant le mois sacré;Tomate;entree|mektaba;Calendrier Général\n";
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="modele-import-evenements.csv"',
+        ]);
+    }
+
+    /**
+     * Effets de bord communs à storeImport() (CSV) et storeManualImport()
+     * (saisie manuelle) une fois les événements effectivement créés :
+     * synchronisation Google Calendar par événement (queue) puis
+     * régénération du planning si nécessaire (EvenementRegenerationService,
+     * un seul appel pour tout le lot).
+     *
+     * @param array<int, Evenement> $evenements
+     */
+    private function finalizeImport(array $evenements): RedirectResponse
+    {
+        foreach ($evenements as $evenement) {
+            $this->dispatchWebhookUpsert($evenement, 'post');
+        }
+
+        $message = count($evenements) . ' événement(s) importé(s) avec succès.';
+        $regeneration = $this->regenerationService->regenererSiNecessaire($evenements);
+        if ($regeneration !== null) {
+            $message .= ' ' . $regeneration['message'];
+        }
+
+        return redirect()->route('evenements.index')->with('success', $message);
     }
 
     public function edit(int $id): View
@@ -95,26 +244,28 @@ class EvenementsController extends Controller
 
         $data = $request->validated();
         $tacheIds = $data['taches'] ?? [];
-        $calendarNames = $data['calendar_names'] ?? [];
-        unset($data['taches'], $data['calendar_names']);
+        $calendarIds = $data['calendar_ids'] ?? [];
+        unset($data['taches'], $data['calendar_ids']);
 
         $evenement->update($data);
         $evenement->tachesBloquees()->sync($tacheIds);
-        $this->syncCalendriers($evenement, $calendarNames);
+        $this->syncCalendriers($evenement, $calendarIds);
 
         audit('update', 'evenements', $evenement->id, $avant, array_merge(
             $evenement->fresh()->toArray(),
-            ['taches_bloquees' => $tacheIds, 'calendar_names' => $calendarNames]
+            ['taches_bloquees' => $tacheIds, 'calendar_ids' => $calendarIds]
         ));
 
         $evenement = $evenement->fresh()->load('tachesBloquees');
         $this->dispatchWebhookUpsert($evenement, 'patch');
 
-        $resultat = $this->syncCreneauLinks($evenement);
+        $message = "Événement « {$evenement->nom} » mis à jour.";
+        $regeneration = $this->regenerationService->regenererSiNecessaire($evenement);
+        if ($regeneration !== null) {
+            $message .= ' ' . $regeneration['message'];
+        }
 
-        return redirect()->route('evenements.index')
-            ->with('success', "Événement « {$evenement->nom} » mis à jour.")
-            ->with('warning', $this->buildPastDatesWarning($resultat, $evenement));
+        return redirect()->route('evenements.index')->with('success', $message);
     }
 
     public function destroy(int $id): RedirectResponse
@@ -139,128 +290,57 @@ class EvenementsController extends Controller
     /**
      * Remplace les calendriers liés à un événement.
      *
-     * @param array<int, string> $calendarNames
+     * @param array<int, string> $calendarIds Identifiants Google Calendar
+     *        (calendarId) sélectionnés dans le formulaire — le libellé
+     *        d'affichage (calendar_name) est résolu ici depuis la même
+     *        liste que celle utilisée par le dropdown, pour rester
+     *        cohérent sans dépendre d'un aller-retour API supplémentaire.
      */
-    private function syncCalendriers(Evenement $evenement, array $calendarNames): void
+    private function syncCalendriers(Evenement $evenement, array $calendarIds): void
     {
-        $evenement->calendriers()->delete();
+        $calendarIds = array_values(array_unique(array_filter(array_map('trim', $calendarIds))));
 
-        $calendarNames = array_values(array_unique(array_filter(
-            array_map('trim', $calendarNames)
-        )));
+        $anciennes = $evenement->calendriers()->get()->keyBy('google_calendar_id');
+        $noms = $this->resolveCalendarNames($calendarIds);
 
-        foreach ($calendarNames as $nom) {
-            $evenement->calendriers()->create(['calendar_name' => $nom]);
+        $evenement->calendriers()->whereNotIn('google_calendar_id', $calendarIds)->delete();
+
+        foreach ($calendarIds as $id) {
+            $evenement->calendriers()->updateOrCreate(
+                ['google_calendar_id' => $id],
+                [
+                    'calendar_name' => $noms[$id] ?? $anciennes->get($id)?->calendar_name ?? $id,
+                ]
+            );
         }
 
         $evenement->unsetRelation('calendriers');
     }
 
     /**
-     * Met à jour les créneaux déjà générés qui chevauchent la plage de dates
-     * de cet événement :
-     *   - relie l'événement au créneau (bannière/label informatif) ;
-     *   - si l'événement bloque des tâches, désassigne réellement les tâches
-     *     nouvellement bloquées (impacte les statistiques et la répartition
-     *     future — c'est voulu, contrairement à un simple label visuel).
+     * Résout id → nom d'affichage depuis le registre `ref_calendriers_google`
+     * (voir CalendrierGoogleController) — pas d'appel à l'API Google Calendar
+     * ici : `calendars.get()` en boucle pour chaque ID serait lent et
+     * superflu puisque le registre contient déjà le nom validé à
+     * l'enregistrement de chaque calendrier.
      *
-     * IMPORTANT : les créneaux PASSÉS (date < aujourd'hui) ne sont jamais
-     * modifiés, quelle que soit la nature de l'événement — un planning déjà
-     * exécuté ne doit pas être réécrit rétroactivement (fiabilité des
-     * statistiques et de l'équité de répartition déjà constatée).
-     *
-     * @return array{pastCount: int, unassignedCount: int}
+     * @param array<int, string> $calendarIds
+     * @return array<string, string>
      */
-    private function syncCreneauLinks(Evenement $evenement): array
+    private function resolveCalendarNames(array $calendarIds): array
     {
-        DB::table('plan_creneaux_evenements')->where('id_evenement', $evenement->id)->delete();
-
-        $creneaux = Creneau::whereBetween('date', [$evenement->date_debut, $evenement->date_fin])
-            ->with('taches.tache')
-            ->get();
-
-        $today = now()->toDateString();
-        $bloquant = $evenement->tachesBloquees->isNotEmpty();
-
-        $pastCount = 0;
-        $unassignedCount = 0;
-
-        foreach ($creneaux as $creneau) {
-            if ($creneau->date->toDateString() < $today) {
-                // Créneau déjà passé : on ne touche à rien, ni le lien
-                // informatif ni les assignations — seulement compté pour
-                // pouvoir avertir l'utilisateur.
-                $pastCount++;
-                continue;
-            }
-
-            $creneau->evenements()->syncWithoutDetaching([$evenement->id]);
-
-            if (!$bloquant) {
-                continue;
-            }
-
-            $creneau->load('evenements.tachesBloquees');
-            $tachesBloqueesCodes = $creneau->tachesBloqueesCodes();
-
-            foreach ($creneau->taches as $ct) {
-                $code = $ct->tache?->code;
-                if (!$code || !$tachesBloqueesCodes->contains($code) || $ct->id_personne === null) {
-                    continue;
-                }
-
-                $ancienId = $ct->id_personne;
-                // Voir avertissement dans PlanningEditController::patchAssignation()
-                // — jamais ->save() sur une instance de CreneauTache (clé primaire
-                // composite, $primaryKey = null), sous peine d'un UPDATE sans
-                // clause WHERE affectant TOUTE la table.
-                CreneauTache::where('id_planning', $ct->id_planning)
-                    ->where('id_tache', $ct->id_tache)
-                    ->update(['id_personne' => null]);
-                $unassignedCount++;
-
-                audit(
-                    'update',
-                    'planning',
-                    $creneau->id,
-                    ['id_tache' => $ct->id_tache, 'id_personne' => $ancienId],
-                    ['id_tache' => $ct->id_tache, 'id_personne' => null]
-                );
-
-                $this->dispatchWebhookUnassignation($creneau->id, $ct->id_tache);
-            }
+        if (empty($calendarIds)) {
+            return [];
         }
 
-        return ['pastCount' => $pastCount, 'unassignedCount' => $unassignedCount];
+        return CalendrierGoogle::whereIn('calendar_id', $calendarIds)
+            ->pluck('nom', 'calendar_id')
+            ->all();
     }
 
     /**
-     * Construit (si nécessaire) un message d'avertissement expliquant que
-     * des créneaux passés chevauchant cet événement n'ont volontairement
-     * pas été modifiés.
-     */
-    private function buildPastDatesWarning(array $resultat, Evenement $evenement): ?string
-    {
-        if ($resultat['pastCount'] === 0) {
-            return null;
-        }
-
-        $n = $resultat['pastCount'];
-        $pluriel = $n > 1 ? 's' : '';
-        $pluralVerbe = $n > 1 ? 'nt' : '';
-
-        if ($evenement->tachesBloquees->isEmpty()) {
-            return "{$n} créneau{$pluriel} déjà passé{$pluriel} chevauche{$pluralVerbe} la période de cet événement "
-                . "et n'a{$pluriel} pas été mis à jour (le planning déjà exécuté n'est jamais modifié rétroactivement).";
-        }
-
-        return "Impossible de bloquer {$n} créneau{$pluriel} déjà passé{$pluriel} avec cet événement : "
-            . "modifier un planning déjà exécuté fausserait l'équité de répartition et les statistiques déjà "
-            . "constatées. Seuls les créneaux à venir ont été mis à jour.";
-    }
-
-    /**
-     * Dispatche un webhook upsert si au moins un calendrier est configuré.
+     * Dispatche une synchronisation Google Calendar (upsert) si au moins un
+     * calendrier est configuré.
      *
      * @param string $method 'post' (création) ou 'patch' (modification)
      */
@@ -270,20 +350,16 @@ class EvenementsController extends Controller
             return;
         }
 
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
         try {
             $payload = $this->webhookBuilder->buildUpsert($evenement);
-            EnvoyerWebhookMake::dispatch($payload, $method);
-            Log::info('[EvenementsController] Webhook dispatché', [
+            SynchroniserGoogleCalendar::dispatch($payload, $method, 'evenement');
+            Log::info('[EvenementsController] Synchronisation Google Calendar dispatchée', [
                 'id' => $evenement->id,
                 'nom' => $evenement->nom,
                 'method' => strtoupper($method),
             ]);
         } catch (\Throwable $e) {
-            Log::error('[EvenementsController] Échec dispatch webhook upsert', [
+            Log::error('[EvenementsController] Échec dispatch synchronisation upsert', [
                 'id' => $evenement->id,
                 'error' => $e->getMessage(),
             ]);
@@ -291,7 +367,8 @@ class EvenementsController extends Controller
     }
 
     /**
-     * Dispatche un webhook delete si au moins un calendrier est configuré.
+     * Dispatche une suppression Google Calendar (synchrone) si au moins un
+     * calendrier est configuré — voir docblock de SynchroniserGoogleCalendar.
      */
     private function dispatchWebhookDelete(Evenement $evenement): void
     {
@@ -299,48 +376,13 @@ class EvenementsController extends Controller
             return;
         }
 
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
         try {
             $payload = $this->webhookBuilder->buildDelete($evenement);
-            EnvoyerWebhookMake::dispatch($payload, 'delete');
-            Log::info('[EvenementsController] Webhook DELETE dispatché', ['id' => $evenement->id, 'nom' => $evenement->nom]);
+            SynchroniserGoogleCalendar::dispatchSync($payload, 'delete', 'evenement');
+            Log::info('[EvenementsController] Synchronisation Google Calendar (delete)', ['id' => $evenement->id, 'nom' => $evenement->nom]);
         } catch (\Throwable $e) {
-            Log::error('[EvenementsController] Échec dispatch webhook delete', [
+            Log::error('[EvenementsController] Échec synchronisation Google Calendar (delete)', [
                 'id' => $evenement->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-    }
-
-    /**
-     * Dispatche le webhook DELETE de désassignation d'une tâche (réutilisé
-     * depuis PlanningEditController — même payload que le bouton
-     * "✕ Désassigner" manuel).
-     */
-    private function dispatchWebhookUnassignation(int $creneauId, int $tacheId): void
-    {
-        if (empty(config('services.make.webhook_url'))) {
-            return;
-        }
-
-        try {
-            $creneau = Creneau::findOrFail($creneauId);
-            $tache = Tache::findOrFail($tacheId);
-            $payload = $this->planningWebhookBuilder->buildForUnassignation($creneau, $tache);
-
-            EnvoyerWebhookMake::dispatch($payload, 'delete');
-
-            Log::info('[EvenementsController] Webhook DELETE dispatché (désassignation rétroactive)', [
-                'creneau_id' => $creneauId,
-                'tache_id' => $tacheId,
-            ]);
-        } catch (\Throwable $e) {
-            Log::error('[EvenementsController] Échec dispatch webhook DELETE (désassignation rétroactive)', [
-                'creneau_id' => $creneauId,
-                'tache_id' => $tacheId,
                 'error' => $e->getMessage(),
             ]);
         }

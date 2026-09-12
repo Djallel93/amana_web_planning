@@ -62,6 +62,28 @@ return [
             ]) : [],
         ],
 
+        // ── amana_commun ────────────────────────────────────────────────
+        // Connexion vers la base partagée entre toutes les apps AMANA
+        // (ref_personnes, ref_roles, ref_applications, ref_settings,
+        // audit_logs, password_reset_tokens — voir amana/shared).
+        // Par défaut sur le même serveur MySQL que la connexion 'mysql',
+        // juste une base différente.
+        'commun' => [
+            'driver' => 'mysql',
+            'host' => env('DB_COMMUN_HOST', env('DB_HOST', '127.0.0.1')),
+            'port' => env('DB_COMMUN_PORT', env('DB_PORT', '3306')),
+            'database' => env('DB_COMMUN_DATABASE', 'amana_commun'),
+            'username' => env('DB_COMMUN_USERNAME', env('DB_USERNAME', 'root')),
+            'password' => env('DB_COMMUN_PASSWORD', env('DB_PASSWORD', '')),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
