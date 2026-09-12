@@ -15,6 +15,17 @@
             "@/*": ["./resources/js/*"]
         },
 
+        // types : @vue/tsconfig met "types": [] pour éviter les inclusions
+        // globales accidentelles (voir node_modules/@vue/tsconfig). On y
+        // ajoute explicitement vite/client, requis depuis l'ajout d'Inertia
+        // (resources/js/app.ts utilise import.meta.glob() pour résoudre les
+        // pages — voir Task 1, étape 7) : sans cette déclaration de types,
+        // TypeScript ne connaît pas import.meta.glob et vue-tsc échoue avec
+        // "Property 'glob' does not exist on type 'ImportMeta'", alors que
+        // Vite le comprend très bien à la compilation (glob est une
+        // fonctionnalité Vite, pas une API standard du navigateur).
+        "types": ["vite/client"],
+
         // strict: true active un ensemble de règles TS strictes.
         // C'est plus d'erreurs au départ, mais ça évite des bugs subtils plus tard.
         // En particulier : "strict null checks" (une variable ne peut pas être null

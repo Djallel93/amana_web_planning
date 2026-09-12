@@ -21,6 +21,7 @@
         "google/apiclient": "^2.18",
         "guzzlehttp/guzzle": "^7.12.1",
         "guzzlehttp/psr7": "^2.12.1",
+        "inertiajs/inertia-laravel": "^3.3",
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "nesbot/carbon": "^3.0"

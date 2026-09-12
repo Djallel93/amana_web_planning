@@ -1,5 +1,7 @@
 // resources/js/app.ts
-import { createApp } from "vue";
+import { createApp, h } from "vue";
+import type { DefineComponent } from "vue";
+import { createInertiaApp } from "@inertiajs/vue3";
 
 import {
     Toast,
@@ -54,6 +56,42 @@ mountIfPresent("vue-bilan-statistiques", BilanStatistiques);
 mountIfPresent("vue-journal-audit", JournalAudit);
 mountIfPresent("vue-activite-statistiques", ActiviteStatistiques);
 
+// ── Application Inertia (spike route-par-route) ───────────────────────────
+// S'ajoute aux montages d'îlots ci-dessus, ne les remplace pas : toutes les
+// pages sauf resources/views/app.blade.php (voir guide/index) continuent de
+// fonctionner exactement comme avant, îlots compris. Se monte sur
+// #inertia-app, le <div> que génère la directive @inertia du nouveau root
+// Blade — jamais sur #app ni un autre id déjà pris par un îlot ci-dessus.
+//
+// Garde explicite indispensable : createInertiaApp() lit lui-même
+// document.getElementById(id) et lève une erreur (JSON.parse sur
+// el.dataset.page si el vaut null) si l'élément est absent — voir
+// inertiajs/inertia#1391. Comme app.ts est chargé sur TOUTES les pages
+// (via @vite dans amana-shared::layouts.partials.head), un appel
+// inconditionnel casserait le JS des ~23 pages Blade classiques qui n'ont
+// pas ce point de montage. Même pattern de garde que mountIfPresent()
+// ci-dessus.
+if (document.getElementById("inertia-app")) {
+    createInertiaApp({
+        id: "inertia-app",
+        resolve: (name) => {
+            const pages = import.meta.glob<{ default: DefineComponent }>(
+                "./Pages/**/*.vue",
+            );
+            const path = `./Pages/${name}.vue`;
+            if (!(path in pages)) {
+                throw new Error(`Page Inertia introuvable : ${path}`);
+            }
+            return pages[path]().then((module) => module.default);
+        },
+        setup({ el, App, props, plugin }) {
+            createApp({ render: () => h(App, props) })
+                .use(plugin)
+                .mount(el);
+        },
+    });
+}
+
 // ── Montages multiples (SearchableSelect : plusieurs instances par page) ──
 // settings/index.blade.php a 9 instances (une par calendrier de tâche).
 // Chaque instance porte un data-input-name unique sur son point de montage,
@@ -69,7 +107,7 @@ mountIfPresent("vue-activite-statistiques", ActiviteStatistiques);
 // h() (hyperscript) construit l'arbre de rendu directement en JS, sans
 // jamais avoir besoin de compiler de template — il fonctionne avec le
 // runtime seul, donc avec notre configuration actuelle.
-import { h } from "vue";
+// (h est déjà importé en haut du fichier, aux côtés de createApp.)
 
 document
     .querySelectorAll<HTMLElement>("[data-searchable-select]")
