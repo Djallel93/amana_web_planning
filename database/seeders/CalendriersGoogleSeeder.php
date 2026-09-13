@@ -2,7 +2,7 @@
 // database/seeders/CalendriersGoogleSeeder.php
 //
 // Seede le registre ref_calendriers_google (voir CalendrierGoogleController
-// et la migration 2026_07_17_000001_create_ref_calendriers_google_table.php
+// et la migration 2026_05_24_000002_create_ref_tables.php
 // pour le pourquoi de ce registre) avec les deux calendriers Google Calendar
 // connus de l'environnement cible, à partir de config('services.google.calendar.preseed')
 // (lui-même alimenté par GOOGLE_CALENDAR_ID_1/2 — voir config/services.php,

@@ -20,7 +20,7 @@ use Illuminate\Http\JsonResponse;
  * interrogeable (calendarList.list() renvoie toujours une liste vide pour un
  * compte de service, même avec des calendriers partagés — voir
  * docs/google_service_account.md et le docblock de la migration
- * 2026_07_17_000001_create_ref_calendriers_google_table.php). Chaque
+ * 2026_05_24_000002_create_ref_tables.php). Chaque
  * calendrier doit donc être enregistré manuellement une fois (validé via
  * `calendars.get()` au moment de l'ajout), après quoi cette route ne fait
  * qu'une lecture DB — rapide, sans dépendance réseau à chaque affichage de

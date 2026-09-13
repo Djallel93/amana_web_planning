@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 /**
  * Registre des calendriers Google Calendar connus de l'application — voir
  * le docblock de la migration
- * 2026_07_17_000001_create_ref_calendriers_google_table.php pour le détail
+ * 2026_05_24_000002_create_ref_tables.php pour le détail
  * de pourquoi cette table existe (impossibilité de découvrir automatiquement
  * les calendriers partagés avec un compte de service).
  *

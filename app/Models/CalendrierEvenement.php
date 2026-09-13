@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * de tâche, calendrier) donné. Alimentée par SynchroniserGoogleCalendar
  * après chaque création/mise à jour réussie côté Google Calendar API, et
  * consultée avant tout patch/delete pour retrouver l'event_id exact — voir
- * database/migrations/2026_07_16_000002_create_plan_calendrier_evenements_table.php
+ * database/migrations/2026_05_24_000003_create_plan_tables.php
  * pour le détail du choix de schéma.
  */
 class CalendrierEvenement extends Model

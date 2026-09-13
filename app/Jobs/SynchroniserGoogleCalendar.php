@@ -167,7 +167,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
      * suivi dédiée à consulter : une absence n'a qu'un seul calendrier
      * cible possible, donc google_calendar_id/google_event_id vivent
      * directement sur plan_absences (voir migration
-     * add_google_calendar_tracking_to_plan_absences_table).
+     * 2026_05_24_000003_create_plan_tables.php).
      */
     private function upsertAbsence(GoogleCalendarService $google, array $operation, array $body): void
     {
