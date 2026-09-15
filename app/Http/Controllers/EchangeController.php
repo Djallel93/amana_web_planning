@@ -114,7 +114,9 @@ class EchangeController extends Controller
             'tache_demandeur_id'   => ['required', 'integer', 'exists:ref_taches,id'],
             'creneau_cible_id'     => ['required', 'integer', 'exists:plan_creneaux,id'],
             'tache_cible_id'       => ['required', 'integer', 'exists:ref_taches,id'],
-            'personne_cible_id'    => ['required', 'integer', 'exists:ref_personnes,id'],
+            // ref_personnes vit dans amana_commun, contrairement à
+            // plan_creneaux/ref_taches ci-dessus qui sont locales à cette app.
+            'personne_cible_id'    => ['required', 'integer', 'exists:' . config('amana-shared.connection', 'commun') . '.ref_personnes,id'],
         ]);
 
         /** @var \App\Models\Personne $user */

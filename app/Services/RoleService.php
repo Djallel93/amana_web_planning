@@ -63,11 +63,21 @@ class RoleService
     /**
      * Retourne le code du rôle planning actuellement attribué à une personne.
      * Retourne null si aucun rôle planning n'est attribué.
+     *
+     * orderByRaw : si une personne a (anormalement) plusieurs lignes de
+     * rôle planning en base, garantit qu'on retient toujours la plus
+     * élevée plutôt qu'une ligne arbitraire — voir le même correctif dans
+     * PersonnesController::index(). Cette méthode alimente currentRole
+     * dans le formulaire d'édition (personnes.form) ainsi que sa
+     * présélection ; sans cet ordre, un membre avec une ligne 'benevole'
+     * résiduelle peut voir « Bénévole » présélectionné au lieu de
+     * « Membre » à l'ouverture du formulaire.
      */
     public function currentRoleCode(Personne $personne): ?string
     {
         $role = $personne->roles()
             ->whereHas('application', fn($q) => $q->where('code', 'planning'))
+            ->orderByRaw("FIELD(ref_roles.code, 'admin', 'gestionnaire', 'membre', 'benevole')")
             ->first();
 
         return $role?->code;

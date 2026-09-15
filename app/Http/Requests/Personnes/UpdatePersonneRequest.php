@@ -21,7 +21,9 @@ class UpdatePersonneRequest extends FormRequest
         return [
             'nom' => ['required', 'string', 'max:100'],
             'prenom' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email:rfc,dns', 'max:255', "unique:ref_personnes,email,{$id}"],
+            // ref_personnes vit dans amana_commun — même correction que
+            // StoreAbsenceRequest côté 'exists'.
+            'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:' . config('amana-shared.connection', 'commun') . ".ref_personnes,email,{$id}"],
             'telephone' => ['nullable', 'string', 'max:20', 'regex:/^(\+33|0033|0)[1-9](\s?[0-9]{2}){4}$/'],
             'date_debut_planning' => ['nullable', 'date'],
             'statut' => ['required', 'in:En attente,Validé,Suspendu,Archivé'],

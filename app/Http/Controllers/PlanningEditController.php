@@ -71,7 +71,9 @@ class PlanningEditController extends Controller
     public function patchAssignation(Request $request, int $creneauId, int $tacheId): JsonResponse
     {
         $request->validate([
-            'id_personne' => ['nullable', 'integer', 'exists:ref_personnes,id'],
+            // ref_personnes vit dans amana_commun — voir la même correction
+            // dans StoreAbsenceRequest/UpdateAbsenceRequest.
+            'id_personne' => ['nullable', 'integer', 'exists:' . config('amana-shared.connection', 'commun') . '.ref_personnes,id'],
         ]);
 
         // firstOrCreate plutôt que firstOrFail : si la ligne CreneauTache n'existe

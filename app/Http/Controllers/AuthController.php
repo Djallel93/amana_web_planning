@@ -228,7 +228,11 @@ class AuthController extends Controller
         $request->validate([
             'nom' => ['required', 'string', 'max:100'],
             'prenom' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:255', 'unique:ref_personnes,email'],
+            // ref_personnes vit dans amana_commun — voir StoreAbsenceRequest
+            // pour le détail du bug (sans le préfixe de connexion, cette
+            // règle interroge la ref_personnes locale, vide, et laisse donc
+            // passer des doublons d'email sur le formulaire public).
+            'email' => ['required', 'email', 'max:255', 'unique:' . config('amana-shared.connection', 'commun') . '.ref_personnes,email'],
             'telephone' => ['nullable', 'string', 'max:20'],
             'restrictions' => ['nullable', 'array'],
         ], [

@@ -18,7 +18,9 @@ class UpdateAbsenceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id_personne' => ['required', 'integer', 'exists:ref_personnes,id'],
+            // Voir StoreAbsenceRequest — ref_personnes vit dans amana_commun,
+            // pas dans la base par défaut de cette app.
+            'id_personne' => ['required', 'integer', 'exists:' . config('amana-shared.connection', 'commun') . '.ref_personnes,id'],
             'date_debut'  => ['required', 'date'],
             'date_fin'    => ['required', 'date', 'after_or_equal:date_debut'],
             'raison'      => ['nullable', 'string', 'max:255'],
