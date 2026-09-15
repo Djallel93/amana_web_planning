@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\Auth;
 /**
  * Représentation JSON du bilan quotidien pour une date donnée, consommée
  * par BilanView.vue — voir BilanController::show() (et les réponses
- * store*/reset* qui embarquent la même forme sous la clé 'bilan').
- *
+ * store()/reset() qui embarquent la même forme sous la clé 'bilan').
+ * 
  * Ne wrappe pas directement un modèle Bilan : une date sans bilan
  * enregistré est un cas normal (voir docblock de BilanController, section
  * "NULL vs 0") et doit quand même produire une réponse — donc la resource

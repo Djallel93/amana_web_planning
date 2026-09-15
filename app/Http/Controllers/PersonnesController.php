@@ -25,7 +25,18 @@ class PersonnesController extends Controller
     {
         $personnes = Personne::with([
             'roles' => function ($q) {
-                $q->whereHas('application', fn($q2) => $q2->where('code', 'planning'));
+                // orderByRaw : garantit que roles->first() (utilisé dans
+                // personnes/index.blade.php pour le badge de rôle) renvoie
+                // toujours le rôle le plus élevé, même si une personne a
+                // historiquement plusieurs lignes de rôle planning en base
+                // (ex. données antérieures à RoleService::syncRolePlanning(),
+                // qui lui garantit une seule ligne pour les changements
+                // effectués depuis l'UI) — sans cet ordre explicite, l'ordre
+                // renvoyé par défaut n'est pas garanti et peut faire
+                // apparaître un rôle inférieur (ex. "Bénévole" pour un
+                // "Membre").
+                $q->whereHas('application', fn($q2) => $q2->where('code', 'planning'))
+                    ->orderByRaw("FIELD(ref_roles.code, 'admin', 'gestionnaire', 'membre', 'benevole')");
             }
         ])
             ->orderBy('nom')
