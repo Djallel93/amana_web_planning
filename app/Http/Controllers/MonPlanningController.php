@@ -32,7 +32,7 @@ class MonPlanningController extends Controller
         $query = CreneauTache::with(['creneau.evenements', 'tache'])
             ->join('plan_creneaux', 'plan_creneaux.id', '=', 'plan_creneaux_taches.id_planning')
             ->where('plan_creneaux_taches.id_personne', $user->id)
-            ->orderBy('plan_creneaux.date', 'desc')
+            ->orderBy('plan_creneaux.date', 'asc')
             ->select('plan_creneaux_taches.*');
 
         if (!$historique) {

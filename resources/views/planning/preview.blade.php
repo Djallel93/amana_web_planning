@@ -11,38 +11,6 @@
             class="font-heading text-[96px] font-black text-amber-400/[0.05] rotate-[-30deg] whitespace-nowrap">APERÇU</span>
     </div>
 
-    {{-- Bannière --}}
-    <div
-        class="flex flex-wrap items-center gap-4 px-5 py-4 mb-6 bg-amber-50 border-[1.5px] border-amber-300 rounded-xl relative z-10">
-        <span class="text-3xl flex-shrink-0">👁️</span>
-        <div class="flex-1 min-w-0">
-            <h2 class="font-heading text-[15px] font-bold text-amber-900 mb-0.5">Aperçu — aucune donnée enregistrée</h2>
-            <p class="text-[12.5px] text-amber-700 leading-relaxed">
-                Ce planning est une simulation. Rien n'a été modifié en base.
-                Vérifiez les assignations puis confirmez si tout vous convient.<br>
-                <strong>{{ count($propositions['creneaux']) }} créneaux</strong>
-                proposés · durée du calcul : {{ $propositions['duree_ms'] }}ms
-                · {{ $propositions['non_assignes'] }} non assigné(s)
-            </p>
-        </div>
-        <div class="flex flex-wrap gap-2 flex-shrink-0">
-            <form action="{{ route('planning.generate') }}" method="POST">
-                @csrf
-                <input type="hidden" name="date_debut" value="{{ $dateDebut }}">
-                <input type="hidden" name="semaines" value="{{ $semaines }}">
-                <input type="hidden" name="confirmed" value="1">
-                <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg
-                            shadow-[0_3px_12px_rgba(3,105,161,0.3)] transition-all cursor-pointer min-h-[44px]">
-                    ✨ Confirmer et générer
-                </button>
-            </form>
-            <a href="{{ route('planning.generate.form') }}"
-                class="inline-flex items-center gap-1.5 px-4 py-2.5 border-[1.5px] border-amber-300 text-amber-800 hover:bg-amber-100 text-[13px] font-semibold rounded-lg transition-colors no-underline min-h-[44px]">
-                ← Modifier
-            </a>
-        </div>
-    </div>
-
     {{-- Blocs semaine --}}
     @php
         $parSemaine = collect($propositions['creneaux'])
@@ -108,8 +76,8 @@
                                         @elseif($td['bloquee']) <span
                                             class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-700 border border-amber-200">🚫
                                         Bloqué</span> @else <span
-                                                class="chip-{{ $code }} inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold">{{ $td['nom_complet'] }}</span>
-                                            @endif </td>
+                                                class="chip-{{ $code }} inline-flex items-center px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold">{{ $td['nom_complet'] }}
+                                            </span> @endif </td>
                                 @endforeach
                                 <td class="px-3 py-2.5">
                                     @if($jour['evenements'])
@@ -128,15 +96,23 @@
         </div>
     @endforeach
 
-    {{-- Bande de confirmation bas de page --}}
+    {{-- Section de confirmation — seule section restante (contenu déplacé
+    depuis l'ancienne bannière du haut, qui faisait doublon avec
+    celle-ci). --}}
     <div
-        class="flex flex-wrap items-center justify-between gap-4 px-5 py-4 bg-surface border-[1.5px] border-amber-300 rounded-xl shadow-sm relative z-10">
-        <div>
-            <p class="font-heading text-[14px] font-semibold text-ink">Ce planning vous convient ?</p>
-            <p class="text-[12.5px] text-ink-muted mt-0.5">Cliquez sur "Confirmer et générer" pour l'enregistrer
-                définitivement.</p>
+        class="flex flex-wrap items-center gap-4 px-5 py-4 bg-amber-50 border-[1.5px] border-amber-300 rounded-xl shadow-sm relative z-10">
+        <span class="text-3xl flex-shrink-0">👁️</span>
+        <div class="flex-1 min-w-0">
+            <h2 class="font-heading text-[15px] font-bold text-amber-900 mb-0.5">Aperçu — aucune donnée enregistrée</h2>
+            <p class="text-[12.5px] text-amber-700 leading-relaxed">
+                Ce planning est une simulation. Rien n'a été modifié en base.
+                Vérifiez les assignations puis confirmez si tout vous convient.<br>
+                <strong>{{ count($propositions['creneaux']) }} créneaux</strong>
+                proposés · durée du calcul : {{ $propositions['duree_ms'] }}ms
+                · {{ $propositions['non_assignes'] }} non assigné(s)
+            </p>
         </div>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 flex-shrink-0">
             <form action="{{ route('planning.generate') }}" method="POST">
                 @csrf
                 <input type="hidden" name="date_debut" value="{{ $dateDebut }}">
@@ -144,7 +120,7 @@
                 <input type="hidden" name="confirmed" value="1">
                 <button type="submit"
                     class="inline-flex items-center gap-1.5 px-5 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-[13.5px] rounded-lg
-                            shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:-translate-y-px transition-all cursor-pointer min-h-[48px]">
+                                shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:-translate-y-px transition-all cursor-pointer min-h-[48px]">
                     ✨ Confirmer et générer
                 </button>
             </form>

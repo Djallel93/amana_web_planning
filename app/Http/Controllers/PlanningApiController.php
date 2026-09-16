@@ -39,7 +39,7 @@ class PlanningApiController extends PlanningController
         $historique = $request->boolean('historique');
 
         $query = Creneau::with(['taches.tache', 'taches.personne', 'evenements.tachesBloquees'])
-            ->orderBy('date', 'desc');
+            ->orderBy('date', 'asc');
 
         if (!$historique) {
             $dateMin = now()->subYear()->toDateString();
@@ -63,7 +63,7 @@ class PlanningApiController extends PlanningController
 
         $semaines = $creneaux->map(
             fn($creneauxSemaine, $semaineCle) =>
-            $this->serializeSemaine($semaineCle, $creneauxSemaine, $bannièresParSemaine)
+                $this->serializeSemaine($semaineCle, $creneauxSemaine, $bannièresParSemaine)
         )->values();
 
         return response()->json([
@@ -83,10 +83,11 @@ class PlanningApiController extends PlanningController
         $weekMonday = $first->date->clone()->subDays($first->date->isoWeekday() - 1)->startOfDay();
         $weekSunday = $weekMonday->clone()->addDays(6)->endOfDay();
 
-        // Les créneaux arrivent triés par date DESC (voir data()) : $first
-        // est donc la date la PLUS RÉCENTE de la semaine et $last la plus
-        // ancienne. Pour le libellé "début — fin", on a besoin de l'ordre
-        // chronologique réel, indépendamment du tri de la requête.
+        // Les créneaux arrivent triés par date ASC (voir data()) : $first
+        // est donc la date la PLUS ANCIENNE de la semaine (Vendredi) et
+        // $last la plus récente (Samedi). Pour le libellé "début — fin", on
+        // a besoin de l'ordre chronologique réel, indépendamment du tri de
+        // la requête — inchangé ci-dessous.
         $dateDebutSemaine = $creneauxSemaine->min('date');
         $dateFinSemaine = $creneauxSemaine->max('date');
 
