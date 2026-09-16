@@ -16,7 +16,7 @@
     ],
     "require": {
         "php": "^8.4",
-        "amana/shared": "^v2.3.2",
+        "amana/shared": "^2.4.0",
         "barryvdh/laravel-dompdf": "^3.1",
         "google/apiclient": "^2.18",
         "guzzlehttp/guzzle": "^7.12.1",

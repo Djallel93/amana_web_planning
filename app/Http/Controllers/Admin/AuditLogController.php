@@ -6,7 +6,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\AuditLog;
+use Amana\Shared\Models\AuditLog;
+use App\Helpers\AuditHelper;
 use App\Models\Personne;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -75,7 +76,12 @@ class AuditLogController extends Controller
             'to'      => ['nullable', 'date', 'after_or_equal:from'],
         ]);
 
+        // Scopé à l'application courante : audit_logs vit dans amana_commun
+        // et contient les entrées de toutes les apps AMANA. Même filtre que
+        // AuditStatistics, pour que « Journal d'audit » et « Statistiques
+        // d'activité » montrent exactement le même périmètre.
         $query = AuditLog::with('personne')
+            ->where('id_application', AuditHelper::applicationId())
             ->when($request->filled('module'), fn($q) => $q->where('module', $request->query('module')))
             ->when($request->filled('action'), fn($q) => $q->where('action', $request->query('action')))
             ->when($request->filled('user_id'), fn($q) => $q->where('user_id', $request->query('user_id')))

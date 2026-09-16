@@ -6,7 +6,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Personne;
-use App\Models\Setting;
+use Amana\Shared\Models\Setting;
 use App\Notifications\NouveauMembreNotification;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;

@@ -69,6 +69,63 @@ class PlanningSettingsSeeder extends Seeder
             ]
         );
 
+        // Paramètres repris de 2026_05_24_000002_create_ref_tables.php, qui
+        // les insérait dans la copie locale (vide) de ref_settings — ils
+        // doivent vivre dans amana_commun comme tous les autres.
+        $divers = [
+            [
+                'cle' => 'inscription_ouverte',
+                'valeur' => '1',
+                'type' => 'boolean',
+                'libelle' => 'Inscriptions ouvertes',
+                'description' => "Active ou désactive le formulaire public d'inscription (/inscription). Seuls les administrateurs peuvent modifier ce paramètre.",
+            ],
+            [
+                'cle' => 'offset_annulation_cours_debut',
+                'valeur' => '-360',
+                'type' => 'integer',
+                'libelle' => 'Annulation cours : début (min)',
+                'description' => null,
+            ],
+            [
+                'cle' => 'offset_annulation_cours_fin',
+                'valeur' => '-345',
+                'type' => 'integer',
+                'libelle' => 'Annulation cours : fin (min)',
+                'description' => null,
+            ],
+            [
+                'cle' => 'calendar_annulation_cours',
+                'valeur' => 'AMANA - Communications',
+                'type' => 'string',
+                'libelle' => 'Annulation Cours',
+                'description' => null,
+            ],
+        ];
+
+        // Contrairement aux couleurs ci-dessus, ces quatre paramètres sont
+        // modifiables par un admin depuis la page Paramètres : on les insère
+        // uniquement s'ils sont absents, pour ne jamais écraser une valeur
+        // choisie (notamment inscription_ouverte, qu'un updateOrInsert
+        // remettrait à « ouvert » à chaque exécution du seeder).
+        foreach ($divers as $s) {
+            $existe = $commun->table('ref_settings')
+                ->where('id_application', $idApp)
+                ->where('cle', $s['cle'])
+                ->exists();
+
+            if (!$existe) {
+                $commun->table('ref_settings')->insert([
+                    'id_application' => $idApp,
+                    'cle' => $s['cle'],
+                    'valeur' => $s['valeur'],
+                    'type' => $s['type'],
+                    'libelle' => $s['libelle'],
+                    'description' => $s['description'],
+                ]);
+            }
+        }
+
         $this->command?->info('Paramètres couleurs + calendar_absence seedés dans amana_commun.');
     }
 }

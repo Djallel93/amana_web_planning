@@ -22,77 +22,21 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
     public function up(): void
     {
-        // ── ref_applications ──────────────────────────────────────────────
-        // Référentiel de toutes les applications AMANA partageant cette base
-        // de données. Chaque rôle dans ref_roles sera lié à une application
-        // spécifique, permettant à une même personne d'avoir des rôles
-        // différents selon l'app. Exemples : admin sur planning, livreur sur
-        // livraisons, tresorier sur tirelire.
-        Schema::create('ref_applications', function (Blueprint $table) {
-            $table->tinyIncrements('id');
-            $table->string('code', 50)->unique()
-                ->comment('Identifiant technique : planning, livraisons, tirelire, familles, benevoles');
-            $table->string('libelle', 100)
-                ->comment('Nom lisible : AMANA Planning, Livraisons, etc.');
-            $table->boolean('actif')->default(true);
-        });
-
-        // ── ref_personnes ─────────────────────────────────────────────────
-        Schema::create('ref_personnes', function (Blueprint $table) {
-            $table->increments('id');
-            $table->string('nom', 100);
-            $table->string('prenom', 100);
-            $table->string('email', 255)->unique();
-
-            // Colonnes d'authentification Laravel (refactor auth, étape 2).
-            $table->string('password')->nullable();
-            $table->rememberToken();
-            $table->timestamp('email_verified_at')->nullable();
-
-            $table->string('telephone', 20)->nullable();
-            $table->date('date_debut_planning')->nullable()
-                ->comment('NULL si la personne n\'est pas encore dans la rotation');
-            $table->enum('statut', ['En attente', 'Validé', 'Suspendu', 'Archivé'])
-                ->default('En attente');
-            $table->timestamp('derniere_maj')->useCurrent()->useCurrentOnUpdate();
-        });
-
-        // ── ref_roles ──────────────────────────────────────────────────────
-        Schema::create('ref_roles', function (Blueprint $table) {
-            $table->tinyIncrements('id');
-            $table->string('code', 50)->unique();
-            $table->string('libelle', 100);
-
-            // Refactor auth, étape 4 : chaque rôle appartient à une application.
-            $table->unsignedTinyInteger('id_application')
-                ->comment('Application à laquelle ce rôle appartient');
-
-            $table->foreign('id_application')
-                ->references('id')->on('ref_applications')
-                ->onDelete('cascade')->onUpdate('cascade');
-        });
-
-        // ── ref_personnes_roles ────────────────────────────────────────────
-        Schema::create('ref_personnes_roles', function (Blueprint $table) {
-            $table->unsignedInteger('id_personne');
-            $table->unsignedTinyInteger('id_role');
-            $table->date('date_attribution')->default(DB::raw('(curdate())'));
-
-            $table->primary(['id_personne', 'id_role']);
-
-            $table->foreign('id_personne')
-                ->references('id')->on('ref_personnes')
-                ->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('id_role')
-                ->references('id')->on('ref_roles')
-                ->onDelete('restrict')->onUpdate('cascade');
-        });
+        // ── ref_applications / ref_personnes / ref_roles / ref_personnes_roles
+        // Volontairement ABSENTES ici : ces tables vivent dans amana_commun
+        // et appartiennent au paquet amana/shared (migrations exécutées via
+        // `php artisan amana:migrate-shared`). Elles étaient créées ici
+        // avant l'extraction du paquet partagé ; les copies locales qui en
+        // résultaient étaient vides et captaient silencieusement toute
+        // requête non explicitement routée vers la connexion 'commun'.
+        // Supprimées des bases existantes par
+        // 2026_09_16_000001_drop_shadow_commun_tables.php.
+        // ─────────────────────────────────────────────────────────────────
 
         // ── password_reset_tokens ─────────────────────────────────────────
         // Nécessaire pour le système de réinitialisation de mot de passe de
@@ -120,22 +64,15 @@ return new class extends Migration {
             $table->integer('last_activity')->index();
         });
 
-        // Insère l'application planning d'emblée (comportement préservé
-        // depuis l'ancienne migration refactor_auth étape 3).
-        DB::table('ref_applications')->insert([
-            'code'    => 'planning',
-            'libelle' => 'AMANA Planning',
-            'actif'   => true,
-        ]);
+        // L'enregistrement de l'application 'planning' dans ref_applications
+        // se fait désormais via PlanningApplicationSeeder (base amana_commun) —
+        // une migration de planning ne doit jamais écrire dans la base
+        // partagée (voir AmanaSharedServiceProvider, SÉCURITÉ CRITIQUE).
     }
 
     public function down(): void
     {
         Schema::dropIfExists('sessions');
         Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('ref_personnes_roles');
-        Schema::dropIfExists('ref_roles');
-        Schema::dropIfExists('ref_personnes');
-        Schema::dropIfExists('ref_applications');
     }
 };
