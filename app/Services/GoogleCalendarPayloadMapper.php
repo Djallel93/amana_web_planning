@@ -8,6 +8,7 @@ namespace App\Services;
 use App\Models\Tache;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Aplati les payloads produits par WebhookPayloadBuilder /
@@ -49,6 +50,15 @@ class GoogleCalendarPayloadMapper
     private ?Collection $tacheIdsParCode = null;
 
     /**
+     * Codes rencontrés pendant le mapping courant dont aucun calendrier
+     * Google n'est configuré (`ref_settings.calendar_<code>` vide). Sert à
+     * ne logger qu'une fois par code, et non une fois par créneau.
+     *
+     * @var array<string, true>
+     */
+    private array $codesSansCalendrier = [];
+
+    /**
      * Convertit un payload 'planning' (creneaux[]) en liste d'opérations.
      *
      * @return array<int, array<string, mixed>>
@@ -56,6 +66,7 @@ class GoogleCalendarPayloadMapper
     public function mapPlanning(array $payload): array
     {
         $operations = [];
+        $this->codesSansCalendrier = [];
 
         foreach ($payload['creneaux'] ?? [] as $creneauEntry) {
             $idPlanning = $creneauEntry['id_planning'] ?? null;
@@ -71,6 +82,17 @@ class GoogleCalendarPayloadMapper
                     );
                 }
             }
+        }
+
+        if ($this->codesSansCalendrier !== []) {
+            // Sans ce log, un code sans calendrier configuré disparaissait
+            // du mapping en silence : le Job concluait « Synchronisation
+            // réussie » sur les seuls codes restants, et rien n'indiquait
+            // nulle part que les autres n'avaient jamais été envoyés.
+            Log::warning('[GoogleCalendarPayloadMapper] Codes sans calendrier configuré — aucun événement Google Calendar ne sera créé pour ces tâches.', [
+                'codes' => array_keys($this->codesSansCalendrier),
+                'ou_configurer' => 'Paramètres → Calendriers & couleurs (ref_settings.calendar_<code>)',
+            ]);
         }
 
         return $operations;
@@ -166,10 +188,14 @@ class GoogleCalendarPayloadMapper
 
         $operations = [];
 
-        foreach ($ligne['calendar_ids'] ?? [] as $calendarId) {
-            if (!$calendarId) {
-                continue;
-            }
+        $calendarIds = array_filter($ligne['calendar_ids'] ?? []);
+
+        if ($calendarIds === []) {
+            $this->codesSansCalendrier[$code] = true;
+            return [];
+        }
+
+        foreach ($calendarIds as $calendarId) {
 
             $operations[] = [
                 'scope' => 'planning',

@@ -25,6 +25,24 @@ use Illuminate\Support\Facades\Log;
  */
 class PlanningController extends Controller
 {
+    /**
+     * Libellés lisibles des codes de tâche, pour le message d'avertissement
+     * « aucun calendrier configuré » (les codes bruts ne parlent pas à un
+     * gestionnaire). Aligné sur $calendarChips dans settings/index.blade.php.
+     */
+    private const LIBELLES_TACHES = [
+        'entree' => 'Entrée',
+        'mektaba' => 'Mektaba',
+        'salle' => 'Salle',
+        'amana_food' => 'Amana Food',
+        'cours' => 'Cours',
+        'rappel_sandwich' => 'Rappel Sandwich',
+        'assistance_amana_food' => 'Assistance Amana Food',
+        'annonce_cours' => 'Annonce Cours',
+        'message_bot' => 'Message Bot',
+        'annulation_cours' => 'Annulation Cours',
+    ];
+
     public function __construct(
         private readonly SchedulerMain $scheduler,
         private readonly Statistics $stats,
@@ -152,12 +170,35 @@ class PlanningController extends Controller
             $payload = app(\App\Services\WebhookPayloadBuilder::class)
                 ->build($dateDebut, $semaines);
 
+            // Relevé AVANT le dispatch : un code sans `calendar_<code>`
+            // configuré est ignoré en silence par le mapper, donc une
+            // génération peut se terminer en « succès » sans qu'aucun
+            // événement Google Calendar n'ait été créé pour les tâches
+            // principales. On le dit explicitement à l'utilisateur plutôt
+            // que de le laisser le découvrir dans Google Calendar.
+            $codesSansCalendrier = \App\Services\WebhookPayloadBuilder::codesSansCalendrier($payload);
+
             \App\Jobs\SynchroniserGoogleCalendar::dispatch($payload, 'post');
 
-            Log::info('[PlanningController] Synchronisation Google Calendar dispatchée en queue (POST).');
+            Log::info('[PlanningController] Synchronisation Google Calendar dispatchée en queue (POST).', [
+                'codes_sans_calendrier' => $codesSansCalendrier,
+            ]);
+
+            $message = "Planning généré : {$resultat['jours_generes']} jours créés en {$resultat['duree_ms']}ms. ({$resultat['non_assignes']} non assigné(s))";
+
+            if ($codesSansCalendrier !== []) {
+                return redirect()->route('planning.generate.form')
+                    ->with('success', $message)
+                    ->with('warning', 'Aucun calendrier Google configuré pour : '
+                        . implode(', ', array_map(
+                            fn(string $code) => self::LIBELLES_TACHES[$code] ?? $code,
+                            $codesSansCalendrier
+                        ))
+                        . '. Aucun événement n\'a été créé pour ces tâches — renseignez leur calendrier dans Paramètres → Calendriers & couleurs, puis relancez la génération.');
+            }
 
             return redirect()->route('planning.generate.form')
-                ->with('success', "Planning généré : {$resultat['jours_generes']} jours créés en {$resultat['duree_ms']}ms. ({$resultat['non_assignes']} non assigné(s))");
+                ->with('success', $message);
 
         } catch (\Exception $e) {
             return redirect()->back()

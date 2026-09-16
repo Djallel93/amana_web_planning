@@ -54,6 +54,38 @@ class WebhookPayloadBuilder
     /** Codes des tâches principales, dans l'ordre d'affichage. */
     private const TACHES_PRINCIPALES = ['entree', 'mektaba', 'salle', 'amana_food', 'cours'];
 
+    /**
+     * Retourne les codes de tâche présents dans un payload 'planning' pour
+     * lesquels aucun calendrier Google n'est configuré
+     * (`ref_settings.calendar_<code>` vide) — donc aucun événement ne sera
+     * créé, silencieusement, côté GoogleCalendarPayloadMapper.
+     *
+     * Chaque code a SON propre paramètre `calendar_<code>` : un calendrier
+     * correctement configuré pour les absences ou les annonces ne dit rien
+     * des cinq tâches principales. C'est exactement ce piège que cette
+     * méthode sert à rendre visible à l'appelant.
+     *
+     * @return array<int, string> codes uniques, dans l'ordre du payload
+     */
+    public static function codesSansCalendrier(array $payload): array
+    {
+        $codes = [];
+
+        foreach ($payload['creneaux'] ?? [] as $creneau) {
+            foreach (['taches', 'evenements_speciaux', 'evenements_sociaux'] as $groupe) {
+                foreach ($creneau[$groupe] ?? [] as $ligne) {
+                    $code = $ligne['code'] ?? null;
+
+                    if ($code && array_filter($ligne['calendar_ids'] ?? []) === []) {
+                        $codes[$code] = true;
+                    }
+                }
+            }
+        }
+
+        return array_keys($codes);
+    }
+
     // ── POST : génération complète ───────────────────────────────────────
 
     public function build(string $dateDebut, int $semaines): array
