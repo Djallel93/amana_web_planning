@@ -95,11 +95,23 @@ return [
         ['route' => 'planning.generate.form', 'label' => 'Générer', 'icon' => '✨', 'role' => 'gestionnaire', 'route_pattern' => 'planning.generate*'],
         ['route' => 'evenements.index', 'label' => 'Événements', 'icon' => '🎉', 'role' => 'gestionnaire', 'route_pattern' => 'evenements.*'],
         ['route' => 'admin.echanges.index', 'label' => 'Échanges', 'icon' => '🔄', 'role' => 'gestionnaire', 'route_pattern' => 'admin.echanges.*'],
-        ['route' => 'settings.index', 'label' => 'Paramètres', 'icon' => '⚙️', 'role' => 'gestionnaire', 'route_pattern' => 'settings.*'],
 
-        ['section' => 'Administration'],
-        ['route' => 'personnes.index', 'label' => 'Personnes', 'icon' => '👥', 'role' => 'admin', 'route_pattern' => 'personnes.*'],
+        // Communauté : les personnes de l'association et leurs demandes
+        // d'inscription. Admin uniquement (routes `role:admin`) — la section
+        // entière disparaît pour les autres rôles (la sidebar partagée masque
+        // toute section sans item visible).
+        ['section' => 'Communauté'],
+        ['route' => 'personnes.index', 'label' => 'Annuaire', 'icon' => '👥', 'role' => 'admin', 'route_pattern' => 'personnes.*'],
         ['route' => 'admin.candidatures.index', 'label' => 'Candidatures', 'icon' => '📥', 'role' => 'admin', 'route_pattern' => 'admin.candidatures*'],
+
+        // Section volontairement MIXTE : Paramètres reste ouvert aux
+        // gestionnaires (la route /parametres est `role:gestionnaire` — ils
+        // règlent horaires, lieu, offsets et calendriers), tout le reste est
+        // admin. Un gestionnaire voit donc « Administration » avec le seul lien
+        // Paramètres ; pour le réserver aux admins, passer son 'role' à 'admin'
+        // (le lien disparaît de la sidebar, la route reste accessible par URL).
+        ['section' => 'Administration'],
+        ['route' => 'settings.index', 'label' => 'Paramètres', 'icon' => '⚙️', 'role' => 'gestionnaire', 'route_pattern' => 'settings.*'],
         ['route' => 'diagnostic.mail.index', 'label' => 'Diagnostic SMTP', 'icon' => '🔧', 'role' => 'admin', 'route_pattern' => 'diagnostic.mail.*'],
         ['route' => 'admin.activite.index', 'label' => "Statistiques d'activité", 'icon' => '📈', 'role' => 'admin', 'route_pattern' => 'admin.activite.*'],
         ['route' => 'admin.journal.index', 'label' => "Journal d'audit", 'icon' => '📜', 'role' => 'admin', 'route_pattern' => 'admin.journal.*'],

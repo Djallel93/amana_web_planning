@@ -514,7 +514,7 @@ onMounted(() => {
                             <span class="guide-chevron">▾</span>
                         </summary>
                         <div class="guide-body">
-                            <p>La page <strong class="text-ink">⚙️ Paramètres</strong> regroupe les réglages
+                            <p>Dans le menu <strong class="text-ink">Administration</strong>, la page <strong class="text-ink">⚙️ Paramètres</strong> regroupe les réglages
                                 généraux de l'application, répartis en plusieurs sections.</p>
 
                             <p><strong class="text-ink">🔓 Inscription publique</strong> — contrôle l'accès
@@ -589,17 +589,17 @@ onMounted(() => {
                     <details open class="guide-item group">
                         <summary class="guide-summary">
                             <span class="guide-summary-icon bg-accent/10">👥</span>
-                            <span class="flex-1">Personnes</span>
+                            <span class="flex-1">Annuaire</span>
                             <span class="guide-chevron">▾</span>
                         </summary>
                         <div class="guide-body">
-                            <p>La page <strong class="text-ink">👥 Personnes</strong> liste l'ensemble des membres de
+                            <p>Dans le menu <strong class="text-ink">Communauté</strong>, la page <strong class="text-ink">👥 Annuaire</strong> liste l'ensemble des membres de
                                 l'association. Vous pouvez y créer une personne, modifier ses informations et son rôle
                                 (membre, gestionnaire, admin), ou la supprimer.</p>
                             <div class="guide-example">
                                 <span class="guide-example-label">Exemple</span>
                                 L'utilisateur A rejoint l'association comme bénévole : l'admin crée sa fiche dans
-                                <strong>Personnes</strong> avec le rôle « Membre ».
+                                <strong>Annuaire</strong> avec le rôle « Membre ».
                             </div>
                         </div>
                     </details>
@@ -611,7 +611,7 @@ onMounted(() => {
                             <span class="guide-chevron">▾</span>
                         </summary>
                         <div class="guide-body">
-                            <p>La page <strong class="text-ink">📥 Candidatures</strong> liste les demandes
+                            <p>Dans le menu <strong class="text-ink">Communauté</strong>, la page <strong class="text-ink">📥 Candidatures</strong> liste les demandes
                                 d'inscription en attente. Valider une candidature crée (ou active) le compte
                                 correspondant et envoie une notification par e-mail à la personne. Un badge indique le
                                 nombre de candidatures à traiter.</p>

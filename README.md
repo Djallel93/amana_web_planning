@@ -1256,7 +1256,7 @@ GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=...
 
 ### Diagnostic SMTP — `/diagnostic-mail`
 
-Accessible depuis la sidebar (section **Administration**, admins uniquement). Permet de :
+Accessible depuis la sidebar (section **Administration**, lien réservé aux admins). Permet de :
 
 - Voir la configuration SMTP active lue depuis le cache de config (pas depuis `.env` directement).
 - Détecter des problèmes courants comme `MAIL_SCHEME=null`.

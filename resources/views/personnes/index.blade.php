@@ -1,14 +1,14 @@
 {{-- resources/views/personnes/index.blade.php --}}
 @extends('layouts.app')
 
-@section('title', 'Personnes — AMANA')
+@section('title', 'Annuaire — AMANA')
 
 @section('content')
 
     {{-- En-tête --}}
     <div class="flex flex-wrap items-center justify-between gap-4 mb-7">
         <div>
-            <h1 class="font-heading text-2xl font-semibold text-ink tracking-tight">Toutes les personnes</h1>
+            <h1 class="font-heading text-2xl font-semibold text-ink tracking-tight">Annuaire</h1>
             <p class="text-[13px] text-ink-muted mt-1">Membres, administrateurs et candidats enregistrés dans le système</p>
         </div>
         <a href="{{ route('personnes.create') }}"
