@@ -5,8 +5,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Helpers\DateHelper;
 use App\Http\Resources\Personnes\PersonneResource;
 use App\Jobs\SynchroniserGoogleCalendar;
+use App\Models\Absence;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Evenement;
@@ -15,6 +17,7 @@ use App\Models\Tache;
 use App\Services\WebhookPayloadBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -188,48 +191,219 @@ class PlanningEditController extends Controller
      * Crée un créneau manuellement pour une date donnée.
      * POST /planning/creneau
      * Body JSON : { "date": "2025-06-06" }
+     *           ou (créneau passé, admin) :
+     *             { "date": "2026-09-11", "assignations": { "entree": 12, "salle": 7 } }
      *
-     * Crée le créneau + une CreneauTache (vide) par tâche active.
+     * Crée le créneau + une CreneauTache par tâche active, lie les événements
+     * organisationnels qui couvrent cette date (comme SchedulerMain::generateDay()
+     * — c'est ce lien qui marque les tâches comme bloquées dans la grille et
+     * dans le payload Google Calendar), puis déclenche la synchronisation
+     * Google Calendar (POST) comme pour n'importe quelle création manuelle.
+     *
+     * ── Date passée (action corrective, admin uniquement) ───────────────────
+     * Créer un créneau dont la date est strictement antérieure à aujourd'hui
+     * (fuseau Europe/Paris, voir DateHelper::estPasse()) sert à rattraper un
+     * week-end jamais généré. C'est réservé aux administrateurs (403 pour un
+     * gestionnaire, même si la route elle-même reste role:gestionnaire).
+     *
+     * Le moteur de rotation n'invente pas de bénévoles pour un jour déjà
+     * écoulé : c'est l'admin qui choisit, tâche par tâche, qui était de
+     * permanence, via `assignations` (code de tâche → id_personne). Une tâche
+     * absente de `assignations` reste non assignée. `assignations` est refusé
+     * (422) pour une date non passée — hors correction, on passe par la
+     * génération ou par la modale d'assignation.
+     *
+     * Événements bloquants : une tâche bloquée par un événement couvrant la date
+     * ne peut pas être assignée (422) — même règle que la génération.
+     * Absences : volontairement NON bloquantes — l'admin choisit, et une
+     * personne déclarée absente a pu venir malgré tout ; la modale affiche un
+     * avertissement (voir contexteCreneauPasse()).
      */
     public function createCreneau(Request $request): JsonResponse
     {
         $request->validate([
-            'date' => ['required', 'date', 'unique:plan_creneaux,date'],
+            'date' => ['required', 'date_format:Y-m-d', 'unique:plan_creneaux,date'],
+            // ref_personnes vit dans amana_commun — même règle que patchAssignation().
+            'assignations' => ['nullable', 'array'],
+            'assignations.*' => ['nullable', 'integer', 'exists:' . config('amana-shared.connection', 'commun') . '.ref_personnes,id'],
         ], [
             'date.required' => 'La date est obligatoire.',
+            'date.date_format' => 'La date doit être au format AAAA-MM-JJ.',
             'date.unique' => 'Un créneau existe déjà pour cette date.',
+            'assignations.*.exists' => "Une des personnes choisies n'existe pas.",
         ]);
 
         $date = $request->input('date');
+        $estPasse = DateHelper::estPasse($date);
 
-        $creneau = Creneau::create(['date' => $date]);
+        if ($estPasse && !$request->user()?->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Seul un administrateur peut créer un créneau dans le passé.',
+            ], 403);
+        }
+
+        // Code de tâche → id_personne, sans les entrées vides (« non assigné »).
+        $assignations = array_filter(
+            (array) $request->input('assignations', []),
+            fn($idPersonne) => $idPersonne !== null
+        );
+
+        if ($assignations !== [] && !$estPasse) {
+            return response()->json([
+                'success' => false,
+                'message' => "L'assignation à la création n'est possible que pour un créneau passé.",
+            ], 422);
+        }
 
         $taches = Tache::actif()->orderBy('id')->get();
-        foreach ($taches as $tache) {
-            CreneauTache::create([
-                'id_planning' => $creneau->id,
-                'id_tache' => $tache->id,
-                'id_personne' => null,
-            ]);
+
+        $codesInconnus = array_diff(array_keys($assignations), $taches->pluck('code')->all());
+        if ($codesInconnus !== []) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tâche inconnue ou inactive : ' . implode(', ', $codesInconnus) . '.',
+            ], 422);
         }
+
+        // ── Événements couvrant la date (passés compris) ────────────────────
+        $evenements = Evenement::with('tachesBloquees')->couvrantDate($date)->get();
+
+        $conflit = $this->premiereAssignationBloquee($assignations, $evenements, $taches);
+        if ($conflit !== null) {
+            return response()->json(['success' => false, 'message' => $conflit], 422);
+        }
+
+        // Créneau + lignes de tâches dans une même transaction : un échec en
+        // cours de route ne doit pas laisser un créneau orphelin (la date est
+        // unique, il bloquerait toute nouvelle tentative).
+        $creneau = DB::transaction(function () use ($date, $taches, $assignations, $evenements) {
+            $creneau = Creneau::create(['date' => $date]);
+
+            foreach ($taches as $tache) {
+                CreneauTache::create([
+                    'id_planning' => $creneau->id,
+                    'id_tache' => $tache->id,
+                    'id_personne' => $assignations[$tache->code] ?? null,
+                ]);
+            }
+
+            // Même lien que SchedulerMain::generateDay() : les événements
+            // (bloquants ou informatifs) couvrant la date sont rattachés au
+            // créneau. À faire AVANT la synchronisation Google Calendar
+            // ci-dessous : buildForCreation() en déduit les tâches bloquées.
+            if ($evenements->isNotEmpty()) {
+                $creneau->evenements()->syncWithoutDetaching($evenements->pluck('id')->all());
+            }
+
+            return $creneau;
+        });
 
         $carbonDate = \Carbon\Carbon::parse($date);
 
-        audit('create', 'planning', $creneau->id, null, [
+        $apres = [
             'date' => $carbonDate->toDateString(),
             'jour' => $creneau->jour,
             'taches' => $taches->count(),
-        ]);
+        ];
+        if ($evenements->isNotEmpty()) {
+            $apres['evenements'] = $evenements->pluck('id')->all();
+        }
+        if ($estPasse) {
+            $apres['passe'] = true;
+            $apres['assignations'] = $assignations;
+        }
+
+        audit('create', 'planning', $creneau->id, null, $apres);
 
         // ── Déclencher le webhook POST pour le nouveau créneau ─────────────
+        // Aussi pour un créneau passé : les événements Google Calendar sont
+        // créés (avec les personnes assignées) comme pour n'importe quel
+        // autre créneau.
         $this->dispatchWebhookCreation($creneau);
+
+        $libelleDate = $carbonDate->locale('fr')->isoFormat('D MMM YYYY');
+        $nbAssignes = count($assignations);
 
         return response()->json([
             'success' => true,
-            'message' => "Créneau du {$creneau->jour} " .
-                $carbonDate->locale('fr')->isoFormat('D MMM YYYY') . ' créé.',
+            'message' => $estPasse
+                ? "Créneau passé du {$creneau->jour} {$libelleDate} créé ({$nbAssignes} tâche(s) assignée(s))."
+                : "Créneau du {$creneau->jour} {$libelleDate} créé.",
             'date' => $date,
+            'passe' => $estPasse,
         ]);
+    }
+
+    /**
+     * Contexte d'une date pour la modale « Créneau passé » (admin) : événements
+     * qui la couvrent, tâches qu'ils bloquent, personnes déclarées absentes, et
+     * si un créneau y existe déjà. La modale s'en sert pour griser les tâches
+     * bloquées et signaler les absents — l'application des règles reste côté
+     * serveur (createCreneau()).
+     *
+     * GET /planning/creneau-passe/contexte?date=YYYY-MM-DD  (role:admin)
+     */
+    public function contexteCreneauPasse(Request $request): JsonResponse
+    {
+        $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
+        ]);
+
+        $date = $request->query('date');
+
+        $evenements = Evenement::with('tachesBloquees')->couvrantDate($date)->orderBy('date_debut')->get();
+
+        // code de tâche → noms des événements qui la bloquent
+        $tachesBloquees = [];
+        foreach ($evenements as $evenement) {
+            foreach ($evenement->tachesBloquees as $tache) {
+                $tachesBloquees[$tache->code][] = $evenement->nom;
+            }
+        }
+
+        $absents = Absence::where('date_debut', '<=', $date)
+            ->where('date_fin', '>=', $date)
+            ->pluck('id_personne')
+            ->unique()
+            ->values();
+
+        return response()->json([
+            'date' => $date,
+            'dejaExistant' => Creneau::where('date', $date)->exists(),
+            'evenements' => $evenements->map(fn($e) => [
+                'nom' => $e->nom,
+                'bloquant' => $e->tachesBloquees->isNotEmpty(),
+            ])->values(),
+            'tachesBloquees' => (object) array_map(fn($noms) => implode(', ', $noms), $tachesBloquees),
+            'absents' => $absents,
+        ]);
+    }
+
+    /**
+     * Retourne un message d'erreur pour la première assignation visant une
+     * tâche bloquée par un événement couvrant la date, ou null s'il n'y en a pas.
+     *
+     * @param array<string,int>                        $assignations code de tâche → id_personne
+     * @param \Illuminate\Support\Collection<int,Evenement> $evenements  Événements couvrant la date (tachesBloquees chargées)
+     * @param \Illuminate\Support\Collection<int,Tache>     $taches      Tâches actives
+     */
+    private function premiereAssignationBloquee(array $assignations, $evenements, $taches): ?string
+    {
+        foreach (array_keys($assignations) as $code) {
+            $bloquants = $evenements->filter(
+                fn($e) => $e->tachesBloquees->contains('code', $code)
+            );
+
+            if ($bloquants->isNotEmpty()) {
+                $libelle = $taches->firstWhere('code', $code)?->libelle ?? $code;
+
+                return "La tâche « {$libelle} » est bloquée ce jour-là par l'événement « "
+                    . $bloquants->pluck('nom')->implode(', ') . " » — elle ne peut pas être assignée.";
+            }
+        }
+
+        return null;
     }
 
     /**

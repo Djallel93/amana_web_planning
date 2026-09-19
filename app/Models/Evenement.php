@@ -131,6 +131,17 @@ class Evenement extends Model
     }
 
     /**
+     * Événements dont la plage [date_debut, date_fin] couvre `$date` (YYYY-MM-DD),
+     * passés compris — contrairement à scopeFutursOuEnCours(), utilisé par la
+     * génération, qui ne charge que les événements à venir.
+     */
+    public function scopeCouvrantDate($query, string $date)
+    {
+        return $query->where('date_debut', '<=', $date)
+            ->where('date_fin', '>=', $date);
+    }
+
+    /**
      * Retourne les identifiants Google Calendar (google_calendar_id) liés à
      * cet événement — c'est cette valeur, et non calendar_name, qui est
      * envoyée à l'API Google Calendar par SynchroniserGoogleCalendar.

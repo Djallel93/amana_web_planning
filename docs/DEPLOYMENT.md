@@ -219,7 +219,36 @@ physical schema. Two things to know before doing it:
 
 ---
 
-## 7. Quick reference — files involved
+## 7. One-time server setup: the Laravel scheduler cron (`amana_web_planning`)
+
+The deploy workflows do **not** create a cron entry. `amana_web_planning`
+schedules three commands in `routes/console.php` (`amana:expire-echanges`,
+`amana:rappels-quotidiens`, `amana:rappels-imminents`); none of them runs
+until the server calls `schedule:run`. The reminder e-mails to volunteers are
+the visible casualty if it's missing.
+
+Set it up **once per environment** over SSH — it lives outside the rsync'd
+app folder, so deploys never touch it:
+
+```bash
+crontab -e
+# then add (paths = the IONOS_REMOTE_PATH / IONOS_PHP_CLI_PATH vars from section 3):
+* * * * * cd <IONOS_REMOTE_PATH> && <IONOS_PHP_CLI_PATH> artisan schedule:run >> /dev/null 2>&1
+```
+
+- **Don't use the "Cronjobs" tile in the IONOS account.** It only issues an
+  HTTP GET to a URL, at monthly/weekly/daily intervals, with a 60-second cap —
+  it can't run `artisan`.
+- If IONOS rejects an every-minute entry, `*/15 * * * *` is enough for the
+  current schedule (all three tasks fire on :00/:15/:30/:45).
+- No `queue:work` needed: `QUEUE_CONNECTION=sync` on both environments.
+- Verify with `php artisan schedule:list` (SSH, from `IONOS_REMOTE_PATH`).
+- The reminder tasks are pinned to `Europe/Paris` in code; the app itself stays
+  on `APP_TIMEZONE=UTC`. Details: README, "Tâches planifiées".
+
+---
+
+## 8. Quick reference — files involved
 
 ```
 .github/

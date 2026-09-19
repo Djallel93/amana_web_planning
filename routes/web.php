@@ -164,6 +164,14 @@ Route::middleware('auth')->group(function () {
             Route::post('/annulation-cours', [PlanningEditController::class, 'annulerCours'])
                 ->name('annulation-cours');
         });
+
+        // ── Contexte d'une date pour la modale « Créneau passé » — admin uniquement ──
+        // (événements bloquants, absences, doublon). Voir PlanningEditController::
+        // contexteCreneauPasse() ; la création elle-même reste POST /planning/creneau.
+        Route::middleware('role:admin')->group(function () {
+            Route::get('/creneau-passe/contexte', [PlanningEditController::class, 'contexteCreneauPasse'])
+                ->name('edit.creneau-passe.contexte');
+        });
     });
 
     // ── Paramètres — gestionnaire + admin ─────────────────────────────────

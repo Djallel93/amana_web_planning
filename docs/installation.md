@@ -314,6 +314,22 @@ flowchart LR
 
 > ⚠️ **`migrate:fresh --seed` efface toute la base de données.** Il ne s'exécute automatiquement qu'une seule fois (premier déploiement, marqueur absent). Pour le redéclencher volontairement (ex. réinitialiser complètement un environnement de test), utilisez **Actions → Build and Deploy to IONOS → Run workflow**, en cochant `force_fresh_install`. Ne jamais faire ça sur la production réelle sans sauvegarde préalable.
 
+### Configuration unique côté serveur — cron du scheduler
+
+Le pipeline **ne crée pas** de cron. Sans lui, les trois tâches planifiées de `routes/console.php` ne s'exécutent jamais — en particulier les **emails de rappel** aux bénévoles (`amana:rappels-quotidiens`, `amana:rappels-imminents`) et l'expiration des échanges (`amana:expire-echanges`).
+
+À faire **une seule fois** par environnement (le crontab est hors du dossier synchronisé par `rsync --delete`, il survit aux déploiements). Le gestionnaire « Cronjobs » du compte IONOS n'appelle que des URLs (HTTP GET, intervalle ≥ quotidien, 60 s max) et ne convient donc pas : utiliser un crontab côté serveur, en SSH.
+
+```bash
+crontab -e
+```
+
+```cron
+* * * * * cd /chemin/IONOS_REMOTE_PATH && /chemin/IONOS_PHP_CLI_PATH artisan schedule:run >> /dev/null 2>&1
+```
+
+Reprendre les valeurs des variables GitHub `IONOS_REMOTE_PATH` et `IONOS_PHP_CLI_PATH`. `QUEUE_CONNECTION=sync` : aucun `queue:work` à planifier. Vérification : `php artisan schedule:list` (SSH, depuis `IONOS_REMOTE_PATH`). Détails (fuseau horaire, repli en `*/15`) : README, section [Tâches planifiées](../README.md#tâches-planifiées-scheduler-laravel).
+
 ### Configuration requise — Secrets & Variables GitHub
 
 À définir dans **Settings → Secrets and variables → Actions** du dépôt.
@@ -411,7 +427,8 @@ Onglet **Actions** du dépôt GitHub → sélectionner l'exécution → chaque �
 | POST    | `/planning/overlap/cancel`                      | `planning.overlap.cancel`      | Gestionnaire+Admin | Annule la confirmation de chevauchement                                                                              |
 | POST    | `/planning/rollback`                            | `planning.rollback`            | Gestionnaire+Admin | Rollback post-génération                                                                                             |
 | POST    | `/planning/rollback/dismiss`                    | `planning.rollback.dismiss`    | Gestionnaire+Admin | Ferme la session de rollback                                                                                         |
-| POST    | `/planning/creneau`                             | `planning.edit.create-creneau` | Gestionnaire+Admin | Crée un créneau manuellement                                                                                         |
+| GET     | `/planning/creneau-passe/contexte?date=`        | `planning.edit.creneau-passe.contexte` | Admin | Contexte d'une date pour la modale « Créneau passé » : événements, tâches bloquées, personnes absentes, doublon |
+| POST    | `/planning/creneau`                             | `planning.edit.create-creneau` | Gestionnaire+Admin | Crée un créneau manuellement — **date passée réservée aux admins** (403 sinon), avec assignations optionnelles (`assignations`, refusées sur une tâche bloquée par un événement) ; lie les événements couvrant la date ; synchro Google Calendar dans tous les cas |
 | DELETE  | `/planning/creneau/{id}`                        | `planning.edit.delete-creneau` | Gestionnaire+Admin | Supprime un créneau entier                                                                                           |
 | PATCH   | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.assignation`    | Gestionnaire+Admin | Réassigne une tâche                                                                                                  |
 | DELETE  | `/planning/creneau/{creneauId}/tache/{tacheId}` | `planning.edit.unassign`       | Gestionnaire+Admin | Désassigne une tâche                                                                                                 |
@@ -564,6 +581,13 @@ SESSION_DOMAIN=votredomaine.fr
 ```bash
 php artisan migrate --force   # Crée la table sessions si absente
 ```
+
+### Les emails de rappel ne partent pas / arrivent à la mauvaise heure
+
+1. Le cron du scheduler existe-t-il ? `crontab -l` en SSH doit montrer la ligne `schedule:run` (voir [Configuration unique côté serveur — cron du scheduler](#configuration-unique-côté-serveur--cron-du-scheduler)). Le pipeline de déploiement ne la crée pas.
+2. `php artisan schedule:list` doit lister `amana:rappels-quotidiens` (08:00) et `amana:rappels-imminents` (toutes les 15 min). Ces deux tâches sont déclarées en fuseau `Europe/Paris` : l'heure affichée est l'heure de Paris, indépendamment de `APP_TIMEZONE=UTC`.
+3. Un rappel n'est envoyé que pour un créneau **assigné** dont la date est aujourd'hui, demain ou J+3 — un créneau vide ou passé n'en génère jamais.
+4. Consulter `storage/logs/laravel.log`, puis tester le SMTP depuis `/diagnostic-mail`.
 
 ### Un événement bloquant créé après génération ne bloque pas un créneau passé
 

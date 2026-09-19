@@ -113,6 +113,7 @@ graph LR
 | Générer le planning                                                                    |  ✅   |      ✅      |      ❌      |
 | Prévisualiser le planning (dry-run)                                                    |  ✅   |      ✅      |      ❌      |
 | Modifier le planning manuellement                                                      |  ✅   |      ✅      |      ❌      |
+| **Créer un créneau dans le passé (correction d'un week-end jamais généré)**            |  ✅   |      ❌      |      ❌      |
 | **Annuler un cours (bloquer une date, tout désassigner)**                              |  ✅   |      ✅      |      ❌      |
 | Rollback (annuler une génération)                                                      |  ✅   |      ✅      |      ❌      |
 | Créer / modifier les événements                                                        |  ✅   |      ✅      |      ❌      |
@@ -144,7 +145,8 @@ Vue principale de l'application. Affiche les créneaux regroupés par semaine IS
 - Filtre par année et par mois (filtre par défaut : mois courant + mois précédent, activé automatiquement)
 - Bannières informatives par semaine pour les événements (informatifs ou bloquants)
 - Clic sur une cellule → modale de réassignation (admin/gestionnaire)
-- Bouton « + Créneau » pour ajouter manuellement un jour dans une semaine existante (admin/gestionnaire)
+- Bouton « + Créneau » pour ajouter manuellement un jour dans une semaine existante (admin/gestionnaire — les dates passées sont réservées aux admins)
+- Bouton **« 🕓 Créneau passé »** (admin uniquement) — rattrapage d'un week-end jamais généré, voir [détail ci-dessous](#-créneau-passé-admin-uniquement)
 - Suppression d'un créneau ou d'une semaine entière (admin/gestionnaire)
 - **Bouton rouge « 🚫 Annulation cours »** (admin/gestionnaire) — voir détail ci-dessous
 - Toasts de confirmation en temps réel (AJAX)
@@ -189,6 +191,44 @@ stateDiagram-v2
     Désassignation --> Planning
     SuppCréneau --> Planning
 ```
+
+#### 🕓 Créneau passé (admin uniquement)
+
+Action **corrective exceptionnelle** : créer un créneau pour une date déjà écoulée — typiquement un week-end qui n'a jamais été généré, alors qu'on veut malgré tout qu'il apparaisse dans le planning et dans les statistiques du [Bilan](#bilan-quotidien).
+
+**Pourquoi un bouton dédié ?** Les deux chemins habituels sont fermés pour le passé : le formulaire « Générer » refuse une date de début antérieure à aujourd'hui, et le bouton « + Créneau » d'un bloc semaine ne peut pas viser une semaine absente de la grille (or un week-end jamais généré n'y figure pas).
+
+**Utilisation :** bouton **🕓 Créneau passé** dans la barre de filtres (ou sur la carte « Aucun planning généré » quand la grille est vide) → choisir une date **strictement antérieure à aujourd'hui** → choisir, tâche par tâche, **qui était de permanence** → **Créer le créneau passé**. La semaine s'affiche aussitôt dans la grille (l'affichage bascule si besoin sur l'historique complet ou élargit le filtre année/mois).
+
+**Assignations choisies par l'admin.** Le moteur de rotation n'invente pas de bénévoles pour un jour déjà écoulé : la modale propose un sélecteur par tâche (Entrée, Mektaba, Salle, Amana Food, Cours), limité aux personnes actives au planning. C'est facultatif — une tâche laissée sur « Non assignée » reste vide. L'assignation se fait à la création (`assignations` : code de tâche → `id_personne`) ; il est aussi possible de la corriger ensuite en cliquant sur une cellule, comme pour n'importe quel créneau.
+
+**Ce qui est créé :**
+
+- Un créneau avec une ligne `plan_creneaux_taches` par tâche active — `id_personne` renseigné pour les tâches choisies, `NULL` sinon. Les responsables `amana_food` / `mektaba` apparaissent ainsi dans les tooltips des statistiques du Bilan. Créneau et lignes de tâches sont créés dans une même transaction.
+- **La synchronisation Google Calendar est déclenchée** (`POST`, comme pour toute création manuelle) : les événements sont créés dans le calendrier, avec les personnes assignées, même si la date est dans le passé.
+- **Les événements organisationnels qui couvrent la date sont liés au créneau** (`plan_creneaux_evenements`, passés compris), exactement comme le fait la génération. C'est ce lien qui marque les tâches comme bloquées dans la grille et dans les événements Google Calendar : une tâche bloquée par un événement est créée non assignée et ne génère pas d'événement Google Calendar (`WebhookPayloadBuilder` l'écarte du payload).
+- Aucun rappel email : `RappelService` ne regarde que aujourd'hui, demain et J+3.
+- Une entrée dans le journal d'audit (`/admin/journal` — `create` / `planning`, avec `passe: true`, les assignations et les ids d'événements liés).
+
+**Guidage dans la modale.** Dès qu'une date est choisie, la modale interroge `GET /planning/creneau-passe/contexte?date=` (admin) et affiche :
+
+- les **événements** qui couvrent la date ;
+- les **tâches bloquées** par ces événements : sélecteur désactivé (« 🚫 Bloquée — nom de l'événement ») ;
+- les **personnes déclarées absentes** ce jour-là : repérées « absent·e ce jour-là » dans les listes, avec un avertissement si l'une d'elles est choisie. **L'avertissement n'est pas bloquant** — c'est l'admin qui décide, une personne déclarée absente ayant pu venir malgré tout ;
+- un message si un créneau existe déjà à cette date (le bouton de création est alors désactivé).
+
+**Règles serveur** (`PlanningEditController::createCreneau()`, `POST /planning/creneau`) :
+
+- « Passé » = date strictement antérieure à aujourd'hui **à Paris** (`DateHelper::estPasse()`), pas en UTC. Une date passée pour laquelle un créneau existe déjà est refusée (unicité).
+- Le champ `assignations` n'est accepté que pour une date passée (`422` sinon) ; les codes de tâche doivent correspondre à des tâches actives et les personnes doivent exister.
+- **Événements bloquants : appliqués côté serveur.** Assigner une personne à une tâche bloquée par un événement couvrant la date est refusé (`422`, avec le nom de la tâche et de l'événement) — la grisation dans la modale n'est qu'un confort. **Absences : jamais vérifiées** à la création (voir ci-dessus).
+- **Tout créneau créé manuellement** — bouton « + Créneau » compris, pas seulement le créneau passé — lie désormais les événements couvrant sa date. Avant, seuls la génération et « Annulation cours » créaient ce lien : un créneau ajouté à la main n'affichait donc pas ses tâches comme bloquées.
+- Un **gestionnaire** reçoit un `403` s'il tente de créer un créneau passé — y compris via le bouton « + Créneau » d'un bloc semaine passé et via un appel direct à la route. Seuls les admins le peuvent.
+- Le jour de la semaine n'est pas contraint (comme pour « + Créneau ») : la modale affiche la date en toutes lettres pour vérifier qu'on vise bien un vendredi ou un samedi.
+
+> ⚠️ **Ne pas contourner ce bouton en assouplissant la règle `after_or_equal:today` du formulaire « Générer ».** La génération supprime **tous** les créneaux à partir de la date de début (`SchedulerMain::cleanExistingCreneaux()`) puis les régénère : une date de début passée effacerait et réassignerait aussi tout ce qui est déjà planifié après elle.
+
+> ℹ️ **Saisir le Bilan d'un jour passé ne nécessite pas de créneau** — le Bilan est indexé par date, voir [Bilan quotidien](#bilan-quotidien). Le créneau passé sert uniquement à ce que le week-end apparaisse dans le planning et compte dans le taux de remplissage des statistiques.
 
 ---
 
@@ -510,19 +550,38 @@ Le pipeline de déploiement (`.github/workflows/deploy.yaml`) se connecte à ION
 
 Aucune clé secrète supplémentaire à provisionner/retirer, aucune route publique — l'accès est protégé par la clé SSH elle-même (`IONOS_SSH_PRIVATE_KEY`).
 
-### Commande planifiée — expiration des échanges
+### Tâches planifiées (scheduler Laravel)
+
+Trois commandes sont déclarées dans `routes/console.php` :
+
+| Commande                   | Fréquence                          | Rôle                                                                                                                                      |
+| -------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `amana:expire-echanges`    | Tous les jours à 01:00 (UTC)       | Marque `expire` les demandes d'échange `en_attente` dont `expires_at` est dépassé et notifie le demandeur par email.                      |
+| `amana:rappels-quotidiens` | Tous les jours à 08:00 (Paris)     | Rappels par email « 3 jours avant » (créneaux de J+3) et « jour J ».                                                                       |
+| `amana:rappels-imminents`  | Toutes les 15 minutes (Paris)      | Rappel « 3h avant » pour les tâches dont l'heure de début approche. Les événements Google Calendar n'invitent plus personne (restriction des comptes de service) : ces emails sont **l'unique canal de rappel personnel**. |
+
+**Fuseau horaire.** L'application tourne en UTC (`APP_TIMEZONE=UTC`). Les deux commandes de rappel sont donc déclarées avec `->timezone(DateHelper::FUSEAU_METIER)` (`Europe/Paris`) : sans cela, « 08:00 » serait 08:00 UTC, soit 09:00 ou 10:00 à Paris selon la saison. `amana:expire-echanges` reste volontairement en UTC (il compare des instants absolus, l'heure de passage n'a pas d'incidence).
+
+**Rien de tout cela ne s'exécute sans une entrée cron sur le serveur** — le pipeline de déploiement n'en crée pas. À configurer **une seule fois** (voir ci-dessous), puis elle survit aux déploiements.
+
+#### Configuration du cron sur IONOS (une seule fois)
+
+Le gestionnaire « Cronjobs » du compte IONOS **ne convient pas** : il n'appelle qu'une URL en HTTP GET, avec un intervalle mensuel/hebdomadaire/quotidien et une durée maximale de 60 secondes. Il faut un **crontab côté serveur**, via SSH (mêmes accès que le pipeline de déploiement) :
 
 ```bash
-# Exécutée automatiquement chaque jour à 01h00 via le scheduler Laravel
-# (routes/console.php : Schedule::command('amana:expire-echanges')->dailyAt('01:00'))
-php artisan amana:expire-echanges
+crontab -e
 ```
 
-Marque `expire` toute demande d'échange (`plan_echanges`) `en_attente` dont la date du créneau du demandeur est dépassée, et notifie le demandeur par email. Nécessite que le cron du scheduler Laravel tourne sur le serveur :
+puis ajouter la ligne suivante, en reprenant les valeurs des variables GitHub `IONOS_REMOTE_PATH` et `IONOS_PHP_CLI_PATH` (le `php` du PATH n'est souvent pas le bon sur IONOS) :
 
-```bash
-* * * * * cd /chemin/vers/app && php artisan schedule:run >> /dev/null 2>&1
+```cron
+* * * * * cd /chemin/IONOS_REMOTE_PATH && /chemin/IONOS_PHP_CLI_PATH artisan schedule:run >> /dev/null 2>&1
 ```
+
+- Si IONOS refuse un passage toutes les minutes, `*/15 * * * *` suffit avec le planning actuel : les trois commandes tombent sur :00, :15, :30 et :45. Le plus fin reste préférable si des tâches sont ajoutées plus tard.
+- `QUEUE_CONNECTION=sync` en production : **aucun `queue:work` à planifier**.
+- Le crontab vit hors du dossier de l'application : le `rsync --delete` du déploiement n'y touche pas. Les tâches ne tournent simplement pas pendant les quelques secondes de mode maintenance (`artisan down`).
+- **Vérifier** (SSH, depuis `IONOS_REMOTE_PATH`) : `php artisan schedule:list` liste les trois commandes avec leur prochaine exécution, et `php artisan schedule:run` en force un passage. Les envois et erreurs sont tracés dans `storage/logs/laravel.log`.
 
 ---
 
@@ -792,12 +851,13 @@ sequenceDiagram
 
 ## Bilan quotidien
 
-Suivi du bilan de chaque permanence : collecte Amana Food (carte bancaire / espèces) et effectifs (présents sur place / connectés en ligne). Accessible à **tous les membres connectés** — pas de restriction de rôle, ni de notion de propriétaire : un seul enregistrement partagé par date, modifiable par n'importe qui.
+Suivi du bilan de chaque permanence : collecte Amana Food (carte bancaire / espèces) et effectifs (présents sur place / connectés en ligne). Accessible au rôle **membre et au-dessus** (le rôle bénévole en est exclu), sans notion de propriétaire : un seul enregistrement partagé par date, modifiable par n'importe quel membre. Seuls les gestionnaires/admins peuvent **réinitialiser** un groupe (remise à `NULL` = « pas de cours ce jour-là », distinct de `0`).
 
 ### 📋 Bilan du jour (`/bilan`)
 
-- Sélection d'une date, saisie des montants et effectifs — enregistrement en un clic (`updateOrCreate`, upsert).
-- Affiche la dernière personne à avoir modifié le bilan et la date de dernière mise à jour.
+- Sélection d'une date, saisie des montants et effectifs — deux groupes indépendants (Amana food / Présences), chacun avec son propre bouton d'enregistrement (`updateOrCreate`, upsert).
+- Affiche la dernière personne à avoir modifié chaque groupe et la date de dernière mise à jour.
+- **Toute date est acceptable, passée comprise, et aucun créneau n'est nécessaire** : le bilan est indexé par date (`plan_bilans_quotidiens.date`), sans lien avec `plan_creneaux`. Pour rattraper un week-end jamais généré, il suffit de choisir la date passée et de saisir les valeurs. Deux effets de bord sur les statistiques tant qu'aucun créneau n'existe pour ces dates : le taux de remplissage est gonflé (bilans saisis / créneaux existants) et les tooltips n'affichent pas de responsable — voir [🕓 Créneau passé](#-créneau-passé-admin-uniquement) pour créer le créneau manquant (admin).
 
 ### 📊 Statistiques du bilan (`/bilan/statistiques`)
 
@@ -807,13 +867,18 @@ Suivi du bilan de chaque permanence : collecte Amana Food (carte bancaire / esp�
 
 ### Routes Bilan
 
-| Méthode | URL                        | Accès    | Description                                         |
-| ------- | -------------------------- | -------- | --------------------------------------------------- |
-| GET     | `/bilan`                   | Connecté | Vue de saisie du bilan quotidien                    |
-| GET     | `/bilan/data?date=`        | Connecté | JSON — bilan existant pour une date (ou vide)       |
-| POST    | `/bilan/data`              | Connecté | Enregistre (crée ou met à jour) le bilan d'une date |
-| GET     | `/bilan/statistiques`      | Connecté | Vue statistiques                                    |
-| GET     | `/bilan/statistiques/data` | Connecté | JSON — série + cartes de stats sur une période      |
+Toutes ces routes sont sous `role:membre` (membre et au-dessus), sauf les deux `reset` (`role:gestionnaire`).
+
+| Méthode | URL                             | Accès                | Description                                                               |
+| ------- | ------------------------------- | -------------------- | ------------------------------------------------------------------------- |
+| GET     | `/bilan`                        | Membre+              | Vue de saisie du bilan quotidien                                          |
+| GET     | `/bilan/data?date=`             | Membre+              | JSON — bilan existant pour une date (ou vide)                             |
+| POST    | `/bilan/data/amana-food`        | Membre+              | Enregistre (upsert) le groupe Amana food d'une date                       |
+| POST    | `/bilan/data/presence`          | Membre+              | Enregistre (upsert) le groupe Présences d'une date                        |
+| POST    | `/bilan/data/amana-food/reset`  | Gestionnaire+Admin   | Remet le groupe Amana food d'une date à `NULL` (pas de cours)             |
+| POST    | `/bilan/data/presence/reset`    | Gestionnaire+Admin   | Remet le groupe Présences d'une date à `NULL` (pas de cours)              |
+| GET     | `/bilan/statistiques`           | Membre+              | Vue statistiques                                                          |
+| GET     | `/bilan/statistiques/data`      | Membre+              | JSON — série + cartes de stats sur une période                            |
 
 Voir [docs/Schema_bdd.md](docs/Schema_bdd.md#plan_bilans_quotidiens) pour le détail de la table `plan_bilans_quotidiens`.
 
@@ -868,7 +933,7 @@ php artisan amana:tester-google-calendar --create                               
 | Action                                                                              | Verbe    | Dispatch  | Cible       | Builder                                                                           |
 | ----------------------------------------------------------------------------------- | -------- | --------- | ----------- | ----------------------------------------------------------------------------------- |
 | Génération complète du planning                                                     | `POST`   | Queue     | `planning`  | `WebhookPayloadBuilder::build()`                                                  |
-| Création manuelle d'un créneau vide                                                 | `POST`   | Queue     | `planning`  | `WebhookPayloadBuilder::buildForCreation()`                                       |
+| Création manuelle d'un créneau (vide ; assigné pour un créneau passé, admin)        | `POST`   | Queue     | `planning`  | `WebhookPayloadBuilder::buildForCreation()`                                       |
 | Réassignation d'une tâche                                                           | `PATCH`  | Queue     | `planning`  | `WebhookPayloadBuilder::buildForReassignation()`                                  |
 | Désassignation d'une tâche                                                          | `DELETE` | Synchrone | `planning`  | `WebhookPayloadBuilder::buildForUnassignation()`                                  |
 | Suppression d'un créneau entier                                                     | `DELETE` | Synchrone | `planning`  | `WebhookPayloadBuilder::buildForDeleteCreneau()`                                  |
@@ -1187,6 +1252,7 @@ GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=...
 | 6     | Envoyer un email de test depuis le diagnostic              | Vérifier la réception + `laravel.log`                                                                                      |
 | 7     | Configurer les paramètres (heure, lieu, calendriers)       | `/parametres` — enregistrer d'abord les calendriers dans le registre, avant de les sélectionner par tâche |
 | 7bis  | Vérifier le compte de service Google Calendar               | `php artisan amana:tester-google-calendar --create` (SSH) — voir [Intégration Google Calendar](#intégration-google-calendar-api-directe) |
+| 8     | Créer le cron du scheduler (une seule fois)                 | `crontab -e` en SSH — voir [Configuration du cron sur IONOS](#configuration-du-cron-sur-ionos-une-seule-fois) ; vérifier avec `php artisan schedule:list` |
 
 ### Diagnostic SMTP — `/diagnostic-mail`
 
@@ -1209,5 +1275,6 @@ Un calendrier doit d'abord être **ajouté au registre** (section "Registre des 
 | ----------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | SSH réservé au déploiement automatisé     | Pas de session interactive pratique pour du débogage ad hoc | `php artisan tinker` reste possible en SSH — c'est le flux recommandé pour un reset de mot de passe en urgence (voir [Définir un mot de passe en urgence](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)) |
 | Pas de worker de queue persistant         | Les jobs `ShouldQueue` doivent s'exécuter immédiatement     | `QUEUE_CONNECTION=sync` dans `.env`                                                                                   |
+| Le gestionnaire Cronjobs IONOS n'appelle que des URLs (GET, ≥ quotidien, 60 s max) | Inutilisable pour `schedule:run` | Crontab côté serveur via SSH — voir [Configuration du cron sur IONOS](#configuration-du-cron-sur-ionos-une-seule-fois) |
 | Logs serveur séparés de Laravel           | `access.log.*` ≠ `laravel.log`                              | Lire `storage/logs/laravel.log` via SFTP ou phpMyAdmin                                                                |
 | `storage/` exclu du déploiement récurrent | Le dossier est préservé entre déploiements                  | `rsync` exclut explicitement `storage/` dans le job `deploy` du pipeline                                              |

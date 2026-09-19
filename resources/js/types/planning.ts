@@ -60,6 +60,9 @@ export interface PlanningResponse {
     semaines: SemaineData[];
     historique: boolean;
     peutEditer: boolean;
+    // Vrai pour les admins uniquement — autorise la création de créneaux dans
+    // le passé (correction, voir PlanningEditController::createCreneau()).
+    peutAjouterPasse: boolean;
 }
 
 // ── Contexte transmis à AssignModal lors de l'ouverture ───────────────────
@@ -74,10 +77,31 @@ export interface AssignContext {
 }
 
 // ── Contexte transmis à AddCreneauModal lors de l'ouverture ───────────────
+// Deux modes :
+//  - semaine (défaut) : ajout d'un jour dans une semaine existante, date
+//    bornée à [weekMin, weekMax].
+//  - passé (`passe: true`, admin) : rattrapage d'un créneau jamais généré,
+//    date libre mais strictement antérieure à aujourd'hui — weekMin/weekMax
+//    sont ignorés (la semaine n'existe justement pas encore dans la grille).
 export interface AddCreneauContext {
-    weekMin: string; // lundi de la semaine, ISO
-    weekMax: string; // dimanche de la semaine, ISO
+    weekMin?: string; // lundi de la semaine, ISO
+    weekMax?: string; // dimanche de la semaine, ISO
     existingDates: string[];
+    passe?: boolean;
+}
+
+// ── Contexte d'une date (modale « Créneau passé », admin) ─────────────────
+// Reflète GET /planning/creneau-passe/contexte (PlanningEditController::
+// contexteCreneauPasse()). Sert uniquement à guider l'admin dans la modale ;
+// les règles sont appliquées côté serveur à la création.
+export interface CreneauPasseContexte {
+    date: string;
+    dejaExistant: boolean;
+    evenements: { nom: string; bloquant: boolean }[];
+    // code de tâche → noms (séparés par une virgule) des événements qui la bloquent
+    tachesBloquees: Partial<Record<TacheCode, string>>;
+    // ids des personnes déclarées absentes ce jour-là
+    absents: number[];
 }
 
 // ── Métadonnées d'affichage des 5 tâches (libellé + couleur) ──────────────
@@ -123,6 +147,7 @@ declare global {
                 creneau: string;
                 data: string;
                 annulationCours: string;
+                creneauContexte: string; // admin uniquement (modale « Créneau passé »)
             };
         };
     }

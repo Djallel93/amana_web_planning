@@ -60,6 +60,10 @@ class PlanningApiController extends PlanningController
 
         $user = $request->user();
         $peutEditer = $user && ($user->isAdmin() || $user->isGestionnaire());
+        // Créer un créneau dans le passé est une correction réservée aux admins
+        // (voir PlanningEditController::createCreneau()) — le front n'affiche
+        // le bouton dédié que si ce drapeau est vrai.
+        $peutAjouterPasse = (bool) $user?->isAdmin();
 
         $semaines = $creneaux->map(
             fn($creneauxSemaine, $semaineCle) =>
@@ -70,6 +74,7 @@ class PlanningApiController extends PlanningController
             'semaines' => $semaines,
             'historique' => $historique,
             'peutEditer' => $peutEditer,
+            'peutAjouterPasse' => $peutAjouterPasse,
         ]);
     }
 

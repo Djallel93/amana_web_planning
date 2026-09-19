@@ -42,6 +42,9 @@ const { ask } = useConfirm();
 const semaines = ref<SemaineData[]>([]);
 const historique = ref(false);
 const peutEditer = ref(false);
+// Admin uniquement — bouton « Créneau passé » (rattrapage d'un week-end jamais
+// généré, voir AddCreneauModal mode `passe`).
+const peutAjouterPasse = ref(false);
 const loading = ref(true);
 const loadError = ref(false);
 
@@ -149,6 +152,7 @@ async function loadData(): Promise<void> {
         semaines.value = data.semaines;
         historique.value = data.historique;
         peutEditer.value = data.peutEditer;
+        peutAjouterPasse.value = data.peutAjouterPasse ?? false;
     } catch {
         loadError.value = true;
     } finally {
@@ -345,11 +349,56 @@ function openAddCreneau(semaine: SemaineData): void {
     addCreneauModalRef.value?.open(ctx);
 }
 
+// Ajout d'un créneau dans le passé (admin) : la semaine visée n'existe pas
+// dans la grille (c'est justement un week-end jamais généré), donc aucun bloc
+// semaine ne peut servir de point d'entrée — bouton dédié dans la barre
+// d'outils, modal en mode `passe`.
+function openAddCreneauPasse(): void {
+    addCreneauModalRef.value?.open({ passe: true, existingDates: [] });
+}
+
 // Un créneau créé change la structure de la semaine (nouvelle ligne,
 // nouvelles datesExistantes) — plus simple et plus sûr de recharger
 // que de reconstruire l'objet localement.
-async function onCreneauCreated(): Promise<void> {
+async function onCreneauCreated(date: string): Promise<void> {
     await loadData();
+    await revealDate(date);
+}
+
+// Rend visible la semaine contenant `date` après une création. Sans ça, un
+// créneau passé — hors du filtre par défaut (mois courant ± 1) ou hors de la
+// fenêtre glissante de 12 mois — serait bien créé mais « n'apparaîtrait
+// pas », et l'admin croirait à un échec.
+async function revealDate(date: string): Promise<void> {
+    const trouverSemaine = (): SemaineData | undefined =>
+        semaines.value.find((s) => s.creneaux.some((c) => c.date === date));
+
+    let semaine = trouverSemaine();
+    if (!semaine && !historique.value) {
+        historique.value = true;
+        await loadData();
+        semaine = trouverSemaine();
+    }
+    if (!semaine) return;
+
+    // Un filtre vide (Set de taille 0) signifie « tout afficher » : ne rien
+    // ajouter dans ce cas, sinon on restreindrait l'affichage à ce seul mois.
+    if (
+        activeYears.value.size > 0 &&
+        !activeYears.value.has(semaine.anneeAffichage)
+    ) {
+        activeYears.value = new Set(activeYears.value).add(
+            semaine.anneeAffichage,
+        );
+    }
+    if (
+        activeMonths.value.size > 0 &&
+        !activeMonths.value.has(semaine.moisAffichage)
+    ) {
+        activeMonths.value = new Set(activeMonths.value).add(
+            semaine.moisAffichage,
+        );
+    }
 }
 
 // ── Annulation cours ────────────────────────────────────────────────────
@@ -436,6 +485,13 @@ async function toggleHistorique(): Promise<void> {
                         automatique.
                     </template>
                 </p>
+                <button
+                    v-if="peutAjouterPasse"
+                    @click="openAddCreneauPasse"
+                    class="px-3 py-1.5 text-[12px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-md transition-colors min-h-[44px] inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                >
+                    🕓 Créneau passé
+                </button>
             </div>
         </div>
 
@@ -513,6 +569,15 @@ async function toggleHistorique(): Promise<void> {
                 <span class="ml-auto text-[11.5px] text-ink-muted italic">{{
                     resultsCountLabel
                 }}</span>
+
+                <button
+                    v-if="peutAjouterPasse"
+                    @click="openAddCreneauPasse"
+                    title="Correction administrateur : créer un créneau pour un week-end passé jamais généré"
+                    class="px-3 py-1.5 text-[12px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-md transition-colors min-h-[44px] inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                >
+                    🕓 Créneau passé
+                </button>
 
                 <button
                     v-if="peutEditer"

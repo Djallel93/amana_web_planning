@@ -576,6 +576,37 @@
                             </div>
                         </details>
 
+                        <details class="guide-item group">
+                            <summary class="guide-summary">
+                                <span class="guide-summary-icon bg-accent/10">🕓</span>
+                                <span class="flex-1">Ajouter un créneau passé</span>
+                                <span class="guide-chevron">▾</span>
+                            </summary>
+                            <div class="guide-body">
+                                <p>Sur la page <strong class="text-ink">Planning</strong>, le bouton
+                                    <strong class="text-ink">🕓 Créneau passé</strong> (barre de filtres) crée un créneau
+                                    pour une date déjà écoulée — utile pour un week-end qui n'a jamais été généré.
+                                    Choisissez la date (strictement avant aujourd'hui), indiquez pour chaque tâche
+                                    <strong class="text-ink">qui était de permanence</strong> (facultatif), puis validez :
+                                    le créneau est créé et synchronisé avec Google Calendar comme un créneau normal.
+                                    Vous pouvez encore corriger une assignation ensuite en cliquant sur la cellule.
+                                    C'est une correction exceptionnelle, réservée aux administrateurs.</p>
+                                <p>Une fois la date choisie, la fenêtre vous indique les
+                                    <strong class="text-ink">événements</strong> de ce jour : les tâches qu'ils bloquent
+                                    sont grisées et ne peuvent pas être assignées. Les personnes déclarées
+                                    <strong class="text-ink">absentes</strong> sont repérées et un avertissement s'affiche
+                                    si vous en choisissez une — mais c'est vous qui décidez, l'assignation reste possible.</p>
+                                <p>Pour simplement saisir le <strong class="text-ink">Bilan</strong> d'un jour passé,
+                                    ce bouton n'est pas nécessaire : choisissez la date directement dans la page Bilan.</p>
+                                <div class="guide-example">
+                                    <span class="guide-example-label">Exemple</span>
+                                    Le planning du premier week-end de septembre n'a jamais été généré : l'admin crée le
+                                    créneau du vendredi puis celui du samedi avec 🕓 Créneau passé, en choisissant les
+                                    personnes présentes pour chaque tâche, puis saisit le bilan de chaque jour.
+                                </div>
+                            </div>
+                        </details>
+
                     </div>
                 </section>
             @endif

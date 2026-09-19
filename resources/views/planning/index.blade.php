@@ -50,6 +50,7 @@
             creneau:      '{{ url("planning/creneau") }}',
             data:         '{{ route("planning.data") }}',
             annulationCours: '{{ route("planning.annulation-cours") }}',
+            creneauContexte: '{{ route("planning.edit.creneau-passe.contexte") }}',
         },
     };
 </script>
