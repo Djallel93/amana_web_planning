@@ -67,6 +67,13 @@ const annulationCoursModalRef = useTemplateRef<
 // recherches répétées dans un array avec indexOf/includes.
 const activeYears = ref<Set<number>>(new Set());
 const activeMonths = ref<Set<number>>(new Set());
+// Masque par défaut les semaines entièrement passées (dimanche < aujourd'hui),
+// indépendamment des pastilles année/mois — sinon le mois courant à lui seul
+// peut afficher plusieurs semaines passées avant la prochaine à venir. Une
+// semaine à cheval sur aujourd'hui (ex. on est samedi) reste affichée en
+// entier : le filtre reste au grain "semaine", pas "jour" (voir toggle
+// ci-dessous pour revenir en arrière).
+const hidePast = ref(true);
 
 // ── Données dérivées pour la barre de filtres ─────────────────────────────
 const allYears = computed((): number[] => {
@@ -92,8 +99,15 @@ const allMonths = computed((): { num: number; label: string }[] => {
         .map(([num, label]) => ({ num, label }));
 });
 
+// Date locale (pas UTC) au format YYYY-MM-DD, cohérente avec semaine.dimanche.
+function todayIso(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 // ── Semaines visibles après filtres ────────────────────────────────────────
 const semainesVisibles = computed((): SemaineData[] => {
+    const today = todayIso();
     return semaines.value.filter((s) => {
         const yearOk =
             activeYears.value.size === 0 ||
@@ -101,12 +115,37 @@ const semainesVisibles = computed((): SemaineData[] => {
         const monthOk =
             activeMonths.value.size === 0 ||
             activeMonths.value.has(s.moisAffichage);
-        return yearOk && monthOk;
+        const pastOk = !hidePast.value || s.dimanche >= today;
+        return yearOk && monthOk && pastOk;
     });
 });
 
+// Nombre de semaines masquées par hidePast uniquement (hors filtres
+// année/mois), pour l'afficher sur le bouton de bascule.
+const semainesPasseesMasquees = computed((): number => {
+    if (!hidePast.value) return 0;
+    const today = todayIso();
+    return semaines.value.filter((s) => {
+        const yearOk =
+            activeYears.value.size === 0 ||
+            activeYears.value.has(s.anneeAffichage);
+        const monthOk =
+            activeMonths.value.size === 0 ||
+            activeMonths.value.has(s.moisAffichage);
+        return yearOk && monthOk && s.dimanche < today;
+    }).length;
+});
+
+function togglePast(): void {
+    hidePast.value = !hidePast.value;
+}
+
 const resultsCountLabel = computed((): string => {
-    if (activeYears.value.size === 0 && activeMonths.value.size === 0)
+    if (
+        activeYears.value.size === 0 &&
+        activeMonths.value.size === 0 &&
+        !hidePast.value
+    )
         return "";
     const n = semainesVisibles.value.length;
     return `${n} semaine${n !== 1 ? "s" : ""} affichée${n !== 1 ? "s" : ""}`;
@@ -132,6 +171,9 @@ function toggleMonthFilter(month: number): void {
 function clearFilters(): void {
     activeYears.value = new Set();
     activeMonths.value = new Set();
+    // "Effacer" retire TOUTES les restrictions, y compris hidePast — sinon
+    // cliquer "Effacer" prétendrait tout afficher sans vraiment le faire.
+    hidePast.value = false;
 }
 
 // ── Chargement initial + activation des filtres par défaut ───────────────
@@ -164,16 +206,15 @@ function applyDefaultFilters(): void {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
-    const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
     const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-    const previousMonthYear =
-        currentMonth === 1 ? currentYear - 1 : currentYear;
     const nextMonthYear = currentMonth === 12 ? currentYear + 1 : currentYear;
 
+    // Plus de mois précédent dans les candidats par défaut : hidePast masque
+    // déjà les semaines entièrement passées, donc l'inclure ici ne ferait que
+    // réafficher tout le mois précédent (fantôme) dès qu'on désactive hidePast
+    // sans le vouloir. Voir le commentaire sur hidePast plus haut.
     const candidateYears = new Set([currentYear]);
-    const candidateMonths = new Set([previousMonth, currentMonth, nextMonth]);
-    if (previousMonthYear !== currentYear)
-        candidateYears.add(previousMonthYear);
+    const candidateMonths = new Set([currentMonth, nextMonth]);
     if (nextMonthYear !== currentYear) candidateYears.add(nextMonthYear);
 
     // On ne retient que les années/mois réellement présents dans les données
@@ -399,6 +440,12 @@ async function revealDate(date: string): Promise<void> {
             semaine.moisAffichage,
         );
     }
+    // Même raisonnement que activeYears/activeMonths ci-dessus, pour hidePast :
+    // un « Créneau passé » (openAddCreneauPasse) créé dans une semaine déjà
+    // entièrement écoulée resterait invisible sinon.
+    if (hidePast.value && semaine.dimanche < todayIso()) {
+        hidePast.value = false;
+    }
 }
 
 // ── Annulation cours ────────────────────────────────────────────────────
@@ -564,6 +611,29 @@ async function toggleHistorique(): Promise<void> {
                     class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md hover:border-accent hover:text-accent transition-colors min-h-[44px] inline-flex items-center whitespace-nowrap bg-transparent cursor-pointer"
                 >
                     📚 Historique complet
+                </button>
+
+                <!--
+                    Masquées par défaut (voir hidePast) : ce bouton les réaffiche
+                    sans toucher aux pastilles année/mois, pour que la prochaine
+                    semaine à venir reste en haut de liste par défaut tout en
+                    restant accessible d'un clic.
+                -->
+                <button
+                    @click="togglePast"
+                    class="px-2.5 py-1 text-[12px] font-semibold rounded-md transition-colors min-h-[44px] inline-flex items-center whitespace-nowrap cursor-pointer border"
+                    :class="
+                        !hidePast
+                            ? 'bg-accent text-white border-accent'
+                            : 'bg-surface-2 text-ink-muted border-surface-border hover:border-accent hover:text-accent'
+                    "
+                >
+                    🕓
+                    {{
+                        hidePast
+                            ? `Afficher les semaines passées${semainesPasseesMasquees > 0 ? ` (${semainesPasseesMasquees})` : ""}`
+                            : "Masquer les semaines passées"
+                    }}
                 </button>
 
                 <span class="ml-auto text-[11.5px] text-ink-muted italic">{{

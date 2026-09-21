@@ -117,6 +117,16 @@
                 class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md
                                    hover:border-rose-300 hover:text-rose-500 transition-colors bg-transparent cursor-pointer min-h-[44px]">✕ Effacer</button>
 
+            {{--
+                Masquées par défaut (voir applyDefaultFilters() plus bas) : ce bouton
+                les réaffiche sans toucher aux pastilles année/mois, pour que la
+                prochaine date à venir reste en haut de liste par défaut tout en
+                restant accessible d'un clic.
+            --}}
+            <button type="button" id="mpTogglePast"
+                class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md
+                                   hover:border-accent hover:text-accent transition-colors bg-transparent cursor-pointer min-h-[44px]">🕓 Afficher les dates passées</button>
+
             @if(!$historique)
                 <a href="{{ route('mon-planning') }}?historique=1" class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md
                                                hover:border-accent hover:text-accent transition-colors min-h-[44px] inline-flex items-center
@@ -169,7 +179,7 @@
                                 $icons = ['entree' => '🚪', 'mektaba' => '📚', 'salle' => '🏛️', 'amana_food' => '🥪', 'cours' => '🎓'];
                             @endphp
 
-                            <div data-mp-card
+                            <div data-mp-card data-mp-past="{{ $isPast ? '1' : '0' }}"
                                 class="relative flex items-center gap-4 sm:gap-5 px-4 py-3.5 {{ $bgColor }} rounded-xl border border-surface-border border-l-[3px] {{ $borderColor }} shadow-sm
                                                                     {{ $isPast ? 'opacity-70' : '' }} {{ $isFuture ? 'hover:shadow transition-shadow' : '' }}">
 
@@ -258,37 +268,42 @@
 
 @push('scripts')
     <script>
-        {
-            {
-                --
-                    MonPlanningConfig : injecte les routes Laravel dans window pour que
-                SwapRequestModal.vue puisse les consommer sans dépendre de Blade.
-                    C'est le même pattern que window.PlanningConfig dans PlanningGrid.vue.
-                --}
-        }
+        {{--
+            MonPlanningConfig : injecte les routes Laravel dans window pour que
+            SwapRequestModal.vue puisse les consommer sans dépendre de Blade.
+            C'est le même pattern que window.PlanningConfig dans PlanningGrid.vue.
+        --}}
         window.MonPlanningConfig = {
             routeSlots: '{{ route("echanges.slots") }}',
             routeStore: '{{ route("echanges.store") }}',
         };
 
-        {
-            {
-                --
-                    Filtres année / mois pour Mon planning — mêmes règles que PlanningGrid.vue :
-                - Filtres par défaut = mois courant ± 1, restreints aux mois / années
-              RÉELLEMENT présents dans les blocs rendus(évite le bug des filtres
+        {{--
+            Filtres année / mois pour Mon planning — mêmes règles que PlanningGrid.vue :
+            - Filtres par défaut = mois courant + mois suivant seulement
+              (le mois précédent n'est plus inclus par défaut — voir
+              hidePast ci-dessous, qui règle le même problème de fond :
+              les dates déjà passées ne doivent pas pousser la prochaine
+              date à venir hors de l'écran), restreints aux mois / années
+              RÉELLEMENT présents dans les blocs rendus (évite le bug des filtres
               "fantômes" corrigé sur la page Planning : un mois calculé depuis la
               date du jour mais absent des données ne doit jamais entrer dans le
               filtre actif, sinon décocher tout ce qui est visible ne vide jamais
               complètement le filtre et fait disparaître les résultats).
-            - Ensemble vide sur une dimension(année ou mois) = pas de filtre sur
-              cette dimension(tout est affiché).
-            - "Effacer" vide les deux ensembles.
-            - "Historique complet" est un lien serveur(?historique = 1) : contrairement
+            - Ensemble vide sur une dimension (année ou mois) = pas de filtre sur
+              cette dimension (tout est affiché).
+            - hidePast (par défaut true) masque en plus, indépendamment des
+              pastilles année / mois, toute carte antérieure à aujourd'hui — sinon
+              le mois courant à lui seul peut afficher plusieurs semaines de
+              dates passées avant la prochaine date à venir. Bouton dédié
+              (#mpTogglePast) pour le désactiver, distinct des pastilles
+              année / mois qui restent le moyen de remonter plus loin dans le
+              passé une fois hidePast désactivé.
+            - "Effacer" vide les deux ensembles et réaffiche les dates passées.
+            - "Historique complet" est un lien serveur (?historique=1) : contrairement
               à la page Planning, cette vue est rendue côté serveur, donc l'aller
               chercher revient à recharger la page avec le jeu de données complet.
-        --}
-        }
+        --}}
         document.addEventListener('DOMContentLoaded', function () {
             var bar = document.getElementById('monPlanningFiltres');
             if (!bar) return; // Aucune permanence : pas de barre de filtres à activer.
@@ -297,9 +312,11 @@
             var yearPills = Array.from(bar.querySelectorAll('[data-mp-year]'));
             var monthPills = Array.from(bar.querySelectorAll('[data-mp-month]'));
             var resultsLabel = document.getElementById('mpResultsCount');
+            var togglePastBtn = document.getElementById('mpTogglePast');
 
             var activeYears = new Set();
             var activeMonths = new Set();
+            var hidePast = true;
 
             var ACTIVE_CLASSES = ['bg-accent', 'text-white', 'border-accent'];
             var INACTIVE_CLASSES = ['bg-surface-2', 'text-ink-muted', 'border-surface-border'];
@@ -309,21 +326,47 @@
                 pill.classList.add.apply(pill.classList, active ? ACTIVE_CLASSES : INACTIVE_CLASSES);
             }
 
+            function paintTogglePastBtn(nbHidden) {
+                if (!togglePastBtn) return;
+                togglePastBtn.textContent = hidePast
+                    ? '🕓 Afficher les dates passées' + (nbHidden > 0 ? ' (' + nbHidden + ')' : '')
+                    : '🕓 Masquer les dates passées';
+                paintPill(togglePastBtn, !hidePast);
+            }
+
             function applyFilters() {
                 var visibleGroups = 0;
                 var visibleCards = 0;
+                var hiddenPastCards = 0;
 
                 groups.forEach(function (group) {
                     var year = parseInt(group.getAttribute('data-mp-year'), 10);
                     var month = parseInt(group.getAttribute('data-mp-month'), 10);
                     var yearOk = activeYears.size === 0 || activeYears.has(year);
                     var monthOk = activeMonths.size === 0 || activeMonths.has(month);
-                    var show = yearOk && monthOk;
+                    var groupOk = yearOk && monthOk;
 
+                    var groupVisibleCards = 0;
+
+                    Array.from(group.querySelectorAll('[data-mp-card]')).forEach(function (card) {
+                        var isPast = card.getAttribute('data-mp-past') === '1';
+                        var show = groupOk && (!hidePast || !isPast);
+                        card.style.display = show ? '' : 'none';
+                        if (show) {
+                            groupVisibleCards++;
+                        } else if (groupOk && isPast) {
+                            hiddenPastCards++;
+                        }
+                    });
+
+                    // Un groupe(mois) dont toutes les cartes sont masquées par
+                    // hidePast(ex. mois courant entièrement passé) ne doit pas
+                    // laisser un en - tête de mois vide à l'écran.
+                    var show = groupOk && groupVisibleCards > 0;
                     group.style.display = show ? '' : 'none';
                     if (show) {
                         visibleGroups++;
-                        visibleCards += group.querySelectorAll('[data-mp-card]').length;
+                        visibleCards += groupVisibleCards;
                     }
                 });
 
@@ -333,6 +376,7 @@
                 monthPills.forEach(function (pill) {
                     paintPill(pill, activeMonths.has(parseInt(pill.getAttribute('data-mp-month'), 10)));
                 });
+                paintTogglePastBtn(hiddenPastCards);
 
                 if (resultsLabel) {
                     resultsLabel.textContent = visibleGroups === 0
@@ -357,28 +401,38 @@
                 });
             });
 
-            var clearBtn = document.getElementById('mpClearFilters');
-            if (clearBtn) {
-                clearBtn.addEventListener('click', function () {
-                    activeYears.clear();
-                    activeMonths.clear();
+            if (togglePastBtn) {
+                togglePastBtn.addEventListener('click', function () {
+                    hidePast = !hidePast;
                     applyFilters();
                 });
             }
 
-            // Filtres par défaut : mois courant ± 1, restreints aux valeurs présentes
-            // dans les groupes réellement rendus (cf. commentaire en tête de bloc).
+            var clearBtn = document.getElementById('mpClearFilters');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function () {
+                    // "Effacer" retire TOUTES les restrictions, y compris hidePast —
+                    // sinon cliquer "Effacer" prétendrait tout afficher sans vraiment
+                    // le faire.
+                    activeYears.clear();
+                    activeMonths.clear();
+                    hidePast = false;
+                    applyFilters();
+                });
+            }
+
+            // Filtres par défaut : mois courant + suivant seulement (plus de mois
+            // précédent — cf. commentaire en tête de bloc), restreints aux valeurs
+            // présentes dans les groupes réellement rendus.
             (function applyDefaultFilters() {
                 var now = new Date();
                 var currentMonth = now.getMonth() + 1;
                 var currentYear = now.getFullYear();
-                var previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
                 var nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-                var previousMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
                 var nextMonthYear = currentMonth === 12 ? currentYear + 1 : currentYear;
 
-                var candidateYears = new Set([currentYear, previousMonthYear, nextMonthYear]);
-                var candidateMonths = new Set([previousMonth, currentMonth, nextMonth]);
+                var candidateYears = new Set([currentYear, nextMonthYear]);
+                var candidateMonths = new Set([currentMonth, nextMonth]);
 
                 var availableYears = new Set(yearPills.map(function (p) { return parseInt(p.getAttribute('data-mp-year'), 10); }));
                 var availableMonths = new Set(monthPills.map(function (p) { return parseInt(p.getAttribute('data-mp-month'), 10); }));
