@@ -6,6 +6,7 @@ declare(strict_types=1);
 use Amana\Shared\Http\Controllers\ActivityStatsController;
 use Amana\Shared\Http\Controllers\AuditLogController;
 use Amana\Shared\Http\Controllers\AuthController;
+use Amana\Shared\Http\Controllers\NavBadgesController;
 use App\Http\Controllers\Admin\CandidaturesController;
 use App\Http\Controllers\BilanController;
 use App\Http\Controllers\CalendrierGoogleController;
@@ -83,6 +84,15 @@ Route::middleware('auth')->group(function () {
 
     // ── Guide d'utilisation — tous les membres connectés (contenu adapté au rôle) ──
     Route::get('/guide', [GuideController::class, 'index'])->name('guide.index');
+
+    // ── Badges de la sidebar en direct — tous les membres connectés ───────
+    // Renvoie uniquement les compteurs des items que la sidebar montre à
+    // l'utilisateur (voir App\Services\NavBadges et le README d'amana/shared,
+    // « Badges de navigation en direct »). Interrogé toutes les 45 s par un
+    // petit script de la sidebar ; sans cette route, rien n'est émis.
+    Route::get('/nav-badges', NavBadgesController::class)
+        ->name('nav-badges.index')
+        ->middleware('throttle:60,1');
 
     // ── Bilan quotidien (Amana food + Présences) — membre et au-dessus ──
     // (exclut le rôle 'benevole', restreint à entree/salle/amana_food côté
