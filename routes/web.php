@@ -7,6 +7,7 @@ use Amana\Shared\Http\Controllers\ActivityStatsController;
 use Amana\Shared\Http\Controllers\AuditLogController;
 use Amana\Shared\Http\Controllers\AuthController;
 use Amana\Shared\Http\Controllers\NavBadgesController;
+use Amana\Shared\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\CandidaturesController;
 use App\Http\Controllers\BilanController;
 use App\Http\Controllers\CalendrierGoogleController;
@@ -93,6 +94,19 @@ Route::middleware('auth')->group(function () {
     Route::get('/nav-badges', NavBadgesController::class)
         ->name('nav-badges.index')
         ->middleware('throttle:60,1');
+
+    // ── Mon profil — TOUTES les personnes connectées, aucun middleware de rôle ──
+    // (bénévole, membre, gestionnaire, admin…). Contrôleur partagé
+    // (amana/shared) : il n'agit que sur l'utilisateur connecté, aucun id en
+    // paramètre. Pas de section « spécifique à l'app » pour planning : la route
+    // profile.extra.update n'est donc volontairement pas enregistrée.
+    Route::prefix('mon-profil')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'edit'])->name('edit');
+        Route::put('/', [ProfileController::class, 'update'])->name('update')->middleware('throttle:20,1');
+        Route::post('/email', [ProfileController::class, 'requestEmailChange'])->name('email.request')->middleware('throttle:5,1');
+        Route::get('/email/confirmer', [ProfileController::class, 'confirmEmailChange'])->name('email.confirm')->middleware(['signed', 'throttle:10,1']);
+        Route::put('/mot-de-passe', [ProfileController::class, 'updatePassword'])->name('password.update')->middleware('throttle:5,1');
+    });
 
     // ── Bilan quotidien (Amana food + Présences) — membre et au-dessus ──
     // (exclut le rôle 'benevole', restreint à entree/salle/amana_food côté
@@ -243,6 +257,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [PersonnesController::class, 'store'])->name('store');
         Route::get('/{id}/editer', [PersonnesController::class, 'edit'])->name('edit')->where('id', '[0-9]+');
         Route::put('/{id}', [PersonnesController::class, 'update'])->name('update')->where('id', '[0-9]+');
+        // Un administrateur ne saisit ni ne voit jamais un mot de passe : il envoie
+        // à la personne le lien standard de (ré)initialisation.
+        Route::post('/{id}/lien-reinitialisation', [PersonnesController::class, 'envoyerLienReinitialisation'])
+            ->name('reset-link')
+            ->where('id', '[0-9]+')
+            ->middleware('throttle:5,1');
         Route::delete('/{id}', [PersonnesController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
     });
 

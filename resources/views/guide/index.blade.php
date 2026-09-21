@@ -234,6 +234,32 @@
                         </div>
                     </details>
 
+                    <details class="guide-item group">
+                        <summary class="guide-summary">
+                            <span class="guide-summary-icon bg-accent/10">🪪</span>
+                            <span class="flex-1">Mon profil</span>
+                            <span class="guide-chevron">▾</span>
+                        </summary>
+                        <div class="guide-body">
+                            <p>Le <strong class="text-ink">cercle coloré avec vos initiales</strong>, en haut à gauche du menu
+                                (et de la barre du haut sur téléphone), ouvre la page <strong class="text-ink">Mon profil</strong>.
+                                Vous y modifiez votre nom, prénom et téléphone (format français, ex.
+                                <em>06 12 34 56 78</em>), votre <strong class="text-ink">adresse email</strong> et votre
+                                <strong class="text-ink">mot de passe</strong>. Changer d'adresse ou de mot de passe demande votre
+                                mot de passe actuel : pour l'adresse, un lien de confirmation est envoyé à la
+                                <em>nouvelle</em> adresse (valable 60 minutes) et l'ancienne en est informée ; pour le mot de
+                                passe, vous recevez un email de notification. Votre rôle s'affiche en lecture seule : seul un
+                                administrateur peut le modifier. Le bouton <strong class="text-ink">Se déconnecter</strong> est en
+                                bas du menu ; le texte « AMANA » en haut du menu vous ramène à l'accueil.</p>
+                            <div class="guide-example">
+                                <span class="guide-example-label">Exemple</span>
+                                L'utilisateur A change d'adresse email : dans <strong>Mon profil › Adresse email</strong>, il saisit
+                                la nouvelle adresse et son mot de passe, puis clique sur le lien reçu dans sa nouvelle boîte
+                                mail. Son ancienne adresse reçoit un message d'alerte.
+                            </div>
+                        </div>
+                    </details>
+
                 </div>
             </section>
 
@@ -493,6 +519,11 @@
                                 <p>Dans le menu <strong class="text-ink">Communauté</strong>, la page <strong class="text-ink">👥 Annuaire</strong> liste l'ensemble des membres de
                                     l'association. Vous pouvez y créer une personne, modifier ses informations et son rôle
                                     (membre, gestionnaire, admin), ou la supprimer.</p>
+                            <p class="mt-2">Sur la fiche d'une personne, le bouton
+                                <strong class="text-ink">✉️ Envoyer un lien de réinitialisation</strong> lui envoie le lien
+                                standard pour créer ou réinitialiser son mot de passe elle-même : un administrateur ne saisit
+                                ni ne voit jamais un mot de passe. Quand vous modifiez l'adresse email d'une personne,
+                                l'ancienne et la nouvelle adresse reçoivent chacune un message d'information.</p>
                                 <div class="guide-example">
                                     <span class="guide-example-label">Exemple</span>
                                     L'utilisateur A rejoint l'association comme bénévole : l'admin crée sa fiche dans

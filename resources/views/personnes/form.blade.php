@@ -198,6 +198,30 @@
         </div>
 
     </form>
+
+    {{-- Mot de passe : un administrateur n'en saisit ni n'en voit jamais — il envoie un lien. --}}
+    @if($edit)
+        <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mt-6">
+            <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+                <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔑</div>
+                <span class="font-heading text-[14px] font-semibold text-ink">Mot de passe</span>
+            </div>
+            <div class="p-5">
+                <p class="text-[13px] text-ink-muted mb-4">
+                    Vous ne pouvez pas définir le mot de passe de cette personne : envoyez-lui un lien pour qu'elle le crée
+                    ou le réinitialise elle-même. L'email part à <strong class="text-ink">{{ $personne->email }}</strong>
+                    (adresse enregistrée — enregistrez d'abord vos modifications si vous venez de la changer).
+                </p>
+                <form action="{{ route('personnes.reset-link', $personne->id) }}" method="POST">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 border-[1.5px] border-accent text-accent hover:bg-accent hover:text-white font-bold text-[13.5px] rounded-lg transition-colors cursor-pointer min-h-[48px]">
+                        ✉️ Envoyer un lien de réinitialisation
+                    </button>
+                </form>
+            </div>
+        </div>
+    @endif
 </div>
 
 @endsection

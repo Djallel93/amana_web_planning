@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Personne;
 use Amana\Shared\Models\Setting;
+use Amana\Shared\Services\AccountChangeNotifier;
 use App\Notifications\NouveauMembreNotification;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
@@ -154,9 +155,16 @@ class AuthController extends Controller
             'password_confirmation.required' => 'Veuillez confirmer votre mot de passe.',
         ]);
 
+        // Compte sans mot de passe (invitation, candidature validée) → « défini » ;
+        // sinon → « réinitialisé » : le texte de la notice s'adapte.
+        $contexte = 'reinitialisation';
+        $personneMiseAJour = null;
+
         $status = Password::broker('personnes')->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (Personne $personne, string $password) {
+            function (Personne $personne, string $password) use (&$contexte, &$personneMiseAJour) {
+                $contexte = empty($personne->password) ? 'creation' : 'reinitialisation';
+
                 $personne->password = Hash::make($password);
                 $personne->remember_token = Str::random(60);
 
@@ -166,12 +174,23 @@ class AuthController extends Controller
 
                 $personne->save();
                 event(new PasswordReset($personne));
+
+                $personneMiseAJour = $personne;
             }
         );
 
         if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login')
+            // Notice « mot de passe modifié/défini » : un échec d'envoi (SMTP) ne
+            // bloque jamais la création/réinitialisation, il est seulement signalé.
+            $notifie = $personneMiseAJour === null
+                || app(AccountChangeNotifier::class)->passwordChanged($personneMiseAJour, $contexte);
+
+            $retour = redirect()->route('login')
                 ->with('success', 'Votre mot de passe a été créé avec succès. Vous pouvez maintenant vous connecter.');
+
+            return $notifie
+                ? $retour
+                : $retour->with('warning', "Mot de passe enregistré, mais la notification n'a pas pu être envoyée.");
         }
 
         return back()->withInput($request->only('email'))
