@@ -44,15 +44,27 @@ class BilanSerieResource extends JsonResource
 
         $montantCarte = $bilan->montant_carte !== null ? (float) $bilan->montant_carte : null;
         $montantEspece = $bilan->montant_espece !== null ? (float) $bilan->montant_espece : null;
+        $montantCharges = $bilan->montant_charges !== null ? (float) $bilan->montant_charges : null;
+
+        // Revenu net = carte + espèce - charges. Une charge non saisie
+        // (NULL, ex. bilan antérieur à cette fonctionnalité) compte pour 0
+        // dans ce calcul — seul le groupe Amana food entier étant NULL
+        // (pas de cours) doit annuler le total, pas une charge simplement
+        // absente. C'est ce total net (et non le montant brut) qui alimente
+        // le graphique de BilanStatistiques.vue.
+        $totalMontant = $montantCarte !== null ? $montantCarte + ($montantEspece ?? 0) : null;
+        $revenuNet = $totalMontant !== null ? $totalMontant - ($montantCharges ?? 0) : null;
 
         return [
             'date' => $bilan->date->toDateString(),
             'totalPresence' => $bilan->nb_presents !== null ? $bilan->nb_presents + ($bilan->nb_en_ligne ?? 0) : null,
-            'totalMontant' => $montantCarte !== null ? $montantCarte + ($montantEspece ?? 0) : null,
+            'totalMontant' => $totalMontant,
+            'revenuNet' => $revenuNet,
             'nbPresents' => $bilan->nb_presents,
             'nbEnLigne' => $bilan->nb_en_ligne,
             'montantCarte' => $montantCarte,
             'montantEspece' => $montantEspece,
+            'montantCharges' => $montantCharges,
             'responsableAmanaFood' => $this->responsable['amana_food'] ?? null,
             'responsableMektaba' => $this->responsable['mektaba'] ?? null,
         ];

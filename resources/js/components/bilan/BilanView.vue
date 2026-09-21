@@ -36,6 +36,7 @@ interface BilanData {
     date:                    string;
     montantCarte:            number | null;
     montantEspece:           number | null;
+    montantCharges:          number | null;
     nbPresents:              number | null;
     nbEnLigne:               number | null;
     existe:                  boolean;
@@ -72,8 +73,9 @@ function todayIso(): string {
 }
 
 const date          = ref(todayIso());
-const montantCarte  = ref<number | null>(null);
-const montantEspece = ref<number | null>(null);
+const montantCarte   = ref<number | null>(null);
+const montantEspece  = ref<number | null>(null);
+const montantCharges = ref<number | null>(null);
 const nbPresents    = ref<number | null>(null);
 const nbEnLigne     = ref<number | null>(null);
 const existe        = ref(false);
@@ -101,6 +103,7 @@ function getCsrf(): string {
 function appliquerBilan(data: BilanData): void {
     montantCarte.value   = data.montantCarte;
     montantEspece.value  = data.montantEspece;
+    montantCharges.value = data.montantCharges;
     nbPresents.value     = data.nbPresents;
     nbEnLigne.value       = data.nbEnLigne;
     existe.value          = data.existe;
@@ -147,9 +150,10 @@ async function saveAmanaFood(): Promise<void> {
                 'Accept': 'application/json',
             },
             body: JSON.stringify({
-                date:           date.value,
-                montant_carte:  montantCarte.value,
-                montant_espece: montantEspece.value,
+                date:            date.value,
+                montant_carte:   montantCarte.value,
+                montant_espece:  montantEspece.value,
+                montant_charges: montantCharges.value,
             }),
         });
 
@@ -331,7 +335,18 @@ async function resetPresence(): Promise<void> {
                         >
                     </div>
 
-                    <span v-if="montantCarte === null && montantEspece === null" class="text-[11.5px] text-ink-muted italic">
+                    <div class="flex flex-col gap-1.5">
+                        <label for="montant_charges" class="text-xs font-bold text-ink tracking-[0.2px]">💸 Charges</label>
+                        <input
+                            id="montant_charges" type="number" min="0" step="0.01" v-model.number="montantCharges"
+                            placeholder="Pas de cours"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                   focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        >
+                        <span class="text-[11px] text-ink-muted">Coût de la nourriture — laisser à 0 si elle a été offerte.</span>
+                    </div>
+
+                    <span v-if="montantCarte === null && montantEspece === null && montantCharges === null" class="text-[11.5px] text-ink-muted italic">
                         Marqué comme "pas de cours" pour cette date.
                     </span>
                     <span v-if="derniereMajFoodPar" class="text-[11.5px] text-ink-muted">

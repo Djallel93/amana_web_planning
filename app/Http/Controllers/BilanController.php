@@ -90,13 +90,14 @@ class BilanController extends Controller
 
         $date   = $request->validated('date');
         $existant = Bilan::whereDate('date', $date)->first();
-        $avant  = $existant?->only(['montant_carte', 'montant_espece']);
+        $avant  = $existant?->only(['montant_carte', 'montant_espece', 'montant_charges']);
 
         $bilan = Bilan::updateOrCreate(
             ['date' => $date],
             [
                 'montant_carte'        => $request->validated('montant_carte'),
                 'montant_espece'       => $request->validated('montant_espece'),
+                'montant_charges'      => $request->validated('montant_charges'),
                 'id_personne_maj_food' => $user->id,
                 'maj_food_at'          => now(),
             ]
@@ -108,7 +109,7 @@ class BilanController extends Controller
             'bilan',
             $bilan->id,
             $avant,
-            $bilan->only(['montant_carte', 'montant_espece'])
+            $bilan->only(['montant_carte', 'montant_espece', 'montant_charges'])
         );
 
         return response()->json([
@@ -182,13 +183,14 @@ class BilanController extends Controller
         $date = $request->input('date');
 
         $existant = Bilan::whereDate('date', $date)->first();
-        $avant    = $existant?->only(['montant_carte', 'montant_espece']);
+        $avant    = $existant?->only(['montant_carte', 'montant_espece', 'montant_charges']);
 
         $bilan = Bilan::updateOrCreate(
             ['date' => $date],
             [
                 'montant_carte'        => null,
                 'montant_espece'       => null,
+                'montant_charges'      => null,
                 'id_personne_maj_food' => $user->id,
                 'maj_food_at'          => now(),
             ]
@@ -200,7 +202,7 @@ class BilanController extends Controller
             'bilan',
             $bilan->id,
             $avant,
-            ['montant_carte' => null, 'montant_espece' => null]
+            ['montant_carte' => null, 'montant_espece' => null, 'montant_charges' => null]
         );
 
         return response()->json([
@@ -319,15 +321,25 @@ class BilanController extends Controller
             fn(Bilan $b) => $b->montant_carte !== null || $b->nb_presents !== null
         );
 
+        // Revenu net = carte + espèce - charges. Une charge NULL (jamais
+        // saisie sur un bilan antérieur à cette fonctionnalité) est traitée
+        // comme 0 pour ce calcul — voir BilanSerieResource::revenuNet(), qui
+        // suit la même règle.
+        $netAccessor = fn(Bilan $b) => $b->montant_carte + $b->montant_espece - ($b->montant_charges ?? 0.0);
+
         return response()->json([
             'serie' => $serie,
             'cartes' => [
                 'totalMontant'        => (float) $bilansAvecMontant->sum(fn(Bilan $b) => $b->montant_carte + $b->montant_espece),
+                'revenuNetTotal'      => (float) $bilansAvecMontant->sum($netAccessor),
                 'moyennePresence'     => $bilansAvecPresence->isNotEmpty()
                     ? round($bilansAvecPresence->avg(fn(Bilan $b) => $b->nb_presents + $b->nb_en_ligne), 1)
                     : 0,
                 'meilleureDate'       => $this->meilleureDate($bilansAvecPresence, fn(Bilan $b) => $b->nb_presents + $b->nb_en_ligne),
-                'meilleureCollecte'   => $this->meilleureDate($bilansAvecMontant, fn(Bilan $b) => $b->montant_carte + $b->montant_espece),
+                // Classée sur le revenu NET (et non le montant brut) : deux
+                // jours à collecte égale peuvent avoir un revenu net très
+                // différent selon les charges engagées.
+                'meilleureCollecte'   => $this->meilleureDate($bilansAvecMontant, $netAccessor),
                 'tauxRemplissage'     => $nbCreneaux > 0
                     ? round(($bilansRemplis->count() / $nbCreneaux) * 100)
                     : null,

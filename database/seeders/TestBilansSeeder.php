@@ -98,6 +98,9 @@ class TestBilansSeeder extends Seeder
                 [
                     'montant_carte'            => fake()->randomFloat(2, 40, 220),
                     'montant_espece'           => fake()->randomFloat(2, 15, 130),
+                    // Nourriture offerte (0 € de charges) environ une fois sur cinq,
+                    // pour exercer les deux cas dans les données de test.
+                    'montant_charges'          => fake()->boolean(20) ? 0 : fake()->randomFloat(2, 20, 90),
                     'id_personne_maj_food'     => $personnes->random()->id,
                     'maj_food_at'              => now(),
                     'nb_presents'              => fake()->numberBetween(20, 70),

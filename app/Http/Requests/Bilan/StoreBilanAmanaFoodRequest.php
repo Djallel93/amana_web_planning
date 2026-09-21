@@ -25,17 +25,21 @@ class StoreBilanAmanaFoodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'date'           => ['required', 'date'],
-            'montant_carte'  => ['required', 'numeric', 'min:0', 'max:999999.99'],
-            'montant_espece' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'date'            => ['required', 'date'],
+            'montant_carte'   => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            'montant_espece'  => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            // Nourriture offerte (aucune charge réelle) => 0, pas null : NULL reste
+            // réservé à "pas de cours ce jour-là" (voir Bilan et BilanController).
+            'montant_charges' => ['required', 'numeric', 'min:0', 'max:999999.99'],
         ];
     }
 
     public function messages(): array
     {
         return [
-            'montant_carte.min'  => 'Le montant carte bancaire ne peut pas être négatif.',
-            'montant_espece.min' => 'Le montant espèces ne peut pas être négatif.',
+            'montant_carte.min'   => 'Le montant carte bancaire ne peut pas être négatif.',
+            'montant_espece.min'  => 'Le montant espèces ne peut pas être négatif.',
+            'montant_charges.min' => 'Le montant des charges ne peut pas être négatif.',
         ];
     }
 }

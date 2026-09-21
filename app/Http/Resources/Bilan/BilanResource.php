@@ -54,6 +54,7 @@ class BilanResource extends JsonResource
             'date' => $date,
             'montantCarte' => $bilan?->montant_carte !== null ? (float) $bilan->montant_carte : null,
             'montantEspece' => $bilan?->montant_espece !== null ? (float) $bilan->montant_espece : null,
+            'montantCharges' => $bilan?->montant_charges !== null ? (float) $bilan->montant_charges : null,
             'nbPresents' => $bilan?->nb_presents,
             'nbEnLigne' => $bilan?->nb_en_ligne,
             'existe' => $bilan !== null,

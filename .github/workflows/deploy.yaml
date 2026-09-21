@@ -251,9 +251,9 @@ jobs:
         env:
           APP_URL: ${{ vars.APP_URL }}
         run: |
-          echo "Deployed preprod to: $APP_URL"
+          echo "Deployed to: $APP_URL"
           {
-            echo "### 🚀 Deployed to Preprod"
+            echo "### 🚀 Deployed to Prod"
             echo ""
             echo "**URL:** $APP_URL"
           } >> "$GITHUB_STEP_SUMMARY"

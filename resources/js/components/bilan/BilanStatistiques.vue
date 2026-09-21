@@ -42,10 +42,12 @@ interface SeriePoint {
     date:                 string; // ISO "2026-06-12"
     totalPresence:        number | null;
     totalMontant:         number | null;
+    revenuNet:            number | null;
     nbPresents:           number | null;
     nbEnLigne:            number | null;
     montantCarte:         number | null;
     montantEspece:        number | null;
+    montantCharges:       number | null;
     responsableAmanaFood: string | null;
     responsableMektaba:   string | null;
 }
@@ -57,6 +59,7 @@ interface DateValeur {
 
 interface Cartes {
     totalMontant:      number;
+    revenuNetTotal:    number;
     moyennePresence:   number;
     meilleureDate:     DateValeur | null;
     meilleureCollecte: DateValeur | null;
@@ -165,8 +168,8 @@ function renderChart(): void {
                     pointHoverRadius: 5,
                 },
                 {
-                    label: 'Montant collecté',
-                    data: serie.value.map(p => p.totalMontant),
+                    label: 'Revenu net',
+                    data: serie.value.map(p => p.revenuNet),
                     borderColor: '#059669',
                     backgroundColor: 'rgba(5,150,105,0.08)',
                     yAxisID: 'yMontant',
@@ -221,13 +224,15 @@ function renderChart(): void {
                                 ];
                             }
 
-                            if (point.totalMontant === null) {
+                            if (point.revenuNet === null) {
                                 return 'Pas de cours ce jour-là';
                             }
                             return [
-                                `Montant total : ${fmtEuro(point.totalMontant)}`,
+                                `Revenu net : ${fmtEuro(point.revenuNet)}`,
                                 `  · Carte : ${fmtEuro(point.montantCarte ?? 0)}`,
                                 `  · Espèces : ${fmtEuro(point.montantEspece ?? 0)}`,
+                                `  · Charges : ${fmtEuro(point.montantCharges ?? 0)}`,
+                                `  · Montant brut : ${fmtEuro(point.totalMontant ?? 0)}`,
                                 `Responsable amana food : ${point.responsableAmanaFood ?? '—'}`,
                             ];
                         },
@@ -292,10 +297,15 @@ onUnmounted(() => chart?.destroy());
                 </div>
 
                 <!-- Cartes de stats -->
-                <div v-if="cartes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div v-if="cartes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                     <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
                         <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">💰 Total collecté</div>
                         <div class="text-xl font-heading font-semibold text-ink">{{ fmtEuro(cartes.totalMontant) }}</div>
+                    </div>
+
+                    <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
+                        <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">💸 Revenu net</div>
+                        <div class="text-xl font-heading font-semibold text-ink">{{ fmtEuro(cartes.revenuNetTotal) }}</div>
                     </div>
 
                     <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
@@ -313,7 +323,7 @@ onUnmounted(() => chart?.destroy());
                     </div>
 
                     <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
-                        <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">🥇 Meilleure collecte</div>
+                        <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">🥇 Meilleur revenu net</div>
                         <div v-if="cartes.meilleureCollecte" class="text-xl font-heading font-semibold text-ink">
                             {{ fmtEuro(cartes.meilleureCollecte.valeur) }}
                             <div class="text-[11px] font-normal text-ink-muted mt-0.5">{{ fmtDateCourt(cartes.meilleureCollecte.date) }}</div>

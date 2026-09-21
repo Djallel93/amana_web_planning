@@ -14,18 +14,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Un enregistrement unique et partagé par date — n'importe quel utilisateur
  * connecté peut le consulter ou le modifier (pas de notion de propriétaire).
  *
- * NULL vs 0 : depuis la migration 2026_07_14_000002, les 4 colonnes de
- * valeurs sont nullable. NULL signifie "pas de cours ce jour-là" (jour de
- * semaine, vacances, cours annulé…) — distinct de 0, qui est une vraie
- * valeur saisie (ex. 0 € collecté, 0 personne en ligne). Un groupe
- * (Amana food ou Présences) passe à NULL via le bouton "Réinitialiser"
- * (BilanController::resetAmanaFood / resetPresence), réservé aux rôles
- * gestionnaire et admin.
+ * NULL vs 0 : depuis la migration 2026_07_14_000002 (et montant_charges
+ * ajoutée en 2026_09_21_000001), les 5 colonnes de valeurs sont nullable.
+ * NULL signifie "pas de cours ce jour-là" (jour de semaine, vacances, cours
+ * annulé…) — distinct de 0, qui est une vraie valeur saisie (ex. 0 €
+ * collecté, 0 personne en ligne, ou nourriture offerte donc 0 € de charges).
+ * Un groupe (Amana food ou Présences) passe à NULL via le bouton
+ * "Réinitialiser" (BilanController::resetAmanaFood / resetPresence),
+ * réservé aux rôles gestionnaire et admin.
  *
  * @property int                    $id
  * @property \Carbon\Carbon         $date
  * @property float|null             $montant_carte
  * @property float|null             $montant_espece
+ * @property float|null             $montant_charges
  * @property int|null               $id_personne_maj_food
  * @property \Carbon\Carbon|null    $maj_food_at
  * @property int|null               $nb_presents
@@ -43,6 +45,7 @@ class Bilan extends Model
         'date',
         'montant_carte',
         'montant_espece',
+        'montant_charges',
         'id_personne_maj_food',
         'maj_food_at',
         'nb_presents',
@@ -55,6 +58,7 @@ class Bilan extends Model
         'date'            => 'date',
         'montant_carte'   => 'decimal:2',
         'montant_espece'  => 'decimal:2',
+        'montant_charges' => 'decimal:2',
         'nb_presents'     => 'integer',
         'nb_en_ligne'     => 'integer',
         'maj_food_at'     => 'datetime',
