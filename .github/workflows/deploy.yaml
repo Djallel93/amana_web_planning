@@ -203,6 +203,37 @@ jobs:
             $PHP_BIN artisan up
           EOF
 
+      # Cron du scheduler Laravel (rappels email, expiration des échanges).
+      # Sans lui, rien de ce qui est déclaré dans routes/console.php ne
+      # s'exécute : IONOS ne lance schedule:run que si on le lui demande.
+      # Idempotent : notre ligne est repérée par un marqueur, les autres
+      # entrées du crontab (autre app sur le même compte, sauvegardes…) sont
+      # conservées. S'auto-répare si le crontab est vidé ou si
+      # IONOS_REMOTE_PATH / IONOS_PHP_CLI_PATH changent.
+      # continue-on-error : un refus de `crontab` côté hébergeur ne doit pas
+      # faire échouer un déploiement déjà en ligne (l'étape reste visible en
+      # erreur dans le run).
+      - name: Ensure Laravel scheduler cron entry (idempotent)
+        continue-on-error: true
+        env:
+          APP_PATH: ${{ vars.IONOS_REMOTE_PATH }}
+          PHP_BIN: ${{ vars.IONOS_PHP_CLI_PATH }}
+        run: |
+          ssh ${{ secrets.IONOS_SSH_USER }}@${{ secrets.IONOS_SSH_HOST }} bash -s <<EOF
+            set -e
+            MARKER='# amana_web_planning-scheduler'
+            LINE="* * * * * cd $APP_PATH && $PHP_BIN artisan schedule:run >> /dev/null 2>&1 \$MARKER"
+            CURRENT="\$(crontab -l 2>/dev/null || true)"
+            if printf '%s\n' "\$CURRENT" | grep -Fxq -- "\$LINE"; then
+              echo "==> Scheduler cron already up to date"
+            else
+              KEEP="\$(printf '%s\n' "\$CURRENT" | grep -vF -- "\$MARKER" || true)"
+              { [ -n "\$KEEP" ] && printf '%s\n' "\$KEEP"; printf '%s\n' "\$LINE"; } | crontab -
+              echo "==> Scheduler cron installed/updated"
+            fi
+            crontab -l | grep -F -- "\$MARKER"
+          EOF
+
       - name: Clear Cloudflare Cache
         run: |
           curl \
@@ -216,3 +247,13 @@ jobs:
             "${{ vars.CACHE_CLEAR_URL }}" \
             --output response.json \
             --write-out "HTTP %{http_code}\n"
+      - name: Show deployment URL
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          echo "Deployed preprod to: $APP_URL"
+          {
+            echo "### 🚀 Deployed to Preprod"
+            echo ""
+            echo "**URL:** $APP_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
