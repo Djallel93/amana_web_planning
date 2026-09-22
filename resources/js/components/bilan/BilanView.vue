@@ -135,11 +135,41 @@ async function loadBilan(): Promise<void> {
 watch(date, () => loadBilan());
 onMounted(() => loadBilan());
 
+// ── Validation avant enregistrement ─────────────────────────────────────────
+// Les deux groupes sont "tout ou rien" côté backend (voir
+// StoreBilanAmanaFoodRequest / StoreBilanPresenceRequest : les 2-3 champs
+// sont `required`) — un groupe partiellement rempli est rejeté en 422 et
+// RIEN n'est enregistré. Sans ce garde-fou, l'utilisateur ne le voyait pas
+// clairement (voir gestion d'erreur ci-dessous) : les champs saisis
+// paraissaient acceptés alors qu'ils n'avaient jamais été sauvegardés, ce
+// qui ne reflète pas la réalité (ex. une charge réelle non enregistrée).
+// "Rempli" = au moins un champ non-null ; dans ce cas les autres doivent
+// aussi l'être (0 est une valeur valide, distincte de null — voir l'en-tête
+// du fichier). Tous à null reste autorisé : c'est "pas de cours".
+function champsIncomplets(valeurs: Array<number | null>): boolean {
+    const nbRenseignes = valeurs.filter((v) => v !== null).length;
+    return nbRenseignes > 0 && nbRenseignes < valeurs.length;
+}
+
+// Extrait le premier message de validation d'une réponse 422 Laravel
+// ({ message, errors: { champ: [messages] } }), pour afficher quelque chose
+// de plus précis que le message générique quand `champsIncomplets` n'a pas
+// déjà intercepté le cas (ex. une autre règle de validation échoue).
+function premiereErreur(data: { message?: string; errors?: Record<string, string[]> }): string | undefined {
+    const premierChamp = data.errors ? Object.values(data.errors)[0] : undefined;
+    return premierChamp?.[0] ?? data.message;
+}
+
 // ── Enregistrement ────────────────────────────────────────────────────────
 // Deux fonctions indépendantes : chaque groupe a son propre bouton et
 // n'envoie que ses propres champs, pour que deux personnes puissent éditer
 // Amana food et Présences en parallèle sans s'écraser l'une l'autre.
 async function saveAmanaFood(): Promise<void> {
+    if (champsIncomplets([montantCarte.value, montantEspece.value, montantCharges.value])) {
+        toast.error('Merci de renseigner les trois montants (indiquez 0 s\'il n\'y a pas eu de charge ou de rentrée).');
+        return;
+    }
+
     savingFood.value = true;
     try {
         const res = await fetch(window.BilanConfig.routes.storeAmanaFood, {
@@ -157,13 +187,24 @@ async function saveAmanaFood(): Promise<void> {
             }),
         });
 
-        const data = await res.json() as { success: boolean; message: string; bilan?: BilanData };
+        const data = await res.json() as { success: boolean; message: string; errors?: Record<string, string[]>; bilan?: BilanData };
 
         if (data.success && data.bilan) {
             appliquerBilan(data.bilan);
-            toast.success(data.message);
+            // Les trois champs vides sont acceptés (ex. annuler une saisie
+            // faite sur la mauvaise date), mais ça équivaut à marquer "pas de
+            // cours" — un avertissement plutôt qu'un simple succès, pour ne
+            // pas confondre avec une vraie saisie à 0 (voir l'en-tête du fichier).
+            if (montantCarte.value === null && montantEspece.value === null && montantCharges.value === null) {
+                toast.warning('Amana food enregistré comme "pas de cours" (valeurs vides). Rappel : vide (pas de cours) est différent de 0 (un cours a eu lieu, sans rentrée).');
+            } else {
+                toast.success(data.message);
+            }
         } else {
-            toast.error(data.message || 'Erreur lors de l\'enregistrement.');
+            // Sur un 422 Laravel, `data.message` est le message générique de
+            // validation ("The given data was invalid.") — peu parlant. On
+            // préfère la première erreur de champ quand `errors` est présent.
+            toast.error(premiereErreur(data) || 'Erreur lors de l\'enregistrement.');
         }
     } catch {
         toast.error('Erreur réseau.');
@@ -173,6 +214,11 @@ async function saveAmanaFood(): Promise<void> {
 }
 
 async function savePresence(): Promise<void> {
+    if (champsIncomplets([nbPresents.value, nbEnLigne.value])) {
+        toast.error('Merci de renseigner les deux effectifs (indiquez 0 si personne n\'était présent ou en ligne).');
+        return;
+    }
+
     savingPresence.value = true;
     try {
         const res = await fetch(window.BilanConfig.routes.storePresence, {
@@ -189,13 +235,17 @@ async function savePresence(): Promise<void> {
             }),
         });
 
-        const data = await res.json() as { success: boolean; message: string; bilan?: BilanData };
+        const data = await res.json() as { success: boolean; message: string; errors?: Record<string, string[]>; bilan?: BilanData };
 
         if (data.success && data.bilan) {
             appliquerBilan(data.bilan);
-            toast.success(data.message);
+            if (nbPresents.value === null && nbEnLigne.value === null) {
+                toast.warning('Présences enregistrées comme "pas de cours" (valeurs vides). Rappel : vide (pas de cours) est différent de 0 (un cours a eu lieu, sans personne présente).');
+            } else {
+                toast.success(data.message);
+            }
         } else {
-            toast.error(data.message || 'Erreur lors de l\'enregistrement.');
+            toast.error(premiereErreur(data) || 'Erreur lors de l\'enregistrement.');
         }
     } catch {
         toast.error('Erreur réseau.');
