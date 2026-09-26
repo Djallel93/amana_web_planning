@@ -262,6 +262,11 @@ class GoogleCalendarPayloadMapper
      * le texte de référence (ref_taches.description_calendrier) et la
      * personne assignée, quand disponible (ligneAvecAssignation uniquement
      * — ligneSuppression ne porte pas ces champs).
+     *
+     * Aucune valeur de repli n'est ajoutée quand une ligne n'a ni
+     * description ni assignation (ex. annonce_cours/message_bot, qui n'ont
+     * jamais d'assignation) : l'événement Google Calendar est alors créé
+     * avec une description vide plutôt qu'un texte générique.
      */
     private function buildDescription(array $ligne): ?string
     {
@@ -271,8 +276,8 @@ class GoogleCalendarPayloadMapper
             $parts[] = $ligne['description'];
         }
 
-        if (array_key_exists('assigne', $ligne)) {
-            $parts[] = $ligne['assigne'] ? "Assigné(e) : {$ligne['assigne']}" : 'Non assigné(e)';
+        if (!empty($ligne['assigne'])) {
+            $parts[] = "Assigné(e) : {$ligne['assigne']}";
         }
 
         return $parts ? implode("\n\n", $parts) : null;

@@ -20,6 +20,36 @@
 --}}
 <div id="vue-horaire-settings"></div>
 
+{{--
+    ── Onglets ──────────────────────────────────────────────────────────────
+    Chaque onglet a désormais son propre <form> et son propre bouton
+    "Enregistrer" (voir plus bas) : SettingsControllerBase::update() n'écrit
+    que les clés présentes dans le `settings[]` soumis, donc soumettre un
+    onglet à la fois ne touche jamais les valeurs des autres. Bascule en
+    JS pur (pas de dépendance Vue ici, le contenu reste du Blade classique) —
+    voir le script en bas de page.
+--}}
+<div class="flex flex-wrap gap-1 mb-5 border-b border-surface-3" role="tablist">
+    <button type="button" data-tab-btn="calendriers" role="tab" aria-selected="true"
+            class="px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors cursor-pointer bg-transparent border-accent text-ink">
+        📆 Calendriers Google
+    </button>
+    <button type="button" data-tab-btn="decalages" role="tab" aria-selected="false"
+            class="px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors cursor-pointer bg-transparent border-transparent text-ink-muted hover:text-ink hover:border-ink-faint">
+        ⏱️ Décalages des tâches
+    </button>
+    <button type="button" data-tab-btn="general" role="tab" aria-selected="false"
+            class="px-4 py-2.5 text-[13px] font-semibold border-b-2 -mb-px transition-colors cursor-pointer bg-transparent border-transparent text-ink-muted hover:text-ink hover:border-ink-faint">
+        🔓 Général
+    </button>
+</div>
+
+{{-- ═══════════════════════════════════════
+    ONGLET 1 — Calendriers Google
+    (Registre des calendriers + Calendriers & Couleurs)
+════════════════════════════════════════ --}}
+<div data-tab-panel="calendriers">
+
 {{-- ═══════════════════════════════════════
     SECTION 2bis — Registre des calendriers Google Calendar
 ════════════════════════════════════════ --}}
@@ -147,9 +177,248 @@
     </div>
 </div>
 
-<form action="{{ route('settings.update') }}" method="POST" id="settingsForm">
-    @csrf
+    {{-- ═══════════════════════════════════════
+        SECTION 3 — Calendriers & Couleurs Google Calendar
+        (fusion des anciennes sections "Calendriers" et "Couleurs" — un
+        calendrier ET une couleur se choisissent désormais côte à côte,
+        par tâche/événement, dans la même carte. Formulaire propre à cet
+        onglet — voir la note en haut de page sur SettingsControllerBase.)
+    ════════════════════════════════════════ --}}
+    <form action="{{ route('settings.update') }}" method="POST">
+        @csrf
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
+        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+            <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
+            <span class="font-heading text-[14px] font-semibold text-ink">Calendriers &amp; Couleurs Google Calendar</span>
+        </div>
+        <div class="px-5 py-5">
+            <p class="text-[12.5px] text-ink-muted mb-5 leading-relaxed">
+                Pour chaque type d'événement : le calendrier Google Calendar dans lequel il sera créé (laissez vide pour ne rien synchroniser)
+                et la couleur utilisée lors de la synchronisation.
+            </p>
 
+            @php
+                // Couleur non éditable pour les absences (grise fixe — voir
+                // GoogleCalendarColors::ABSENCE) : pas de champ couleur pour
+                // cette ligne, uniquement le calendrier cible.
+                $calendarChips = [
+                    'entree'                => ['libelle' => 'Entrée',                'chip' => 'entree',                'couleur' => true],
+                    'mektaba'               => ['libelle' => 'Mektaba',               'chip' => 'mektaba',               'couleur' => true],
+                    'salle'                 => ['libelle' => 'Salle',                 'chip' => 'salle',                 'couleur' => true],
+                    'amana_food'            => ['libelle' => 'Amana Food',            'chip' => 'amana_food',            'couleur' => true],
+                    'cours'                 => ['libelle' => 'Cours',                 'chip' => 'cours',                 'couleur' => true],
+                    'rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',       'chip' => 'rappel_sandwich',       'couleur' => true],
+                    'assistance_amana_food' => ['libelle' => 'Assistance Amana Food', 'chip' => 'assistance_amana_food', 'couleur' => true],
+                    'annonce_cours'         => ['libelle' => 'Annonce Cours',         'chip' => 'annonce_cours',         'couleur' => true],
+                    'message_bot'           => ['libelle' => 'Message Bot',           'chip' => 'message_bot',           'couleur' => true],
+                    'annulation_cours'      => ['libelle' => 'Annulation Cours',      'chip' => 'annulation_cours',      'couleur' => true],
+                    'absence'               => ['libelle' => 'Absences',              'chip' => 'absence',               'couleur' => false],
+                ];
+            @endphp
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                @foreach($calendarChips as $code => $meta)
+                    @php
+                        $cleCalendar = "calendar_{$code}";
+                        $cleCouleur = "couleur_{$code}";
+                    @endphp
+                    @if(isset($calendriers[$cleCalendar]))
+                        <div class="flex flex-col gap-1.5 p-3 rounded-lg border border-surface-3 bg-surface-2/40">
+                            <label class="text-xs font-bold text-ink tracking-[0.2px]">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold chip-{{ $meta['chip'] }}">
+                                    {{ $meta['libelle'] }}
+                                </span>
+                            </label>
+                            <div class="grid grid-cols-1 {{ $meta['couleur'] ? 'sm:grid-cols-[1fr_auto]' : '' }} gap-3 items-start">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-[10.5px] font-semibold text-ink-muted uppercase tracking-wide">Calendrier</span>
+                                    {{--
+                                        Point de montage SearchableSelect.vue.
+                                        Le composant crée lui-même son <input type="hidden">
+                                        via le prop inputName — pas besoin d'en déclarer un ici.
+                                    --}}
+                                    <div
+                                        data-searchable-select
+                                        data-api-url="{{ route('calendriers.index') }}"
+                                        data-input-name="settings[{{ $cleCalendar }}]"
+                                        data-input-id="{{ $cleCalendar }}_vue"
+                                        data-current-value="{{ addslashes($calendriers[$cleCalendar]['valeur_raw']) }}"
+                                        data-placeholder="Sélectionner…"
+                                        style="margin-top:2px;"
+                                    ></div>
+                                </div>
+                                @if($meta['couleur'] && isset($couleurs[$cleCouleur]))
+                                    <div class="flex flex-col gap-1">
+                                        <span class="text-[10.5px] font-semibold text-ink-muted uppercase tracking-wide">Couleur</span>
+                                        @include('partials.color-select', [
+                                            'id' => $cleCouleur,
+                                            'name' => "settings[{$cleCouleur}]",
+                                            'selected' => $couleurs[$cleCouleur]['valeur_raw'],
+                                        ])
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+        {{-- Boutons --}}
+        <div class="flex flex-wrap gap-3 items-center">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-[13.5px] rounded-lg
+                        shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
+                        hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[48px]">
+                💾 Enregistrer
+            </button>
+            <a href="{{ route('planning.index') }}"
+                class="inline-flex items-center gap-2 px-6 py-3 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink font-semibold text-[13.5px] rounded-lg transition-colors no-underline min-h-[48px]">
+                Annuler
+            </a>
+        </div>
+    </form>
+</div>
+
+{{-- ═══════════════════════════════════════
+    ONGLET 2 — Décalages des tâches
+════════════════════════════════════════ --}}
+<div data-tab-panel="decalages" hidden>
+    <form action="{{ route('settings.update') }}" method="POST">
+        @csrf
+    {{-- ═══════════════════════════════════════
+        SECTION 4 — Décalages des tâches
+    ════════════════════════════════════════ --}}
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
+        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+            <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">⏱️</div>
+            <span class="font-heading text-[14px] font-semibold text-ink">Décalages des tâches</span>
+        </div>
+
+        <div class="flex items-start gap-2 mx-5 mt-4 mb-0 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
+            <span class="flex-shrink-0 mt-px">ℹ️</span>
+            <span>
+                Les décalages sont en <strong>minutes par rapport à l'heure du cours</strong>.
+                Une valeur négative signifie avant le cours (ex : −30 = 30 min avant), positive = après.
+                Le rappel sandwich a un horaire fixe (08:00–08:15) indépendant.
+            </span>
+        </div>
+
+        {{-- Table décalages — desktop (≥ sm) --}}
+        <div class="hidden sm:block overflow-x-auto mt-4">
+            <table class="w-full border-collapse text-[13.5px]">
+                <thead>
+                    <tr>
+                        <th class="text-left px-5 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 font-body whitespace-nowrap">
+                            Tâche / Événement
+                        </th>
+                        <th class="text-center px-4 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 font-body w-36 whitespace-nowrap">
+                            Début (min)
+                        </th>
+                        <th class="text-center px-4 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 font-body w-36 whitespace-nowrap">
+                            Fin (min)
+                        </th>
+                        <th class="text-left px-5 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 font-body w-44">
+                            Horaire calculé
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($decalagesGroupes as $codeTache => $groupe)
+                        @include('settings.partials._offset-row', compact('codeTache', 'groupe', 'horaires'))
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Cartes décalages — mobile (< sm) --}}
+        <div class="sm:hidden divide-y divide-surface-3 mt-4">
+            @foreach($decalagesGroupes as $codeTache => $groupe)
+                @php
+                    $isSandwich = $codeTache === 'rappel_sandwich';
+                    $heureCours = $horaires['heure_cours']['valeur_raw'] ?? '20:00';
+                    [$hh, $mm] = explode(':', $heureCours);
+                    $baseMin = (int)$hh * 60 + (int)$mm;
+                    $dOff = (int)($groupe['debut']['valeur_raw'] ?? 0);
+                    $fOff = (int)($groupe['fin']['valeur_raw'] ?? 60);
+                    $calcDebut = sprintf('%02d:%02d', intdiv(((($baseMin + $dOff) % 1440) + 1440) % 1440, 60), ((($baseMin + $dOff) % 1440) + 1440) % 1440 % 60);
+                    $calcFin   = sprintf('%02d:%02d', intdiv(((($baseMin + $fOff) % 1440) + 1440) % 1440, 60), ((($baseMin + $fOff) % 1440) + 1440) % 1440 % 60);
+                    $description = $groupe['debut']['description'] ?? $groupe['fin']['description'] ?? null;
+                @endphp
+                <div class="px-5 py-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $codeTache }}">
+                            {{ $groupe['libelle'] }}
+                        </span>
+                        <span class="text-[12.5px] font-semibold {{ $isSandwich ? 'text-ink-muted' : 'text-accent' }}">
+                            {{ $isSandwich ? '08:00 → 08:15' : "$calcDebut → $calcFin" }}
+                        </span>
+                    </div>
+                    @if($description)
+                        <p class="text-[11.5px] text-ink-muted leading-snug mb-3">{{ $description }}</p>
+                    @endif
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10.5px] font-bold text-ink-muted uppercase tracking-wide">Début (min)</label>
+                            @if($groupe['debut'])
+                                <input type="number"
+                                    name="settings[{{ $groupe['debut']['cle'] }}]"
+                                    value="{{ $groupe['debut']['valeur_raw'] }}"
+                                    step="1" min="-999" max="999"
+                                    {{ $isSandwich ? 'disabled' : '' }}
+                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
+                                            focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                            disabled:opacity-50 disabled:cursor-not-allowed">
+                                @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
+                            @else
+                                <span class="text-ink-faint text-sm">—</span>
+                            @endif
+                        </div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-[10.5px] font-bold text-ink-muted uppercase tracking-wide">Fin (min)</label>
+                            @if($groupe['fin'])
+                                <input type="number"
+                                    name="settings[{{ $groupe['fin']['cle'] }}]"
+                                    value="{{ $groupe['fin']['valeur_raw'] }}"
+                                    step="1" min="-999" max="999"
+                                    {{ $isSandwich ? 'disabled' : '' }}
+                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
+                                            focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
+                                            disabled:opacity-50 disabled:cursor-not-allowed">
+                                @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
+                            @else
+                                <span class="text-ink-faint text-sm">—</span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+        {{-- Boutons --}}
+        <div class="flex flex-wrap gap-3 items-center">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-[13.5px] rounded-lg
+                        shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
+                        hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[48px]">
+                💾 Enregistrer
+            </button>
+            <a href="{{ route('planning.index') }}"
+                class="inline-flex items-center gap-2 px-6 py-3 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink font-semibold text-[13.5px] rounded-lg transition-colors no-underline min-h-[48px]">
+                Annuler
+            </a>
+        </div>
+    </form>
+</div>
+
+{{-- ═══════════════════════════════════════
+    ONGLET 3 — Général (Inscription publique + Horaires & Lieu)
+════════════════════════════════════════ --}}
+<div data-tab-panel="general" hidden>
+    <form action="{{ route('settings.update') }}" method="POST">
+        @csrf
     {{-- ═══════════════════════════════════════
         SECTION 1 — Inscription publique
     ════════════════════════════════════════ --}}
@@ -285,215 +554,50 @@
         </div>
     </div>
 
-
-    {{-- ═══════════════════════════════════════
-        SECTION 3 — Calendriers & Couleurs Google Calendar
-        (fusion des anciennes sections "Calendriers" et "Couleurs" — un
-        calendrier ET une couleur se choisissent désormais côte à côte,
-        par tâche/événement, dans la même carte.)
-    ════════════════════════════════════════ --}}
-    <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
-        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
-            <span class="font-heading text-[14px] font-semibold text-ink">Calendriers &amp; Couleurs Google Calendar</span>
+        {{-- Boutons --}}
+        <div class="flex flex-wrap gap-3 items-center">
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-[13.5px] rounded-lg
+                        shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
+                        hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[48px]">
+                💾 Enregistrer
+            </button>
+            <a href="{{ route('planning.index') }}"
+                class="inline-flex items-center gap-2 px-6 py-3 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink font-semibold text-[13.5px] rounded-lg transition-colors no-underline min-h-[48px]">
+                Annuler
+            </a>
         </div>
-        <div class="px-5 py-5">
-            <p class="text-[12.5px] text-ink-muted mb-5 leading-relaxed">
-                Pour chaque type d'événement : le calendrier Google Calendar dans lequel il sera créé (laissez vide pour ne rien synchroniser)
-                et la couleur utilisée lors de la synchronisation.
-            </p>
+    </form>
+</div>
 
-            @php
-                // Couleur non éditable pour les absences (grise fixe — voir
-                // GoogleCalendarColors::ABSENCE) : pas de champ couleur pour
-                // cette ligne, uniquement le calendrier cible.
-                $calendarChips = [
-                    'entree'                => ['libelle' => 'Entrée',                'chip' => 'entree',                'couleur' => true],
-                    'mektaba'               => ['libelle' => 'Mektaba',               'chip' => 'mektaba',               'couleur' => true],
-                    'salle'                 => ['libelle' => 'Salle',                 'chip' => 'salle',                 'couleur' => true],
-                    'amana_food'            => ['libelle' => 'Amana Food',            'chip' => 'amana_food',            'couleur' => true],
-                    'cours'                 => ['libelle' => 'Cours',                 'chip' => 'cours',                 'couleur' => true],
-                    'rappel_sandwich'       => ['libelle' => 'Rappel Sandwich',       'chip' => 'rappel_sandwich',       'couleur' => true],
-                    'assistance_amana_food' => ['libelle' => 'Assistance Amana Food', 'chip' => 'assistance_amana_food', 'couleur' => true],
-                    'annonce_cours'         => ['libelle' => 'Annonce Cours',         'chip' => 'annonce_cours',         'couleur' => true],
-                    'message_bot'           => ['libelle' => 'Message Bot',           'chip' => 'message_bot',           'couleur' => true],
-                    'annulation_cours'      => ['libelle' => 'Annulation Cours',      'chip' => 'annulation_cours',      'couleur' => true],
-                    'absence'               => ['libelle' => 'Absences',              'chip' => 'absence',               'couleur' => false],
-                ];
-            @endphp
+@push('scripts')
+<script>
+    // Bascule d'onglets — trois formulaires indépendants (voir note
+    // plus haut), un seul visible à la fois. Pas de framework ici :
+    // la page reste du Blade classique, comme le reste de settings/index.
+    (function () {
+        var TAB_ACTIVE = ['border-accent', 'text-ink'];
+        var TAB_INACTIVE = ['border-transparent', 'text-ink-muted', 'hover:text-ink', 'hover:border-ink-faint'];
+        var buttons = document.querySelectorAll('[data-tab-btn]');
+        var panels = document.querySelectorAll('[data-tab-panel]');
 
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                @foreach($calendarChips as $code => $meta)
-                    @php
-                        $cleCalendar = "calendar_{$code}";
-                        $cleCouleur = "couleur_{$code}";
-                    @endphp
-                    @if(isset($calendriers[$cleCalendar]))
-                        <div class="flex flex-col gap-1.5 p-3 rounded-lg border border-surface-3 bg-surface-2/40">
-                            <label class="text-xs font-bold text-ink tracking-[0.2px]">
-                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold chip-{{ $meta['chip'] }}">
-                                    {{ $meta['libelle'] }}
-                                </span>
-                            </label>
-                            <div class="grid grid-cols-1 {{ $meta['couleur'] ? 'sm:grid-cols-[1fr_auto]' : '' }} gap-3 items-start">
-                                <div class="flex flex-col gap-1">
-                                    <span class="text-[10.5px] font-semibold text-ink-muted uppercase tracking-wide">Calendrier</span>
-                                    {{--
-                                        Point de montage SearchableSelect.vue.
-                                        Le composant crée lui-même son <input type="hidden">
-                                        via le prop inputName — pas besoin d'en déclarer un ici.
-                                    --}}
-                                    <div
-                                        data-searchable-select
-                                        data-api-url="{{ route('calendriers.index') }}"
-                                        data-input-name="settings[{{ $cleCalendar }}]"
-                                        data-input-id="{{ $cleCalendar }}_vue"
-                                        data-current-value="{{ addslashes($calendriers[$cleCalendar]['valeur_raw']) }}"
-                                        data-placeholder="Sélectionner…"
-                                        style="margin-top:2px;"
-                                    ></div>
-                                </div>
-                                @if($meta['couleur'] && isset($couleurs[$cleCouleur]))
-                                    <div class="flex flex-col gap-1">
-                                        <span class="text-[10.5px] font-semibold text-ink-muted uppercase tracking-wide">Couleur</span>
-                                        @include('partials.color-select', [
-                                            'id' => $cleCouleur,
-                                            'name' => "settings[{$cleCouleur}]",
-                                            'selected' => $couleurs[$cleCouleur]['valeur_raw'],
-                                        ])
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    @endif
-                @endforeach
-            </div>
-        </div>
-    </div>
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var target = btn.dataset.tabBtn;
 
-    {{-- ═══════════════════════════════════════
-        SECTION 4 — Décalages des tâches
-    ════════════════════════════════════════ --}}
-    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
-        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">⏱️</div>
-            <span class="font-heading text-[14px] font-semibold text-ink">Décalages des tâches</span>
-        </div>
+                buttons.forEach(function (b) {
+                    var active = b === btn;
+                    b.classList.remove.apply(b.classList, TAB_ACTIVE.concat(TAB_INACTIVE));
+                    b.classList.add.apply(b.classList, active ? TAB_ACTIVE : TAB_INACTIVE);
+                    b.setAttribute('aria-selected', active ? 'true' : 'false');
+                });
 
-        <div class="flex items-start gap-2 mx-5 mt-4 mb-0 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
-            <span class="flex-shrink-0 mt-px">ℹ️</span>
-            <span>
-                Les décalages sont en <strong>minutes par rapport à l'heure du cours</strong>.
-                Une valeur négative signifie avant le cours (ex : −30 = 30 min avant), positive = après.
-                Le rappel sandwich a un horaire fixe (08:00–08:15) indépendant.
-            </span>
-        </div>
-
-        {{-- Table décalages — desktop (≥ sm) --}}
-        <div class="hidden sm:block overflow-x-auto mt-4">
-            <table class="w-full border-collapse text-[13.5px]">
-                <thead>
-                    <tr>
-                        <th class="text-left px-5 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 font-body whitespace-nowrap">
-                            Tâche / Événement
-                        </th>
-                        <th class="text-center px-4 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 font-body w-36 whitespace-nowrap">
-                            Début (min)
-                        </th>
-                        <th class="text-center px-4 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 font-body w-36 whitespace-nowrap">
-                            Fin (min)
-                        </th>
-                        <th class="text-left px-5 py-2.5 text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] bg-surface-2 border-b border-surface-3 font-body w-44">
-                            Horaire calculé
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($decalagesGroupes as $codeTache => $groupe)
-                        @include('settings.partials._offset-row', compact('codeTache', 'groupe', 'horaires'))
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-        {{-- Cartes décalages — mobile (< sm) --}}
-        <div class="sm:hidden divide-y divide-surface-3 mt-4">
-            @foreach($decalagesGroupes as $codeTache => $groupe)
-                @php
-                    $isSandwich = $codeTache === 'rappel_sandwich';
-                    $heureCours = $horaires['heure_cours']['valeur_raw'] ?? '20:00';
-                    [$hh, $mm] = explode(':', $heureCours);
-                    $baseMin = (int)$hh * 60 + (int)$mm;
-                    $dOff = (int)($groupe['debut']['valeur_raw'] ?? 0);
-                    $fOff = (int)($groupe['fin']['valeur_raw'] ?? 60);
-                    $calcDebut = sprintf('%02d:%02d', intdiv(((($baseMin + $dOff) % 1440) + 1440) % 1440, 60), ((($baseMin + $dOff) % 1440) + 1440) % 1440 % 60);
-                    $calcFin   = sprintf('%02d:%02d', intdiv(((($baseMin + $fOff) % 1440) + 1440) % 1440, 60), ((($baseMin + $fOff) % 1440) + 1440) % 1440 % 60);
-                    $description = $groupe['debut']['description'] ?? $groupe['fin']['description'] ?? null;
-                @endphp
-                <div class="px-5 py-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold chip-{{ $codeTache }}">
-                            {{ $groupe['libelle'] }}
-                        </span>
-                        <span class="text-[12.5px] font-semibold {{ $isSandwich ? 'text-ink-muted' : 'text-accent' }}">
-                            {{ $isSandwich ? '08:00 → 08:15' : "$calcDebut → $calcFin" }}
-                        </span>
-                    </div>
-                    @if($description)
-                        <p class="text-[11.5px] text-ink-muted leading-snug mb-3">{{ $description }}</p>
-                    @endif
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-[10.5px] font-bold text-ink-muted uppercase tracking-wide">Début (min)</label>
-                            @if($groupe['debut'])
-                                <input type="number"
-                                    name="settings[{{ $groupe['debut']['cle'] }}]"
-                                    value="{{ $groupe['debut']['valeur_raw'] }}"
-                                    step="1" min="-999" max="999"
-                                    {{ $isSandwich ? 'disabled' : '' }}
-                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
-                                            focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
-                                            disabled:opacity-50 disabled:cursor-not-allowed">
-                                @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
-                            @else
-                                <span class="text-ink-faint text-sm">—</span>
-                            @endif
-                        </div>
-                        <div class="flex flex-col gap-1.5">
-                            <label class="text-[10.5px] font-bold text-ink-muted uppercase tracking-wide">Fin (min)</label>
-                            @if($groupe['fin'])
-                                <input type="number"
-                                    name="settings[{{ $groupe['fin']['cle'] }}]"
-                                    value="{{ $groupe['fin']['valeur_raw'] }}"
-                                    step="1" min="-999" max="999"
-                                    {{ $isSandwich ? 'disabled' : '' }}
-                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
-                                            focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
-                                            disabled:opacity-50 disabled:cursor-not-allowed">
-                                @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
-                            @else
-                                <span class="text-ink-faint text-sm">—</span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    {{-- Boutons --}}
-    <div class="flex flex-wrap gap-3 items-center">
-        <button type="submit"
-                class="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-dark text-white font-bold text-[13.5px] rounded-lg
-                    shadow-[0_3px_14px_rgba(3,105,161,0.35)] hover:shadow-[0_6px_20px_rgba(3,105,161,0.45)]
-                    hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[48px]">
-            💾 Enregistrer les paramètres
-        </button>
-        <a href="{{ route('planning.index') }}"
-            class="inline-flex items-center gap-2 px-6 py-3 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink font-semibold text-[13.5px] rounded-lg transition-colors no-underline min-h-[48px]">
-            Annuler
-        </a>
-    </div>
-
-</form>
+                panels.forEach(function (p) {
+                    p.hidden = p.dataset.tabPanel !== target;
+                });
+            });
+        });
+    })();
+</script>
+@endpush
 @endsection

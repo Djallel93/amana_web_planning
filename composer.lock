@@ -951,16 +951,16 @@
         },
         {
             "name": "google/apiclient",
-            "version": "v2.20.0",
+            "version": "v2.20.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/google-api-php-client.git",
-                "reference": "3838e2085a20c4a69d9b532a1ab14ce8a161dfc7"
+                "reference": "31b577e7012c4e68d5289d63aaf7e6d471ec1ff1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/google-api-php-client/zipball/3838e2085a20c4a69d9b532a1ab14ce8a161dfc7",
-                "reference": "3838e2085a20c4a69d9b532a1ab14ce8a161dfc7",
+                "url": "https://api.github.com/repos/googleapis/google-api-php-client/zipball/31b577e7012c4e68d5289d63aaf7e6d471ec1ff1",
+                "reference": "31b577e7012c4e68d5289d63aaf7e6d471ec1ff1",
                 "shasum": ""
             },
             "require": {
@@ -1016,9 +1016,9 @@
             ],
             "support": {
                 "issues": "https://github.com/googleapis/google-api-php-client/issues",
-                "source": "https://github.com/googleapis/google-api-php-client/tree/v2.20.0"
+                "source": "https://github.com/googleapis/google-api-php-client/tree/v2.20.1"
             },
-            "time": "2026-09-21T18:26:32+00:00"
+            "time": "2026-09-25T18:54:19+00:00"
         },
         {
             "name": "google/apiclient-services",
@@ -1616,16 +1616,16 @@
         },
         {
             "name": "inertiajs/inertia-laravel",
-            "version": "v3.3.4",
+            "version": "v3.4.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/inertiajs/inertia-laravel.git",
-                "reference": "15fb5a7b2f984780ff968d9da3787aef6138326d"
+                "reference": "faf52ea98a33952731716451f98f6b7ad319fafc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/inertiajs/inertia-laravel/zipball/15fb5a7b2f984780ff968d9da3787aef6138326d",
-                "reference": "15fb5a7b2f984780ff968d9da3787aef6138326d",
+                "url": "https://api.github.com/repos/inertiajs/inertia-laravel/zipball/faf52ea98a33952731716451f98f6b7ad319fafc",
+                "reference": "faf52ea98a33952731716451f98f6b7ad319fafc",
                 "shasum": ""
             },
             "require": {
@@ -1682,9 +1682,9 @@
             ],
             "support": {
                 "issues": "https://github.com/inertiajs/inertia-laravel/issues",
-                "source": "https://github.com/inertiajs/inertia-laravel/tree/v3.3.4"
+                "source": "https://github.com/inertiajs/inertia-laravel/tree/v3.4.0"
             },
-            "time": "2026-09-11T13:57:53+00:00"
+            "time": "2026-09-25T09:33:29+00:00"
         },
         {
             "name": "laravel/framework",
@@ -7273,11 +7273,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.2.14",
+            "version": "2.2.16",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/9c672e7a8e791dfc3d30e55f683e73fc0b63a3ac",
-                "reference": "9c672e7a8e791dfc3d30e55f683e73fc0b63a3ac",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/46a6d9060e5a7763adfcc21ebcb8b504ebdbcb92",
+                "reference": "46a6d9060e5a7763adfcc21ebcb8b504ebdbcb92",
                 "shasum": ""
             },
             "require": {
@@ -7333,7 +7333,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-09-12T21:39:33+00:00"
+            "time": "2026-09-25T09:31:51+00:00"
         },
         {
             "name": "phpunit/php-code-coverage",

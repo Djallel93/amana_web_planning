@@ -30,6 +30,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useToast } from '@amana/shared-ui';
 import { useConfirm } from '@amana/shared-ui';
+import TallyCounterModal from './TallyCounterModal.vue';
 
 // ── Types ─────────────────────────────────────────────────────────────────
 interface BilanData {
@@ -91,6 +92,24 @@ const savingFood     = ref(false);
 const savingPresence = ref(false);
 const resettingFood     = ref(false);
 const resettingPresence = ref(false);
+
+// ── Compteur tally (Présences) ───────────────────────────────────────────
+// Un seul modal réutilisé pour les deux champs — `tallyChamp` indique lequel
+// est en cours d'édition ('presents' | 'enLigne' | null = fermé).
+const tallyChamp = ref<'presents' | 'enLigne' | null>(null);
+
+function ouvrirTally(champ: 'presents' | 'enLigne'): void {
+    tallyChamp.value = champ;
+}
+
+function fermerTally(): void {
+    tallyChamp.value = null;
+}
+
+function appliquerTally(valeur: number): void {
+    if (tallyChamp.value === 'presents') nbPresents.value = valeur;
+    else if (tallyChamp.value === 'enLigne') nbEnLigne.value = valeur;
+}
 
 // ── CSRF ──────────────────────────────────────────────────────────────────
 function getCsrf(): string {
@@ -442,21 +461,41 @@ async function resetPresence(): Promise<void> {
                 <div class="px-5 py-5 flex flex-col gap-4">
                     <div class="flex flex-col gap-1.5">
                         <label for="nb_presents" class="text-xs font-bold text-ink tracking-[0.2px]">🧍 Présents</label>
-                        <input
-                            id="nb_presents" type="number" min="0" step="1" v-model.number="nbPresents"
-                            placeholder="Pas de cours"
-                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                   focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
-                        >
+                        <div class="relative">
+                            <input
+                                id="nb_presents" type="number" min="0" step="1" v-model.number="nbPresents"
+                                placeholder="Pas de cours"
+                                class="w-full pl-3.5 pr-11 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                       focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            >
+                            <button
+                                type="button"
+                                class="btn-touch absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-md text-ink-muted hover:bg-surface-3 hover:text-ink transition-colors bg-transparent border-0 cursor-pointer"
+                                aria-label="Ouvrir le compteur pour Présents"
+                                @click="ouvrirTally('presents')"
+                            >
+                                🔢
+                            </button>
+                        </div>
                     </div>
                     <div class="flex flex-col gap-1.5">
                         <label for="nb_en_ligne" class="text-xs font-bold text-ink tracking-[0.2px]">💻 En ligne</label>
-                        <input
-                            id="nb_en_ligne" type="number" min="0" step="1" v-model.number="nbEnLigne"
-                            placeholder="Pas de cours"
-                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                                   focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
-                        >
+                        <div class="relative">
+                            <input
+                                id="nb_en_ligne" type="number" min="0" step="1" v-model.number="nbEnLigne"
+                                placeholder="Pas de cours"
+                                class="w-full pl-3.5 pr-11 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                       focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            >
+                            <button
+                                type="button"
+                                class="btn-touch absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-md text-ink-muted hover:bg-surface-3 hover:text-ink transition-colors bg-transparent border-0 cursor-pointer"
+                                aria-label="Ouvrir le compteur pour En ligne"
+                                @click="ouvrirTally('enLigne')"
+                            >
+                                🔢
+                            </button>
+                        </div>
                     </div>
 
                     <span v-if="nbPresents === null && nbEnLigne === null" class="text-[11.5px] text-ink-muted italic">
@@ -496,5 +535,13 @@ async function resetPresence(): Promise<void> {
                 </div>
             </div>
         </div>
+
+        <TallyCounterModal
+            :open="tallyChamp !== null"
+            :model-value="tallyChamp === 'presents' ? nbPresents : nbEnLigne"
+            :label="tallyChamp === 'presents' ? '🧍 Présents' : '💻 En ligne'"
+            @update:model-value="appliquerTally"
+            @close="fermerTally"
+        />
     </div>
 </template>
