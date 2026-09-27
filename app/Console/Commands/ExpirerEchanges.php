@@ -12,7 +12,7 @@ use Illuminate\Console\Command;
  * Commande planifiée : expire les échanges en attente dont la date est passée.
  *
  * À enregistrer dans routes/console.php ou bootstrap/app.php :
- *   Schedule::command('amana:expire-echanges')->dailyAt('01:00');
+ *   Schedule::exec("{$phpPourCron} {$artisan} amana:expire-echanges")->dailyAt('01:00');
  */
 class ExpirerEchanges extends Command
 {

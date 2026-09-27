@@ -13,6 +13,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Personne;
 use Amana\Shared\Models\Setting;
+use Amana\Shared\Support\PhoneFr;
 use App\Models\Restriction;
 use App\Models\Tache;
 use App\Notifications\NouveauMembreNotification;
@@ -72,7 +73,10 @@ class CandidatureController extends Controller
             'nom' => ['required', 'string', 'max:100'],
             'prenom' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', 'unique:commun.ref_personnes,email'],
-            'telephone' => ['nullable', 'string', 'max:20'],
+            // Même format que le CRUD admin et « Mon profil » — voir
+            // Amana\Shared\Support\PhoneFr. Avant ce patch, ce formulaire
+            // public n'imposait aucun format (ex. « 752459704 » était accepté).
+            'telephone' => ['nullable', 'string', 'max:20', 'regex:' . PhoneFr::REGEX],
             'restrictions' => ['nullable', 'array'],
         ], [
             'nom.required' => 'Le nom est obligatoire.',
@@ -80,6 +84,7 @@ class CandidatureController extends Controller
             'email.required' => 'L\'adresse email est obligatoire.',
             'email.unique' => 'Cette adresse email est déjà utilisée.',
             'email.email' => 'Format d\'email invalide.',
+            'telephone.regex' => PhoneFr::MESSAGE,
         ]);
 
         // ── Créer la personne ──────────────────────────────────────────────

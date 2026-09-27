@@ -246,6 +246,8 @@ crontab -e
 - The reminder tasks are pinned to `Europe/Paris` in code; the app itself stays
   on `APP_TIMEZONE=UTC`. Details: README, "Tâches planifiées".
 
+**Separate pitfall already hit in production: `schedule:run` runs fine, but each scheduled command then fails with exit code 255.** The cron line above uses the right binary for `schedule:run` itself, but Laravel re-launches each scheduled command in its own subprocess, normally auto-detecting the PHP binary via Symfony's `PhpExecutableFinder` — which never looks for an executable literally named `php8.4` on PATH (only `php`, `php7`, `php5`, `php-cli`, or the `PHP_BINARY` env var), and silently falls back to `/usr/bin/php`, often an incompatible version on IONOS shared hosting. `routes/console.php` now builds each command explicitly (`Schedule::exec(...)`) using the `SCHEDULE_PHP_BINARY` env var instead of relying on that auto-detection. In production this is populated automatically from the same `IONOS_PHP_CLI_PATH` variable used for the cron line above (see `.github/deploy/.env.production.template` and the `deploy.yaml` workflow) — no extra manual step beyond what's already described here.
+
 ---
 
 ## 8. Quick reference — files involved

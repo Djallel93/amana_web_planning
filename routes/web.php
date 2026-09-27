@@ -263,6 +263,8 @@ Route::middleware('auth')->group(function () {
             ->name('reset-link')
             ->where('id', '[0-9]+')
             ->middleware('throttle:5,1');
+        Route::post('/{id}/desactiver', [PersonnesController::class, 'desactiver'])->name('desactiver')->where('id', '[0-9]+');
+        Route::post('/{id}/reactiver', [PersonnesController::class, 'reactiver'])->name('reactiver')->where('id', '[0-9]+');
         Route::delete('/{id}', [PersonnesController::class, 'destroy'])->name('destroy')->where('id', '[0-9]+');
     });
 

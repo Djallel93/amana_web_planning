@@ -146,9 +146,78 @@ class PersonnesController extends Controller
         };
     }
 
+    /**
+     * Désactive une personne validée : bloque sa connexion (voir
+     * Amana\Shared\Http\Controllers\AuthController::login(), qui refuse déjà
+     * tout statut 'Suspendu') SANS toucher à son historique (créneaux,
+     * absences, restrictions, rappels envoyés) ni à ses rôles planning —
+     * ces derniers sont volontairement conservés en base pour être restaurés
+     * tels quels par reactiver(), sans repasser par un choix de rôle.
+     */
+    public function desactiver(int $id): RedirectResponse
+    {
+        $personne = Personne::findOrFail($id);
+
+        if ($personne->statut !== 'Validé') {
+            return redirect()->route('personnes.index')
+                ->with('error', 'Seule une personne au statut « Validé » peut être désactivée.');
+        }
+
+        $avant = $personne->toArray();
+        $personne->statut = 'Suspendu';
+        $personne->save();
+
+        audit('update', 'personnes', $personne->id, $avant, $personne->fresh()->toArray());
+
+        return redirect()->route('personnes.index')
+            ->with('success', "Personne « {$personne->prenom} {$personne->nom} » désactivée. Elle ne peut plus se connecter tant qu'elle n'est pas réactivée.");
+    }
+
+    /**
+     * Réactive une personne suspendue : remet son statut à 'Validé' sans
+     * modifier date_debut_planning ni ses rôles (jamais touchés par
+     * desactiver() ci-dessus), donc sa place dans la rotation planning est
+     * restaurée à l'identique.
+     */
+    public function reactiver(int $id): RedirectResponse
+    {
+        $personne = Personne::findOrFail($id);
+
+        if ($personne->statut !== 'Suspendu') {
+            return redirect()->route('personnes.index')
+                ->with('error', 'Seule une personne suspendue peut être réactivée.');
+        }
+
+        $avant = $personne->toArray();
+        $personne->statut = 'Validé';
+        $personne->save();
+
+        audit('update', 'personnes', $personne->id, $avant, $personne->fresh()->toArray());
+
+        return redirect()->route('personnes.index')
+            ->with('success', "Personne « {$personne->prenom} {$personne->nom} » réactivée.");
+    }
+
+    /**
+     * Suppression définitive — volontairement limitée aux statuts qui n'ont
+     * jamais pu accumuler d'historique de planning (candidature jamais
+     * validée, ou déjà archivée) : plan_creneaux_taches/plan_absences/
+     * plan_restrictions/plan_rappels_envoyes référencent id_personne SANS
+     * clé étrangère réelle (ref_personnes vit dans la connexion 'commun',
+     * une FK inter-bases n'est pas possible), donc supprimer une personne
+     * 'Validé' ou 'Suspendu' ayant déjà tourné dans le planning laisserait
+     * des id_personne orphelins dans ces tables. Utiliser desactiver() pour
+     * ces statuts — voir aussi PersonnesControllerTest.
+     */
     public function destroy(int $id): RedirectResponse
     {
         $personne = Personne::findOrFail($id);
+
+        if (!in_array($personne->statut, ['En attente', 'Archivé'], true)) {
+            return redirect()->route('personnes.index')
+                ->with('error', "Impossible de supprimer une personne au statut « {$personne->statut} » : désactivez-la plutôt, pour conserver son historique de planning.");
+        }
+
         $avant = $personne->toArray();
         $nom = "{$personne->prenom} {$personne->nom}";
 

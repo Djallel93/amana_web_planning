@@ -13,7 +13,7 @@ use Illuminate\Console\Command;
  * toutes les tâches assignées du jour concerné.
  *
  * À enregistrer dans routes/console.php :
- *   Schedule::command('amana:rappels-quotidiens')->dailyAt('08:00');
+ *   Schedule::exec("{$phpPourCron} {$artisan} amana:rappels-quotidiens")->dailyAt('08:00');
  */
 class RappelsQuotidiens extends Command
 {

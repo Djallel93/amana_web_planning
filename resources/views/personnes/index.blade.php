@@ -124,13 +124,31 @@
                                                 <a href="{{ route('personnes.edit', $personne->id) }}"
                                                     class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
                                                     title="Modifier">✏️</a>
-                                                <form action="{{ route('personnes.destroy', $personne->id) }}" method="POST"
-                                                    data-confirm="Supprimer {{ $personne->prenom }} {{ $personne->nom }} ?" data-confirm-danger>
-                                                    @csrf @method('DELETE')
-                                                    <button type="submit"
-                                                        class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
-                                                        title="Supprimer">🗑️</button>
-                                                </form>
+                                                @if($personne->statut === 'Validé')
+                                                    <form action="{{ route('personnes.desactiver', $personne->id) }}" method="POST"
+                                                        data-confirm="Désactiver {{ $personne->prenom }} {{ $personne->nom }} ? Elle ne pourra plus se connecter tant qu'elle n'est pas réactivée." data-confirm-danger>
+                                                        @csrf
+                                                        <button type="submit"
+                                                            class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-amber-200 bg-amber-50 hover:bg-amber-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+                                                            title="Désactiver">🔒</button>
+                                                    </form>
+                                                @elseif($personne->statut === 'Suspendu')
+                                                    <form action="{{ route('personnes.reactiver', $personne->id) }}" method="POST"
+                                                        data-confirm="Réactiver {{ $personne->prenom }} {{ $personne->nom }} ?">
+                                                        @csrf
+                                                        <button type="submit"
+                                                            class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+                                                            title="Réactiver">🔓</button>
+                                                    </form>
+                                                @else
+                                                    <form action="{{ route('personnes.destroy', $personne->id) }}" method="POST"
+                                                        data-confirm="Supprimer {{ $personne->prenom }} {{ $personne->nom }} ?" data-confirm-danger>
+                                                        @csrf @method('DELETE')
+                                                        <button type="submit"
+                                                            class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+                                                            title="Supprimer">🗑️</button>
+                                                    </form>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -184,13 +202,31 @@
                                     <a href="{{ route('personnes.edit', $personne->id) }}"
                                         class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
                                         title="Modifier">✏️</a>
-                                    <form action="{{ route('personnes.destroy', $personne->id) }}" method="POST"
-                                        data-confirm="Supprimer {{ $personne->prenom }} {{ $personne->nom }} ?" data-confirm-danger>
-                                        @csrf @method('DELETE')
-                                        <button type="submit"
-                                            class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
-                                            title="Supprimer">🗑️</button>
-                                    </form>
+                                    @if($personne->statut === 'Validé')
+                                        <form action="{{ route('personnes.desactiver', $personne->id) }}" method="POST"
+                                            data-confirm="Désactiver {{ $personne->prenom }} {{ $personne->nom }} ? Elle ne pourra plus se connecter tant qu'elle n'est pas réactivée." data-confirm-danger>
+                                            @csrf
+                                            <button type="submit"
+                                                class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-amber-200 bg-amber-50 hover:bg-amber-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+                                                title="Désactiver">🔒</button>
+                                        </form>
+                                    @elseif($personne->statut === 'Suspendu')
+                                        <form action="{{ route('personnes.reactiver', $personne->id) }}" method="POST"
+                                            data-confirm="Réactiver {{ $personne->prenom }} {{ $personne->nom }} ?">
+                                            @csrf
+                                            <button type="submit"
+                                                class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+                                                title="Réactiver">🔓</button>
+                                        </form>
+                                    @else
+                                        <form action="{{ route('personnes.destroy', $personne->id) }}" method="POST"
+                                            data-confirm="Supprimer {{ $personne->prenom }} {{ $personne->nom }} ?" data-confirm-danger>
+                                            @csrf @method('DELETE')
+                                            <button type="submit"
+                                                class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
+                                                title="Supprimer">🗑️</button>
+                                        </form>
+                                    @endif
                                 </div>
                             </div>
                             <div class="flex flex-wrap items-center gap-1.5">

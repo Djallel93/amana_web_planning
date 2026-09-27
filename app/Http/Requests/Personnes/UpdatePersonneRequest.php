@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Personnes;
 
+use Amana\Shared\Support\PhoneFr;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdatePersonneRequest extends FormRequest
@@ -24,7 +25,9 @@ class UpdatePersonneRequest extends FormRequest
             // ref_personnes vit dans amana_commun — même correction que
             // StoreAbsenceRequest côté 'exists'.
             'email' => ['required', 'email:rfc,dns', 'max:255', 'unique:' . config('amana-shared.connection', 'commun') . ".ref_personnes,email,{$id}"],
-            'telephone' => ['nullable', 'string', 'max:20', 'regex:/^(\+33|0033|0)[1-9](\s?[0-9]{2}){4}$/'],
+            // Format désormais partagé avec « Mon profil » et l'intake
+            // familles/candidature planning — voir Amana\Shared\Support\PhoneFr.
+            'telephone' => ['nullable', 'string', 'max:20', 'regex:' . PhoneFr::REGEX],
             'date_debut_planning' => ['nullable', 'date'],
             'statut' => ['required', 'in:En attente,Validé,Suspendu,Archivé'],
             'role' => ['required', 'string', 'in:admin,gestionnaire,membre,benevole'],
@@ -35,7 +38,7 @@ class UpdatePersonneRequest extends FormRequest
     {
         return [
             'email.unique' => 'Cette adresse email est déjà utilisée par une autre personne.',
-            'telephone.regex' => 'Format invalide. Exemples : 06 12 34 56 78, +33 6 12 34 56 78',
+            'telephone.regex' => PhoneFr::MESSAGE,
             'role.required' => 'Le rôle est obligatoire.',
             'role.in' => 'Rôle invalide.',
         ];

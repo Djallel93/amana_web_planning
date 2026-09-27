@@ -18,7 +18,7 @@ use Illuminate\Console\Command;
  * de tourner qu'une fois par jour à heure fixe.
  *
  * À enregistrer dans routes/console.php :
- *   Schedule::command('amana:rappels-imminents')->everyFifteenMinutes();
+ *   Schedule::exec("{$phpPourCron} {$artisan} amana:rappels-imminents")->everyFifteenMinutes();
  */
 class RappelsImminents extends Command
 {
