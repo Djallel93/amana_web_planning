@@ -135,7 +135,7 @@ function enregistrer(): void {
             <button
                 type="button"
                 :disabled="compte === 0"
-                class="btn-touch w-12 h-12 flex items-center justify-center rounded-full border-[1.5px] border-ink-faint text-ink text-xl font-bold bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                class="btn-touch w-12 h-36 flex items-center justify-center rounded-xl border-[1.5px] border-ink-faint text-ink text-xl font-bold bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Diminuer"
                 @click="decrementer"
             >
@@ -150,7 +150,7 @@ function enregistrer(): void {
 
             <button
                 type="button"
-                class="btn-touch w-12 h-12 flex items-center justify-center rounded-full border-[1.5px] border-ink-faint text-ink text-xl font-bold bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer"
+                class="btn-touch w-12 h-36 flex items-center justify-center rounded-xl border-[1.5px] border-ink-faint text-ink text-xl font-bold bg-surface-2 hover:bg-surface-3 transition-colors cursor-pointer"
                 aria-label="Augmenter"
                 @click="incrementer"
             >

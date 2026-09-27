@@ -68,6 +68,11 @@
                 </button>
             </form>
 
+            <p class="text-[12px] text-ink-muted leading-relaxed mb-5">
+                💡 Si vous avez déjà demandé un lien, seul le <strong class="text-ink">dernier email reçu</strong>
+                fonctionne : les précédents sont automatiquement invalidés dès qu'un nouveau est envoyé.
+            </p>
+
             <a href="{{ route('login') }}"
                class="block text-center text-[13px] text-ink-muted hover:text-accent transition-colors">
                 ← Retour à la connexion

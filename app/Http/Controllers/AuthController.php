@@ -9,10 +9,12 @@ use App\Models\Personne;
 use Amana\Shared\Models\Setting;
 use Amana\Shared\Services\AccountChangeNotifier;
 use App\Notifications\NouveauMembreNotification;
+use Carbon\Carbon;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
@@ -194,7 +196,51 @@ class AuthController extends Controller
         }
 
         return back()->withInput($request->only('email'))
-            ->withErrors(['email' => 'Ce lien est invalide ou a expiré. Veuillez en demander un nouveau.']);
+            ->withErrors(['email' => $this->diagnostiquerEchecReinitialisation(
+                (string) $request->input('email'),
+                (string) $request->input('token')
+            )]);
+    }
+
+    /**
+     * Le broker de mot de passe de Laravel ne renvoie qu'un statut générique
+     * (INVALID_TOKEN / INVALID_USER) quand reset() échoue : impossible de
+     * savoir si le lien a réellement expiré (60 min) ou si un lien plus
+     * récent a simplement remplacé celui-ci entre-temps — ce qui arrive dès
+     * qu'une nouvelle demande est faite pour la même adresse (« Mot de passe
+     * oublié », bouton admin 🔑 ou ✉️), Laravel ne conservant qu'un seul
+     * jeton par email dans password_reset_tokens.
+     *
+     * On relit donc nous-mêmes la ligne correspondante pour distinguer les
+     * cas et donner un message exploitable plutôt que le « lien invalide ou
+     * expiré » générique qui masque la vraie cause.
+     */
+    private function diagnostiquerEchecReinitialisation(string $email, string $token): string
+    {
+        $config = config('auth.passwords.personnes');
+
+        $ligne = DB::connection($config['connection'])
+            ->table($config['table'])
+            ->where('email', $email)
+            ->first();
+
+        if (!$ligne) {
+            return 'Ce lien a déjà été utilisé, ou aucune demande de réinitialisation n\'est en cours pour '
+                . 'cette adresse. Demandez-en un nouveau si besoin.';
+        }
+
+        if (!Hash::check($token, $ligne->token)) {
+            return 'Un lien plus récent a été envoyé entre-temps pour cette adresse : seul le dernier email '
+                . 'reçu est valide, les précédents ne fonctionnent plus. Vérifiez votre boîte de réception '
+                . '(et les indésirables) pour le message le plus récent, ou demandez-en un nouveau.';
+        }
+
+        $expireMinutes = (int) ($config['expire'] ?? 60);
+        if (Carbon::parse($ligne->created_at)->addMinutes($expireMinutes)->isPast()) {
+            return "Ce lien a expiré (durée de validité : {$expireMinutes} minutes). Veuillez en demander un nouveau.";
+        }
+
+        return 'Ce lien est invalide. Veuillez en demander un nouveau.';
     }
 
     // ──────────────────────────────────────────────────────────────────────

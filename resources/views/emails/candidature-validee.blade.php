@@ -44,7 +44,9 @@
                         <td class="warn-text">
                             Si le lien a expiré, rendez-vous sur la page de connexion et utilisez
                             <strong>« Mot de passe oublié »</strong> pour en obtenir un nouveau,
-                            ou contactez un administrateur.
+                            ou contactez un administrateur. Si vous avez reçu plusieurs emails
+                            (invitation, réinitialisation…), seul le <strong>dernier reçu</strong>
+                            fonctionne : les précédents sont automatiquement invalidés.
                         </td>
                     </tr>
                 </table>

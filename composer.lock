@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a7e5c82c3ad3d410fcc9708de45edf99",
+    "content-hash": "a9c092afe369e4cfbf7c236d66b23433",
     "packages": [
         {
             "name": "amana/shared",
-            "version": "v2.7.0",
+            "version": "v2.7.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Djallel93/amana_shared.git",
-                "reference": "3ec67c2683adb9d17aa64ca8eea977a824a061e0"
+                "reference": "cfeed68592605cec41edd3ee37de445b150fbc57"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Djallel93/amana_shared/zipball/3ec67c2683adb9d17aa64ca8eea977a824a061e0",
-                "reference": "3ec67c2683adb9d17aa64ca8eea977a824a061e0",
+                "url": "https://api.github.com/repos/Djallel93/amana_shared/zipball/cfeed68592605cec41edd3ee37de445b150fbc57",
+                "reference": "cfeed68592605cec41edd3ee37de445b150fbc57",
                 "shasum": ""
             },
             "require": {
@@ -62,10 +62,10 @@
                 "shared"
             ],
             "support": {
-                "source": "https://github.com/Djallel93/amana_shared/tree/v2.7.0",
+                "source": "https://github.com/Djallel93/amana_shared/tree/v2.7.1",
                 "issues": "https://github.com/Djallel93/amana_shared/issues"
             },
-            "time": "2026-09-27T04:29:07+00:00"
+            "time": "2026-09-27T12:55:23+00:00"
         },
         {
             "name": "barryvdh/laravel-dompdf",
@@ -2839,16 +2839,16 @@
         },
         {
             "name": "nesbot/carbon",
-            "version": "3.14.0",
+            "version": "3.14.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/CarbonPHP/carbon.git",
-                "reference": "0023eaa2c9110e47446dd512a263c69c40cd41f2"
+                "reference": "34e9109535165bf1d7ff17a610492372ae73a896"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/0023eaa2c9110e47446dd512a263c69c40cd41f2",
-                "reference": "0023eaa2c9110e47446dd512a263c69c40cd41f2",
+                "url": "https://api.github.com/repos/CarbonPHP/carbon/zipball/34e9109535165bf1d7ff17a610492372ae73a896",
+                "reference": "34e9109535165bf1d7ff17a610492372ae73a896",
                 "shasum": ""
             },
             "require": {
@@ -2940,7 +2940,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-09-12T20:45:19+00:00"
+            "time": "2026-09-27T12:07:26+00:00"
         },
         {
             "name": "nette/schema",

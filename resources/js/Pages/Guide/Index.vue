@@ -393,20 +393,33 @@ onMounted(() => {
                         </summary>
                         <div class="guide-body">
                             <p>La page <strong class="text-ink">🧾 Saisie</strong> permet de renseigner le bilan
-                                quotidien d'une date : les montants <strong class="text-ink">Amana food</strong> et les
-                                <strong class="text-ink">effectifs de présence</strong>. Ces deux groupes
-                                s'enregistrent indépendamment via leurs boutons respectifs, ce qui permet à deux
+                                quotidien d'une date, en deux groupes indépendants : <strong class="text-ink">Amana
+                                    food</strong> (💳 Carte bancaire, 💵 Espèces, 💸 Charges — le coût de la
+                                nourriture, à laisser à 0 si elle a été offerte) et
+                                <strong class="text-ink">Présences</strong> (effectifs présents sur place et
+                                en ligne). Chaque groupe a son propre bouton d'enregistrement, ce qui permet à deux
                                 personnes de saisir en même temps sans écraser le travail de l'autre. N'importe quel
                                 utilisateur connecté peut consulter et modifier le bilan de n'importe quelle date.
                             </p>
+                            <p class="mt-2">Pour les effectifs, le bouton <strong class="text-ink">🔢</strong> à côté du
+                                champ ouvre un <strong class="text-ink">compteur</strong> : chaque appui sur
+                                <strong class="text-ink">+</strong> ou <strong class="text-ink">−</strong> incrémente
+                                ou décrémente le total, pratique pour compter les personnes une à une à l'entrée
+                                plutôt que de saisir un nombre directement.</p>
+                            <p class="mt-2">Laisser tous les champs d'un groupe vides le marque comme
+                                <strong class="text-ink">« pas de cours »</strong> pour cette date (différent de 0,
+                                qui signifie qu'un cours a eu lieu sans aucune recette ou présence). Les
+                                gestionnaires et administrateurs disposent en plus d'un bouton
+                                <strong class="text-ink">♻️ Réinitialiser</strong> par groupe, pour effacer
+                                explicitement les valeurs déjà saisies d'une date (action irréversible, avec
+                                confirmation).</p>
                             <div class="guide-example">
                                 <span class="guide-example-label">Exemple</span>
-                                Après la fin du cours, la personne responsable de <strong>Amana food</strong> saisit le
-                                montant
-                                de la recette et l'enregistre, pendant que la personne responsable de la
-                                <strong>Mektaba</strong> saisit
-                                de son côté <strong>« Effectifs : 85 personnes »</strong> — les deux enregistrements ne
-                                s'écrasent pas l'un l'autre.
+                                Après la fin du cours, la personne responsable de <strong>Amana food</strong> saisit
+                                les montants carte et espèces et les enregistre, pendant que la personne responsable
+                                de l'accueil compte les entrées avec le <strong>🔢 compteur</strong> puis enregistre
+                                les <strong>Présences</strong> — les deux enregistrements ne s'écrasent pas l'un
+                                l'autre.
                             </div>
                         </div>
                     </details>
@@ -419,7 +432,9 @@ onMounted(() => {
                         </summary>
                         <div class="guide-body">
                             <p>La page <strong class="text-ink">📊 Statistiques</strong> du Bilan affiche l'évolution
-                                des montants et des effectifs sur une période choisie, sous forme de graphiques.</p>
+                                des montants et des effectifs sur une période choisie, sous forme de graphiques. Le
+                                montant affiché est le <strong class="text-ink">revenu net</strong> : carte +
+                                espèces − charges.</p>
                             <div class="guide-example">
                                 <span class="guide-example-label">Exemple</span>
                                 En comparant la période du Ramadan aux mois habituels, on constate que la
@@ -541,19 +556,14 @@ onMounted(() => {
                         </summary>
                         <div class="guide-body">
                             <p>Dans le menu <strong class="text-ink">Administration</strong>, la page <strong class="text-ink">⚙️ Paramètres</strong> regroupe les réglages
-                                généraux de l'application, répartis en plusieurs sections.</p>
+                                généraux de l'application, répartis en <strong class="text-ink">trois onglets</strong> :
+                                <strong class="text-ink">📆 Calendriers Google</strong>,
+                                <strong class="text-ink">⏱️ Décalages des tâches</strong> et
+                                <strong class="text-ink">🔓 Général</strong>. Chaque onglet a son propre bouton
+                                Enregistrer : valider un onglet ne modifie que ses réglages, jamais ceux des
+                                autres.</p>
 
-                            <p><strong class="text-ink">🔓 Inscription publique</strong> — contrôle l'accès
-                                au formulaire d'inscription public. Fermer les inscriptions bloque
-                                l'affichage et la soumission du formulaire, sans supprimer les candidatures
-                                déjà en attente. Réservé aux administrateurs.</p>
-
-                            <p><strong class="text-ink">🕐 Horaires &amp; Lieu</strong> — l'heure du cours et
-                                l'adresse physique des permanences. Tous les horaires des tâches et
-                                événements (voir <strong class="text-ink">Décalages horaires</strong>
-                                ci-dessous) sont calculés relativement à cette heure de référence ; la
-                                modifier recalcule automatiquement tous les créneaux horaires envoyés à
-                                Google Calendar. L'adresse est incluse dans chaque événement créé.</p>
+                            <p class="mt-3 mb-1 text-[12px] font-bold text-ink-muted uppercase tracking-[0.5px]">Onglet 📆 Calendriers Google</p>
 
                             <p><strong class="text-ink">📋 Registre des calendriers Google Calendar</strong>
                                 — chaque calendrier Google Calendar utilisable ailleurs dans l'application
@@ -569,27 +579,43 @@ onMounted(() => {
                                 attribué. Retirer un calendrier du registre n'affecte pas les événements
                                 déjà créés dessus, seuls les nouveaux formulaires ne le proposeront plus.</p>
 
-                            <p><strong class="text-ink">📆 Calendriers Google Calendar</strong> — pour
-                                chaque type de tâche ou d'événement social (Entrée, Mektaba, Salle, Amana
+                            <p><strong class="text-ink">🎨 Calendriers &amp; Couleurs Google Calendar</strong>
+                                — pour chaque type de tâche ou d'événement social (Entrée, Mektaba, Salle, Amana
                                 Food, Cours, Message Bot…), choisissez dans quel calendrier du registre les
                                 événements correspondants seront créés/mis à jour/supprimés. Laisser un
                                 champ vide désactive la synchronisation calendrier pour ce type d'événement
                                 uniquement — les autres continuent de se synchroniser normalement.</p>
 
-                            <p><strong class="text-ink">⏱️ Décalages horaires</strong> — pour chaque tâche
-                                ou événement, définit le début et la fin de son créneau Google Calendar en
-                                minutes relatives à l'heure du cours (ex : −30 = 30 minutes avant le cours,
-                                +60 = 1 heure après). Une valeur négative se situe donc avant le cours, une
-                                valeur positive après. Le rappel sandwich a un horaire fixe (08:00–08:15),
-                                indépendant de ce réglage.</p>
+                            <p class="mt-3 mb-1 text-[12px] font-bold text-ink-muted uppercase tracking-[0.5px]">Onglet ⏱️ Décalages des tâches</p>
+
+                            <p>Pour chaque tâche ou événement, définit le début et la fin de son créneau Google
+                                Calendar en <strong class="text-ink">minutes relatives à l'heure du cours</strong>
+                                (ex : −30 = 30 minutes avant le cours, +60 = 1 heure après). Une valeur négative
+                                se situe donc avant le cours, une valeur positive après. Le rappel sandwich a un
+                                horaire fixe (08:00–08:15), indépendant de ce réglage.</p>
+
+                            <p class="mt-3 mb-1 text-[12px] font-bold text-ink-muted uppercase tracking-[0.5px]">Onglet 🔓 Général</p>
+
+                            <p><strong class="text-ink">🔓 Inscription publique</strong> — contrôle l'accès
+                                au formulaire d'inscription public. Fermer les inscriptions bloque
+                                l'affichage et la soumission du formulaire, sans supprimer les candidatures
+                                déjà en attente. Les gestionnaires voient ce réglage mais seul un
+                                administrateur peut le modifier.</p>
+
+                            <p><strong class="text-ink">🕐 Horaires &amp; Lieu</strong> — l'heure du cours et
+                                l'adresse physique des permanences. Tous les horaires des tâches et
+                                événements (voir <strong class="text-ink">Décalages des tâches</strong>
+                                ci-dessus) sont calculés relativement à cette heure de référence ; la
+                                modifier recalcule automatiquement tous les créneaux horaires envoyés à
+                                Google Calendar. L'adresse est incluse dans chaque événement créé.</p>
 
                             <div class="guide-example">
                                 <span class="guide-example-label">Exemple</span>
                                 L'heure du cours passe de 20:00 à 19:30 pour l'hiver : le gestionnaire met à
-                                jour <strong>Horaires &amp; Lieu</strong>, et tous les créneaux (entrée,
-                                mektaba, salle, amana food…) se recalculent automatiquement selon leurs
-                                décalages respectifs, sans qu'il ait besoin d'ajuster chaque tâche une par
-                                une.
+                                jour <strong>Horaires &amp; Lieu</strong> dans l'onglet <strong>Général</strong>,
+                                et tous les créneaux (entrée, mektaba, salle, amana food…) se recalculent
+                                automatiquement selon leurs décalages respectifs, sans qu'il ait besoin
+                                d'ajuster chaque tâche une par une.
                             </div>
                         </div>
                     </details>
@@ -620,17 +646,34 @@ onMounted(() => {
                         </summary>
                         <div class="guide-body">
                             <p>Dans le menu <strong class="text-ink">Communauté</strong>, la page <strong class="text-ink">👥 Annuaire</strong> liste l'ensemble des membres de
-                                l'association. Vous pouvez y créer une personne, modifier ses informations et son rôle
-                                (membre, gestionnaire, admin), ou la supprimer.</p>
-                            <p class="mt-2">Sur la fiche d'une personne, le bouton
-                                <strong class="text-ink">✉️ Envoyer un lien de réinitialisation</strong> lui envoie le lien
-                                standard pour créer ou réinitialiser son mot de passe elle-même : un administrateur ne saisit
-                                ni ne voit jamais un mot de passe. Quand vous modifiez l'adresse email d'une personne,
+                                l'association. Vous pouvez y créer une personne et modifier ses informations et son
+                                rôle (membre, gestionnaire, admin).</p>
+                            <p class="mt-2">Un compte validé se <strong class="text-ink">🔒 désactive</strong> plutôt
+                                que de se supprimer directement : la personne ne peut plus se connecter, mais son
+                                historique (créneaux, bilans…) est conservé, et le bouton
+                                <strong class="text-ink">🔓 Réactiver</strong> redonne l'accès à tout moment. Le
+                                bouton <strong class="text-ink">🗑️ Supprimer</strong> n'apparaît que pour les comptes
+                                déjà désactivés (statut « Suspendu ») ou jamais validés, et efface définitivement la
+                                fiche.</p>
+                            <p class="mt-2">Deux boutons distincts envoient un email lié au mot de passe, à ne pas
+                                confondre : dans la liste, <strong class="text-ink">🔑 Renvoyer un email de
+                                    réinitialisation de mot de passe</strong> renvoie l'invitation initiale (utile si la
+                                personne ne l'a jamais reçue ou ouverte) ; sur sa fiche, le bouton
+                                <strong class="text-ink">✉️ Envoyer un lien de réinitialisation</strong> lui envoie le
+                                lien standard pour créer ou réinitialiser son mot de passe elle-même — un administrateur
+                                ne saisit ni ne voit jamais un mot de passe. <strong class="text-ink">Attention :</strong>
+                                les deux partagent le même lien actif par personne, donc utiliser l'un après l'autre
+                                (ou après un « Mot de passe oublié » fait par la personne elle-même) invalide
+                                immédiatement l'email précédent, même s'il vient d'être envoyé — seul le
+                                <strong class="text-ink">dernier</strong> email reçu fonctionne.</p>
+                            <p class="mt-2">Quand vous modifiez l'adresse email d'une personne,
                                 l'ancienne et la nouvelle adresse reçoivent chacune un message d'information.</p>
                             <div class="guide-example">
                                 <span class="guide-example-label">Exemple</span>
                                 L'utilisateur A rejoint l'association comme bénévole : l'admin crée sa fiche dans
-                                <strong>Annuaire</strong> avec le rôle « Membre ».
+                                <strong>Annuaire</strong> avec le rôle « Membre ». Plus tard, il part en congé
+                                prolongé : l'admin le <strong>désactive</strong> plutôt que de supprimer sa fiche, afin
+                                de conserver son historique et de pouvoir le réactiver à son retour.
                             </div>
                         </div>
                     </details>

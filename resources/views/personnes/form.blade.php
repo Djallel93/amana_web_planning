@@ -211,6 +211,8 @@
                     Vous ne pouvez pas définir le mot de passe de cette personne : envoyez-lui un lien pour qu'elle le crée
                     ou le réinitialise elle-même. L'email part à <strong class="text-ink">{{ $personne->email }}</strong>
                     (adresse enregistrée — enregistrez d'abord vos modifications si vous venez de la changer).
+                    Seul le <strong class="text-ink">dernier email envoyé</strong> (par ce bouton ou par elle-même via
+                    « Mot de passe oublié ») reste valide : les précédents sont automatiquement invalidés.
                 </p>
                 <form action="{{ route('personnes.reset-link', $personne->id) }}" method="POST">
                     @csrf
