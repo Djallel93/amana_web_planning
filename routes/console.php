@@ -31,7 +31,9 @@ $artisan = base_path('artisan');
 
 // Expire les demandes d'échange de créneaux dont la date est passée
 // sans réponse de la personne cible. Envoie une notification au demandeur.
-Schedule::exec("{$phpPourCron} {$artisan} amana:expire-echanges")->dailyAt('01:00');
+Schedule::exec("{$phpPourCron} {$artisan} amana:expire-echanges")
+    ->dailyAt('01:00')
+    ->name('amana:expire-echanges');
 
 // Rappels par email pour les créneaux assignés (voir RappelService) — les
 // événements Google Calendar eux-mêmes n'ont plus d'attendee/invitation
@@ -47,7 +49,9 @@ Schedule::exec("{$phpPourCron} {$artisan} amana:expire-echanges")->dailyAt('01:0
 // aucune incidence métier.
 Schedule::exec("{$phpPourCron} {$artisan} amana:rappels-quotidiens")
     ->dailyAt('08:00')
-    ->timezone(DateHelper::FUSEAU_METIER);
+    ->timezone(DateHelper::FUSEAU_METIER)
+    ->name('amana:rappels-quotidiens');
 Schedule::exec("{$phpPourCron} {$artisan} amana:rappels-imminents")
     ->everyFifteenMinutes()
-    ->timezone(DateHelper::FUSEAU_METIER);
+    ->timezone(DateHelper::FUSEAU_METIER)
+    ->name('amana:rappels-imminents');
