@@ -17,9 +17,22 @@ final class GoogleCalendarServiceEnregistre extends GoogleCalendarService
     /** @var list<array{calendrier: string, email: string, role: string}> */
     public array $partages = [];
 
-    /** @param list<string> $calendriersRefuses ids de calendrier pour lesquels le partage échoue */
-    public function __construct(public array $calendriersRefuses = [])
+    /**
+     * @param list<string>          $calendriersRefuses ids de calendrier pour lesquels le partage échoue
+     * @param array<string, int>    $erreursAcces       id de calendrier => code HTTP renvoyé par getCalendar()
+     *                                                  (un id absent de la liste est accessible)
+     */
+    public function __construct(public array $calendriersRefuses = [], public array $erreursAcces = [])
     {
+    }
+
+    public function getCalendar(string $calendarId): array
+    {
+        if (isset($this->erreursAcces[$calendarId])) {
+            throw new GoogleServiceException('erreur simulée', $this->erreursAcces[$calendarId]);
+        }
+
+        return ['id' => $calendarId, 'summary' => 'Calendrier de test'];
     }
 
     public function isConfigured(): bool
