@@ -40,6 +40,14 @@ trait CreeDonneesPlanning
         return $personnes;
     }
 
+    /** Crée l'application « planning » et ses quatre rôles (absents d'une base de test vierge). */
+    protected function creerRolesPlanning(): void
+    {
+        foreach (['admin', 'gestionnaire', 'membre', 'benevole'] as $code) {
+            \Database\Factories\PersonneFactory::role($code);
+        }
+    }
+
     protected function cle(Personne $personne): string
     {
         return $personne->nom . ' ' . $personne->prenom;

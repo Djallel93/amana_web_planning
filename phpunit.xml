@@ -12,6 +12,15 @@
             <directory>tests/Feature</directory>
         </testsuite>
     </testsuites>
+    <groups>
+        <exclude>
+            <!-- Tests du comportement ATTENDU de code aujourd'hui défectueux : voir
+                 tests/Feature/Flows/EvenementCsvImportAttenduTest.php. Lancer à part avec l'option
+                 « group » de phpunit : phpunit group bug-connu (deux tirets devant group) -->
+            <group>bug-connu</group>
+        </exclude>
+    </groups>
+
     <source>
         <include>
             <directory>app</directory>

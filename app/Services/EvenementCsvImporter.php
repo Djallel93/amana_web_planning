@@ -94,7 +94,10 @@ class EvenementCsvImporter
         $errors = [];
         $numeroLigne = 1; // La ligne 1 est l'en-tête.
 
-        foreach ($handle as $ligneCsv) {
+        foreach ($handle as $indice => $ligneCsv) {
+            if ($indice === 0) {
+                continue; // l'en-tête, déjà lu par fgetcsv() mais rejoué par le rewind() du foreach
+            }
             $numeroLigne++;
 
             if ($ligneCsv === null || $ligneCsv === [null] || $ligneCsv === false) {
@@ -288,7 +291,7 @@ class EvenementCsvImporter
 
         foreach (GoogleCalendarColors::PALETTE as $id => $info) {
             if (mb_strtolower($info['nom']) === mb_strtolower($valeur)) {
-                return $id;
+                return (string) $id;
             }
         }
 

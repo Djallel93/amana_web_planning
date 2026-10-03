@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Tests;
 
 use Amana\Shared\Models\Setting;
+use Amana\Shared\Helpers\AuditHelper as AuditHelperPartage;
 use App\Helpers\AuditHelper;
 use App\Services\GoogleCalendarService;
 use App\Models\Personne;
@@ -45,17 +46,20 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Trois caches STATIQUES survivent d'un test à l'autre (le process PHP est
+     * Quatre caches STATIQUES survivent d'un test à l'autre (le process PHP est
      * partagé) alors que chaque test annule sa transaction et que les ids
      * auto-incrémentés ne reviennent pas en arrière :
      *  - Setting::$cache               (amana_shared) — paramètres lus dans ref_settings ;
-     *  - AuditHelper::$applicationId   — id de l'application 'planning', pas de clearCache() ;
+     *  - Amana\Shared\Helpers\AuditHelper — id d'application ; c'est CELUI de la fonction globale
+     *    audit() (contrôleurs, services), il a un clearCache() ;
+     *  - App\Helpers\AuditHelper::$applicationId — id de l'application 'planning', pas de clearCache() ;
      *  - Personne::$tacheCodesById     — Tache::pluck('code', 'id') de peutFaireTache().
      * Sans remise à zéro, un test lirait l'id/valeur du test précédent.
      */
     protected function reinitialiserCachesStatiques(): void
     {
         Setting::clearCache();
+        AuditHelperPartage::clearCache(); // celui que la fonction globale audit() utilise réellement
 
         foreach ([[AuditHelper::class, 'applicationId'], [Personne::class, 'tacheCodesById']] as [$classe, $propriete]) {
             (new ReflectionProperty($classe, $propriete))->setValue(null);
