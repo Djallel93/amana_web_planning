@@ -15,11 +15,13 @@ namespace Tests;
 
 use Amana\Shared\Models\Setting;
 use App\Helpers\AuditHelper;
+use App\Services\GoogleCalendarService;
 use App\Models\Personne;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use ReflectionProperty;
+use Tests\Support\GoogleCalendarServiceInterdit;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -31,10 +33,13 @@ abstract class TestCase extends BaseTestCase
         // ceci, le rendu du gabarit racine Inertia lève une exception.
         $this->withoutVite();
 
-        // QUEUE_CONNECTION=sync : un test qui oublie Bus::fake()/Queue::fake() exécuterait
-        // SynchroniserGoogleCalendar sur-le-champ. Toute requête HTTP non simulée
-        // (Http::fake()) échoue au lieu de partir vers Google ou Make.com.
+        // Deux garde-fous « jamais d'appel sortant » :
+        //  - la file de test est `sync` : sans Bus::fake(), SynchroniserGoogleCalendar
+        //    s'exécuterait sur-le-champ ;
+        //  - Http::preventStrayRequests() couvre le client HTTP de Laravel (webhook Make.com),
+        //    mais PAS le SDK Google, qu'on neutralise en liant un double.
         Http::preventStrayRequests();
+        $this->app->instance(GoogleCalendarService::class, new GoogleCalendarServiceInterdit());
 
         $this->reinitialiserCachesStatiques();
     }
