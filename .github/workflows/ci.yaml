@@ -1,0 +1,15 @@
+name: CI
+
+# Tests sur chaque push hors main / develop (ces deux branches déclenchent leur
+# propre workflow de déploiement, qui exécute la même porte de qualité avant
+# tout build). Pas de build ici.
+on:
+  push:
+    branches-ignore:
+      - main
+      - develop
+
+jobs:
+  test:
+    uses: ./.github/workflows/tests.yaml
+    secrets: inherit

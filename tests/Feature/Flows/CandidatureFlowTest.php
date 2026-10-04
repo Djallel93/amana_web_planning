@@ -303,7 +303,8 @@ class CandidatureFlowTest extends TestCase
 
         $entree = AuditLog::where('module', 'candidatures')->firstOrFail();
         $this->assertSame('En attente', $entree->before['statut']);
-        $this->assertSame(['statut' => 'Validé', 'action' => 'validation', 'role' => 'membre', 'deja_mot_de_passe' => false], $entree->after);
+        // assertEquals : la colonne JSON de MySQL ne conserve pas l'ordre des clés.
+        $this->assertEquals(['statut' => 'Validé', 'action' => 'validation', 'role' => 'membre', 'deja_mot_de_passe' => false], $entree->after);
     }
 
     public function test_de_bout_en_bout_candidature_validation_creation_du_mot_de_passe_puis_connexion(): void

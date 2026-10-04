@@ -20,7 +20,7 @@ namespace App\Helpers;
  */
 class GoogleCalendarColors
 {
-    /** @var array<string, array{nom: string, hex: string}> */
+    /** @var array<int, array{nom: string, hex: string}> */
     public const PALETTE = [
         '1'  => ['nom' => 'Lavande',    'hex' => '#7986cb'],
         '2'  => ['nom' => 'Sauge',      'hex' => '#33b679'],

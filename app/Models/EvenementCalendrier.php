@@ -29,6 +29,7 @@ class EvenementCalendrier extends Model
 
     protected $fillable = ['id_evenement', 'calendar_name', 'google_calendar_id', 'google_event_id'];
 
+    /** @return BelongsTo<Evenement, $this> */
     public function evenement(): BelongsTo
     {
         return $this->belongsTo(Evenement::class, 'id_evenement');

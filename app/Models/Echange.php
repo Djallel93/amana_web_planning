@@ -63,36 +63,43 @@ class Echange extends Model
 
     // ── Relations ──────────────────────────────────────────────────────────
 
+    /** @return BelongsTo<Personne, $this> */
     public function demandeur(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'id_personne_demandeur');
     }
 
+    /** @return BelongsTo<Personne, $this> */
     public function cible(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'id_personne_cible');
     }
 
+    /** @return BelongsTo<Creneau, $this> */
     public function creneauDemandeur(): BelongsTo
     {
         return $this->belongsTo(Creneau::class, 'id_creneau_demandeur');
     }
 
+    /** @return BelongsTo<Creneau, $this> */
     public function creneauCible(): BelongsTo
     {
         return $this->belongsTo(Creneau::class, 'id_creneau_cible');
     }
 
+    /** @return BelongsTo<Tache, $this> */
     public function tacheDemandeur(): BelongsTo
     {
         return $this->belongsTo(Tache::class, 'id_tache_demandeur');
     }
 
+    /** @return BelongsTo<Tache, $this> */
     public function tacheCible(): BelongsTo
     {
         return $this->belongsTo(Tache::class, 'id_tache_cible');
     }
 
+    /** @return BelongsTo<Personne, $this> */
     public function approbateur(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'approuve_par');

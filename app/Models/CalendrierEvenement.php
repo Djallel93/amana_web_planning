@@ -29,11 +29,13 @@ class CalendrierEvenement extends Model
         'google_event_id',
     ];
 
+    /** @return BelongsTo<Creneau, $this> */
     public function creneau(): BelongsTo
     {
         return $this->belongsTo(Creneau::class, 'id_planning');
     }
 
+    /** @return BelongsTo<Tache, $this> */
     public function tache(): BelongsTo
     {
         return $this->belongsTo(Tache::class, 'id_tache');

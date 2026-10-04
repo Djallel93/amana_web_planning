@@ -24,81 +24,11 @@ concurrency:
 jobs:
   # Porte de qualité : tout ce qui suit (build, deploy) en dépend. Un test,
   # un lint, un type-check ou une analyse PHPStan en échec bloque le déploiement.
+  # Définie dans tests.yaml (partagée avec ci.yaml et le déploiement preprod).
   # Voir tests/README.md pour la stratégie base de données.
   test:
-    name: Tests & quality gate
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-    env:
-      # Lus par config/database.php (connexions 'mysql' et 'commun', qui
-      # retombent sur DB_HOST/DB_USERNAME/DB_PASSWORD). Les NOMS de bases sont
-      # forcés dans phpunit.xml : amana_planning_test / amana_commun_test.
-      DB_HOST: 127.0.0.1
-      DB_PORT: "3306"
-      DB_USERNAME: root
-      DB_PASSWORD: root
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          submodules: "recursive"
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.4"
-          tools: composer:2
-          extensions: mbstring, pdo_mysql, gd, zip, intl
-          coverage: none
-
-      # Même réécriture d'URL que dans le job `build` (AMANA_REPOS_PAT).
-      # amana/shared est installé à la version épinglée par composer.lock —
-      # PAS via composer.local.json (git-ignoré, donc absent de la CI) : on
-      # teste exactement ce qui sera déployé.
-      - name: Configure git access for private amana/* repos
-        run: |
-          git config --global url."https://x-access-token:${{ secrets.AMANA_REPOS_PAT }}@github.com/".insteadOf "https://github.com/"
-
-      - name: Install PHP dependencies (with dev)
-        run: composer install --no-interaction --prefer-dist
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22.x"
-          cache: "npm"
-
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Create test databases
-        run: |
-          mysql -h 127.0.0.1 -uroot -proot -e \
-            "CREATE DATABASE amana_planning_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; \
-             CREATE DATABASE amana_commun_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-      - name: PHPUnit
-        run: php artisan test
-
-      - name: PHPStan (niveau configuré dans phpstan.neon)
-        run: composer analyse
-
-      - name: ESLint
-        run: npm run lint
-
-      - name: Type-check (vue-tsc)
-        run: npm run type-check
+    uses: ./.github/workflows/tests.yaml
+    secrets: inherit
 
   build:
     name: Build application

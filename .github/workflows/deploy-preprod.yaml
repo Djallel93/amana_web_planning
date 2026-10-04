@@ -17,8 +17,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Porte de qualité : build et deploy en dépendent (définie dans tests.yaml,
+  # partagée avec ci.yaml et le déploiement prod).
+  test:
+    uses: ./.github/workflows/tests.yaml
+    secrets: inherit
+
   build:
     name: Build application
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

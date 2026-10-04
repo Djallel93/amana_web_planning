@@ -1,15 +1,8 @@
 <?php
 // tests/Feature/Flows/EvenementCsvImportAttenduTest.php
 //
-// COMPORTEMENT ATTENDU de l'import CSV d'événements. Ces tests échouent aujourd'hui à cause de
-// deux défauts décrits (et figés) dans EvenementCsvImportFlowTest :
-//   1. la ligne d'en-tête est relue comme une ligne de données (tout fichier est rejeté) ;
-//   2. une couleur donnée par son nom (« Tomate », dans le modèle fourni) provoque un TypeError.
-// Ils sont étiquetés #[Group('bug-connu')] et EXCLUS du lancement par défaut (phpunit.xml) pour
-// ne pas bloquer le déploiement. Après correction :
-//     vendor/bin/phpunit --group bug-connu        # doivent tous passer
-// puis retirer l'exclusion de phpunit.xml et inverser les deux caractérisations de
-// EvenementCsvImportFlowTest.
+// Import CSV d'événements : comportement attendu (fichier modèle, en-tête, couleurs par nom,
+// tout ou rien, audit, synchronisation).
 
 declare(strict_types=1);
 
@@ -22,12 +15,10 @@ use App\Services\SchedulerMain;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Tests\Concerns\PrepareImportEvenements;
 use Tests\Concerns\RefreshesBothDatabases;
 use Tests\TestCase;
 
-#[Group('bug-connu')]
 class EvenementCsvImportAttenduTest extends TestCase
 {
     use RefreshesBothDatabases;

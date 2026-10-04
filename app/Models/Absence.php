@@ -49,6 +49,7 @@ class Absence extends Model
         'date_fin' => 'date',
     ];
 
+    /** @return BelongsTo<Personne, $this> */
     public function personne(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'id_personne');

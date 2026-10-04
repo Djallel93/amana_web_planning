@@ -47,11 +47,13 @@ class Restriction extends Model
     // Valeurs autorisées pour le champ 'jour'
     const JOURS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 
+    /** @return BelongsTo<Personne, $this> */
     public function personne(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'id_personne');
     }
 
+    /** @return BelongsTo<Tache, $this> */
     public function tache(): BelongsTo
     {
         return $this->belongsTo(Tache::class, 'id_tache');

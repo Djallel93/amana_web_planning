@@ -20,3 +20,13 @@ parameters:
     # (`composer analyse -- --generate-baseline`) à chaque montée de
     # niveau pour absorber les nouveaux signalements sur le code existant.
     level: 3
+
+    # Larastan déduit les colonnes des modèles (Personne::$nom, AuditLog::$created_at…)
+    # en lisant les migrations. Quand cette liste est non vide elle REMPLACE le défaut
+    # (database/migrations) : il faut donc citer les deux dossiers. Les tables
+    # ref_personnes, audit_logs, etc. sont créées par les migrations du paquet
+    # amana/shared, pas par celles de l'app. Chemins relatifs à la racine du projet
+    # (là où `composer analyse` est lancé).
+    databaseMigrationsPath:
+        - database/migrations
+        - vendor/amana/shared/database/migrations

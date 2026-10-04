@@ -19,16 +19,19 @@ class Personne extends SharedPersonne
 {
     use HasFactory;
 
+    /** @return HasMany<Absence, $this> */
     public function absences(): HasMany
     {
         return $this->hasMany(Absence::class, 'id_personne');
     }
 
+    /** @return HasMany<Restriction, $this> */
     public function restrictions(): HasMany
     {
         return $this->hasMany(Restriction::class, 'id_personne');
     }
 
+    /** @return HasMany<CreneauTache, $this> */
     public function creneauxTaches(): HasMany
     {
         return $this->hasMany(CreneauTache::class, 'id_personne');

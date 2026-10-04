@@ -36,16 +36,19 @@ class CreneauTache extends Model
 
     protected $fillable = ['id_planning', 'id_tache', 'id_personne'];
 
+    /** @return BelongsTo<Creneau, $this> */
     public function creneau(): BelongsTo
     {
         return $this->belongsTo(Creneau::class, 'id_planning');
     }
 
+    /** @return BelongsTo<Tache, $this> */
     public function tache(): BelongsTo
     {
         return $this->belongsTo(Tache::class, 'id_tache');
     }
 
+    /** @return BelongsTo<Personne, $this> */
     public function personne(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'id_personne');

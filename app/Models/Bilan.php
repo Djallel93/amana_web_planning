@@ -68,13 +68,21 @@ class Bilan extends Model
         'maj_presence_at' => 'datetime',
     ];
 
-    /** Personne ayant modifié le groupe Amana food en dernier. */
+    /**
+     * Personne ayant modifié le groupe Amana food en dernier.
+     *
+     * @return BelongsTo<Personne, $this>
+     */
     public function personneMajFood(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'id_personne_maj_food');
     }
 
-    /** Personne ayant modifié le groupe Présences en dernier. */
+    /**
+     * Personne ayant modifié le groupe Présences en dernier.
+     *
+     * @return BelongsTo<Personne, $this>
+     */
     public function personneMajPresence(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'id_personne_maj_presence');

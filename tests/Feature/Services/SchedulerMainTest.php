@@ -35,6 +35,15 @@ class SchedulerMainTest extends TestCase
 
     private const VENDREDI = '2026-10-02';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Les dates du fichier (2026-10-02, …) doivent rester « dans le futur » : DataLoader
+        // ne charge que les événements dont date_fin >= now() (Evenement::scopeFutursOuEnCours).
+        $this->travelTo('2026-09-30 09:00:00');
+    }
+
     private function scheduler(): SchedulerMain
     {
         return $this->app->make(SchedulerMain::class);
@@ -363,7 +372,6 @@ class SchedulerMainTest extends TestCase
         $personnes = $this->personnesValidees(5);
         $absente = $personnes[0]; // celle qui serait servie en premier
         \App\Models\Absence::factory()->pour($absente)->du(self::VENDREDI, '2026-10-03')->create();
-        Carbon::setTestNow(Carbon::parse('2026-09-30 09:00:00'));
 
         $this->scheduler()->generateSchedule(self::VENDREDI, 1);
 

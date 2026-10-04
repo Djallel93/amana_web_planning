@@ -55,6 +55,8 @@ class Evenement extends Model
 
     /**
      * Créneaux liés à cet événement (N-N).
+     *
+     * @return BelongsToMany<Creneau, $this>
      */
     public function creneaux(): BelongsToMany
     {
@@ -69,6 +71,8 @@ class Evenement extends Model
     /**
      * Tâches bloquées par cet événement (N-N).
      * Si vide → événement informatif uniquement.
+     *
+     * @return BelongsToMany<Tache, $this>
      */
     public function tachesBloquees(): BelongsToMany
     {
@@ -84,6 +88,8 @@ class Evenement extends Model
      * Calendriers Google Calendar sur lesquels cet événement est synchronisé
      * (1-N — un événement peut être synchronisé sur plusieurs calendriers).
      * Si vide → pas de synchronisation calendrier.
+     *
+     * @return HasMany<EvenementCalendrier, $this>
      */
     public function calendriers(): HasMany
     {

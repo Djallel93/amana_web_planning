@@ -32,6 +32,8 @@ class Creneau extends Model
 
     /**
      * Assignations de tâches pour ce créneau.
+     *
+     * @return HasMany<CreneauTache, $this>
      */
     public function taches(): HasMany
     {
@@ -40,6 +42,8 @@ class Creneau extends Model
 
     /**
      * Événements organisationnels liés à ce créneau (N-N).
+     *
+     * @return BelongsToMany<Evenement, $this>
      */
     public function evenements(): BelongsToMany
     {
