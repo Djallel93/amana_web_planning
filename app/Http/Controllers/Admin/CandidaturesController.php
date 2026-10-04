@@ -10,11 +10,11 @@ use App\Models\Personne;
 use App\Notifications\CandidatureValideeDejaInscritNotification;
 use App\Notifications\CandidatureValideeNotification;
 use App\Services\CalendarSharingService;
+use App\Services\InvitationLinkService;
 use App\Services\RoleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 
 class CandidaturesController extends Controller
@@ -22,6 +22,7 @@ class CandidaturesController extends Controller
     public function __construct(
         private readonly RoleService $roleService,
         private readonly CalendarSharingService $calendarSharing,
+        private readonly InvitationLinkService $invitationLink,
     ) {}
 
     public function index(): View
@@ -79,8 +80,7 @@ class CandidaturesController extends Controller
             }
             $messageFlash = "Candidature de {$personne->prenom} {$personne->nom} validée (rôle : {$roleCode}). Email de connexion directe envoyé.";
         } else {
-            $token = Password::broker('personnes')->createToken($personne);
-            $resetUrl = route('password.reset', ['token' => $token, 'email' => $personne->email]);
+            $resetUrl = $this->invitationLink->urlDefinitionMotDePasse($personne);
             try {
                 $personne->notify(new CandidatureValideeNotification($resetUrl));
                 Log::info('[CandidaturesController] Email invitation envoyé', ['id' => $personne->id]);
@@ -160,8 +160,7 @@ class CandidaturesController extends Controller
             }
             $messageFlash = "Email de connexion renvoyé à {$personne->prenom} {$personne->nom}.";
         } else {
-            $token = Password::broker('personnes')->createToken($personne);
-            $resetUrl = route('password.reset', ['token' => $token, 'email' => $personne->email]);
+            $resetUrl = $this->invitationLink->urlDefinitionMotDePasse($personne);
             try {
                 $personne->notify(new CandidatureValideeNotification($resetUrl));
                 Log::info('[CandidaturesController] Email renvoi invitation', ['id' => $personne->id]);

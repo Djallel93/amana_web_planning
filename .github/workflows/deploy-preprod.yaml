@@ -39,6 +39,16 @@ jobs:
           php-version: "8.4"
           tools: composer:2
 
+      # amana/shared (Composer) et @amana/shared-ui (npm) sont des dépôts
+      # privés référencés par HTTPS : cette réécriture d'URL git authentifie
+      # tout accès https://github.com/... pour le reste du job (composer
+      # install ET npm ci). Même étape que deploy.yaml (prod) et tests.yaml.
+      # AMANA_REPOS_PAT : PAT GitHub fine-grained, lecture seule, scope
+      # Contents sur amana_shared + amana_shared_ui.
+      - name: Configure git access for private amana/* repos
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.AMANA_REPOS_PAT }}@github.com/".insteadOf "https://github.com/"
+
       - name: Install PHP dependencies
         run: composer install --optimize-autoloader --no-dev --no-interaction
 
