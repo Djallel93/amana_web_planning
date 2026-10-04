@@ -33,14 +33,9 @@
 -->
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { Modal } from '@amana/shared-ui';
-import { useToast } from '@amana/shared-ui';
-import type {
-    AddCreneauContext,
-    CreneauPasseContexte,
-    PersonneAssignee,
-    TacheCode,
-} from "@/types/planning";
+import { Modal } from "@amana/shared-ui";
+import { useToast } from "@amana/shared-ui";
+import type { AddCreneauContext, CreneauPasseContexte, PersonneAssignee, TacheCode } from "@/types/planning";
 import { TACHES_META, TACHE_CODES } from "@/types/planning";
 
 const emit = defineEmits<{
@@ -123,10 +118,12 @@ const weekInfoHtml = computed((): string => {
 // permet à l'admin de vérifier qu'il vise bien un vendredi/samedi.
 const selectedDateLabel = computed((): string => {
     if (!selectedDate.value) return "";
-    return new Date(selectedDate.value + "T00:00:00").toLocaleDateString(
-        "fr-FR",
-        { weekday: "long", day: "numeric", month: "long", year: "numeric" },
-    );
+    return new Date(selectedDate.value + "T00:00:00").toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    });
 });
 
 // ── Indication sur les dates déjà occupées ────────────────────────────────
@@ -161,15 +158,12 @@ function todayIsoLocal(): string {
 async function loadContexte(date: string): Promise<void> {
     contexteEnCours.value = true;
     try {
-        const res = await fetch(
-            `${window.PlanningConfig.routes.creneauContexte}?date=${encodeURIComponent(date)}`,
-            {
-                headers: {
-                    "X-CSRF-TOKEN": window.PlanningConfig.csrf,
-                    Accept: "application/json",
-                },
+        const res = await fetch(`${window.PlanningConfig.routes.creneauContexte}?date=${encodeURIComponent(date)}`, {
+            headers: {
+                "X-CSRF-TOKEN": window.PlanningConfig.csrf,
+                Accept: "application/json",
             },
-        );
+        });
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = (await res.json()) as CreneauPasseContexte;
 
@@ -185,9 +179,7 @@ async function loadContexte(date: string): Promise<void> {
     } catch {
         if (selectedDate.value !== date) return;
         contexte.value = null;
-        toast.error(
-            "Impossible de vérifier les événements et absences de cette date.",
-        );
+        toast.error("Impossible de vérifier les événements et absences de cette date.");
     } finally {
         if (selectedDate.value === date) contexteEnCours.value = false;
     }
@@ -201,9 +193,7 @@ watch(selectedDate, (date) => {
     void loadContexte(date);
 });
 
-const absentIds = computed(
-    (): Set<number> => new Set(contexte.value?.absents ?? []),
-);
+const absentIds = computed((): Set<number> => new Set(contexte.value?.absents ?? []));
 
 function tacheBloqueePar(code: TacheCode): string | null {
     return contexte.value?.tachesBloquees[code] ?? null;
@@ -283,9 +273,7 @@ async function submit(): Promise<void> {
                 "X-CSRF-TOKEN": window.PlanningConfig.csrf,
                 Accept: "application/json",
             },
-            body: JSON.stringify(
-                isPasse.value ? { date, assignations } : { date },
-            ),
+            body: JSON.stringify(isPasse.value ? { date, assignations } : { date }),
         });
         const data = (await res.json()) as {
             success?: boolean;
@@ -298,11 +286,7 @@ async function submit(): Promise<void> {
             close();
             emit("created", date);
         } else {
-            toast.error(
-                data.errors?.date?.[0] ??
-                    data.message ??
-                    "Erreur lors de la création.",
-            );
+            toast.error(data.errors?.date?.[0] ?? data.message ?? "Erreur lors de la création.");
         }
     } catch {
         toast.error("Erreur réseau");
@@ -315,11 +299,7 @@ defineExpose({ open });
 </script>
 
 <template>
-    <Modal
-        :open="isOpen"
-        @close="close"
-        :max-width="isPasse ? 'max-w-md' : 'max-w-sm'"
-    >
+    <Modal :open="isOpen" :max-width="isPasse ? 'max-w-md' : 'max-w-sm'" @close="close">
         <template #header>
             <div
                 class="w-7 h-7 rounded-md flex items-center justify-center text-sm flex-shrink-0"
@@ -339,9 +319,8 @@ defineExpose({ open });
             >
                 <strong>Correction administrateur</strong>
                 <span
-                    >Pour rattraper un week-end jamais généré. Le créneau est
-                    synchronisé avec Google Calendar comme un créneau normal —
-                    choisissez ci-dessous qui était de permanence.</span
+                    >Pour rattraper un week-end jamais généré. Le créneau est synchronisé avec Google Calendar comme un
+                    créneau normal — choisissez ci-dessous qui était de permanence.</span
                 >
             </div>
             <div
@@ -349,20 +328,14 @@ defineExpose({ open });
                 class="flex items-center gap-2 px-3 py-2.5 bg-sky-50 border border-sky-100 rounded-lg text-[13px]"
             >
                 <strong class="text-ink">{{ weekInfoHtml }}</strong>
-                <span class="text-ink-muted"
-                    >Choisissez une date dans cette semaine</span
-                >
+                <span class="text-ink-muted">Choisissez une date dans cette semaine</span>
             </div>
 
             <div>
-                <p
-                    class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2"
-                >
-                    📅 Date du créneau
-                </p>
+                <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2">📅 Date du créneau</p>
                 <input
-                    type="date"
                     v-model="selectedDate"
+                    type="date"
                     :min="isPasse ? undefined : context?.weekMin"
                     :max="isPasse ? maxPasse : context?.weekMax"
                     class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
@@ -374,34 +347,21 @@ defineExpose({ open });
 
             <!-- Assignations — mode passé uniquement -->
             <div v-if="isPasse">
-                <p
-                    class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2"
-                >
+                <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2">
                     👤 Qui était de permanence ?
                 </p>
-                <p
-                    v-if="contexte?.dejaExistant"
-                    class="text-[12.5px] text-rose-600 mb-2"
-                >
+                <p v-if="contexte?.dejaExistant" class="text-[12.5px] text-rose-600 mb-2">
                     Un créneau existe déjà pour cette date.
                 </p>
-                <p
-                    v-else-if="contexte && contexte.evenements.length > 0"
-                    class="text-[12.5px] text-ink-muted mb-2"
-                >
+                <p v-else-if="contexte && contexte.evenements.length > 0" class="text-[12.5px] text-ink-muted mb-2">
                     Événement(s) ce jour-là :
                     <template v-for="(e, i) in contexte.evenements" :key="i">
                         <strong class="text-ink">{{ e.nom }}</strong
                         ><span v-if="e.bloquant"> (bloque des tâches)</span
-                        ><span v-if="i < contexte.evenements.length - 1"
-                            >,
-                        </span> </template
+                        ><span v-if="i < contexte.evenements.length - 1">, </span> </template
                     >. Ils seront liés au créneau.
                 </p>
-                <p
-                    v-else-if="contexteEnCours"
-                    class="text-[12.5px] text-ink-muted mb-2"
-                >
+                <p v-else-if="contexteEnCours" class="text-[12.5px] text-ink-muted mb-2">
                     ⏳ Vérification des événements et absences…
                 </p>
                 <div class="flex flex-col gap-2">
@@ -410,9 +370,7 @@ defineExpose({ open });
                         :key="code"
                         class="grid grid-cols-[7.5rem_1fr] items-center gap-2 text-[13px] text-ink"
                     >
-                        <span class="font-semibold">{{
-                            TACHES_META[code].label
-                        }}</span>
+                        <span class="font-semibold">{{ TACHES_META[code].label }}</span>
                         <span
                             v-if="tacheBloqueePar(code)"
                             class="px-3 py-2 border-[1.5px] border-dashed border-ink-faint rounded-lg text-[12.5px] text-ink-muted bg-surface-2"
@@ -425,11 +383,7 @@ defineExpose({ open });
                             class="w-full px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[14px] font-body text-ink bg-surface-2 outline-none transition cursor-pointer focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                         >
                             <option value="">— Non assignée —</option>
-                            <option
-                                v-for="p in personnes"
-                                :key="p.id"
-                                :value="String(p.id)"
-                            >
+                            <option v-for="p in personnes" :key="p.id" :value="String(p.id)">
                                 {{ libellePersonne(p) }}
                             </option>
                         </select>
@@ -440,32 +394,26 @@ defineExpose({ open });
                     class="mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-[12.5px] text-amber-800"
                 >
                     ⚠️ Déclaré·e absent·e ce jour-là :
-                    <strong>{{ absentsChoisis.join(", ") }}</strong>. Vous
-                    pouvez quand même l'assigner.
+                    <strong>{{ absentsChoisis.join(", ") }}</strong
+                    >. Vous pouvez quand même l'assigner.
                 </p>
                 <p class="text-[11.5px] text-ink-muted mt-1.5">
-                    Facultatif — seules les personnes actives au planning sont
-                    proposées. Une tâche laissée vide reste non assignée.
+                    Facultatif — seules les personnes actives au planning sont proposées. Une tâche laissée vide reste
+                    non assignée.
                 </p>
             </div>
 
             <div class="flex gap-2">
                 <button
-                    @click="submit"
                     :disabled="creating || contexte?.dejaExistant === true"
                     class="btn-touch flex-1 px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(3,105,161,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    @click="submit"
                 >
-                    {{
-                        creating
-                            ? "⏳ Création…"
-                            : isPasse
-                              ? "➕ Créer le créneau passé"
-                              : "➕ Créer le créneau"
-                    }}
+                    {{ creating ? "⏳ Création…" : isPasse ? "➕ Créer le créneau passé" : "➕ Créer le créneau" }}
                 </button>
                 <button
-                    @click="close"
                     class="btn-touch px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer"
+                    @click="close"
                 >
                     Annuler
                 </button>

@@ -192,6 +192,7 @@ class GoogleCalendarPayloadMapper
 
         if ($calendarIds === []) {
             $this->codesSansCalendrier[$code] = true;
+
             return [];
         }
 
@@ -227,6 +228,7 @@ class GoogleCalendarPayloadMapper
     private function buildSummary(string $nom, ?string $assigne): string
     {
         $initiales = $this->initiales($assigne);
+
         return $initiales ? "{$initiales} - {$nom}" : $nom;
     }
 
@@ -254,6 +256,7 @@ class GoogleCalendarPayloadMapper
         $derniere = mb_strtoupper(mb_substr($mots[count($mots) - 1], 0, 1));
 
         $initiales = $premiere . $derniere;
+
         return $initiales !== '' ? $initiales : null;
     }
 
@@ -290,6 +293,7 @@ class GoogleCalendarPayloadMapper
         }
 
         $id = $this->tacheIdsParCode->get($code);
+
         return $id !== null ? (int) $id : null;
     }
 }

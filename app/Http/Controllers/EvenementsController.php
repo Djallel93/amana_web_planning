@@ -43,8 +43,7 @@ class EvenementsController extends Controller
     public function __construct(
         private readonly WebhookEvenementPayloadBuilder $webhookBuilder,
         private readonly EvenementRegenerationService $regenerationService,
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {
@@ -58,6 +57,7 @@ class EvenementsController extends Controller
     public function create(): View
     {
         $taches = Tache::actif()->orderBy('id')->get();
+
         return view('evenements.form', compact('taches'));
     }
 
@@ -234,6 +234,7 @@ class EvenementsController extends Controller
     {
         $evenement = Evenement::with('tachesBloquees', 'calendriers')->findOrFail($id);
         $taches = Tache::actif()->orderBy('id')->get();
+
         return view('evenements.form', compact('evenement', 'taches'));
     }
 

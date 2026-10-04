@@ -35,8 +35,7 @@ class RappelCreneauNotification extends Notification
         private readonly array $item,
         private readonly string $type,
         private readonly string $date,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -54,7 +53,7 @@ class RappelCreneauNotification extends Notification
         $date = Carbon::parse($this->date, 'Europe/Paris')->locale('fr');
         [$badge, $titleSub, $intro] = $this->contenuParType();
 
-        return $this->embedLogo(new MailMessage)
+        return $this->embedLogo(new MailMessage())
             ->subject("Rappel — {$this->item['nom']} ({$date->isoFormat('dddd D MMMM')})")
             ->view('emails.rappel-creneau', [
                 'prenom' => $notifiable->prenom,

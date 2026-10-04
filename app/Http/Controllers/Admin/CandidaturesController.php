@@ -7,9 +7,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Personne;
-use Amana\Shared\Models\Role;
-use App\Notifications\CandidatureValideeNotification;
 use App\Notifications\CandidatureValideeDejaInscritNotification;
+use App\Notifications\CandidatureValideeNotification;
 use App\Services\CalendarSharingService;
 use App\Services\RoleService;
 use Illuminate\Http\RedirectResponse;
@@ -23,8 +22,7 @@ class CandidaturesController extends Controller
     public function __construct(
         private readonly RoleService $roleService,
         private readonly CalendarSharingService $calendarSharing,
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {

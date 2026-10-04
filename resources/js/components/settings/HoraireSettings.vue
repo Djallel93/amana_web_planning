@@ -21,46 +21,39 @@
     sur les mêmes données.
 -->
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from "vue";
 
 // ── État réactif ───────────────────────────────────────────────────────────
 const inscriptionOuverte = ref(false);
 
 // heureCours est un string "HH:MM" — même format que <input type="time">
-const heureCours = ref('20:00');
+const heureCours = ref("20:00");
 
-// Map des previews : chaque span.horaire-preview a data-debut-input et data-fin-input
-// qui pointent vers des <input type="number" name="settings[...]">.
-// On stocke les valeurs calculées indexées par un identifiant (le nom du span).
-// Pour simplifier, on recalcule directement dans le DOM — Vue gère juste le trigger.
-const previewTick = ref(0); // compteur factice pour forcer la mise à jour
+// Previews horaires : chaque span.horaire-preview a data-debut-input et
+// data-fin-input qui pointent vers des <input type="number" name="settings[...]">.
+// On recalcule directement dans le DOM (voir updatePreviews) — Vue ne fait que
+// déclencher le recalcul via les listeners attachés dans onMounted.
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function addMinutes(hhmm: string, minutes: number): string {
-    const [h, m] = hhmm.split(':').map(Number);
+    const [h, m] = hhmm.split(":").map(Number);
     const total = (((h * 60 + m + minutes) % 1440) + 1440) % 1440;
-    return String(Math.floor(total / 60)).padStart(2, '0')
-        + ':' + String(total % 60).padStart(2, '0');
+    return String(Math.floor(total / 60)).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0");
 }
 
 function updatePreviews(): void {
-    const heureCoursInput = document.getElementById('heure_cours') as HTMLInputElement | null;
-    const hc = heureCoursInput?.value ?? '20:00';
+    const heureCoursInput = document.getElementById("heure_cours") as HTMLInputElement | null;
+    const hc = heureCoursInput?.value ?? "20:00";
     heureCours.value = hc;
 
-    document.querySelectorAll<HTMLElement>('.horaire-preview').forEach(span => {
+    document.querySelectorAll<HTMLElement>(".horaire-preview").forEach((span) => {
         const debutName = span.dataset.debutInput;
-        const finName   = span.dataset.finInput;
-        const debutEl   = debutName
-            ? document.querySelector<HTMLInputElement>(`[name="${debutName}"]`)
-            : null;
-        const finEl     = finName
-            ? document.querySelector<HTMLInputElement>(`[name="${finName}"]`)
-            : null;
+        const finName = span.dataset.finInput;
+        const debutEl = debutName ? document.querySelector<HTMLInputElement>(`[name="${debutName}"]`) : null;
+        const finEl = finName ? document.querySelector<HTMLInputElement>(`[name="${finName}"]`) : null;
         if (!debutEl || !finEl) return;
-        span.textContent = addMinutes(hc, parseInt(debutEl.value, 10) || 0)
-            + ' → '
-            + addMinutes(hc, parseInt(finEl.value, 10) || 0);
+        span.textContent =
+            addMinutes(hc, parseInt(debutEl.value, 10) || 0) + " → " + addMinutes(hc, parseInt(finEl.value, 10) || 0);
     });
 }
 
@@ -80,16 +73,16 @@ let settingsForm: HTMLElement | null = null;
 
 onMounted(() => {
     // Toggle inscription
-    inscriptionToggle = document.getElementById('inscriptionToggle') as HTMLInputElement | null;
+    inscriptionToggle = document.getElementById("inscriptionToggle") as HTMLInputElement | null;
     if (inscriptionToggle) {
         inscriptionOuverte.value = inscriptionToggle.checked;
-        inscriptionToggle.addEventListener('change', onInscriptionChange);
+        inscriptionToggle.addEventListener("change", onInscriptionChange);
     }
 
     // Previews horaires — écoute tous les inputs du form d'un coup
-    settingsForm = document.getElementById('settingsForm');
+    settingsForm = document.getElementById("settingsForm");
     if (settingsForm) {
-        settingsForm.addEventListener('input', onFormInput);
+        settingsForm.addEventListener("input", onFormInput);
     }
 
     // Calcul initial
@@ -97,8 +90,8 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-    inscriptionToggle?.removeEventListener('change', onInscriptionChange);
-    settingsForm?.removeEventListener('input', onFormInput);
+    inscriptionToggle?.removeEventListener("change", onInscriptionChange);
+    settingsForm?.removeEventListener("input", onFormInput);
 });
 </script>
 

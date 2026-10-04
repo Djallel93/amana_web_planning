@@ -16,7 +16,9 @@ use App\Models\CalendrierGoogle;
 use App\Models\Evenement;
 use App\Models\Personne;
 use App\Services\SchedulerMain;
+use Database\Factories\TacheFactory;
 use Illuminate\Support\Facades\Bus;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\ConnecteParRole;
 use Tests\Concerns\CreeDonneesPlanning;
 use Tests\Concerns\RefreshesBothDatabases;
@@ -24,9 +26,9 @@ use Tests\TestCase;
 
 class JsonResourcesShapeTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     protected function setUp(): void
     {
@@ -135,7 +137,7 @@ class JsonResourcesShapeTest extends TestCase
         $this->assertFalse($tache['bloquee']);
         $this->assertNull($tache['evenementBloquant']);
         $this->assertSame(['id', 'label'], array_keys($tache['personne']));
-        $this->assertSame(\Database\Factories\TacheFactory::pourCode('entree')->id, $tache['tacheId']);
+        $this->assertSame(TacheFactory::pourCode('entree')->id, $tache['tacheId']);
     }
 
     public function test_une_tache_bloquee_par_un_evenement_partiel(): void
@@ -185,7 +187,7 @@ class JsonResourcesShapeTest extends TestCase
 
         $this->assertSame([
             ['nom' => 'Ramadan (information)', 'dateLabel' => '1 oct. – 4 oct.', 'informatif' => true, 'tachesBloquees' => []],
-            ['nom' => 'Réunion partielle', 'dateLabel' => '2 oct.', 'informatif' => false, 'tachesBloquees' => [['code' => 'entree', 'libelle' => \Database\Factories\TacheFactory::pourCode('entree')->libelle]]],
+            ['nom' => 'Réunion partielle', 'dateLabel' => '2 oct.', 'informatif' => false, 'tachesBloquees' => [['code' => 'entree', 'libelle' => TacheFactory::pourCode('entree')->libelle]]],
         ], $bannieres);
     }
 
@@ -214,7 +216,7 @@ class JsonResourcesShapeTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('droitsParRole')]
+    #[DataProvider('droitsParRole')]
     public function test_les_drapeaux_peut_editer_et_peut_ajouter_passe_suivent_le_role(string $persona, bool $edite, bool $ajoutePasse): void
     {
         $this->connecterEn($persona);

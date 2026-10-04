@@ -17,6 +17,7 @@ class Absence extends Model
     use HasFactory;
 
     protected $table = 'plan_absences';
+
     public $timestamps = false;
 
     /**

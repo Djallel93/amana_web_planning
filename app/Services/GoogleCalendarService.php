@@ -6,9 +6,9 @@ declare(strict_types=1);
 namespace App\Services;
 
 use Google\Client as GoogleClient;
-use Google\Service\Calendar as GoogleCalendar;
 use Google\Service\Calendar\AclRule as GoogleAclRule;
 use Google\Service\Calendar\AclRuleScope as GoogleAclRuleScope;
+use Google\Service\Calendar as GoogleCalendar;
 use Google\Service\Calendar\Event as GoogleEvent;
 use Google\Service\Calendar\EventDateTime;
 use Google\Service\Exception as GoogleServiceException;
@@ -71,6 +71,7 @@ class GoogleCalendarService
      * par `amana:tester-google-calendar` pour le diagnostic.
      *
      * @return array{id: string, name: string}
+     *
      * @throws GoogleServiceException 404 = calendrier introuvable ou non
      *         partagé avec le compte de service ; 403 = partagé mais avec
      *         des droits insuffisants pour même le lire.
@@ -155,6 +156,7 @@ class GoogleCalendarService
                     'calendar_id' => $calendarId,
                     'event_id' => $eventId,
                 ]);
+
                 return;
             }
             throw $e;

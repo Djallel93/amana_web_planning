@@ -5,7 +5,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
@@ -29,7 +28,7 @@ class EmergencyController extends Controller
      * Vérifie que la clé d'urgence est configurée et valide.
      * Retourne false (et abort 404) si la fonctionnalité est désactivée.
      */
-    private function verifierCle(string|null $key): bool
+    private function verifierCle(?string $key): bool
     {
         $configuredKey = config('app.emergency_key');
 

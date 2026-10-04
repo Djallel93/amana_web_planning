@@ -74,6 +74,7 @@ class DiagnosticCalendriers extends Command
             if ($valeur === '') {
                 $manquants[] = $libelle;
                 $lignes[] = [$libelle, "calendar_{$code}", '(vide)', '❌ aucun événement créé'];
+
                 continue;
             }
 
@@ -92,6 +93,7 @@ class DiagnosticCalendriers extends Command
 
         if ($manquants === []) {
             $this->info('Tous les codes ont un calendrier configuré.');
+
             return self::SUCCESS;
         }
 
@@ -110,6 +112,7 @@ class DiagnosticCalendriers extends Command
 
         try {
             $google->getCalendar($calendarId);
+
             return 'accès OK';
         } catch (GoogleServiceException $e) {
             return match ($e->getCode()) {

@@ -40,8 +40,7 @@ class AbsencesController extends Controller
     public function __construct(
         private readonly AbsenceRegenerationService $regenerationService,
         private readonly WebhookAbsencePayloadBuilder $webhookBuilder,
-    ) {
-    }
+    ) {}
 
     /**
      * Liste toutes les absences.
@@ -53,7 +52,7 @@ class AbsencesController extends Controller
      */
     public function index(): View
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         $absences = Absence::with('personne')
@@ -82,11 +81,11 @@ class AbsencesController extends Controller
      */
     public function store(StoreAbsenceRequest $request): RedirectResponse
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         // Vérification de sécurité pour les membres
-        if (! $user->isAdmin() && ! $user->isGestionnaire()) {
+        if (!$user->isAdmin() && !$user->isGestionnaire()) {
             if ((int) $request->validated('id_personne') !== $user->id) {
                 return redirect()->route('absences.index')
                     ->with('error', 'Vous ne pouvez enregistrer une absence que pour vous-même.');
@@ -121,7 +120,7 @@ class AbsencesController extends Controller
      */
     public function update(UpdateAbsenceRequest $request, int $id): JsonResponse
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user    = Auth::user();
         $absence = Absence::with('personne')->findOrFail($id);
 
@@ -129,7 +128,7 @@ class AbsencesController extends Controller
 
         // Vérification de sécurité pour les membres : ni l'absence modifiée
         // ni la personne cible ne peuvent être autre chose qu'eux-mêmes.
-        if (! $estPrivilegie) {
+        if (!$estPrivilegie) {
             if ($absence->id_personne !== $user->id) {
                 return response()->json([
                     'success' => false,
@@ -183,12 +182,12 @@ class AbsencesController extends Controller
      */
     public function destroy(int $id): RedirectResponse
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user    = Auth::user();
         $absence = Absence::with('personne')->findOrFail($id);
 
         // Vérification de sécurité pour les membres
-        if (! $user->isAdmin() && ! $user->isGestionnaire() && $absence->id_personne !== $user->id) {
+        if (!$user->isAdmin() && !$user->isGestionnaire() && $absence->id_personne !== $user->id) {
             return redirect()->route('absences.index')
                 ->with('error', 'Vous ne pouvez supprimer que vos propres absences.');
         }

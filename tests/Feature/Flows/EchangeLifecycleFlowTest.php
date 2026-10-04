@@ -29,11 +29,12 @@ use Tests\TestCase;
 
 class EchangeLifecycleFlowTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private Personne $a;
+
     private Personne $b;
 
     protected function setUp(): void

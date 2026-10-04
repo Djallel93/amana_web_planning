@@ -17,6 +17,7 @@ use App\Services\GoogleCalendarService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Notification;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\RefreshesBothDatabases;
 use Tests\Support\FauxSettings;
 use Tests\Support\GoogleCalendarServiceEnregistre;
@@ -83,7 +84,7 @@ class CommandesPlanningTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('tachesPlanifiees')]
+    #[DataProvider('tachesPlanifiees')]
     public function test_la_planification_de_chaque_commande(string $nom, string $expression, string $fuseau): void
     {
         $evenement = collect($this->app->make(Schedule::class)->events())->first(fn($e) => $e->description === $nom);
@@ -190,7 +191,7 @@ class CommandesPlanningTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('reponsesGoogle')]
+    #[DataProvider('reponsesGoogle')]
     public function test_l_option_api_interprete_la_reponse_de_google(?int $code, string $message): void
     {
         $google = new GoogleCalendarServiceEnregistre(erreursAcces: $code === null ? [] : ['cal@group.calendar.google.com' => $code]);

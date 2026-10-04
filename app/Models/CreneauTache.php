@@ -18,10 +18,13 @@ class CreneauTache extends Model
     use HasFactory;
 
     protected $table = 'plan_creneaux_taches';
+
     public $timestamps = false;
+
     // Clé primaire composite — Eloquent ne supporte pas nativement,
     // on désactive l'auto-increment
     public $incrementing = false;
+
     protected $primaryKey = null;
 
     /**

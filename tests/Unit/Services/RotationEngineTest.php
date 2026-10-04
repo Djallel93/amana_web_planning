@@ -29,6 +29,7 @@ use Tests\Support\PersonneDeTest;
 class RotationEngineTest extends TestCase
 {
     private const IDS = ['amana_food' => 1, 'entree' => 2, 'mektaba' => 3, 'salle' => 4, 'cours' => 5];
+
     private const VENDREDI = '2026-09-18';
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -365,7 +366,7 @@ class RotationEngineTest extends TestCase
         $this->assertSame($a->cle(), $this->jour($contexte)['entree']);
     }
 
-    public function test_sans_personOptions_le_palier_par_defaut_est_celui_de_8_options(): void
+    public function test_sans_person_options_le_palier_par_defaut_est_celui_de_8_options(): void
     {
         [$a, $b] = [new PersonneDeTest('A'), new PersonneDeTest('B')];
         $base = [

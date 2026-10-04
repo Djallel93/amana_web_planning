@@ -22,8 +22,7 @@ class CandidatureValideeNotification extends Notification
 
     public function __construct(
         private readonly string $resetUrl
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -38,7 +37,7 @@ class CandidatureValideeNotification extends Notification
             'host' => config('mail.mailers.' . config('mail.default') . '.host'),
         ]);
 
-        return $this->embedLogo(new MailMessage)
+        return $this->embedLogo(new MailMessage())
             ->subject('Bienvenue chez AMANA — Créez votre mot de passe')
             ->view('emails.candidature-validee', [
                 'prenom' => $notifiable->prenom,

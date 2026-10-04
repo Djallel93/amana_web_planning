@@ -28,8 +28,8 @@ use Tests\TestCase;
 
 class EvenementRegenerationServiceTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     protected function setUp(): void
     {

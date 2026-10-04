@@ -5,6 +5,8 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Planning;
 
+use App\Models\Evenement;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,7 +26,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class BanniereResource extends JsonResource
 {
     /**
-     * @param array{evenement: \App\Models\Evenement, informatif: bool, debut_semaine: \Carbon\CarbonInterface, fin_semaine: \Carbon\CarbonInterface} $resource
+     * @param array{evenement: Evenement, informatif: bool, debut_semaine: CarbonInterface, fin_semaine: CarbonInterface} $resource
      */
     public function __construct(array $resource)
     {
@@ -56,7 +58,7 @@ class BanniereResource extends JsonResource
      * l'ancien PlanningApiController::formatBanniereDate() /
      * _week-block.blade.php.
      *
-     * @param array{debut_semaine: \Carbon\CarbonInterface, fin_semaine: \Carbon\CarbonInterface} $banniere
+     * @param array{debut_semaine: CarbonInterface, fin_semaine: CarbonInterface} $banniere
      */
     private function formatDateLabel(array $banniere): string
     {

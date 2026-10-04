@@ -45,6 +45,7 @@ class CalendriersGoogleSeeder extends Seeder
 
             if (empty($calendarId)) {
                 $this->command?->warn("Variable d'environnement manquante pour « {$nom} » — calendrier ignoré.");
+
                 continue;
             }
 

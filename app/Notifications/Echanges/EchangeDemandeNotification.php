@@ -5,12 +5,10 @@ declare(strict_types=1);
 
 namespace App\Notifications\Echanges;
 
-use App\Models\Echange;
 use Amana\Shared\Notifications\Concerns\EmbedsLogo;
-
+use App\Models\Echange;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Notification envoyée à B quand A demande un échange.
@@ -22,8 +20,7 @@ class EchangeDemandeNotification extends Notification
 
     public function __construct(
         private readonly Echange $echange,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -32,7 +29,7 @@ class EchangeDemandeNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->embedLogo(new MailMessage)
+        return $this->embedLogo(new MailMessage())
             ->subject('Demande d\'échange de créneau — AMANA Planning')
             ->view('emails.echanges.demande', [
                 'echange' => $this->echange,

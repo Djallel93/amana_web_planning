@@ -5,9 +5,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use Amana\Shared\Models\AuditLog;
 use App\Helpers\AuditHelper;
+use App\Http\Controllers\Controller;
 use App\Models\Personne;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

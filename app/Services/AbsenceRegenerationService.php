@@ -28,8 +28,7 @@ class AbsenceRegenerationService
 {
     public function __construct(
         private readonly SchedulerMain $scheduler,
-    ) {
-    }
+    ) {}
 
     /**
      * Régénère automatiquement le planning si l'absence sauvegardée chevauche

@@ -13,12 +13,13 @@ use App\Models\Creneau;
 use App\Services\SchedulerMain;
 use App\Services\Statistics;
 use App\Services\WebhookPayloadBuilder;
-use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 /**
  * Contrôleur du module Planning.
@@ -47,8 +48,7 @@ class PlanningController extends Controller
         private readonly SchedulerMain $scheduler,
         private readonly Statistics $stats,
         private readonly WebhookPayloadBuilder $webhookBuilder,
-    ) {
-    }
+    ) {}
 
     /**
      * Affiche le planning.
@@ -67,8 +67,8 @@ class PlanningController extends Controller
      * Construit les bannières informatives à afficher dans les blocs semaine.
      */
     protected function buildBannièresInformatives(
-        \Illuminate\Support\Collection $tousEvenements,
-        \Illuminate\Support\Collection $creneauxParSemaine
+        Collection $tousEvenements,
+        Collection $creneauxParSemaine
     ): array {
         $bannières = [];
 
@@ -131,6 +131,7 @@ class PlanningController extends Controller
                 ->map(function ($groupe) {
                     $first = $groupe->first();
                     $last = $groupe->last();
+
                     return [
                         'label' => 'Semaine ' . $first->semaine,
                         'dates' => $first->date->locale('fr')->isoFormat('D MMM')
@@ -167,7 +168,7 @@ class PlanningController extends Controller
 
             audit('generate', 'planning', null, null, $resultat);
 
-            $payload = app(\App\Services\WebhookPayloadBuilder::class)
+            $payload = app(WebhookPayloadBuilder::class)
                 ->build($dateDebut, $semaines);
 
             // Relevé AVANT le dispatch : un code sans `calendar_<code>`
@@ -176,9 +177,9 @@ class PlanningController extends Controller
             // événement Google Calendar n'ait été créé pour les tâches
             // principales. On le dit explicitement à l'utilisateur plutôt
             // que de le laisser le découvrir dans Google Calendar.
-            $codesSansCalendrier = \App\Services\WebhookPayloadBuilder::codesSansCalendrier($payload);
+            $codesSansCalendrier = WebhookPayloadBuilder::codesSansCalendrier($payload);
 
-            \App\Jobs\SynchroniserGoogleCalendar::dispatch($payload, 'post');
+            SynchroniserGoogleCalendar::dispatch($payload, 'post');
 
             Log::info('[PlanningController] Synchronisation Google Calendar dispatchée en queue (POST).', [
                 'codes_sans_calendrier' => $codesSansCalendrier,
@@ -329,6 +330,7 @@ class PlanningController extends Controller
     public function rollbackDismiss(): RedirectResponse
     {
         session()->forget('last_generated_creneaux');
+
         return redirect()->route('planning.generate.form')
             ->with('success', 'Planning conservé. Session de rollback fermée.');
     }
@@ -349,7 +351,7 @@ class PlanningController extends Controller
             ->get()
             ->groupBy(fn($c) => $c->date->isoWeek() . '-' . $c->date->year);
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('planning.pdf', compact('creneaux', 'dateDebut', 'dateFin'))
+        $pdf = Pdf::loadView('planning.pdf', compact('creneaux', 'dateDebut', 'dateFin'))
             ->setPaper('a4', 'landscape')
             ->setOptions([
                 'isHtml5ParserEnabled' => true,
@@ -365,6 +367,7 @@ class PlanningController extends Controller
     public function statistics(): View
     {
         $stats = $this->stats->computeAll();
+
         return view('statistics.index', compact('stats'));
     }
 }

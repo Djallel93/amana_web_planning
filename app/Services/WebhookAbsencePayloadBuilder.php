@@ -5,9 +5,9 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Amana\Shared\Models\Setting;
 use App\Helpers\GoogleCalendarColors;
 use App\Models\Absence;
-use Amana\Shared\Models\Setting;
 
 /**
  * Construit le payload consommé par SynchroniserGoogleCalendar pour les
@@ -103,6 +103,7 @@ class WebhookAbsencePayloadBuilder
     private function calendarId(): ?string
     {
         $valeur = Setting::get('calendar_absence', 'planning');
+
         return $valeur !== null && $valeur !== '' ? (string) $valeur : null;
     }
 

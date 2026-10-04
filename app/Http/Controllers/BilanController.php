@@ -12,8 +12,10 @@ use App\Http\Resources\Bilan\BilanSerieResource;
 use App\Models\Bilan;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
+use App\Models\Personne;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -85,7 +87,7 @@ class BilanController extends Controller
      */
     public function storeAmanaFood(StoreBilanAmanaFoodRequest $request): JsonResponse
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         $date   = $request->validated('date');
@@ -129,7 +131,7 @@ class BilanController extends Controller
      */
     public function storePresence(StoreBilanPresenceRequest $request): JsonResponse
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         $date     = $request->validated('date');
@@ -178,7 +180,7 @@ class BilanController extends Controller
             'date' => ['required', 'date'],
         ]);
 
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
         $date = $request->input('date');
 
@@ -228,7 +230,7 @@ class BilanController extends Controller
             'date' => ['required', 'date'],
         ]);
 
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
         $date = $request->input('date');
 
@@ -379,7 +381,7 @@ class BilanController extends Controller
      * Retourne la date et la valeur du bilan maximisant $accessor, ou null
      * si la collection est vide.
      *
-     * @param \Illuminate\Support\Collection<int, Bilan> $bilans
+     * @param Collection<int, Bilan> $bilans
      * @param \Closure(Bilan): float $accessor
      */
     private function meilleureDate($bilans, \Closure $accessor): ?array

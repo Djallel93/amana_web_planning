@@ -5,9 +5,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\Creneau;
-use App\Models\CreneauTache;
 use App\Models\Absence;
+use App\Models\CreneauTache;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -51,7 +50,7 @@ class Statistics
         }
 
         foreach ($lignes as $ligne) {
-            if (! $ligne->personne || ! $ligne->tache || ! $ligne->creneau) {
+            if (!$ligne->personne || !$ligne->tache || !$ligne->creneau) {
                 continue;
             }
 
@@ -80,8 +79,12 @@ class Statistics
 
             // Compteurs par jour
             $dayCounts[$nom] ??= ['vendredis' => 0, 'samedis' => 0];
-            if ($jour === 'Vendredi') $dayCounts[$nom]['vendredis']++;
-            if ($jour === 'Samedi')   $dayCounts[$nom]['samedis']++;
+            if ($jour === 'Vendredi') {
+                $dayCounts[$nom]['vendredis']++;
+            }
+            if ($jour === 'Samedi') {
+                $dayCounts[$nom]['samedis']++;
+            }
 
             // Jours de travail (pour calcul consécutifs)
             $workDays[$nom][] = $dateIdx;
@@ -155,8 +158,8 @@ class Statistics
 
         // Distribution amana_food
         $amanaFoodCounts = array_map(fn($t) => $t['amana_food'] ?? 0, $tasksByPerson);
-        $minAmana = ! empty($amanaFoodCounts) ? min($amanaFoodCounts) : 0;
-        $maxAmana = ! empty($amanaFoodCounts) ? max($amanaFoodCounts) : 0;
+        $minAmana = !empty($amanaFoodCounts) ? min($amanaFoodCounts) : 0;
+        $maxAmana = !empty($amanaFoodCounts) ? max($amanaFoodCounts) : 0;
         $avgAmana = $nbPersonnes > 0 ? array_sum($amanaFoodCounts) / $nbPersonnes : 0;
 
         // Score d'équité global (même formule que Statistics.js)
@@ -183,8 +186,8 @@ class Statistics
             'totalTasks'            => $totalTasks,
             'nbPersonnes'           => $nbPersonnes,
             'moyenneTaches'         => round($moyenne, 1),
-            'minTaches'             => ! empty($valeurs) ? min($valeurs) : 0,
-            'maxTaches'             => ! empty($valeurs) ? max($valeurs) : 0,
+            'minTaches'             => !empty($valeurs) ? min($valeurs) : 0,
+            'maxTaches'             => !empty($valeurs) ? max($valeurs) : 0,
             'ecartType'             => round($ecartType, 2),
             'coefficientVariation'  => round($coeffVariation, 1),
             'desequilibreMoyen'     => round($desequilibreMoyen, 1),
@@ -192,7 +195,7 @@ class Statistics
             'minAmanaFood'          => $minAmana,
             'maxAmanaFood'          => $maxAmana,
             'avgAmanaFood'          => round($avgAmana, 1),
-            'maxConsecutif'         => ! empty($consecutiveDays) ? max($consecutiveDays) : 0,
+            'maxConsecutif'         => !empty($consecutiveDays) ? max($consecutiveDays) : 0,
             'persAvecHautConsec'    => $persAvecHautConsec,
             'totalAbsenceDays'      => array_sum($absenceDays),
             'nbPersonnesAbsentes'   => count($absenceDays),
@@ -214,13 +217,18 @@ class Statistics
             if (in_array($current->dayOfWeek, [5, 6], true)) {
                 $dateStr = $current->toDateString();
                 $absent  = $absences->contains(function ($a) use ($nom, $dateStr) {
-                    if (! $a->personne) return false;
+                    if (!$a->personne) {
+                        return false;
+                    }
                     $nomAbs = $a->personne->nom . ' ' . $a->personne->prenom;
+
                     return $nomAbs === $nom
                         && $a->date_debut->toDateString() <= $dateStr
                         && $a->date_fin->toDateString() >= $dateStr;
                 });
-                if ($absent) $count++;
+                if ($absent) {
+                    $count++;
+                }
             }
             $current->addDay();
         }

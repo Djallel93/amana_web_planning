@@ -5,8 +5,8 @@ declare(strict_types=1);
 
 namespace App\Notifications;
 
-use App\Models\Personne;
 use Amana\Shared\Notifications\Concerns\EmbedsLogo;
+use App\Models\Personne;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
@@ -27,8 +27,7 @@ class NouveauMembreNotification extends Notification
 
     public function __construct(
         private readonly Personne $candidat
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -50,7 +49,7 @@ class NouveauMembreNotification extends Notification
             'host' => config('mail.mailers.' . config('mail.default') . '.host'),
         ]);
 
-        return $this->embedLogo(new MailMessage)
+        return $this->embedLogo(new MailMessage())
             ->subject(
                 'Nouvelle candidature — '
                 . $candidat->prenom . ' '

@@ -41,6 +41,7 @@ use Illuminate\Support\Facades\DB;
 class EvenementCsvImporter
 {
     private const DELIMITER = ';';
+
     private const SUB_DELIMITER = '|';
 
     /** @var array<string, int> code ref_taches => id */
@@ -109,6 +110,7 @@ class EvenementCsvImporter
 
             if (!empty($erreursLigne)) {
                 $errors[] = ['ligne' => $numeroLigne, 'erreurs' => $erreursLigne];
+
                 continue;
             }
 
@@ -232,6 +234,7 @@ class EvenementCsvImporter
                 }
                 if (!isset($this->tacheIdsParCode[$code])) {
                     $erreurs[] = "Code tâche inconnu « {$code} ».";
+
                     continue;
                 }
                 $tacheIds[] = $this->tacheIdsParCode[$code];
@@ -250,6 +253,7 @@ class EvenementCsvImporter
                 $cle = mb_strtolower($nomCalendrier);
                 if (!isset($this->calendarIdsParNom[$cle])) {
                     $erreurs[] = "Calendrier inconnu « {$nomCalendrier} ».";
+
                     continue;
                 }
                 $id = $this->calendarIdsParNom[$cle];

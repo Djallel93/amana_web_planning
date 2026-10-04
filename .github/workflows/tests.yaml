@@ -79,6 +79,12 @@ jobs:
       - name: PHPStan (niveau configuré dans phpstan.neon)
         run: composer analyse
 
+      - name: Pint (mise en forme PHP)
+        run: composer format:check
+
+      - name: Prettier (mise en forme frontend)
+        run: npm run format:check
+
       - name: ESLint
         run: npm run lint
 

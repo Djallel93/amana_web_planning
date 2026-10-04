@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,10 +25,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string      $statut  en_attente|accepte|refuse|expire|annule
  * @property string      $token_accept
  * @property string      $token_refuse
- * @property \Carbon\Carbon $expires_at
+ * @property Carbon $expires_at
  * @property int|null    $approuve_par
- * @property \Carbon\Carbon $created_at
- * @property \Carbon\Carbon $updated_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class Echange extends Model
 {
@@ -56,9 +57,13 @@ class Echange extends Model
     // ── Statuts ────────────────────────────────────────────────────────────
 
     const STATUT_EN_ATTENTE = 'en_attente';
+
     const STATUT_ACCEPTE    = 'accepte';
+
     const STATUT_REFUSE     = 'refuse';
+
     const STATUT_EXPIRE     = 'expire';
+
     const STATUT_ANNULE     = 'annule';
 
     // ── Relations ──────────────────────────────────────────────────────────
@@ -143,7 +148,7 @@ class Echange extends Model
     {
         return $query->where(function ($q) use ($personneId) {
             $q->where('id_personne_demandeur', $personneId)
-              ->orWhere('id_personne_cible', $personneId);
+                ->orWhere('id_personne_cible', $personneId);
         });
     }
 }

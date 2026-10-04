@@ -17,6 +17,7 @@ use Illuminate\Console\Command;
 class ExpirerEchanges extends Command
 {
     protected $signature   = 'amana:expire-echanges';
+
     protected $description = 'Expire les demandes d\'échange de créneaux dont la date est passée sans réponse.';
 
     public function __construct(

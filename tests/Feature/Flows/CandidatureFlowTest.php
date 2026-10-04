@@ -20,7 +20,9 @@ use App\Notifications\NouveauMembreNotification;
 use App\Services\GoogleCalendarService;
 use App\Services\RoleService;
 use Database\Factories\TacheFactory;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\ConnecteParRole;
 use Tests\Concerns\CreeDonneesPlanning;
 use Tests\Concerns\RefreshesBothDatabases;
@@ -30,9 +32,9 @@ use Tests\TestCase;
 
 class CandidatureFlowTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     protected function setUp(): void
     {
@@ -164,7 +166,8 @@ class CandidatureFlowTest extends TestCase
     public function test_un_echec_d_envoi_de_la_notification_n_empeche_pas_l_enregistrement(): void
     {
         Personne::factory()->admin()->create();
-        Notification::swap(new class {
+        Notification::swap(new class
+        {
             public function send(...$args): void
             {
                 throw new \RuntimeException('serveur SMTP indisponible');
@@ -213,7 +216,7 @@ class CandidatureFlowTest extends TestCase
     }
 
     /** @dataProvider formulairesInvalides */
-    #[\PHPUnit\Framework\Attributes\DataProvider('formulairesInvalides')]
+    #[DataProvider('formulairesInvalides')]
     public function test_un_formulaire_invalide_ne_cree_rien(array $surcharge, string $champ): void
     {
         $this->post(route('inscription.submit'), $this->formulaire($surcharge))->assertSessionHasErrors($champ);
@@ -285,7 +288,7 @@ class CandidatureFlowTest extends TestCase
     {
         $p = Personne::factory()->enAttente()->create();
         $this->connecterEn('admin');
-        \Illuminate\Support\Facades\DB::connection('commun')->table('ref_roles')->where('code', 'gestionnaire')->delete();
+        DB::connection('commun')->table('ref_roles')->where('code', 'gestionnaire')->delete();
 
         $this->post(route('admin.candidatures.valider', $p->id), ['role' => 'gestionnaire'])
             ->assertSessionHas('success', fn(string $m) => str_contains($m, 'rôle : gestionnaire'));
@@ -352,7 +355,7 @@ class CandidatureFlowTest extends TestCase
 
         Notification::assertSentTo($p, CandidatureValideeDejaInscritNotification::class);
         Notification::assertNotSentTo($p, CandidatureValideeNotification::class);
-        $this->assertSame(0, \Illuminate\Support\Facades\DB::table('password_reset_tokens')->count(), 'aucun jeton créé');
+        $this->assertSame(0, DB::table('password_reset_tokens')->count(), 'aucun jeton créé');
     }
 
     public function test_valider_exige_un_role_parmi_admin_gestionnaire_membre(): void
@@ -393,7 +396,8 @@ class CandidatureFlowTest extends TestCase
     {
         $p = $this->candidater();
         $this->connecterEn('admin');
-        Notification::swap(new class {
+        Notification::swap(new class
+        {
             public function send(...$args): void
             {
                 throw new \RuntimeException('serveur SMTP indisponible');

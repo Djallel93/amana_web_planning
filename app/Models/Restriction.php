@@ -20,6 +20,7 @@ class Restriction extends Model
     use HasFactory;
 
     protected $table = 'plan_restrictions';
+
     public $timestamps = false;
 
     /**
@@ -45,7 +46,7 @@ class Restriction extends Model
     ];
 
     // Valeurs autorisées pour le champ 'jour'
-    const JOURS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+    const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
 
     /** @return BelongsTo<Personne, $this> */
     public function personne(): BelongsTo

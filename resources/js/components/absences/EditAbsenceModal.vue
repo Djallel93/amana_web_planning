@@ -59,16 +59,10 @@ const dateFin = ref("");
 const raison = ref("");
 const submitting = ref(false);
 
-const personneActuelle = computed(
-    () => personnes.find((p) => p.id === idPersonne.value) ?? null,
-);
+const personneActuelle = computed(() => personnes.find((p) => p.id === idPersonne.value) ?? null);
 
 const canSubmit = computed(
-    () =>
-        idPersonne.value !== null &&
-        dateDebut.value !== "" &&
-        dateFin.value !== "" &&
-        !submitting.value,
+    () => idPersonne.value !== null && dateDebut.value !== "" && dateFin.value !== "" && !submitting.value,
 );
 
 // ── Suivi des modifications non enregistrées ──────────────────────────────
@@ -88,10 +82,7 @@ watch([idPersonne, dateDebut, dateFin, raison], () => {
 
 // ── CSRF ──────────────────────────────────────────────────────────────────
 function getCsrf(): string {
-    return (
-        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-            ?.content ?? ""
-    );
+    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? "";
 }
 
 // ── Ouverture ─────────────────────────────────────────────────────────────
@@ -125,23 +116,20 @@ async function submit(): Promise<void> {
     submitting.value = true;
 
     try {
-        const res = await fetch(
-            `${window.AbsencesConfig.routeUpdateBase}/${modal.data.value.id}`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": getCsrf(),
-                    Accept: "application/json",
-                },
-                body: JSON.stringify({
-                    id_personne: idPersonne.value,
-                    date_debut: dateDebut.value,
-                    date_fin: dateFin.value,
-                    raison: raison.value || null,
-                }),
+        const res = await fetch(`${window.AbsencesConfig.routeUpdateBase}/${modal.data.value.id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": getCsrf(),
+                Accept: "application/json",
             },
-        );
+            body: JSON.stringify({
+                id_personne: idPersonne.value,
+                date_debut: dateDebut.value,
+                date_fin: dateFin.value,
+                raison: raison.value || null,
+            }),
+        });
 
         const data = (await res.json()) as {
             success: boolean;
@@ -169,8 +157,7 @@ async function submit(): Promise<void> {
 async function requestClose(): Promise<void> {
     if (dirty.value) {
         const ok = await ask({
-            message:
-                "Des modifications non enregistrées seront perdues. Fermer quand même ?",
+            message: "Des modifications non enregistrées seront perdues. Fermer quand même ?",
         });
         if (!ok) return;
     }
@@ -202,27 +189,17 @@ window.openEditAbsenceModal = (btn: HTMLElement) => {
 </script>
 
 <template>
-    <Modal :open="modal.isOpen.value" @close="requestClose" max-width="max-w-md">
+    <Modal :open="modal.isOpen.value" max-width="max-w-md" @close="requestClose">
         <template #header>
-            <div
-                class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
-            >
-                ✏️
-            </div>
-            <span
-                class="font-heading text-[14px] font-semibold text-ink flex-1"
-            >
-                Modifier l'absence
-            </span>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">✏️</div>
+            <span class="font-heading text-[14px] font-semibold text-ink flex-1"> Modifier l'absence </span>
         </template>
 
         <div class="flex flex-col gap-4">
             <!-- Personne -->
             <div class="flex flex-col gap-1.5">
                 <label class="text-xs font-bold text-ink tracking-[0.2px]">
-                    <template v-if="isPrivileged"
-                        >Personne <span class="text-rose-500">*</span></template
-                    >
+                    <template v-if="isPrivileged">Personne <span class="text-rose-500">*</span></template>
                     <template v-else>Membre</template>
                 </label>
 
@@ -231,9 +208,7 @@ window.openEditAbsenceModal = (btn: HTMLElement) => {
                     v-model="idPersonne"
                     class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] cursor-pointer"
                 >
-                    <option v-for="p in personnes" :key="p.id" :value="p.id">
-                        {{ p.prenom }} {{ p.nom }}
-                    </option>
+                    <option v-for="p in personnes" :key="p.id" :value="p.id">{{ p.prenom }} {{ p.nom }}</option>
                 </select>
                 <div
                     v-else
@@ -245,32 +220,28 @@ window.openEditAbsenceModal = (btn: HTMLElement) => {
 
             <!-- Date début -->
             <div class="flex flex-col gap-1.5">
-                <label
-                    for="edit_date_debut"
-                    class="text-xs font-bold text-ink tracking-[0.2px]"
+                <label for="edit_date_debut" class="text-xs font-bold text-ink tracking-[0.2px]"
                     >Début <span class="text-rose-500">*</span></label
                 >
                 <input
                     id="edit_date_debut"
-                    type="date"
                     v-model="dateDebut"
+                    type="date"
                     required
-                    @change="onDateDebutChange"
                     class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    @change="onDateDebutChange"
                 />
             </div>
 
             <!-- Date fin -->
             <div class="flex flex-col gap-1.5">
-                <label
-                    for="edit_date_fin"
-                    class="text-xs font-bold text-ink tracking-[0.2px]"
+                <label for="edit_date_fin" class="text-xs font-bold text-ink tracking-[0.2px]"
                     >Fin <span class="text-rose-500">*</span></label
                 >
                 <input
                     id="edit_date_fin"
-                    type="date"
                     v-model="dateFin"
+                    type="date"
                     required
                     :min="dateDebut"
                     class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
@@ -279,17 +250,14 @@ window.openEditAbsenceModal = (btn: HTMLElement) => {
 
             <!-- Raison -->
             <div class="flex flex-col gap-1.5">
-                <label
-                    for="edit_raison"
-                    class="text-xs font-bold text-ink tracking-[0.2px]"
-                >
+                <label for="edit_raison" class="text-xs font-bold text-ink tracking-[0.2px]">
                     Raison
                     <span class="text-ink-muted font-normal">(optionnel)</span>
                 </label>
                 <input
                     id="edit_raison"
-                    type="text"
                     v-model="raison"
+                    type="text"
                     maxlength="255"
                     placeholder="Vacances, maladie, congé…"
                     class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"

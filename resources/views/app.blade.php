@@ -59,7 +59,7 @@ fois plusieurs pages migrées.
     cette app ne fait pas de SSR — voir docs Inertia, "Server-Side Setup").
     Remplace @yield('title', ...) : le titre de la page migrée est défini
     via le composant <Head title="..."> (@inertiajs/vue3) dans
-    Guide/Index.vue plutôt que via @section('title', ...).
+    Guide/GuideIndex.vue plutôt que via @section('title', ...).
     --}}
     @inertiaHead
 </head>

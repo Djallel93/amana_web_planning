@@ -37,6 +37,7 @@ use Illuminate\Support\Carbon;
 class TestBilansSeeder extends Seeder
 {
     private const NB_SEMAINES = 12;
+
     private const JOURS = [5, 6]; // Carbon: 5 = Vendredi, 6 = Samedi
 
     public function run(): void
@@ -47,6 +48,7 @@ class TestBilansSeeder extends Seeder
             $this->command->warn(
                 'Pas assez de personnes "Validé" en base — lancez d\'abord TestPersonnesSeeder.'
             );
+
             return;
         }
 
@@ -56,6 +58,7 @@ class TestBilansSeeder extends Seeder
             $this->command->warn(
                 'Tâches amana_food / mektaba introuvables — lancez d\'abord DatabaseSeeder.'
             );
+
             return;
         }
 

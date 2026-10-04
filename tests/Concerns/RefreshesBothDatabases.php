@@ -19,6 +19,7 @@ declare(strict_types=1);
 
 namespace Tests\Concerns;
 
+use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Artisan;
@@ -36,13 +37,13 @@ trait RefreshesBothDatabases
     {
         $this->refuserBasesQuiNeSontPasDeTest();
 
-        if (! RefreshDatabaseState::$migrated) {
+        if (!RefreshDatabaseState::$migrated) {
             // Artisan::call() et non $this->artisan() : ce dernier passe par PendingCommand, qui
             // exige Mockery — absent des require-dev de ce projet.
             Artisan::call('migrate:fresh', ['--force' => true]);
             Artisan::call('amana:migrate-shared', ['--fresh' => true, '--force' => true]);
 
-            $this->app[\Illuminate\Contracts\Console\Kernel::class]->setArtisan(null);
+            $this->app[Kernel::class]->setArtisan(null);
 
             RefreshDatabaseState::$migrated = true;
         }
@@ -90,10 +91,10 @@ trait RefreshesBothDatabases
         foreach ([config('database.default'), 'commun'] as $connexion) {
             $base = (string) config("database.connections.{$connexion}.database");
 
-            if (! str_ends_with($base, '_test')) {
+            if (!str_ends_with($base, '_test')) {
                 throw new RuntimeException(
                     "Refus de lancer les tests : la connexion '{$connexion}' vise '{$base}', "
-                    . "qui ne finit pas par _test. Voir phpunit.xml et tests/README.md."
+                    . 'qui ne finit pas par _test. Voir phpunit.xml et tests/README.md.'
                 );
             }
         }

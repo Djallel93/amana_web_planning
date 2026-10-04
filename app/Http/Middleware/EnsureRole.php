@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\Personne;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +39,7 @@ class EnsureRole
 {
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        /** @var \App\Models\Personne $personne */
+        /** @var Personne $personne */
         $personne = Auth::user();
 
         $autorise = match ($role) {

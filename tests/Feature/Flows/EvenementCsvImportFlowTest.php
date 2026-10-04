@@ -11,22 +11,18 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Flows;
 
-use Amana\Shared\Models\AuditLog;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Evenement;
-use App\Services\SchedulerMain;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\Group;
 use Tests\Concerns\PrepareImportEvenements;
 use Tests\Concerns\RefreshesBothDatabases;
 use Tests\TestCase;
 
 class EvenementCsvImportFlowTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use PrepareImportEvenements;
+    use RefreshesBothDatabases;
 
     protected function setUp(): void
     {

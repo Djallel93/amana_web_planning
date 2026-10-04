@@ -5,13 +5,13 @@
 // les pièges classiques de Vue, pas imposer un style (Airbnb, Standard…)
 // différent de l'existant.
 //
-// ── Pourquoi pas de règles de style (indent/quotes/semi) ────────────────
-// Le dépôt a déjà .editorconfig (4 espaces, LF, UTF-8) comme source de
-// vérité pour l'indentation — activer en plus des règles ESLint
-// stylistiques dupliquerait ce rôle et risquerait d'entrer en conflit
-// (ESLint et .editorconfig ne se parlent pas). On choisit .editorconfig
-// comme seule source de vérité pour le formatage ; ESLint se concentre
-// sur les bugs et les anti-patterns Vue/TS.
+// ── Pas de règles de style dans ESLint : Prettier s'en charge ───────────
+// La mise en forme (indentation, guillemets, longueur de ligne, retours à la
+// ligne des templates…) est déléguée à Prettier (.prettierrc.json ; il lit
+// aussi .editorconfig pour l'indentation et les fins de ligne). ESLint ne
+// garde que les bugs et les anti-patterns Vue/TS. `eslint-config-prettier`,
+// placé en dernier dans la configuration, désactive les règles ESLint qui
+// entreraient en conflit avec Prettier : pas besoin de les lister à la main.
 //
 // ── Pourquoi "flat/recommended" et pas "flat/strict" ─────────────────────
 // Ce dépôt n'a aucun historique de lint : partir de "strict" ferait
@@ -28,11 +28,18 @@
 // (remplacer tseslint.configs.recommended par
 // tseslint.configs.recommendedTypeChecked et ajouter
 // languageOptions.parserOptions.project).
+//
+// ── Pas de règle coupée pour « faire passer » le lint ────────────────────
+// Aucune règle n'est désactivée à la main (ni ici, ni par eslint-disable) :
+// on corrige le code. Seules les règles de mise en forme en conflit avec
+// Prettier sont coupées, automatiquement, par eslint-config-prettier.
+// Conventions et cas pratiques : docs/frontend-conventions.md.
 import js from "@eslint/js";
 import pluginVue from "eslint-plugin-vue";
 import tseslint from "typescript-eslint";
 import vueParser from "vue-eslint-parser";
 import globals from "globals";
+import eslintConfigPrettier from "eslint-config-prettier/flat";
 
 export default tseslint.config(
     {
@@ -51,25 +58,6 @@ export default tseslint.config(
             globals: {
                 ...globals.browser,
             },
-        },
-        rules: {
-            // ── Désactivées : mise en forme, pas des bugs ───────────────
-            // pluginVue.configs["flat/recommended"] active par défaut
-            // plusieurs règles purement cosmétiques dont le réglage par
-            // défaut (indentation 2 espaces) contredit .editorconfig
-            // (4 espaces, déjà en place dans tout le code existant). Comme
-            // documenté en tête de fichier, .editorconfig reste la seule
-            // source de vérité pour le formatage — on désactive ces
-            // règles plutôt que de les reconfigurer en double, pour ne
-            // pas avoir deux systèmes à maintenir en synchronisation.
-            "vue/html-indent": "off",
-            "vue/html-closing-bracket-newline": "off",
-            "vue/max-attributes-per-line": "off",
-            "vue/html-self-closing": "off",
-            "vue/attributes-order": "off",
-            "vue/singleline-html-element-content-newline": "off",
-            "vue/multiline-html-element-content-newline": "off",
-            "vue/first-attribute-linebreak": "off",
         },
     },
 
@@ -93,4 +81,6 @@ export default tseslint.config(
             },
         },
     },
+
+    eslintConfigPrettier,
 );

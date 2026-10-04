@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Authorization;
 
+use Amana\Shared\Models\AuditLog;
 use App\Models\Personne;
 use App\Models\Restriction;
 use Database\Factories\TacheFactory;
@@ -19,9 +20,9 @@ use Tests\TestCase;
 
 class RestrictionsAuthorizationTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     /** @return array<string, array{string}> */
     public static function nonPrivilegies(): array
@@ -122,7 +123,7 @@ class RestrictionsAuthorizationTest extends TestCase
 
         $this->post(route('restrictions.update'));
 
-        $entree = \Amana\Shared\Models\AuditLog::where('module', 'restrictions')->firstOrFail();
+        $entree = AuditLog::where('module', 'restrictions')->firstOrFail();
         $this->assertSame('Grille complète mise à jour par admin', $entree->after['message']);
     }
 

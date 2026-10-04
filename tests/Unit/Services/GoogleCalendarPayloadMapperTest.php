@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services;
 
 use App\Services\GoogleCalendarPayloadMapper;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use Tests\Support\LogEnregistre;
@@ -167,7 +168,7 @@ class GoogleCalendarPayloadMapperTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('initiales')]
+    #[DataProvider('initiales')]
     public function test_planning_initiales_du_titre(string $assigne, string $initiales): void
     {
         $ops = $this->mapper()->mapPlanning(['creneaux' => [$this->creneau([$this->ligne(['assigne' => $assigne])])]]);

@@ -106,8 +106,7 @@ class RotationEngine
         }
 
         $minCycle = collect($cycles)->filter(
-            fn($c, $nom) =>
-            $eligibles->contains(fn($p) => $this->nomCle($p) === $nom)
+            fn($c, $nom) => $eligibles->contains(fn($p) => $this->nomCle($p) === $nom)
         )->min();
 
         $candidats = [];

@@ -7,6 +7,7 @@ declare(strict_types=1);
 use Amana\Shared\Http\Middleware\EnsureAuthenticated;
 use Amana\Shared\Http\Middleware\EnsureRole;
 use App\Http\Middleware\HandleInertiaRequests;
+use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -38,7 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth' => EnsureAuthenticated::class,
             'role' => EnsureRole::class,
-            'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+            'verified' => EnsureEmailIsVerified::class,
         ]);
 
         // ── Inertia (spike route-par-route — voir resources/js/Pages/) ──────

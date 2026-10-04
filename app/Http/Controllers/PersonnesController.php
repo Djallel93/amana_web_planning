@@ -19,8 +19,7 @@ class PersonnesController extends Controller
     public function __construct(
         private readonly RoleService $roleService,
         private readonly AccountChangeNotifier $notifier,
-    ) {
-    }
+    ) {}
 
     // ── CRUD ──────────────────────────────────────────────────────────────
 
@@ -40,7 +39,7 @@ class PersonnesController extends Controller
                 // "Membre").
                 $q->whereHas('application', fn($q2) => $q2->where('code', 'planning'))
                     ->orderByRaw("FIELD(ref_roles.code, 'admin', 'gestionnaire', 'membre', 'benevole')");
-            }
+            },
         ])
             ->orderBy('nom')
             ->orderBy('prenom')
@@ -119,7 +118,7 @@ class PersonnesController extends Controller
         if (mb_strtolower($ancienEmail) !== mb_strtolower((string) $personne->email)) {
             $prevenus = $this->notifier->emailChanged($personne, $ancienEmail, (string) $personne->email, parAdministrateur: true);
 
-            if (! $prevenus) {
+            if (!$prevenus) {
                 $retour->with('warning', AccountChangeNotifier::AVERTISSEMENT_ECHEC);
             }
         }

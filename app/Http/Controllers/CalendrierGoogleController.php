@@ -37,8 +37,7 @@ class CalendrierGoogleController extends Controller
 {
     public function __construct(
         private readonly GoogleCalendarService $google,
-    ) {
-    }
+    ) {}
 
     /**
      * Ajoute un calendrier au registre, après validation de l'accès via
@@ -67,6 +66,7 @@ class CalendrierGoogleController extends Controller
                 'calendar_id' => $data['calendar_id'],
                 'error' => $e->getMessage(),
             ]);
+
             return back()->withInput()->with('error', 'Erreur inattendue lors de la vérification : ' . $e->getMessage());
         }
 

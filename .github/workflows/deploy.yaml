@@ -23,7 +23,8 @@ concurrency:
 
 jobs:
   # Porte de qualité : tout ce qui suit (build, deploy) en dépend. Un test,
-  # un lint, un type-check ou une analyse PHPStan en échec bloque le déploiement.
+  # un lint, un type-check, une analyse PHPStan ou un contrôle de style (Pint,
+  # Prettier) en échec bloque le déploiement.
   # Définie dans tests.yaml (partagée avec ci.yaml et le déploiement preprod).
   # Voir tests/README.md pour la stratégie base de données.
   test:

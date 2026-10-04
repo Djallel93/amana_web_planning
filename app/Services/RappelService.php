@@ -43,7 +43,9 @@ use Illuminate\Support\Facades\Log;
 class RappelService
 {
     private const TYPE_3_JOURS = '3_jours';
+
     private const TYPE_JOUR_J = 'jour_j';
+
     private const TYPE_3H_AVANT = '3h_avant';
 
     /** Fenêtre de tolérance pour le rappel "3h avant" — doit couvrir l'intervalle entre deux exécutions (15 min) sans trou ni chevauchement double-comptage (la dédup sur plan_rappels_envoyes absorbe un éventuel chevauchement). */
@@ -53,8 +55,7 @@ class RappelService
 
     public function __construct(
         private readonly WebhookPayloadBuilder $builder,
-    ) {
-    }
+    ) {}
 
     /**
      * Envoie les rappels "3 jours avant" (pour la date J+3) et "jour J"
@@ -147,6 +148,7 @@ class RappelService
         $idTache = $this->resolveTacheId($item['code']);
         if ($idTache === null) {
             Log::warning('[RappelService] Code de tâche inconnu — rappel ignoré.', ['code' => $item['code']]);
+
             return false;
         }
 
@@ -156,6 +158,7 @@ class RappelService
                 'email' => $item['email'],
                 'code' => $item['code'],
             ]);
+
             return false;
         }
 
@@ -179,6 +182,7 @@ class RappelService
                 'type' => $type,
                 'erreur' => $e->getMessage(),
             ]);
+
             return false;
         }
 

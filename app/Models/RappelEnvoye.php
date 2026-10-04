@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 class RappelEnvoye extends Model
 {
     protected $table = 'plan_rappels_envoyes';
+
     public $timestamps = false;
 
     protected $fillable = [

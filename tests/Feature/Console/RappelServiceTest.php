@@ -15,12 +15,14 @@ namespace Tests\Feature\Console;
 
 use App\Models\Personne;
 use App\Models\RappelEnvoye;
+use App\Models\Tache;
 use App\Notifications\RappelCreneauNotification;
 use App\Services\RappelService;
 use Carbon\Carbon;
 use Database\Factories\TacheFactory;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Notification;
+use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionProperty;
 use Tests\Concerns\CreeDonneesPlanning;
 use Tests\Concerns\RefreshesBothDatabases;
@@ -29,12 +31,13 @@ use Tests\TestCase;
 
 class RappelServiceTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private const VENDREDI = '2026-10-02';
 
     private Personne $entree;
+
     private Personne $amana;
 
     protected function setUp(): void
@@ -179,7 +182,7 @@ class RappelServiceTest extends TestCase
      */
     public function test_un_evenement_special_sans_ligne_dans_ref_taches_est_ignore(): void
     {
-        \App\Models\Tache::whereIn('code', ['rappel_sandwich', 'assistance_amana_food'])->delete();
+        Tache::whereIn('code', ['rappel_sandwich', 'assistance_amana_food'])->delete();
         $this->maintenant('2026-10-02 08:00:00');
 
         $this->assertSame(2, $this->service()->envoyerRappelsQuotidiens()['jour_j']);
@@ -188,7 +191,8 @@ class RappelServiceTest extends TestCase
     public function test_un_echec_d_envoi_ne_memorise_rien_et_sera_retente(): void
     {
         $this->maintenant('2026-09-29 08:00:00');
-        Notification::swap(new class {
+        Notification::swap(new class
+        {
             public function send(...$a): void
             {
                 throw new \RuntimeException('SMTP indisponible');
@@ -227,7 +231,7 @@ class RappelServiceTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('instantsAutourDeLaFenetre')]
+    #[DataProvider('instantsAutourDeLaFenetre')]
     public function test_la_fenetre_de_trois_heures_avant_dure_quinze_minutes_bornes_incluses(string $instant, int $attendus): void
     {
         $this->maintenant($instant);

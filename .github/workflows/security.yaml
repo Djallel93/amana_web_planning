@@ -1,0 +1,61 @@
+name: Security audit
+
+# Audit hebdomadaire des dépendances contre les failles connues (CVE / GHSA).
+#
+# Volontairement SÉPARÉ de la porte de qualité (tests.yaml) : une faille
+# publiée demain ne doit pas bloquer le déploiement d'un changement sans
+# rapport. Ici, un échec = « une dépendance a une faille connue », signalé par
+# un workflow en échec (e-mail GitHub) sans toucher aux déploiements.
+#
+# Lancement manuel possible : onglet Actions > Security audit > Run workflow.
+# Les mêmes commandes tournent en local : voir docs/security.md.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # chaque lundi, 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  composer-audit:
+    name: composer audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          tools: composer:2
+          coverage: none
+
+      # --locked : audite composer.lock sans rien installer (donc sans accès
+      # aux dépôts amana/*). Les paquets abandonnés sont signalés sans faire
+      # échouer le job.
+      - name: composer audit
+        run: composer audit --locked --abandoned=report --no-interaction
+
+  npm-audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      # Dépendances de PRODUCTION : seules celles-ci font échouer le job.
+      - name: npm audit (production)
+        run: npm audit --omit=dev --audit-level=high
+
+      # Dépendances de développement (outils de build, jamais déployées) :
+      # affichées pour information, sans faire échouer le job.
+      - name: npm audit (développement, informatif)
+        continue-on-error: true
+        run: npm audit --audit-level=high

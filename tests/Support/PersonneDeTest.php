@@ -30,7 +30,7 @@ class PersonneDeTest
 
     public function peutFaireTache(int $idTache, string $jour): bool
     {
-        return ! in_array($jour, $this->interdits[$idTache] ?? [], true);
+        return !in_array($jour, $this->interdits[$idTache] ?? [], true);
     }
 
     /** Clé « nom prenom » utilisée par RotationEngine / DataLoader. */

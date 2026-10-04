@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -25,18 +26,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * réservé aux rôles gestionnaire et admin.
  *
  * @property int                    $id
- * @property \Carbon\Carbon         $date
+ * @property Carbon         $date
  * @property float|null             $montant_carte
  * @property float|null             $montant_espece
  * @property float|null             $montant_charges
  * @property int|null               $id_personne_maj_food
- * @property \Carbon\Carbon|null    $maj_food_at
+ * @property Carbon|null    $maj_food_at
  * @property int|null               $nb_presents
  * @property int|null               $nb_en_ligne
  * @property int|null               $id_personne_maj_presence
- * @property \Carbon\Carbon|null    $maj_presence_at
- * @property \Carbon\Carbon         $created_at
- * @property \Carbon\Carbon         $updated_at
+ * @property Carbon|null    $maj_presence_at
+ * @property Carbon         $created_at
+ * @property Carbon         $updated_at
  */
 class Bilan extends Model
 {

@@ -14,17 +14,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Models;
 
+use Amana\Shared\Models\Application;
+use Amana\Shared\Models\Role;
 use App\Models\Personne;
 use App\Models\Restriction;
-use Database\Factories\TacheFactory;
+use Database\Factories\PersonneFactory;
 use Tests\Concerns\CreeDonneesPlanning;
 use Tests\Concerns\RefreshesBothDatabases;
 use Tests\TestCase;
 
 class PersonnePeutFaireTacheTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private array $taches;
 
@@ -147,8 +149,8 @@ class PersonnePeutFaireTacheTest extends TestCase
     public function test_un_role_d_une_autre_application_ne_compte_pas(): void
     {
         $personne = Personne::factory()->create();
-        $autre = \Amana\Shared\Models\Application::create(['code' => 'autre', 'libelle' => 'Autre app', 'actif' => true]);
-        $roleAutre = \Amana\Shared\Models\Role::create(['code' => 'benevole', 'libelle' => 'Bénévole (autre app)', 'id_application' => $autre->id]);
+        $autre = Application::create(['code' => 'autre', 'libelle' => 'Autre app', 'actif' => true]);
+        $roleAutre = Role::create(['code' => 'benevole', 'libelle' => 'Bénévole (autre app)', 'id_application' => $autre->id]);
         $personne->roles()->attach($roleAutre->id);
 
         $this->assertTrue($personne->peutFaireTache($this->id('cours'), 'Vendredi'), 'seul le rôle de l\'application planning est regardé');
@@ -160,7 +162,7 @@ class PersonnePeutFaireTacheTest extends TestCase
         $this->assertFalse($personne->peutFaireTache($this->id('cours'), 'Vendredi'));
 
         // Passage en membre : l'instance déjà interrogée garde son rôle en mémoire…
-        $personne->roles()->sync([\Database\Factories\PersonneFactory::role('membre')->id]);
+        $personne->roles()->sync([PersonneFactory::role('membre')->id]);
         $this->assertFalse($personne->peutFaireTache($this->id('cours'), 'Vendredi'));
 
         // … une instance rechargée voit le nouveau rôle.

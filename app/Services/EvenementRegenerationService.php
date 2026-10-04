@@ -46,8 +46,7 @@ class EvenementRegenerationService
 {
     public function __construct(
         private readonly SchedulerMain $scheduler,
-    ) {
-    }
+    ) {}
 
     /**
      * @param Evenement|iterable<Evenement> $evenements Un événement, ou

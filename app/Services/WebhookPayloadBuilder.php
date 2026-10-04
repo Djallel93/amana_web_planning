@@ -5,10 +5,10 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Amana\Shared\Models\Setting;
 use App\Helpers\DateHelper;
 use App\Helpers\GoogleCalendarColors;
 use App\Models\Creneau;
-use Amana\Shared\Models\Setting;
 use App\Models\Tache;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -302,7 +302,7 @@ class WebhookPayloadBuilder
                     'taches' => $taches,
                     'evenements_speciaux' => $eventsSpeciaux,
                     'evenements_sociaux' => $eventsSociaux,
-                ]
+                ],
             ],
         ];
     }
@@ -552,6 +552,7 @@ class WebhookPayloadBuilder
                 $codes->push($tache->code);
             }
         }
+
         return $codes->unique();
     }
 
@@ -576,6 +577,7 @@ class WebhookPayloadBuilder
     private function getCalendarIds(string $code): array
     {
         $valeur = Setting::get("calendar_{$code}", 'planning');
+
         return $valeur ? [$valeur] : [];
     }
 
@@ -588,6 +590,7 @@ class WebhookPayloadBuilder
     private function getCouleur(string $code): ?string
     {
         $valeur = Setting::get("couleur_{$code}", 'planning');
+
         return $valeur !== null && $valeur !== ''
             ? (string) $valeur
             : (GoogleCalendarColors::TACHES[$code] ?? null);

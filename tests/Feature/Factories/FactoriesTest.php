@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Factories;
 
-use Amana\Shared\Models\Personne as SharedPersonne;
 use App\Models\Absence;
 use App\Models\Bilan;
 use App\Models\CalendrierGoogle;
@@ -22,6 +21,7 @@ use App\Models\Restriction;
 use App\Models\Tache;
 use Database\Factories\TacheFactory;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\Concerns\RefreshesBothDatabases;
 use Tests\TestCase;
 
@@ -62,7 +62,7 @@ class FactoriesTest extends TestCase
         $this->assertSame($this->commun(), $personne->getConnectionName());
         $this->assertTrue(DB::connection($this->commun())->table('ref_personnes')->where('id', $personne->id)->exists());
         $this->assertFalse(
-            \Illuminate\Support\Facades\Schema::connection($this->defaut())->hasTable('ref_personnes'),
+            Schema::connection($this->defaut())->hasTable('ref_personnes'),
             'ref_personnes ne doit pas exister dans la base du planning (voir la migration drop_shadow_commun_tables)',
         );
     }

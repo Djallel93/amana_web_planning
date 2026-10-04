@@ -6,8 +6,8 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use Amana\Shared\Models\Application;
-use App\Models\Personne;
 use Amana\Shared\Models\Role;
+use App\Models\Personne;
 use App\Models\Tache;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;

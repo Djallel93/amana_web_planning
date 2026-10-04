@@ -30,11 +30,13 @@ use Tests\TestCase;
 
 class NotificationsContenuTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private Personne $alice;
+
     private Personne $bilal;
+
     private Echange $echange;
 
     protected function setUp(): void
@@ -263,7 +265,7 @@ class NotificationsContenuTest extends TestCase
         $this->assertStringNotContainsString('@foreach', $html);
         $this->assertStringNotContainsString('$echange', $html);
         $this->assertStringNotContainsString('$item', $html);
-        $this->assertDoesNotMatchRegularExpression('/\b(null|undefined)\b/i', $this->texte(['html' => $html]) , 'une valeur manquante rendue littéralement');
+        $this->assertDoesNotMatchRegularExpression('/\b(null|undefined)\b/i', $this->texte(['html' => $html]), 'une valeur manquante rendue littéralement');
     }
 
     #[DataProvider('tousLesMessages')]

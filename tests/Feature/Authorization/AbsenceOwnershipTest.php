@@ -20,8 +20,8 @@ use Tests\TestCase;
 
 class AbsenceOwnershipTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
+    use RefreshesBothDatabases;
 
     protected function setUp(): void
     {

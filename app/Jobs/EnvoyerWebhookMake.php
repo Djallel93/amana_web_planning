@@ -40,8 +40,7 @@ class EnvoyerWebhookMake implements ShouldQueue
     public function __construct(
         private readonly array $payload,
         private readonly string $method = 'post',
-    ) {
-    }
+    ) {}
 
     /**
      * Exécution du job : envoi HTTP vers Make.com avec le verbe approprié.
@@ -56,11 +55,13 @@ class EnvoyerWebhookMake implements ShouldQueue
 
         if (empty($url)) {
             Log::warning('[WebhookMake] services.make.webhook_url non configurée — envoi ignoré.');
+
             return;
         }
 
         if (empty($apiKey)) {
             Log::warning('[WebhookMake] services.make.api_key non configurée — envoi ignoré.');
+
             return;
         }
 

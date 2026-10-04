@@ -6,11 +6,10 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Helpers\DateHelper;
-use App\Models\Personne;
 use App\Models\Absence;
-use App\Models\Evenement;
-use App\Models\Creneau;
 use App\Models\CreneauTache;
+use App\Models\Evenement;
+use App\Models\Personne;
 use App\Models\Tache;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -198,6 +197,7 @@ class DataLoader
                 return false;
             }
             $nom = $absence->personne->nom . ' ' . $absence->personne->prenom;
+
             return $nom === $nomPersonne
                 && $absence->date_debut->toDateString() <= $dateStr
                 && $absence->date_fin->toDateString() >= $dateStr;

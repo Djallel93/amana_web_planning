@@ -27,6 +27,7 @@ namespace Tests\Feature\Authorization;
 
 use App\Models\CalendrierGoogle;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\ConnecteParRole;
 use Tests\Concerns\RefreshesBothDatabases;
@@ -34,10 +35,11 @@ use Tests\TestCase;
 
 class RouteAccessMatrixTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
+    use RefreshesBothDatabases;
 
     private const MESSAGE_CONNEXION = 'Vous devez être connecté pour accéder à cette page.';
+
     private const MESSAGE_PERMISSION = 'Vous n\'avez pas les permissions nécessaires pour accéder à cette page.';
 
     /**
@@ -164,9 +166,9 @@ class RouteAccessMatrixTest extends TestCase
     }
 
     /** « connexion » | « permission » | null (accès laissé passer). */
-    private function refus(\Illuminate\Testing\TestResponse $reponse): ?string
+    private function refus(TestResponse $reponse): ?string
     {
-        if (! $reponse->isRedirection()) {
+        if (!$reponse->isRedirection()) {
             return null;
         }
         $erreur = session('error');

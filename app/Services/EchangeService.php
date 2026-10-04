@@ -6,7 +6,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Jobs\SynchroniserGoogleCalendar;
-use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Echange;
 use App\Models\Personne;
@@ -38,8 +37,7 @@ class EchangeService
 {
     public function __construct(
         private readonly WebhookPayloadBuilder $webhookBuilder,
-    ) {
-    }
+    ) {}
 
     /**
      * Retourne les slots futurs échangeables pour un slot donné (A).

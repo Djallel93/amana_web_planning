@@ -8,6 +8,7 @@ use Amana\Shared\Http\Controllers\AuditLogController;
 use Amana\Shared\Http\Controllers\AuthController;
 use Amana\Shared\Http\Controllers\NavBadgesController;
 use Amana\Shared\Http\Controllers\ProfileController;
+use App\Http\Controllers\AbsencesController;
 use App\Http\Controllers\Admin\CandidaturesController;
 use App\Http\Controllers\BilanController;
 use App\Http\Controllers\CalendrierGoogleController;
@@ -15,15 +16,14 @@ use App\Http\Controllers\CalendriersController;
 use App\Http\Controllers\CandidatureController;
 use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EchangeController;
+use App\Http\Controllers\EvenementsController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\MonPlanningController;
-use App\Http\Controllers\PlanningController;
-use App\Http\Controllers\PlanningApiController;
-use App\Http\Controllers\PlanningEditController;
 use App\Http\Controllers\PersonnesController;
+use App\Http\Controllers\PlanningApiController;
+use App\Http\Controllers\PlanningController;
+use App\Http\Controllers\PlanningEditController;
 use App\Http\Controllers\RestrictionsController;
-use App\Http\Controllers\AbsencesController;
-use App\Http\Controllers\EvenementsController;
 use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -166,6 +166,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/rollback/dismiss', [PlanningController::class, 'rollbackDismiss'])->name('rollback.dismiss');
             Route::post('/overlap/cancel', function () {
                 session()->forget('pending_generation');
+
                 return redirect()->route('planning.generate.form');
             })->name('overlap.cancel');
         });

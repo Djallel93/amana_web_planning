@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Helpers\AuditHelper;
 
-if (! function_exists('audit')) {
+if (!function_exists('audit')) {
     function audit(
         string $action,
         string $module,

@@ -111,7 +111,8 @@ class AuditHelperTest extends TestCase
 
     public function test_log_enregistre_l_utilisateur_authentifie(): void
     {
-        Auth::swap(new class {
+        Auth::swap(new class
+        {
             public function id(): int
             {
                 return 42;

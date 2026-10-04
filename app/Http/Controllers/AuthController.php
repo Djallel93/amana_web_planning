@@ -5,9 +5,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\Personne;
 use Amana\Shared\Models\Setting;
 use Amana\Shared\Services\AccountChangeNotifier;
+use App\Models\Personne;
+use App\Models\Restriction;
+use App\Models\Tache;
 use App\Notifications\NouveauMembreNotification;
 use Carbon\Carbon;
 use Illuminate\Auth\Events\PasswordReset;
@@ -77,6 +79,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
             audit('login', 'auth');
             session()->flash('success', 'Bienvenue ' . Auth::user()->prenom . ' !');
+
             return redirect()->intended(route('planning.index'));
         }
 
@@ -90,6 +93,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('login')->with('success', 'Vous avez été déconnecté.');
     }
 
@@ -266,7 +270,7 @@ class AuthController extends Controller
                 ->with('error', 'Les inscriptions sont actuellement fermées. Veuillez contacter un administrateur.');
         }
 
-        $taches = \App\Models\Tache::actif()->orderBy('id')->get();
+        $taches = Tache::actif()->orderBy('id')->get();
         $jours = ['Vendredi', 'Samedi'];
 
         return view('auth.inscription', compact('taches', 'jours'));
@@ -318,7 +322,7 @@ class AuthController extends Controller
         ]);
 
         // ── Enregistrer les restrictions ───────────────────────────────────
-        $taches = \App\Models\Tache::actif()->get();
+        $taches = Tache::actif()->get();
         $jours = ['Vendredi', 'Samedi'];
         $restrictionsPost = $request->input('restrictions', []);
 
@@ -326,7 +330,7 @@ class AuthController extends Controller
             foreach ($jours as $jour) {
                 $autorise = isset($restrictionsPost[$tache->id][$jour]);
 
-                \App\Models\Restriction::updateOrCreate(
+                Restriction::updateOrCreate(
                     ['id_personne' => $personne->id, 'id_tache' => $tache->id, 'jour' => $jour],
                     ['autorise' => $autorise]
                 );

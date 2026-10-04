@@ -5,12 +5,10 @@ declare(strict_types=1);
 
 namespace App\Notifications\Echanges;
 
-use App\Models\Echange;
 use Amana\Shared\Notifications\Concerns\EmbedsLogo;
-
+use App\Models\Echange;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Notification envoyée aux deux parties quand un échange est accepté/exécuté.
@@ -23,8 +21,7 @@ class EchangeAccepteNotification extends Notification
     public function __construct(
         private readonly Echange $echange,
         private readonly string $role, // 'demandeur' | 'cible'
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -33,7 +30,7 @@ class EchangeAccepteNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->embedLogo(new MailMessage)
+        return $this->embedLogo(new MailMessage())
             ->subject('Échange de créneau confirmé — AMANA Planning')
             ->view('emails.echanges.accepte', [
                 'echange' => $this->echange,

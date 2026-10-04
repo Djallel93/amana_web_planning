@@ -18,9 +18,9 @@
 -->
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { Modal } from '@amana/shared-ui';
-import { useToast } from '@amana/shared-ui';
-import { useConfirm } from '@amana/shared-ui';
+import { Modal } from "@amana/shared-ui";
+import { useToast } from "@amana/shared-ui";
+import { useConfirm } from "@amana/shared-ui";
 import type { AssignContext, PersonneAssignee } from "@/types/planning";
 import { TACHES_META } from "@/types/planning";
 
@@ -29,11 +29,7 @@ import { TACHES_META } from "@/types/planning";
 // "unassigned": désassignation réussie → idem
 // "deleted"   : créneau supprimé depuis le modal → parent retire la ligne
 const emit = defineEmits<{
-    assigned: [
-        creneauId: number,
-        tacheCode: string,
-        personne: PersonneAssignee | null,
-    ];
+    assigned: [creneauId: number, tacheCode: string, personne: PersonneAssignee | null];
     unassigned: [creneauId: number, tacheCode: string];
     deleted: [creneauId: number];
 }>();
@@ -74,9 +70,7 @@ async function loadPersonnes(): Promise<PersonneAssignee[]> {
 // ── Ouverture ─────────────────────────────────────────────────────────────
 async function open(ctx: AssignContext): Promise<void> {
     context.value = ctx;
-    selectedPersonneId.value = ctx.currentPersonneId
-        ? String(ctx.currentPersonneId)
-        : "";
+    selectedPersonneId.value = ctx.currentPersonneId ? String(ctx.currentPersonneId) : "";
     isOpen.value = true;
     personnes.value = await loadPersonnes();
 }
@@ -93,22 +87,17 @@ async function save(): Promise<void> {
     saving.value = true;
 
     try {
-        const res = await fetch(
-            `${window.PlanningConfig.routes.assignation}/${creneauId}/tache/${tacheId}`,
-            {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": window.PlanningConfig.csrf,
-                    Accept: "application/json",
-                },
-                body: JSON.stringify({
-                    id_personne: selectedPersonneId.value
-                        ? parseInt(selectedPersonneId.value, 10)
-                        : null,
-                }),
+        const res = await fetch(`${window.PlanningConfig.routes.assignation}/${creneauId}/tache/${tacheId}`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": window.PlanningConfig.csrf,
+                Accept: "application/json",
             },
-        );
+            body: JSON.stringify({
+                id_personne: selectedPersonneId.value ? parseInt(selectedPersonneId.value, 10) : null,
+            }),
+        });
         const data = (await res.json()) as {
             success: boolean;
             personne: PersonneAssignee | null;
@@ -137,16 +126,13 @@ async function unassign(): Promise<void> {
     const { creneauId, tacheId, tacheCode } = context.value;
 
     try {
-        const res = await fetch(
-            `${window.PlanningConfig.routes.assignation}/${creneauId}/tache/${tacheId}`,
-            {
-                method: "DELETE",
-                headers: {
-                    "X-CSRF-TOKEN": window.PlanningConfig.csrf,
-                    Accept: "application/json",
-                },
+        const res = await fetch(`${window.PlanningConfig.routes.assignation}/${creneauId}/tache/${tacheId}`, {
+            method: "DELETE",
+            headers: {
+                "X-CSRF-TOKEN": window.PlanningConfig.csrf,
+                Accept: "application/json",
             },
-        );
+        });
         const data = (await res.json()) as { success: boolean };
 
         if (data.success) {
@@ -168,16 +154,13 @@ async function deleteCreneau(): Promise<void> {
     close();
 
     try {
-        const res = await fetch(
-            `${window.PlanningConfig.routes.creneau}/${creneauId}`,
-            {
-                method: "DELETE",
-                headers: {
-                    "X-CSRF-TOKEN": window.PlanningConfig.csrf,
-                    Accept: "application/json",
-                },
+        const res = await fetch(`${window.PlanningConfig.routes.creneau}/${creneauId}`, {
+            method: "DELETE",
+            headers: {
+                "X-CSRF-TOKEN": window.PlanningConfig.csrf,
+                Accept: "application/json",
             },
-        );
+        });
         const data = (await res.json()) as {
             success: boolean;
             message: string;
@@ -203,60 +186,40 @@ defineExpose({ open });
 </script>
 
 <template>
-    <Modal :open="isOpen" @close="close" max-width="max-w-sm">
+    <Modal :open="isOpen" max-width="max-w-sm" @close="close">
         <template #header>
-            <div
-                class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
-            >
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">
                 {{ tacheMeta?.label.split(" ")[0] ?? "✏️" }}
             </div>
-            <span
-                class="font-heading text-[14px] font-semibold text-ink flex-1"
-            >
+            <span class="font-heading text-[14px] font-semibold text-ink flex-1">
                 Modifier — {{ context?.tacheLabel }}
             </span>
         </template>
 
         <div class="flex flex-col gap-4">
             <!-- Contexte -->
-            <div
-                class="flex items-center gap-2 px-3 py-2.5 bg-sky-50 border border-sky-100 rounded-lg text-[13px]"
-            >
-                <strong class="text-ink"
-                    >{{ context?.jour }} {{ context?.dateLabel }}</strong
-                >
-                <span class="text-ink-muted"
-                    >Tâche : {{ context?.tacheLabel }}</span
-                >
+            <div class="flex items-center gap-2 px-3 py-2.5 bg-sky-50 border border-sky-100 rounded-lg text-[13px]">
+                <strong class="text-ink">{{ context?.jour }} {{ context?.dateLabel }}</strong>
+                <span class="text-ink-muted">Tâche : {{ context?.tacheLabel }}</span>
             </div>
 
             <!-- Réassigner -->
             <div>
-                <p
-                    class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2"
-                >
-                    👤 Réassigner à
-                </p>
+                <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2">👤 Réassigner à</p>
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                     <select
                         v-model="selectedPersonneId"
                         class="w-full flex-1 px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition cursor-pointer focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                     >
-                        <option value="">
-                            — Aucune personne (désassigner) —
-                        </option>
-                        <option
-                            v-for="p in personnes"
-                            :key="p.id"
-                            :value="String(p.id)"
-                        >
+                        <option value="">— Aucune personne (désassigner) —</option>
+                        <option v-for="p in personnes" :key="p.id" :value="String(p.id)">
                             {{ p.label }}
                         </option>
                     </select>
                     <button
-                        @click="save"
                         :disabled="saving"
                         class="btn-touch w-full sm:w-auto px-4 py-2.5 bg-accent hover:bg-accent-dark text-white text-[13px] font-bold rounded-lg shadow-[0_2px_10px_rgba(3,105,161,0.3)] transition-all cursor-pointer whitespace-nowrap disabled:opacity-50"
+                        @click="save"
                     >
                         {{ saving ? "…" : "Enregistrer" }}
                     </button>
@@ -267,21 +230,17 @@ defineExpose({ open });
 
             <!-- Zone dangereuse -->
             <div>
-                <p
-                    class="text-[10.5px] font-bold text-rose-500 uppercase tracking-[0.7px] mb-2"
-                >
-                    ⚠️ Zone dangereuse
-                </p>
+                <p class="text-[10.5px] font-bold text-rose-500 uppercase tracking-[0.7px] mb-2">⚠️ Zone dangereuse</p>
                 <div class="flex gap-2 flex-wrap">
                     <button
-                        @click="unassign"
                         class="btn-touch inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
+                        @click="unassign"
                     >
                         ✕ Désassigner
                     </button>
                     <button
-                        @click="deleteCreneau"
                         class="btn-touch inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-semibold rounded-lg cursor-pointer transition-colors bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100"
+                        @click="deleteCreneau"
                     >
                         🗑️ Supprimer le créneau
                     </button>

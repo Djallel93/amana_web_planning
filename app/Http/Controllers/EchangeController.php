@@ -5,10 +5,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\Creneau;
-use App\Models\CreneauTache;
 use App\Models\Echange;
+use App\Models\Personne;
 use App\Services\EchangeService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,8 +37,7 @@ class EchangeController extends Controller
 {
     public function __construct(
         private readonly EchangeService $service,
-    ) {
-    }
+    ) {}
 
     // ── Vue membre : mes échanges ──────────────────────────────────────────
 
@@ -47,7 +46,7 @@ class EchangeController extends Controller
      */
     public function index(): View
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         $echanges = Echange::with([
@@ -77,7 +76,7 @@ class EchangeController extends Controller
             'tache_id'   => ['required', 'integer', 'exists:ref_taches,id'],
         ]);
 
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         $slots = $this->service->slotsEchangeables(
@@ -119,17 +118,17 @@ class EchangeController extends Controller
             'personne_cible_id'    => ['required', 'integer', 'exists:' . config('amana-shared.connection', 'commun') . '.ref_personnes,id'],
         ]);
 
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         try {
             $echange = $this->service->creerDemande(
                 personneAId: $user->id,
-                creneauAId:  (int) $request->creneau_demandeur_id,
-                tacheAId:    (int) $request->tache_demandeur_id,
+                creneauAId: (int) $request->creneau_demandeur_id,
+                tacheAId: (int) $request->tache_demandeur_id,
                 personneBId: (int) $request->personne_cible_id,
-                creneauBId:  (int) $request->creneau_cible_id,
-                tacheBId:    (int) $request->tache_cible_id,
+                creneauBId: (int) $request->creneau_cible_id,
+                tacheBId: (int) $request->tache_cible_id,
             );
 
             return response()->json([
@@ -153,7 +152,7 @@ class EchangeController extends Controller
      */
     public function destroy(int $id): JsonResponse|RedirectResponse
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         try {
@@ -162,12 +161,14 @@ class EchangeController extends Controller
             if (request()->expectsJson()) {
                 return response()->json(['success' => true, 'message' => 'Demande d\'échange annulée.']);
             }
+
             return redirect()->route('echanges.index')
                 ->with('success', 'Demande d\'échange annulée.');
         } catch (\RuntimeException $e) {
             if (request()->expectsJson()) {
                 return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
             }
+
             return redirect()->route('echanges.index')->with('error', $e->getMessage());
         }
     }
@@ -182,13 +183,14 @@ class EchangeController extends Controller
     {
         try {
             $echange = $this->service->accepterParToken($token);
+
             return view('echanges.token-result', [
                 'success'  => true,
                 'action'   => 'accepte',
                 'echange'  => $echange,
                 'urlLogin' => route('login'),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             return view('echanges.token-result', [
                 'success' => false,
                 'action'  => 'invalide',
@@ -213,13 +215,14 @@ class EchangeController extends Controller
     {
         try {
             $echange = $this->service->refuserParToken($token);
+
             return view('echanges.token-result', [
                 'success'  => true,
                 'action'   => 'refuse',
                 'echange'  => $echange,
                 'urlLogin' => route('login'),
             ]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException) {
+        } catch (ModelNotFoundException) {
             return view('echanges.token-result', [
                 'success' => false,
                 'action'  => 'invalide',
@@ -263,11 +266,12 @@ class EchangeController extends Controller
      */
     public function adminApprouver(int $id): RedirectResponse
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         try {
             $this->service->approuverParAdmin($id, $user->id);
+
             return redirect()->route('admin.echanges.index')
                 ->with('success', 'Échange approuvé et exécuté.');
         } catch (\RuntimeException $e) {
@@ -281,11 +285,12 @@ class EchangeController extends Controller
      */
     public function adminRefuser(int $id): RedirectResponse
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         try {
             $this->service->refuserParAdmin($id, $user->id);
+
             return redirect()->route('admin.echanges.index')
                 ->with('success', 'Échange refusé.');
         } catch (\RuntimeException $e) {

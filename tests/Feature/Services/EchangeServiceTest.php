@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Services;
 
+use Amana\Shared\Models\AuditLog;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
@@ -24,12 +25,10 @@ use App\Notifications\Echanges\EchangeDemandeNotification;
 use App\Notifications\Echanges\EchangeExpireNotification;
 use App\Notifications\Echanges\EchangeRefuseNotification;
 use App\Services\EchangeService;
-use Amana\Shared\Models\AuditLog;
 use Carbon\Carbon;
 use Database\Factories\TacheFactory;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Bus;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use ReflectionProperty;
 use RuntimeException;
@@ -39,11 +38,13 @@ use Tests\TestCase;
 
 class EchangeServiceTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private Personne $a;
+
     private Personne $b;
+
     private Tache $entree;
 
     protected function setUp(): void

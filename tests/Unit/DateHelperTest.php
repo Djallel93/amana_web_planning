@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Helpers\DateHelper;
 use Carbon\Carbon;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class DateHelperTest extends TestCase
@@ -73,7 +74,7 @@ class DateHelperTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('joursVersLePremierVendredi')]
+    #[DataProvider('joursVersLePremierVendredi')]
     public function test_premier_vendredi_avance_jusqu_au_vendredi(string $depart, string $attendu): void
     {
         $vendredi = DateHelper::premierVendredi($depart);

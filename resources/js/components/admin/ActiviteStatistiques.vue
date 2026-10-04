@@ -8,7 +8,7 @@
     de audit_logs via AuditStatistics — aucune nouvelle table.
 -->
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import {
     Chart,
     LineController,
@@ -20,7 +20,7 @@ import {
     Legend,
     Filler,
     type ChartConfiguration,
-} from 'chart.js';
+} from "chart.js";
 
 Chart.register(LineController, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler);
 
@@ -69,9 +69,13 @@ declare global {
 const config = window.ActiviteStatistiquesConfig;
 
 const LIBELLES_ACTION: Record<string, string> = {
-    create: 'Création', update: 'Modification', delete: 'Suppression',
-    generate: 'Génération', login: 'Connexion', logout: 'Déconnexion',
-    webhook: 'Webhook',
+    create: "Création",
+    update: "Modification",
+    delete: "Suppression",
+    generate: "Génération",
+    login: "Connexion",
+    logout: "Déconnexion",
+    webhook: "Webhook",
 };
 
 function libelleAction(action: string): string {
@@ -82,7 +86,7 @@ function libelleAction(action: string): string {
 function isoDaysAgo(n: number): string {
     const d = new Date();
     d.setDate(d.getDate() - n);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 const dateFrom = ref(isoDaysAgo(29));
@@ -90,42 +94,43 @@ const dateTo = ref(isoDaysAgo(0));
 
 const payload = ref<Payload | null>(null);
 
-type LoadState = 'idle' | 'loading' | 'loaded' | 'error';
-const loadState = ref<LoadState>('idle');
+type LoadState = "idle" | "loading" | "loaded" | "error";
+const loadState = ref<LoadState>("idle");
 
 function getCsrf(): string {
-    return config?.csrf
-        ?? document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content
-        ?? '';
+    return config?.csrf ?? document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? "";
 }
 
 function fmtDateCourt(iso: string): string {
-    return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    return new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
 
 function fmtDateLabel(iso: string): string {
-    return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    return new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
     });
 }
 
 // ── Chargement ────────────────────────────────────────────────────────────
 async function load(): Promise<void> {
-    loadState.value = 'loading';
+    loadState.value = "loading";
     try {
         const url = `${config.routes.data}?from=${dateFrom.value}&to=${dateTo.value}`;
         const res = await fetch(url, {
-            headers: { 'X-CSRF-TOKEN': getCsrf(), 'Accept': 'application/json' },
+            headers: { "X-CSRF-TOKEN": getCsrf(), Accept: "application/json" },
         });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (!res.ok) throw new Error("HTTP " + res.status);
 
-        payload.value = await res.json() as Payload;
-        loadState.value = 'loaded';
+        payload.value = (await res.json()) as Payload;
+        loadState.value = "loaded";
 
         await nextTick();
         renderChart();
     } catch {
-        loadState.value = 'error';
+        loadState.value = "error";
     }
 }
 
@@ -142,27 +147,29 @@ function renderChart(): void {
     chart?.destroy();
 
     const serie = payload.value.serieParJour;
-    const labels = serie.map(p => fmtDateCourt(p.date));
+    const labels = serie.map((p) => fmtDateCourt(p.date));
 
-    const configChart: ChartConfiguration<'line'> = {
-        type: 'line',
+    const configChart: ChartConfiguration<"line"> = {
+        type: "line",
         data: {
             labels,
-            datasets: [{
-                label: 'Actions',
-                data: serie.map(p => p.total),
-                borderColor: '#0369a1',
-                backgroundColor: 'rgba(3,105,161,0.08)',
-                tension: 0.3,
-                fill: true,
-                pointRadius: 2,
-                pointHoverRadius: 5,
-            }],
+            datasets: [
+                {
+                    label: "Actions",
+                    data: serie.map((p) => p.total),
+                    borderColor: "#0369a1",
+                    backgroundColor: "rgba(3,105,161,0.08)",
+                    tension: 0.3,
+                    fill: true,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                },
+            ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
+            interaction: { mode: "index", intersect: false },
             scales: {
                 y: { beginAtZero: true, title: { display: true, text: "Nombre d'actions" } },
             },
@@ -172,7 +179,7 @@ function renderChart(): void {
                     callbacks: {
                         title: (items) => {
                             const point = serie[items[0]?.dataIndex ?? 0];
-                            return point ? fmtDateLabel(point.date) : '';
+                            return point ? fmtDateLabel(point.date) : "";
                         },
                     },
                 },
@@ -188,17 +195,26 @@ onUnmounted(() => chart?.destroy());
 
 <template>
     <div class="flex flex-col gap-5">
-
         <!-- Plage de dates -->
-        <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-5 py-4 flex flex-wrap items-center gap-3">
+        <div
+            class="bg-surface rounded-xl border border-surface-border shadow-sm px-5 py-4 flex flex-wrap items-center gap-3"
+        >
             <label for="act_from" class="text-xs font-bold text-ink tracking-[0.2px]">📅 Du</label>
-            <input id="act_from" type="date" v-model="dateFrom" :max="dateTo"
-                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                       focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+            <input
+                id="act_from"
+                v-model="dateFrom"
+                type="date"
+                :max="dateTo"
+                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+            />
             <label for="act_to" class="text-xs font-bold text-ink tracking-[0.2px]">Au</label>
-            <input id="act_to" type="date" v-model="dateTo" :min="dateFrom"
-                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
-                       focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
+            <input
+                id="act_to"
+                v-model="dateTo"
+                type="date"
+                :min="dateFrom"
+                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+            />
         </div>
 
         <div v-if="loadState === 'loading'" class="text-center py-10 text-[13.5px] text-ink-muted">
@@ -209,32 +225,49 @@ onUnmounted(() => chart?.destroy());
         </div>
 
         <template v-else-if="loadState === 'loaded' && payload">
-
             <!-- Cartes de synthèse -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
-                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">📊 Total actions</div>
+                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">
+                        📊 Total actions
+                    </div>
                     <div class="text-xl font-heading font-semibold text-ink">{{ payload.cartes.totalActions }}</div>
                 </div>
                 <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
-                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">🔑 Connexions</div>
+                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">
+                        🔑 Connexions
+                    </div>
                     <div class="text-xl font-heading font-semibold text-ink">{{ payload.cartes.connexions }}</div>
                 </div>
                 <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
-                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">👤 Utilisateurs actifs</div>
-                    <div class="text-xl font-heading font-semibold text-ink">{{ payload.cartes.utilisateursDistincts }}</div>
+                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">
+                        👤 Utilisateurs actifs
+                    </div>
+                    <div class="text-xl font-heading font-semibold text-ink">
+                        {{ payload.cartes.utilisateursDistincts }}
+                    </div>
                 </div>
                 <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
-                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">🔄 Échanges</div>
+                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">
+                        🔄 Échanges
+                    </div>
                     <div class="text-xl font-heading font-semibold text-ink">{{ payload.cartes.echanges }}</div>
                 </div>
                 <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
-                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">🗓️ Générations planning</div>
-                    <div class="text-xl font-heading font-semibold text-ink">{{ payload.cartes.generationsPlanning }}</div>
+                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">
+                        🗓️ Générations planning
+                    </div>
+                    <div class="text-xl font-heading font-semibold text-ink">
+                        {{ payload.cartes.generationsPlanning }}
+                    </div>
                 </div>
                 <div class="bg-surface rounded-xl border border-surface-border shadow-sm px-4 py-4">
-                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">🩹 dont suite à absence</div>
-                    <div class="text-xl font-heading font-semibold text-ink">{{ payload.cartes.regenerationsAbsence }}</div>
+                    <div class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.6px] mb-1">
+                        🩹 dont suite à absence
+                    </div>
+                    <div class="text-xl font-heading font-semibold text-ink">
+                        {{ payload.cartes.regenerationsAbsence }}
+                    </div>
                 </div>
             </div>
 
@@ -250,7 +283,11 @@ onUnmounted(() => chart?.destroy());
                 <div class="bg-surface rounded-xl border border-surface-border shadow-sm p-4">
                     <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.4px] mb-3">Par module</p>
                     <div v-if="!payload.parModule.length" class="text-[12.5px] text-ink-muted">Aucune donnée.</div>
-                    <div v-for="r in payload.parModule" :key="r.valeur" class="flex items-center justify-between py-1 text-[13px]">
+                    <div
+                        v-for="r in payload.parModule"
+                        :key="r.valeur"
+                        class="flex items-center justify-between py-1 text-[13px]"
+                    >
                         <span class="text-ink">{{ r.valeur }}</span>
                         <span class="font-semibold text-ink-muted">{{ r.total }}</span>
                     </div>
@@ -259,16 +296,28 @@ onUnmounted(() => chart?.destroy());
                 <div class="bg-surface rounded-xl border border-surface-border shadow-sm p-4">
                     <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.4px] mb-3">Par action</p>
                     <div v-if="!payload.parAction.length" class="text-[12.5px] text-ink-muted">Aucune donnée.</div>
-                    <div v-for="r in payload.parAction" :key="r.valeur" class="flex items-center justify-between py-1 text-[13px]">
+                    <div
+                        v-for="r in payload.parAction"
+                        :key="r.valeur"
+                        class="flex items-center justify-between py-1 text-[13px]"
+                    >
                         <span class="text-ink">{{ libelleAction(r.valeur) }}</span>
                         <span class="font-semibold text-ink-muted">{{ r.total }}</span>
                     </div>
                 </div>
 
                 <div class="bg-surface rounded-xl border border-surface-border shadow-sm p-4">
-                    <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.4px] mb-3">Utilisateurs les plus actifs</p>
-                    <div v-if="!payload.utilisateursActifs.length" class="text-[12.5px] text-ink-muted">Aucune donnée.</div>
-                    <div v-for="u in payload.utilisateursActifs" :key="u.nom" class="flex items-center justify-between py-1 text-[13px]">
+                    <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.4px] mb-3">
+                        Utilisateurs les plus actifs
+                    </p>
+                    <div v-if="!payload.utilisateursActifs.length" class="text-[12.5px] text-ink-muted">
+                        Aucune donnée.
+                    </div>
+                    <div
+                        v-for="u in payload.utilisateursActifs"
+                        :key="u.nom"
+                        class="flex items-center justify-between py-1 text-[13px]"
+                    >
                         <span class="text-ink">{{ u.nom }}</span>
                         <span class="font-semibold text-ink-muted">{{ u.total }}</span>
                     </div>

@@ -1,5 +1,5 @@
 // resources/js/app.ts
-import { createApp, h } from "vue";
+import { createApp } from "vue";
 import type { DefineComponent } from "vue";
 import { createInertiaApp } from "@inertiajs/vue3";
 
@@ -12,10 +12,7 @@ import {
     registerConfirmForms,
 } from "@amana/shared-ui";
 import SwapRequestModal from "@/components/mon-planning/SwapRequestModal.vue";
-// 04/09/2026 : SearchableSelect promu vers @amana/shared-ui (roadmap mobile
-// §4.3/step 7) — plus d'import local, mêmes props qu'avant, comportement
-// identique (voir amana_shared_ui/src/components/SearchableSelect.vue).
-import { SearchableSelect } from "@amana/shared-ui";
+import SearchableSelectIsland from "@/components/shared/SearchableSelectIsland.vue";
 import HoraireSettings from "@/components/settings/HoraireSettings.vue";
 import EventTaskBlocker from "@/components/evenements/EventTaskBlocker.vue";
 import BulkEvenementImport from "@/components/evenements/BulkEvenementImport.vue";
@@ -32,10 +29,7 @@ registerThemeToggle();
 registerUnsavedChangesGuard();
 registerConfirmForms();
 
-function mountIfPresent(
-    selector: string,
-    component: Parameters<typeof createApp>[0],
-): void {
+function mountIfPresent(selector: string, component: Parameters<typeof createApp>[0]): void {
     const el = document.getElementById(selector);
     if (el) createApp(component).mount(el);
 }
@@ -75,9 +69,7 @@ if (document.getElementById("inertia-app")) {
     createInertiaApp({
         id: "inertia-app",
         resolve: (name) => {
-            const pages = import.meta.glob<{ default: DefineComponent }>(
-                "./Pages/**/*.vue",
-            );
+            const pages = import.meta.glob<{ default: DefineComponent }>("./Pages/**/*.vue");
             const path = `./Pages/${name}.vue`;
             if (!(path in pages)) {
                 throw new Error(`Page Inertia introuvable : ${path}`);
@@ -85,9 +77,11 @@ if (document.getElementById("inertia-app")) {
             return pages[path]().then((module) => module.default);
         },
         setup({ el, App, props, plugin }) {
-            createApp({ render: () => h(App, props) })
-                .use(plugin)
-                .mount(el);
+            // Copie superficielle : le type Data attendu par createApp() pour les
+            // props racine exige une signature d'index, absente de l'interface
+            // InertiaAppProps.
+            const rootProps = { ...props };
+            createApp(App, rootProps).use(plugin).mount(el);
         },
     });
 }
@@ -96,70 +90,49 @@ if (document.getElementById("inertia-app")) {
 // settings/index.blade.php a 9 instances (une par calendrier de tâche).
 // Chaque instance porte un data-input-name unique sur son point de montage,
 // et un data-current-value pré-rempli par Blade (valeur déjà enregistrée).
-// On monte une instance Vue distincte par élément trouvé.
-//
-// ── Pourquoi h() et pas un template string ? ──────────────────────────────
-// Le build Vite de cette app utilise le runtime Vue "runtime-only" (sans le
-// compilateur de templates embarqué — c'est le défaut de @vitejs/plugin-vue,
-// pour garder le bundle léger). Un composant défini avec `template: '...'`
-// nécessite ce compilateur à l'exécution et échoue silencieusement sans lui
-// (c'était le bug : le point de montage restait vide).
-// h() (hyperscript) construit l'arbre de rendu directement en JS, sans
-// jamais avoir besoin de compiler de template — il fonctionne avec le
-// runtime seul, donc avec notre configuration actuelle.
-// (h est déjà importé en haut du fichier, aux côtés de createApp.)
+// On monte une instance Vue distincte par élément trouvé ; l'état de la valeur
+// est porté par SearchableSelectIsland (voir son en-tête).
 
-document
-    .querySelectorAll<HTMLElement>("[data-searchable-select]")
-    .forEach((el) => {
-        const apiUrl = el.dataset.apiUrl ?? "";
-        const inputName = el.dataset.inputName ?? "";
-        const inputId = el.dataset.inputId ?? "";
-        const placeholder = el.dataset.placeholder;
-        const currentValue = el.dataset.currentValue ?? "";
+document.querySelectorAll<HTMLElement>("[data-searchable-select]").forEach((el) => {
+    const apiUrl = el.dataset.apiUrl ?? "";
+    const inputName = el.dataset.inputName ?? "";
+    const inputId = el.dataset.inputId ?? "";
+    const placeholder = el.dataset.placeholder;
+    const currentValue = el.dataset.currentValue ?? "";
 
-        // ── Mode multiple (data-multiple="1") ──────────────────────────────────
-        // data-current-value contient alors un JSON stringifié (ex: événements —
-        // un événement peut être synchronisé sur plusieurs calendriers). En mode
-        // simple (settings, un calendrier par tâche), data-current-value reste
-        // une chaîne brute — comportement inchangé.
-        const multiple = el.dataset.multiple === "1";
+    // ── Mode multiple (data-multiple="1") ──────────────────────────────────
+    // data-current-value contient alors un JSON stringifié (ex: événements —
+    // un événement peut être synchronisé sur plusieurs calendriers). En mode
+    // simple (settings, un calendrier par tâche), data-current-value reste
+    // une chaîne brute — comportement inchangé.
+    const multiple = el.dataset.multiple === "1";
 
-        let initialValue: string | string[] = currentValue;
-        if (multiple) {
-            try {
-                const parsed = JSON.parse(currentValue || "[]");
-                initialValue = Array.isArray(parsed) ? parsed : [];
-            } catch {
-                initialValue = [];
-            }
+    let initialValue: string | string[] = currentValue;
+    if (multiple) {
+        try {
+            const parsed = JSON.parse(currentValue || "[]");
+            initialValue = Array.isArray(parsed) ? parsed : [];
+        } catch {
+            initialValue = [];
         }
+    }
 
-        const app = createApp({
-            data() {
-                return { value: initialValue };
-            },
-            render() {
-                return h(SearchableSelect, {
-                    modelValue: this.value,
-                    "onUpdate:modelValue": (v: string | string[]) => {
-                        this.value = v;
-                    },
-                    apiUrl,
-                    inputName,
-                    inputId,
-                    multiple,
-                    // Préserve le message d'erreur d'origine, spécifique à
-                    // Google Calendar (04/09/2026) — le message par défaut
-                    // du composant partagé est générique.
-                    errorMessage:
-                        "Impossible de contacter Google Calendar. Vérifiez la configuration Google Calendar.",
-                    ...(placeholder ? { placeholder } : {}),
-                });
-            },
-        });
-        app.mount(el);
-    });
+    const rootProps = {
+        apiUrl,
+        inputName,
+        inputId,
+        multiple,
+        initialValue,
+        // Préserve le message d'erreur d'origine, spécifique à
+        // Google Calendar (04/09/2026) — le message par défaut
+        // du composant partagé est générique.
+        errorMessage: "Impossible de contacter Google Calendar. Vérifiez la configuration Google Calendar.",
+        // "" (attribut absent ou vide) → undefined : le placeholder par
+        // défaut du composant partagé s'applique.
+        placeholder: placeholder || undefined,
+    };
+    createApp(SearchableSelectIsland, rootProps).mount(el);
+});
 
 // ── Montage BulkEvenementImport (saisie manuelle multi-lignes) ────────────
 // evenements/import.blade.php — un seul point de montage par page. Les
@@ -167,23 +140,13 @@ document
 // réhydratation après erreur de validation (old('rows'), messages
 // d'erreur) sont sérialisés en JSON côté Blade dans des data-attributes,
 // même stratégie que le bloc SearchableSelect ci-dessus.
-document
-    .querySelectorAll<HTMLElement>("[data-bulk-evenement-import]")
-    .forEach((el) => {
-        const taches = JSON.parse(el.dataset.taches ?? "[]");
-        const couleurs = JSON.parse(el.dataset.couleurs ?? "[]");
-        const calendarsApiUrl = el.dataset.calendarsApiUrl ?? "";
-        const oldRows = JSON.parse(el.dataset.oldRows ?? "[]");
-        const errors = JSON.parse(el.dataset.errors ?? "{}");
+document.querySelectorAll<HTMLElement>("[data-bulk-evenement-import]").forEach((el) => {
+    const taches = JSON.parse(el.dataset.taches ?? "[]");
+    const couleurs = JSON.parse(el.dataset.couleurs ?? "[]");
+    const calendarsApiUrl = el.dataset.calendarsApiUrl ?? "";
+    const oldRows = JSON.parse(el.dataset.oldRows ?? "[]");
+    const errors = JSON.parse(el.dataset.errors ?? "{}");
 
-        createApp({
-            render: () =>
-                h(BulkEvenementImport, {
-                    taches,
-                    couleurs,
-                    calendarsApiUrl,
-                    oldRows,
-                    errors,
-                }),
-        }).mount(el);
-    });
+    const rootProps = { taches, couleurs, calendarsApiUrl, oldRows, errors };
+    createApp(BulkEvenementImport, rootProps).mount(el);
+});

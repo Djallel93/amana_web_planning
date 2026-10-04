@@ -11,9 +11,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Models\Personne;
 use Amana\Shared\Models\Setting;
 use Amana\Shared\Support\PhoneFr;
+use App\Models\Personne;
 use App\Models\Restriction;
 use App\Models\Tache;
 use App\Notifications\NouveauMembreNotification;

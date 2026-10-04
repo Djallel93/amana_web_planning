@@ -15,8 +15,10 @@ use App\Models\Evenement;
 use App\Models\Personne;
 use App\Models\Tache;
 use App\Services\WebhookPayloadBuilder;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -50,8 +52,7 @@ class PlanningEditController extends Controller
 {
     public function __construct(
         private readonly WebhookPayloadBuilder $webhookBuilder,
-    ) {
-    }
+    ) {}
 
     /**
      * Retourne la liste des personnes actives pour peupler la modale.
@@ -299,7 +300,7 @@ class PlanningEditController extends Controller
             return $creneau;
         });
 
-        $carbonDate = \Carbon\Carbon::parse($date);
+        $carbonDate = Carbon::parse($date);
 
         $apres = [
             'date' => $carbonDate->toDateString(),
@@ -385,8 +386,8 @@ class PlanningEditController extends Controller
      * tâche bloquée par un événement couvrant la date, ou null s'il n'y en a pas.
      *
      * @param array<string,int>                        $assignations code de tâche → id_personne
-     * @param \Illuminate\Support\Collection<int,Evenement> $evenements  Événements couvrant la date (tachesBloquees chargées)
-     * @param \Illuminate\Support\Collection<int,Tache>     $taches      Tâches actives
+     * @param Collection<int,Evenement> $evenements  Événements couvrant la date (tachesBloquees chargées)
+     * @param Collection<int,Tache>     $taches      Tâches actives
      */
     private function premiereAssignationBloquee(array $assignations, $evenements, $taches): ?string
     {
@@ -399,7 +400,7 @@ class PlanningEditController extends Controller
                 $libelle = $taches->firstWhere('code', $code)?->libelle ?? $code;
 
                 return "La tâche « {$libelle} » est bloquée ce jour-là par l'événement « "
-                    . $bloquants->pluck('nom')->implode(', ') . " » — elle ne peut pas être assignée.";
+                    . $bloquants->pluck('nom')->implode(', ') . ' » — elle ne peut pas être assignée.';
             }
         }
 
@@ -431,7 +432,7 @@ class PlanningEditController extends Controller
         ]);
 
         $date = $request->input('date');
-        $carbonDate = \Carbon\Carbon::parse($date);
+        $carbonDate = Carbon::parse($date);
 
         $creneau = Creneau::with('taches.tache')->where('date', $date)->first();
 
@@ -441,7 +442,7 @@ class PlanningEditController extends Controller
                 'warning' => true,
                 'message' => "Aucun planning n'a encore été généré pour le "
                     . $carbonDate->locale('fr')->isoFormat('D MMMM YYYY')
-                    . ". Cette date ne peut donc pas être annulée pour le moment.",
+                    . '. Cette date ne peut donc pas être annulée pour le moment.',
             ], 422);
         }
 

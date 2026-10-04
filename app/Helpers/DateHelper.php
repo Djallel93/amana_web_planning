@@ -49,6 +49,7 @@ class DateHelper
         while ($date->dayOfWeek !== Carbon::FRIDAY) {
             $date->addDay();
         }
+
         return $date;
     }
 }

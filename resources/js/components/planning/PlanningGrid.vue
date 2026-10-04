@@ -23,8 +23,8 @@ import AssignModal from "@/components/planning/AssignModal.vue";
 import AddCreneauModal from "@/components/planning/AddCreneauModal.vue";
 import AnnulationCoursModal from "@/components/planning/AnnulationCoursModal.vue";
 import SkeletonPlanningGrid from "@/components/shared/SkeletonPlanningGrid.vue";
-import { useToast } from '@amana/shared-ui';
-import { useConfirm } from '@amana/shared-ui';
+import { useToast } from "@amana/shared-ui";
+import { useConfirm } from "@amana/shared-ui";
 import type {
     PlanningResponse,
     SemaineData,
@@ -53,13 +53,9 @@ const loadError = ref(false);
 // Le type générique précise quelle interface expose le composant enfant —
 // ici, ce qu'on a déclaré via defineExpose({ open }) dans AssignModal.vue.
 import { useTemplateRef } from "vue";
-const assignModalRef =
-    useTemplateRef<InstanceType<typeof AssignModal>>("assign-modal");
-const addCreneauModalRef =
-    useTemplateRef<InstanceType<typeof AddCreneauModal>>("add-creneau-modal");
-const annulationCoursModalRef = useTemplateRef<
-    InstanceType<typeof AnnulationCoursModal>
->("annulation-cours-modal");
+const assignModalRef = useTemplateRef<InstanceType<typeof AssignModal>>("assign-modal");
+const addCreneauModalRef = useTemplateRef<InstanceType<typeof AddCreneauModal>>("add-creneau-modal");
+const annulationCoursModalRef = useTemplateRef<InstanceType<typeof AnnulationCoursModal>>("annulation-cours-modal");
 
 // ── Filtres (années / mois) ───────────────────────────────────────────────
 // Set<number> réactif : on utilise ref(new Set()) plutôt qu'un tableau parce
@@ -88,10 +84,7 @@ const allMonths = computed((): { num: number; label: string }[] => {
         if (!months.has(s.moisAffichage)) {
             // mois 1-12 → Date arbitraire dans ce mois pour formater le nom
             const label = fmt.format(new Date(2024, s.moisAffichage - 1, 1));
-            months.set(
-                s.moisAffichage,
-                label.charAt(0).toUpperCase() + label.slice(1),
-            );
+            months.set(s.moisAffichage, label.charAt(0).toUpperCase() + label.slice(1));
         }
     });
     return Array.from(months.entries())
@@ -109,12 +102,8 @@ function todayIso(): string {
 const semainesVisibles = computed((): SemaineData[] => {
     const today = todayIso();
     return semaines.value.filter((s) => {
-        const yearOk =
-            activeYears.value.size === 0 ||
-            activeYears.value.has(s.anneeAffichage);
-        const monthOk =
-            activeMonths.value.size === 0 ||
-            activeMonths.value.has(s.moisAffichage);
+        const yearOk = activeYears.value.size === 0 || activeYears.value.has(s.anneeAffichage);
+        const monthOk = activeMonths.value.size === 0 || activeMonths.value.has(s.moisAffichage);
         const pastOk = !hidePast.value || s.dimanche >= today;
         return yearOk && monthOk && pastOk;
     });
@@ -126,12 +115,8 @@ const semainesPasseesMasquees = computed((): number => {
     if (!hidePast.value) return 0;
     const today = todayIso();
     return semaines.value.filter((s) => {
-        const yearOk =
-            activeYears.value.size === 0 ||
-            activeYears.value.has(s.anneeAffichage);
-        const monthOk =
-            activeMonths.value.size === 0 ||
-            activeMonths.value.has(s.moisAffichage);
+        const yearOk = activeYears.value.size === 0 || activeYears.value.has(s.anneeAffichage);
+        const monthOk = activeMonths.value.size === 0 || activeMonths.value.has(s.moisAffichage);
         return yearOk && monthOk && s.dimanche < today;
     }).length;
 });
@@ -141,20 +126,17 @@ function togglePast(): void {
 }
 
 const resultsCountLabel = computed((): string => {
-    if (
-        activeYears.value.size === 0 &&
-        activeMonths.value.size === 0 &&
-        !hidePast.value
-    )
-        return "";
+    if (activeYears.value.size === 0 && activeMonths.value.size === 0 && !hidePast.value) return "";
     const n = semainesVisibles.value.length;
     return `${n} semaine${n !== 1 ? "s" : ""} affichée${n !== 1 ? "s" : ""}`;
 });
 
 function toggleYearFilter(year: number): void {
-    activeYears.value.has(year)
-        ? activeYears.value.delete(year)
-        : activeYears.value.add(year);
+    if (activeYears.value.has(year)) {
+        activeYears.value.delete(year);
+    } else {
+        activeYears.value.add(year);
+    }
     // Vue ne détecte pas les mutations internes d'un Set par défaut pour le
     // déclenchement de réactivité dans tous les cas — on réassigne une copie
     // pour garantir la mise à jour du computed.
@@ -162,9 +144,11 @@ function toggleYearFilter(year: number): void {
 }
 
 function toggleMonthFilter(month: number): void {
-    activeMonths.value.has(month)
-        ? activeMonths.value.delete(month)
-        : activeMonths.value.add(month);
+    if (activeMonths.value.has(month)) {
+        activeMonths.value.delete(month);
+    } else {
+        activeMonths.value.add(month);
+    }
     activeMonths.value = new Set(activeMonths.value);
 }
 
@@ -229,12 +213,8 @@ function applyDefaultFilters(): void {
     const availableYears = new Set(allYears.value);
     const availableMonths = new Set(allMonths.value.map((m) => m.num));
 
-    activeYears.value = new Set(
-        [...candidateYears].filter((y) => availableYears.has(y)),
-    );
-    activeMonths.value = new Set(
-        [...candidateMonths].filter((m) => availableMonths.has(m)),
-    );
+    activeYears.value = new Set([...candidateYears].filter((y) => availableYears.has(y)));
+    activeMonths.value = new Set([...candidateMonths].filter((m) => availableMonths.has(m)));
 }
 
 onMounted(async () => {
@@ -252,10 +232,7 @@ function findCreneau(creneauId: number): CreneauData | undefined {
 }
 
 // ── Ouverture du modal d'assignation depuis une cellule ───────────────────
-function openAssign(
-    creneau: CreneauData,
-    tacheCode: (typeof TACHE_CODES)[number],
-): void {
+function openAssign(creneau: CreneauData, tacheCode: (typeof TACHE_CODES)[number]): void {
     if (!peutEditer.value) return;
     const tache = creneau.taches.find((t) => t.code === tacheCode);
     // tache.tacheId est null si la ligne CreneauTache n'existe pas encore en base
@@ -276,11 +253,7 @@ function openAssign(
 }
 
 // ── Mise à jour locale après une assignation réussie ──────────────────────
-function onAssigned(
-    creneauId: number,
-    tacheCode: string,
-    personne: PersonneAssignee | null,
-): void {
+function onAssigned(creneauId: number, tacheCode: string, personne: PersonneAssignee | null): void {
     const creneau = findCreneau(creneauId);
     const tache = creneau?.taches.find((t) => t.code === tacheCode);
     if (tache) tache.personne = personne;
@@ -304,16 +277,13 @@ async function deleteCreneau(creneauId: number): Promise<void> {
 
 async function doDeleteCreneau(creneauId: number): Promise<void> {
     try {
-        const res = await fetch(
-            `${window.PlanningConfig.routes.creneau}/${creneauId}`,
-            {
-                method: "DELETE",
-                headers: {
-                    "X-CSRF-TOKEN": window.PlanningConfig.csrf,
-                    Accept: "application/json",
-                },
+        const res = await fetch(`${window.PlanningConfig.routes.creneau}/${creneauId}`, {
+            method: "DELETE",
+            headers: {
+                "X-CSRF-TOKEN": window.PlanningConfig.csrf,
+                Accept: "application/json",
             },
-        );
+        });
         const data = (await res.json()) as {
             success: boolean;
             message: string;
@@ -360,16 +330,13 @@ async function deleteWeek(semaine: SemaineData): Promise<void> {
     let n = 0;
     for (const id of ids) {
         try {
-            const res = await fetch(
-                `${window.PlanningConfig.routes.creneau}/${id}`,
-                {
-                    method: "DELETE",
-                    headers: {
-                        "X-CSRF-TOKEN": window.PlanningConfig.csrf,
-                        Accept: "application/json",
-                    },
+            const res = await fetch(`${window.PlanningConfig.routes.creneau}/${id}`, {
+                method: "DELETE",
+                headers: {
+                    "X-CSRF-TOKEN": window.PlanningConfig.csrf,
+                    Accept: "application/json",
                 },
-            );
+            });
             const data = (await res.json()) as { success: boolean };
             if (data.success) n++;
         } catch {
@@ -424,21 +391,11 @@ async function revealDate(date: string): Promise<void> {
 
     // Un filtre vide (Set de taille 0) signifie « tout afficher » : ne rien
     // ajouter dans ce cas, sinon on restreindrait l'affichage à ce seul mois.
-    if (
-        activeYears.value.size > 0 &&
-        !activeYears.value.has(semaine.anneeAffichage)
-    ) {
-        activeYears.value = new Set(activeYears.value).add(
-            semaine.anneeAffichage,
-        );
+    if (activeYears.value.size > 0 && !activeYears.value.has(semaine.anneeAffichage)) {
+        activeYears.value = new Set(activeYears.value).add(semaine.anneeAffichage);
     }
-    if (
-        activeMonths.value.size > 0 &&
-        !activeMonths.value.has(semaine.moisAffichage)
-    ) {
-        activeMonths.value = new Set(activeMonths.value).add(
-            semaine.moisAffichage,
-        );
+    if (activeMonths.value.size > 0 && !activeMonths.value.has(semaine.moisAffichage)) {
+        activeMonths.value = new Set(activeMonths.value).add(semaine.moisAffichage);
     }
     // Même raisonnement que activeYears/activeMonths ci-dessus, pour hidePast :
     // un « Créneau passé » (openAddCreneauPasse) créé dans une semaine déjà
@@ -477,30 +434,20 @@ async function toggleHistorique(): Promise<void> {
             <span>📚</span>
             <span class="flex-1">Affichage de tout l'historique.</span>
             <button
-                @click="toggleHistorique"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold border border-amber-300 rounded-lg hover:bg-amber-100 transition-colors text-amber-800 min-h-[44px] bg-transparent cursor-pointer"
+                @click="toggleHistorique"
             >
                 ← Vue normale (1 an)
             </button>
         </div>
 
         <!-- Chargement -->
-        <SkeletonPlanningGrid
-            v-if="loading"
-            :semaines="3"
-            :creneaux-par-semaine="2"
-        />
+        <SkeletonPlanningGrid v-if="loading" :semaines="3" :creneaux-par-semaine="2" />
 
         <!-- Erreur réseau -->
-        <div
-            v-else-if="loadError"
-            class="text-center py-16 text-rose-600 text-[13.5px]"
-        >
+        <div v-else-if="loadError" class="text-center py-16 text-rose-600 text-[13.5px]">
             ❌ Erreur lors du chargement du planning.
-            <button
-                @click="loadData"
-                class="ml-2 underline cursor-pointer bg-transparent border-0 text-rose-600"
-            >
+            <button class="ml-2 underline cursor-pointer bg-transparent border-0 text-rose-600" @click="loadData">
                 Réessayer
             </button>
         </div>
@@ -512,30 +459,23 @@ async function toggleHistorique(): Promise<void> {
         >
             <div class="text-center py-16 px-8">
                 <div class="text-5xl mb-3 opacity-40">📭</div>
-                <h3
-                    class="font-heading text-base font-semibold text-ink mb-1.5"
-                >
-                    Aucun planning généré
-                </h3>
+                <h3 class="font-heading text-base font-semibold text-ink mb-1.5">Aucun planning généré</h3>
                 <p class="text-ink-muted text-[13.5px] mb-6">
                     <template v-if="!historique">
                         Aucun créneau dans les 12 derniers mois.
                         <button
-                            @click="toggleHistorique"
                             class="text-accent font-semibold hover:underline bg-transparent border-0 cursor-pointer p-0"
+                            @click="toggleHistorique"
                         >
                             Voir tout l'historique
                         </button>
                     </template>
-                    <template v-else>
-                        Cliquez sur "Générer" pour créer le premier planning
-                        automatique.
-                    </template>
+                    <template v-else> Cliquez sur "Générer" pour créer le premier planning automatique. </template>
                 </p>
                 <button
                     v-if="peutAjouterPasse"
-                    @click="openAddCreneauPasse"
                     class="px-3 py-1.5 text-[12px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-md transition-colors min-h-[44px] inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                    @click="openAddCreneauPasse"
                 >
                     🕓 Créneau passé
                 </button>
@@ -547,16 +487,10 @@ async function toggleHistorique(): Promise<void> {
             <div
                 class="flex flex-wrap items-center gap-2.5 px-4 py-3 mb-5 bg-surface border border-surface-border rounded-xl shadow-sm"
             >
-                <span
-                    class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.8px]"
-                    >Filtrer</span
-                >
+                <span class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.8px]">Filtrer</span>
 
                 <div class="flex items-center gap-1.5 flex-wrap">
-                    <span
-                        class="text-[9.5px] font-bold text-ink-faint uppercase tracking-[0.8px]"
-                        >Année</span
-                    >
+                    <span class="text-[9.5px] font-bold text-ink-faint uppercase tracking-[0.8px]">Année</span>
                     <div class="flex gap-1 flex-wrap">
                         <span
                             v-for="year in allYears"
@@ -576,10 +510,7 @@ async function toggleHistorique(): Promise<void> {
                 <div class="w-px h-5 bg-surface-border flex-shrink-0"></div>
 
                 <div class="flex items-center gap-1.5 flex-wrap">
-                    <span
-                        class="text-[9.5px] font-bold text-ink-faint uppercase tracking-[0.8px]"
-                        >Mois</span
-                    >
+                    <span class="text-[9.5px] font-bold text-ink-faint uppercase tracking-[0.8px]">Mois</span>
                     <div class="flex gap-1 flex-wrap">
                         <span
                             v-for="m in allMonths"
@@ -599,16 +530,16 @@ async function toggleHistorique(): Promise<void> {
                 <div class="w-px h-5 bg-surface-border flex-shrink-0"></div>
 
                 <button
-                    @click="clearFilters"
                     class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md hover:border-rose-300 hover:text-rose-500 transition-colors bg-transparent cursor-pointer min-h-[44px]"
+                    @click="clearFilters"
                 >
                     ✕ Effacer
                 </button>
 
                 <button
                     v-if="!historique"
-                    @click="toggleHistorique"
                     class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md hover:border-accent hover:text-accent transition-colors min-h-[44px] inline-flex items-center whitespace-nowrap bg-transparent cursor-pointer"
+                    @click="toggleHistorique"
                 >
                     📚 Historique complet
                 </button>
@@ -620,13 +551,13 @@ async function toggleHistorique(): Promise<void> {
                     restant accessible d'un clic.
                 -->
                 <button
-                    @click="togglePast"
                     class="px-2.5 py-1 text-[12px] font-semibold rounded-md transition-colors min-h-[44px] inline-flex items-center whitespace-nowrap cursor-pointer border"
                     :class="
                         !hidePast
                             ? 'bg-accent text-white border-accent'
                             : 'bg-surface-2 text-ink-muted border-surface-border hover:border-accent hover:text-accent'
                     "
+                    @click="togglePast"
                 >
                     🕓
                     {{
@@ -636,23 +567,21 @@ async function toggleHistorique(): Promise<void> {
                     }}
                 </button>
 
-                <span class="ml-auto text-[11.5px] text-ink-muted italic">{{
-                    resultsCountLabel
-                }}</span>
+                <span class="ml-auto text-[11.5px] text-ink-muted italic">{{ resultsCountLabel }}</span>
 
                 <button
                     v-if="peutAjouterPasse"
-                    @click="openAddCreneauPasse"
                     title="Correction administrateur : créer un créneau pour un week-end passé jamais généré"
                     class="px-3 py-1.5 text-[12px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-md transition-colors min-h-[44px] inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                    @click="openAddCreneauPasse"
                 >
                     🕓 Créneau passé
                 </button>
 
                 <button
                     v-if="peutEditer"
-                    @click="openAnnulationCours"
                     class="px-3 py-1.5 text-[12px] font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-md transition-colors min-h-[44px] inline-flex items-center gap-1.5 whitespace-nowrap border-0 cursor-pointer shadow-[0_2px_8px_rgba(225,29,72,0.25)]"
+                    @click="openAnnulationCours"
                 >
                     🚫 Annulation cours
                 </button>
@@ -669,13 +598,9 @@ async function toggleHistorique(): Promise<void> {
                     class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-surface-3 bg-surface-2"
                 >
                     <div class="flex items-center gap-2 flex-wrap">
-                        <span
-                            class="font-heading text-[13px] font-semibold text-ink flex items-center gap-1.5"
-                        >
+                        <span class="font-heading text-[13px] font-semibold text-ink flex items-center gap-1.5">
                             📅
-                            <span class="text-accent font-bold"
-                                >S{{ semaine.numeroSemaine }}</span
-                            >
+                            <span class="text-accent font-bold">S{{ semaine.numeroSemaine }}</span>
                             {{ semaine.libelleSemaine }}
                         </span>
                         <span
@@ -686,20 +611,18 @@ async function toggleHistorique(): Promise<void> {
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-[11.5px] text-ink-muted">
-                            {{ semaine.creneaux.length }} créneau{{
-                                semaine.creneaux.length > 1 ? "x" : ""
-                            }}
+                            {{ semaine.creneaux.length }} créneau{{ semaine.creneaux.length > 1 ? "x" : "" }}
                         </span>
                         <template v-if="peutEditer">
                             <button
-                                @click="openAddCreneau(semaine)"
                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px] bg-sky-500/20 border border-sky-500/50 text-sky-700 hover:bg-sky-500/30"
+                                @click="openAddCreneau(semaine)"
                             >
                                 ➕ Créneau
                             </button>
                             <button
-                                @click="deleteWeek(semaine)"
                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[11.5px] font-semibold rounded-lg cursor-pointer transition-colors min-h-[44px] bg-rose-500/15 border border-rose-500/40 text-rose-600 hover:bg-rose-500/25"
+                                @click="deleteWeek(semaine)"
                             >
                                 🗑️ Semaine
                             </button>
@@ -737,10 +660,7 @@ async function toggleHistorique(): Promise<void> {
 
                 <!-- Table desktop -->
                 <div class="hidden md:block overflow-x-auto">
-                    <table
-                        class="w-full border-collapse text-[13px]"
-                        style="min-width: 680px"
-                    >
+                    <table class="w-full border-collapse text-[13px]" style="min-width: 680px">
                         <thead>
                             <tr>
                                 <th
@@ -761,9 +681,7 @@ async function toggleHistorique(): Promise<void> {
                                 >
                                     Événements
                                 </th>
-                                <th
-                                    class="w-9 bg-surface-2 border-b border-surface-3"
-                                ></th>
+                                <th class="w-9 bg-surface-2 border-b border-surface-3"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -771,24 +689,12 @@ async function toggleHistorique(): Promise<void> {
                                 v-for="creneau in semaine.creneaux"
                                 :key="creneau.id"
                                 class="border-b border-surface-3 last:border-0 group transition-colors"
-                                :class="
-                                    creneau.toutBloque
-                                        ? 'bg-orange-50'
-                                        : 'hover:bg-surface-2'
-                                "
+                                :class="creneau.toutBloque ? 'bg-orange-50' : 'hover:bg-surface-2'"
                             >
                                 <td class="px-4 py-2.5">
-                                    <div
-                                        class="flex items-center gap-2 flex-wrap"
-                                    >
-                                        <strong
-                                            class="font-heading text-[13px] text-ink"
-                                            >{{ creneau.jour }}</strong
-                                        >
-                                        <span
-                                            class="text-ink-muted text-[11.5px]"
-                                            >{{ creneau.dateLabel }}</span
-                                        >
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <strong class="font-heading text-[13px] text-ink">{{ creneau.jour }}</strong>
+                                        <span class="text-ink-muted text-[11.5px]">{{ creneau.dateLabel }}</span>
                                         <span
                                             v-if="creneau.toutBloque"
                                             class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700"
@@ -814,31 +720,17 @@ async function toggleHistorique(): Promise<void> {
                                     >
                                         <span
                                             class="text-orange-500 text-xs font-semibold"
-                                            :title="
-                                                tache.evenementBloquant ?? ''
-                                            "
+                                            :title="tache.evenementBloquant ?? ''"
                                         >
                                             🚫
-                                            {{
-                                                (
-                                                    tache.evenementBloquant ??
-                                                    ""
-                                                ).slice(0, 18)
-                                            }}
+                                            {{ (tache.evenementBloquant ?? "").slice(0, 18) }}
                                         </span>
                                     </div>
                                     <div
                                         v-else
                                         class="flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors group/cell"
-                                        :class="
-                                            peutEditer
-                                                ? 'cursor-pointer hover:bg-surface-3'
-                                                : 'cursor-default'
-                                        "
-                                        @click="
-                                            peutEditer &&
-                                            openAssign(creneau, tache.code)
-                                        "
+                                        :class="peutEditer ? 'cursor-pointer hover:bg-surface-3' : 'cursor-default'"
+                                        @click="peutEditer && openAssign(creneau, tache.code)"
                                     >
                                         <span
                                             v-if="tache.personne"
@@ -847,11 +739,7 @@ async function toggleHistorique(): Promise<void> {
                                         >
                                             {{ tache.personne.label }}
                                         </span>
-                                        <span
-                                            v-else
-                                            class="text-ink-faint italic text-xs"
-                                            >—</span
-                                        >
+                                        <span v-else class="text-ink-faint italic text-xs">—</span>
                                         <span
                                             v-if="peutEditer"
                                             class="opacity-0 group-hover/cell:opacity-100 transition-opacity text-[11px] text-ink-faint flex-shrink-0"
@@ -872,16 +760,14 @@ async function toggleHistorique(): Promise<void> {
                                     >
                                         {{ creneau.evenements }}
                                     </span>
-                                    <span v-else class="text-ink-faint text-xs"
-                                        >—</span
-                                    >
+                                    <span v-else class="text-ink-faint text-xs">—</span>
                                 </td>
 
                                 <td class="pr-3 text-right">
                                     <button
                                         v-if="peutEditer"
-                                        @click="deleteCreneau(creneau.id)"
                                         class="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-md bg-transparent border border-transparent hover:bg-rose-50 hover:border-rose-200 text-sm cursor-pointer flex items-center justify-center min-h-[44px] min-w-[44px]"
+                                        @click="deleteCreneau(creneau.id)"
                                     >
                                         🗑️
                                     </button>
@@ -901,13 +787,8 @@ async function toggleHistorique(): Promise<void> {
                     >
                         <div class="flex items-center justify-between mb-2.5">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <strong
-                                    class="font-heading text-[13.5px] text-ink"
-                                    >{{ creneau.jour }}</strong
-                                >
-                                <span class="text-ink-muted text-[12px]">{{
-                                    creneau.dateLabel
-                                }}</span>
+                                <strong class="font-heading text-[13.5px] text-ink">{{ creneau.jour }}</strong>
+                                <span class="text-ink-muted text-[12px]">{{ creneau.dateLabel }}</span>
                                 <span
                                     v-if="creneau.toutBloque"
                                     class="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700"
@@ -921,8 +802,8 @@ async function toggleHistorique(): Promise<void> {
                             </div>
                             <button
                                 v-if="peutEditer"
-                                @click="deleteCreneau(creneau.id)"
                                 class="w-9 h-9 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-sm cursor-pointer flex items-center justify-center min-h-[44px] min-w-[44px]"
+                                @click="deleteCreneau(creneau.id)"
                             >
                                 🗑️
                             </button>
@@ -934,35 +815,19 @@ async function toggleHistorique(): Promise<void> {
                                 :key="tache.code"
                                 class="rounded-lg p-2.5 transition-colors"
                                 :class="[
-                                    tache.bloquee
-                                        ? 'bg-orange-50'
-                                        : 'bg-surface-2',
+                                    tache.bloquee ? 'bg-orange-50' : 'bg-surface-2',
                                     peutEditer && !tache.bloquee
                                         ? 'cursor-pointer hover:bg-surface-3 active:bg-surface-border'
                                         : '',
                                 ]"
-                                @click="
-                                    peutEditer &&
-                                    !tache.bloquee &&
-                                    openAssign(creneau, tache.code)
-                                "
+                                @click="peutEditer && !tache.bloquee && openAssign(creneau, tache.code)"
                             >
-                                <div
-                                    class="text-[10px] font-bold text-ink-muted mb-1"
-                                >
+                                <div class="text-[10px] font-bold text-ink-muted mb-1">
                                     {{ TACHES_META[tache.code].label }}
                                 </div>
-                                <span
-                                    v-if="tache.bloquee"
-                                    class="text-orange-500 text-xs font-semibold"
-                                >
+                                <span v-if="tache.bloquee" class="text-orange-500 text-xs font-semibold">
                                     🚫
-                                    {{
-                                        (tache.evenementBloquant ?? "").slice(
-                                            0,
-                                            14,
-                                        )
-                                    }}
+                                    {{ (tache.evenementBloquant ?? "").slice(0, 14) }}
                                 </span>
                                 <span
                                     v-else-if="tache.personne"
@@ -970,24 +835,13 @@ async function toggleHistorique(): Promise<void> {
                                     :class="`chip-${tache.code}`"
                                 >
                                     {{ tache.personne.label.split(" ")[0] }}
-                                    {{
-                                        tache.personne.label
-                                            .split(" ")[1]
-                                            ?.slice(0, 8)
-                                    }}
+                                    {{ tache.personne.label.split(" ")[1]?.slice(0, 8) }}
                                 </span>
-                                <span
-                                    v-else
-                                    class="text-ink-faint italic text-xs"
-                                    >—</span
-                                >
+                                <span v-else class="text-ink-faint italic text-xs">—</span>
                             </div>
                         </div>
 
-                        <div
-                            v-if="creneau.evenements"
-                            class="mt-2 text-[11.5px] text-ink-muted"
-                        >
+                        <div v-if="creneau.evenements" class="mt-2 text-[11.5px] text-ink-muted">
                             📅 {{ creneau.evenements }}
                         </div>
                     </div>
@@ -1003,15 +857,7 @@ async function toggleHistorique(): Promise<void> {
             @unassigned="onUnassigned"
             @deleted="onDeletedFromModal"
         />
-        <AddCreneauModal
-            v-if="peutEditer"
-            ref="add-creneau-modal"
-            @created="onCreneauCreated"
-        />
-        <AnnulationCoursModal
-            v-if="peutEditer"
-            ref="annulation-cours-modal"
-            @cancelled="onCoursAnnule"
-        />
+        <AddCreneauModal v-if="peutEditer" ref="add-creneau-modal" @created="onCreneauCreated" />
+        <AnnulationCoursModal v-if="peutEditer" ref="annulation-cours-modal" @cancelled="onCoursAnnule" />
     </div>
 </template>

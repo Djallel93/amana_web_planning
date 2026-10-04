@@ -8,6 +8,8 @@ namespace App\Http\Controllers;
 use Amana\Shared\Http\Controllers\SettingsControllerBase;
 use Amana\Shared\Models\Setting;
 use App\Models\CalendrierGoogle;
+use App\Models\Personne;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -45,7 +47,7 @@ class SettingsController extends SettingsControllerBase
         $couleurs = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'couleur_'));
         $calendriersGoogle = CalendrierGoogle::orderBy('nom')->get();
 
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         return view('settings.index', compact(
@@ -63,7 +65,7 @@ class SettingsController extends SettingsControllerBase
 
     // ── Helpers privés ─────────────────────────────────────────────────────
 
-    private function grouperDecalages(\Illuminate\Support\Collection $decalages): array
+    private function grouperDecalages(Collection $decalages): array
     {
         $libelles = [
             'entree' => 'Entrée',

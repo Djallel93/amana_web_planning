@@ -12,7 +12,6 @@ use Amana\Shared\Models\AuditLog;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Evenement;
 use App\Services\SchedulerMain;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Bus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\PrepareImportEvenements;
@@ -21,8 +20,8 @@ use Tests\TestCase;
 
 class EvenementCsvImportAttenduTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use PrepareImportEvenements;
+    use RefreshesBothDatabases;
 
     protected function setUp(): void
     {
@@ -128,7 +127,7 @@ class EvenementCsvImportAttenduTest extends TestCase
         $resultat = $this->valider(self::ENTETE . "\nA;2026-12-01;2026-12-02;;;;\n\nB;pas-une-date;2026-12-02;;;;\n");
 
         $this->assertCount(1, $resultat['rows']);
-        $this->assertSame([['ligne' => 3, 'erreurs' => ["La date de début « pas-une-date » est invalide (format attendu : AAAA-MM-JJ)."]]], $resultat['errors']);
+        $this->assertSame([['ligne' => 3, 'erreurs' => ['La date de début « pas-une-date » est invalide (format attendu : AAAA-MM-JJ).']]], $resultat['errors']);
     }
 
     // ══ Tout ou rien ══════════════════════════════════════════════════════

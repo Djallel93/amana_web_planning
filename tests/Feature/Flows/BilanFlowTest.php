@@ -22,9 +22,9 @@ use Tests\TestCase;
 
 class BilanFlowTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private const DATE = '2026-09-25';
 
@@ -378,7 +378,10 @@ class BilanFlowTest extends TestCase
     public function test_les_statistiques_agregent_montants_presences_et_taux_de_remplissage(): void
     {
         $this->connecterEn('membre');
-        $this->creneauLe('2026-09-04'); $this->creneauLe('2026-09-11'); $this->creneauLe('2026-09-18'); $this->creneauLe('2026-09-25');
+        $this->creneauLe('2026-09-04');
+        $this->creneauLe('2026-09-11');
+        $this->creneauLe('2026-09-18');
+        $this->creneauLe('2026-09-25');
         // 04/09 : complet ; 11/09 : complet ; 18/09 : présences seulement ; 25/09 : « pas de cours » (tout NULL) ; 02/10 : hors période.
         $this->bilan('2026-09-04', ['montant_carte' => '100.00', 'montant_espece' => '50.00', 'montant_charges' => '20.00', 'nb_presents' => 20, 'nb_en_ligne' => 5]);
         $this->bilan('2026-09-11', ['montant_carte' => '200.00', 'montant_espece' => '0.00', 'montant_charges' => '30.00', 'nb_presents' => 30, 'nb_en_ligne' => 15]);

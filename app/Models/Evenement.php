@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -24,8 +25,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property int         $id
  * @property string      $nom
- * @property \Carbon\Carbon $date_debut
- * @property \Carbon\Carbon $date_fin
+ * @property Carbon $date_debut
+ * @property Carbon $date_fin
  * @property string|null $description
  * @property string|null $couleur Identifiant de couleur Google Calendar
  *           (colorId, '1' à '11') — voir GoogleCalendarService::COLOR_NAMES.
@@ -36,6 +37,7 @@ class Evenement extends Model
     use HasFactory;
 
     protected $table = 'ref_evenements';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -123,6 +125,7 @@ class Evenement extends Model
         if (!$this->relationLoaded('calendriers')) {
             $this->load('calendriers');
         }
+
         return $this->calendriers->isNotEmpty();
     }
 
@@ -136,6 +139,7 @@ class Evenement extends Model
         if (!$this->relationLoaded('calendriers')) {
             $this->load('calendriers');
         }
+
         return $this->calendriers->pluck('calendar_name')->values()->all();
     }
 
@@ -164,6 +168,7 @@ class Evenement extends Model
         if (!$this->relationLoaded('calendriers')) {
             $this->load('calendriers');
         }
+
         return $this->calendriers
             ->pluck('google_calendar_id')
             ->filter()

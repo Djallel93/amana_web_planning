@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CreneauTache;
 use App\Models\Echange;
+use App\Models\Personne;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -24,7 +25,7 @@ class MonPlanningController extends Controller
 {
     public function index(Request $request): View
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         $historique = $request->boolean('historique');
@@ -69,4 +70,3 @@ class MonPlanningController extends Controller
         ));
     }
 }
-

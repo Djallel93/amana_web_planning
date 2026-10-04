@@ -5,12 +5,10 @@ declare(strict_types=1);
 
 namespace App\Notifications\Echanges;
 
-use App\Models\Echange;
 use Amana\Shared\Notifications\Concerns\EmbedsLogo;
-
+use App\Models\Echange;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Notification envoyée à A quand B refuse l'échange.
@@ -21,8 +19,7 @@ class EchangeRefuseNotification extends Notification
 
     public function __construct(
         private readonly Echange $echange,
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -31,7 +28,7 @@ class EchangeRefuseNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->embedLogo(new MailMessage)
+        return $this->embedLogo(new MailMessage())
             ->subject('Échange de créneau refusé — AMANA Planning')
             ->view('emails.echanges.refuse', [
                 'echange' => $this->echange,

@@ -44,7 +44,7 @@ class TesterGoogleCalendar extends Command
         {--create : Crée, modifie puis supprime un événement de test réel}
         {--calendar-id= : Vérifie (et utilise pour --create) un ID de calendrier précis, même non enregistré dans ref_calendriers_google}';
 
-    protected $description = "Vérifie la configuration du compte de service Google Calendar (auth, accès aux calendriers enregistrés et/ou à un ID précis, et optionnellement un cycle create/update/delete).";
+    protected $description = 'Vérifie la configuration du compte de service Google Calendar (auth, accès aux calendriers enregistrés et/ou à un ID précis, et optionnellement un cycle create/update/delete).';
 
     public function __construct(
         private readonly GoogleCalendarService $google,
@@ -61,6 +61,7 @@ class TesterGoogleCalendar extends Command
                 'GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 est vide ou absente du .env. '
                 . "Rien à tester tant qu'elle n'est pas renseignée."
             );
+
             return Command::FAILURE;
         }
         $this->components->info('GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 est présente.');
@@ -80,13 +81,14 @@ class TesterGoogleCalendar extends Command
 
         if (empty($idsAVerifier)) {
             $this->components->warn(
-                "Aucun calendrier à vérifier : le registre ref_calendriers_google est vide et aucun "
+                'Aucun calendrier à vérifier : le registre ref_calendriers_google est vide et aucun '
                 . "--calendar-id n'a été fourni."
             );
             $this->line('');
             $this->line('Deux façons de continuer :');
             $this->line('  1. Enregistrer un calendrier depuis /parametres (interface web) — recommandé pour un usage normal.');
             $this->line('  2. Tester un ID précis sans l\'enregistrer : --calendar-id=xxxx@group.calendar.google.com');
+
             return Command::FAILURE;
         }
 
@@ -117,6 +119,7 @@ class TesterGoogleCalendar extends Command
             $this->line('  - Calendrier non partagé avec l\'adresse ci-dessus, ou partagé avec la mauvaise adresse');
             $this->line('  - Calendar API non activée sur le projet Google Cloud');
             $this->line('  - Restriction de partage externe côté administrateur Google Workspace (domaine ne correspondant pas à *.iam.gserviceaccount.com)');
+
             return Command::FAILURE;
         }
 
@@ -126,6 +129,7 @@ class TesterGoogleCalendar extends Command
                 'Configuration OK pour au moins un calendrier. Relancez avec --create pour tester un cycle complet '
                 . 'create/update/delete sur un événement réel (courte durée, supprimé automatiquement).'
             );
+
             return Command::SUCCESS;
         }
 
@@ -166,6 +170,7 @@ class TesterGoogleCalendar extends Command
             $this->components->error(
                 'Aucun calendar-id disponible pour --create. Fournissez --calendar-id=xxxx@group.calendar.google.com.'
             );
+
             return Command::FAILURE;
         }
 
@@ -200,6 +205,7 @@ class TesterGoogleCalendar extends Command
         } catch (\Throwable $e) {
             $this->components->error('Échec pendant le cycle de test : ' . $e->getMessage());
             $this->line('  ⚠️  Si la création a réussi mais pas la suite, un événement de test peut être resté dans le calendrier — pensez à vérifier/nettoyer manuellement.');
+
             return Command::FAILURE;
         }
 

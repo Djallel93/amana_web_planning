@@ -77,10 +77,7 @@ function jouerClic(direction: "up" | "down"): void {
 
         oscillateur.type = "square";
         oscillateur.frequency.setValueAtTime(freqDepart, audioCtx.currentTime);
-        oscillateur.frequency.exponentialRampToValueAtTime(
-            freqArrivee,
-            audioCtx.currentTime + duree,
-        );
+        oscillateur.frequency.exponentialRampToValueAtTime(freqArrivee, audioCtx.currentTime + duree);
 
         // Attaque quasi instantanée puis extinction exponentielle rapide
         // pour un "tic" sec plutôt qu'un bip qui traîne.
@@ -121,14 +118,8 @@ function enregistrer(): void {
 <template>
     <Modal :open="open" max-width="max-w-xs" @close="annuler">
         <template #header>
-            <div
-                class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
-            >
-                🔢
-            </div>
-            <span class="font-heading text-[14px] font-semibold text-ink">{{
-                label
-            }}</span>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔢</div>
+            <span class="font-heading text-[14px] font-semibold text-ink">{{ label }}</span>
         </template>
 
         <div class="flex items-center justify-center gap-5 py-2">
@@ -142,9 +133,7 @@ function enregistrer(): void {
                 −
             </button>
 
-            <span
-                class="w-20 text-center font-heading text-4xl font-bold text-ink tabular-nums"
-            >
+            <span class="w-20 text-center font-heading text-4xl font-bold text-ink tabular-nums">
                 {{ compte }}
             </span>
 

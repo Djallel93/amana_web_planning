@@ -37,8 +37,7 @@ class CalendarSharingService
 
     public function __construct(
         private readonly GoogleCalendarService $google,
-    ) {
-    }
+    ) {}
 
     /**
      * Partage tous les calendriers actifs marqués `inclure_nouveaux_membres`
@@ -57,6 +56,7 @@ class CalendarSharingService
             Log::warning('[CalendarSharingService] GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 non configurée — partage ignoré.', [
                 'email' => $email,
             ]);
+
             return [];
         }
 

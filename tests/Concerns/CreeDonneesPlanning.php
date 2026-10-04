@@ -12,6 +12,7 @@ use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Personne;
 use App\Models\Tache;
+use Database\Factories\PersonneFactory;
 use Database\Factories\TacheFactory;
 
 trait CreeDonneesPlanning
@@ -44,7 +45,7 @@ trait CreeDonneesPlanning
     protected function creerRolesPlanning(): void
     {
         foreach (['admin', 'gestionnaire', 'membre', 'benevole'] as $code) {
-            \Database\Factories\PersonneFactory::role($code);
+            PersonneFactory::role($code);
         }
     }
 

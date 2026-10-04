@@ -36,7 +36,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     /**
      * Ordre imposé par les clés étrangères locales :
      * ref_personnes_roles → ref_roles/ref_personnes → ref_applications,

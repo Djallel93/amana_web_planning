@@ -1,0 +1,11 @@
+# Commits de reformatage pur (aucun changement fonctionnel), ignorés par
+# `git blame` pour ne pas masquer l'auteur réel des lignes.
+#
+# GitHub lit ce fichier automatiquement. En local, une seule fois :
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Après un `git am`/rebase, les SHA changent : ajouter ici le SHA définitif
+# du commit de reformatage (voir docs/backend-conventions.md §3), précédé
+# d'un commentaire décrivant le commit.
+# feat(auth): améliorer le diagnostic de réinitialisation de mot de passe et mise à jour des messages d'erreur fix(dependencies): mettre à jour la version de amana/shared à 2.7.1 fix(dependencies): mettre à jour la version de nesbot/carbon à 3.14.1 refactor(guide): améliorer la clarté des instructions et des exemples dans la documentation style(bilan): ajuster le style des boutons dans le modal de compteur docs(auth): ajouter des précisions sur la validité des emails de réinitialisation
+cd456dfadc7d9d9387495e969a94beb731c41e34

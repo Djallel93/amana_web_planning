@@ -20,6 +20,7 @@ class Creneau extends Model
     use HasFactory;
 
     protected $table = 'plan_creneaux';
+
     public $timestamps = false;
 
     protected $fillable = ['date'];
@@ -92,6 +93,7 @@ class Creneau extends Model
             5 => 'Vendredi',
             6 => 'Samedi',
         ];
+
         return $jours[$this->date->dayOfWeek] ?? '';
     }
 

@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class EvenementCalendrier extends Model
 {
     protected $table = 'ref_evenements_calendriers';
+
     public $timestamps = false;
 
     protected $fillable = ['id_evenement', 'calendar_name', 'google_calendar_id', 'google_event_id'];

@@ -10,15 +10,14 @@ namespace Tests\Feature\Authorization;
 
 use App\Models\Personne;
 use Illuminate\Support\Facades\Notification;
-use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\ConnecteParRole;
 use Tests\Concerns\RefreshesBothDatabases;
 use Tests\TestCase;
 
 class RateLimitTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
+    use RefreshesBothDatabases;
 
     /** Nombre de requêtes qui passent, puis la suivante reçoit 429. */
     private function assertLimite(int $autorisees, callable $requete): void

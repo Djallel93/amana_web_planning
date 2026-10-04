@@ -21,6 +21,9 @@
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | [docs/installation.md](docs/installation.md) | Prérequis, installation locale, déploiement IONOS, référence des routes, résolution des problèmes |
 | [docs/Schema_bdd.md](docs/Schema_bdd.md)     | Schéma complet de la base de données, diagramme des relations, description de chaque table        |
+| [docs/frontend-conventions.md](docs/frontend-conventions.md) | Conventions Vue / TypeScript / Inertia : emplacement des composants, montage d'îlots, nommage des pages, lint |
+| [docs/backend-conventions.md](docs/backend-conventions.md) | Conventions PHP / Laravel : porte de qualité, style Pint (style maison), commits de reformatage, PHPStan |
+| [docs/security.md](docs/security.md) | Surveillance des failles dans les dépendances : Dependabot, audit hebdomadaire, réglages GitHub à activer |
 
 ---
 
@@ -73,7 +76,7 @@ graph TD
 
 - **Backend :** Laravel 11 (PHP 8.2+)
 - **Base de données :** MySQL 8 / MariaDB 10.4+
-- **Frontend :** Blade pour le rendu serveur (layout, formulaires simples) + **Vue 3** pour les vues interactives (planning, événements, bilan quotidien, formulaires avec sélection multiple…), compilé par **Vite** avec **Tailwind CSS**. Le build produit `public/build/` (non committé dans git — voir [docs/installation.md](docs/installation.md)), chargé côté Blade via la directive `@vite(...)`.
+- **Frontend :** Blade pour le rendu serveur (layout, formulaires simples) + **Vue 3** pour les vues interactives (planning, événements, bilan quotidien, formulaires avec sélection multiple…), compilé par **Vite** avec **Tailwind CSS**. Le build produit `public/build/` (non committé dans git — voir [docs/installation.md](docs/installation.md)), chargé côté Blade via la directive `@vite(...)`. Conventions de code frontend : [docs/frontend-conventions.md](docs/frontend-conventions.md).
 - **PDF :** barryvdh/laravel-dompdf
 - **Queue :** Laravel Queue (driver `database` en prod, `sync` supporté en dev)
 - **Automatisation externe :** API Google Calendar v3 en appel direct, via compte de service (planning, événements organisationnels **et** annulations de cours)

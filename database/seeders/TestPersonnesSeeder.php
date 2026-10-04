@@ -35,6 +35,7 @@ use Illuminate\Support\Facades\Hash;
 class TestPersonnesSeeder extends Seeder
 {
     private const NB_PERSONNES = 10;
+
     private const JOURS = ['Vendredi', 'Samedi'];
 
     /**
@@ -86,8 +87,7 @@ class TestPersonnesSeeder extends Seeder
 
     public function __construct(
         private readonly RoleService $roleService,
-    ) {
-    }
+    ) {}
 
     public function run(): void
     {
@@ -97,6 +97,7 @@ class TestPersonnesSeeder extends Seeder
             $this->command->warn(
                 'Aucune tâche active trouvée — lancez d\'abord DatabaseSeeder.'
             );
+
             return;
         }
 

@@ -18,6 +18,7 @@ use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Personne;
 use App\Services\SchedulerMain;
+use Database\Factories\TacheFactory;
 use Illuminate\Support\Facades\Bus;
 use Tests\Concerns\ConnecteParRole;
 use Tests\Concerns\CreeDonneesPlanning;
@@ -27,9 +28,9 @@ use Tests\TestCase;
 
 class AbsenceRegenerationFlowTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private Personne $moi;
 
@@ -46,7 +47,7 @@ class AbsenceRegenerationFlowTest extends TestCase
         Bus::fake();
         // « moi » doit tenir au moins une tâche le 02/10 : on la lui donne si la rotation l'a oubliée.
         if (CreneauTache::where('id_planning', $this->creneauLe('2026-10-02')->id)->where('id_personne', $this->moi->id)->doesntExist()) {
-            CreneauTache::where('id_planning', $this->creneauLe('2026-10-02')->id)->where('id_tache', \Database\Factories\TacheFactory::pourCode('entree')->id)
+            CreneauTache::where('id_planning', $this->creneauLe('2026-10-02')->id)->where('id_tache', TacheFactory::pourCode('entree')->id)
                 ->update(['id_personne' => $this->moi->id]);
         }
     }

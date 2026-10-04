@@ -22,9 +22,9 @@ use Tests\TestCase;
 
 class EchangeAuthorizationTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     protected function setUp(): void
     {

@@ -55,14 +55,14 @@ class SynchroniserGoogleCalendar implements ShouldQueue
     public int $backoff = 60;
 
     private const METHODES_AUTORISEES = ['post', 'patch', 'delete'];
+
     private const CIBLES_AUTORISEES = ['planning', 'evenement', 'absence'];
 
     public function __construct(
         private readonly array $payload,
         private readonly string $method = 'post',
         private readonly string $cible = 'planning',
-    ) {
-    }
+    ) {}
 
     public function handle(GoogleCalendarService $google, GoogleCalendarPayloadMapper $mapper): void
     {
@@ -70,6 +70,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
             Log::warning('[SynchroniserGoogleCalendar] GOOGLE_SERVICE_ACCOUNT_JSON_BASE64 non configurée — synchronisation ignorée.', [
                 'cible' => $this->cible,
             ]);
+
             return;
         }
 
@@ -87,6 +88,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
                 'cible' => $cible,
                 'method' => strtoupper($methode),
             ]);
+
             return;
         }
 
@@ -151,11 +153,13 @@ class SynchroniserGoogleCalendar implements ShouldQueue
 
         if ($operation['scope'] === 'evenement') {
             $this->upsertEvenement($google, $operation, $body);
+
             return;
         }
 
         if ($operation['scope'] === 'absence') {
             $this->upsertAbsence($google, $operation, $body);
+
             return;
         }
 
@@ -176,6 +180,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
             Log::warning('[SynchroniserGoogleCalendar] Absence introuvable — opération ignorée.', [
                 'operation' => $operation,
             ]);
+
             return;
         }
 
@@ -229,6 +234,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
             Log::warning('[SynchroniserGoogleCalendar] Aucune ligne ref_evenements_calendriers trouvée pour cet id_evenement/calendar_id — opération ignorée.', [
                 'operation' => $operation,
             ]);
+
             return;
         }
 
@@ -248,6 +254,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
         if ($eventIdConnu) {
             try {
                 $google->updateEvent($calendarId, $eventIdConnu, $body);
+
                 return $eventIdConnu;
             } catch (GoogleServiceException $e) {
                 if ($e->getCode() !== 404) {
@@ -271,6 +278,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
             $absence = Absence::find($operation['id_absence']);
             if (!$absence || !$absence->google_event_id) {
                 Log::info('[SynchroniserGoogleCalendar] Rien à supprimer (aucun event_id connu).', ['operation' => $operation]);
+
                 return;
             }
             // Pas de mise à jour de la ligne après coup : AbsencesController::destroy()
@@ -278,6 +286,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
             // (voir WebhookAbsencePayloadBuilder::buildDelete()) — la ligne
             // entière disparaît, pas besoin de nettoyer les colonnes de suivi.
             $google->deleteEvent($operation['calendar_id'], $absence->google_event_id);
+
             return;
         }
 
@@ -294,6 +303,7 @@ class SynchroniserGoogleCalendar implements ShouldQueue
 
         if (!$ligne || !$ligne->google_event_id) {
             Log::info('[SynchroniserGoogleCalendar] Rien à supprimer (aucun event_id connu).', ['operation' => $operation]);
+
             return;
         }
 

@@ -30,8 +30,7 @@ class ActiviteController extends Controller
 {
     public function __construct(
         private readonly AuditStatistics $stats,
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {

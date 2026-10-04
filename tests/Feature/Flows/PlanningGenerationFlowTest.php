@@ -15,7 +15,9 @@ use Amana\Shared\Models\AuditLog;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
+use App\Models\Personne;
 use Illuminate\Support\Facades\Bus;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\ConnecteParRole;
 use Tests\Concerns\CreeDonneesPlanning;
 use Tests\Concerns\RefreshesBothDatabases;
@@ -24,9 +26,9 @@ use Tests\TestCase;
 
 class PlanningGenerationFlowTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private const VENDREDI = '2026-09-18';
 
@@ -73,7 +75,7 @@ class PlanningGenerationFlowTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('requetesInvalides')]
+    #[DataProvider('requetesInvalides')]
     public function test_une_requete_invalide_ne_genere_rien(array $surcharge, string $champ): void
     {
         $this->generer($surcharge)->assertSessionHasErrors($champ);
@@ -135,8 +137,8 @@ class PlanningGenerationFlowTest extends TestCase
 
     public function test_generer_sans_personne_active_affiche_l_erreur_et_ne_cree_rien(): void
     {
-        \App\Models\Personne::where('statut', 'Validé')->whereDoesntHave('roles')->update(['statut' => 'Suspendu']);
-        \App\Models\Personne::whereHas('roles')->update(['statut' => 'Suspendu']);
+        Personne::where('statut', 'Validé')->whereDoesntHave('roles')->update(['statut' => 'Suspendu']);
+        Personne::whereHas('roles')->update(['statut' => 'Suspendu']);
 
         $this->from(route('planning.generate.form'))->generer()
             ->assertRedirect(route('planning.generate.form'))
@@ -232,7 +234,7 @@ class PlanningGenerationFlowTest extends TestCase
 
     public function test_previsualiser_sans_personne_active_affiche_l_erreur(): void
     {
-        \App\Models\Personne::query()->update(['statut' => 'Suspendu']);
+        Personne::query()->update(['statut' => 'Suspendu']);
 
         $this->post(route('planning.preview'), ['date_debut' => self::VENDREDI, 'semaines' => 1])
             ->assertRedirect(route('planning.generate.form'))

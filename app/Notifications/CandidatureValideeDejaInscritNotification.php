@@ -22,8 +22,7 @@ class CandidatureValideeDejaInscritNotification extends Notification
 
     public function __construct(
         private readonly string $loginUrl
-    ) {
-    }
+    ) {}
 
     public function via(object $notifiable): array
     {
@@ -38,7 +37,7 @@ class CandidatureValideeDejaInscritNotification extends Notification
             'host' => config('mail.mailers.' . config('mail.default') . '.host'),
         ]);
 
-        return $this->embedLogo(new MailMessage)
+        return $this->embedLogo(new MailMessage())
             ->subject('Votre accès AMANA Planning est activé')
             ->view('emails.candidature-validee-deja-inscrit', [
                 'prenom' => $notifiable->prenom,

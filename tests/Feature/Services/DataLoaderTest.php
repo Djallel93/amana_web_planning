@@ -19,8 +19,8 @@ use Tests\TestCase;
 
 class DataLoaderTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private function loader(): DataLoader
     {

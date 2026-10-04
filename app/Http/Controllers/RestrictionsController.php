@@ -10,6 +10,7 @@ use App\Models\Restriction;
 use App\Models\Tache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -34,7 +35,7 @@ class RestrictionsController extends Controller
      */
     public function index(): View
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user = Auth::user();
 
         $personnes = Personne::actifAuPlanning()
@@ -75,7 +76,7 @@ class RestrictionsController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        /** @var \App\Models\Personne $user */
+        /** @var Personne $user */
         $user   = Auth::user();
         $taches = Tache::actif()->get();
 
@@ -131,8 +132,7 @@ class RestrictionsController extends Controller
      * Enregistre les restrictions d'une personne donnée.
      * Méthode privée partagée entre admin, gestionnaire et membre.
      *
-     * @param int        $personneId
-     * @param \Illuminate\Support\Collection $taches
+     * @param Collection $taches
      * @param array      $checkboxes  [id_personne][id_tache][jour] = "1"
      */
     private function saveRestrictionsForPersonne(

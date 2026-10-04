@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use Amana\Shared\Models\Setting;
 use Amana\Shared\Helpers\AuditHelper as AuditHelperPartage;
+use Amana\Shared\Models\Setting;
 use App\Helpers\AuditHelper;
-use App\Services\GoogleCalendarService;
 use App\Models\Personne;
+use App\Services\GoogleCalendarService;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;

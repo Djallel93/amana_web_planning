@@ -10,7 +10,10 @@ use Illuminate\Foundation\Http\FormRequest;
 /** Validation du formulaire de génération du planning. */
 class PlanningGenerateRequest extends FormRequest
 {
-    public function authorize(): bool { return auth()->check(); }
+    public function authorize(): bool
+    {
+        return auth()->check();
+    }
 
     public function rules(): array
     {

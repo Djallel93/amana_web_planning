@@ -18,6 +18,7 @@ use Illuminate\Console\Command;
 class RappelsQuotidiens extends Command
 {
     protected $signature = 'amana:rappels-quotidiens';
+
     protected $description = 'Envoie les rappels par email "3 jours avant" et "jour J" pour les créneaux assignés.';
 
     public function __construct(

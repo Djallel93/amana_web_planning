@@ -66,8 +66,7 @@ class PlanningApiController extends PlanningController
         $peutAjouterPasse = (bool) $user?->isAdmin();
 
         $semaines = $creneaux->map(
-            fn($creneauxSemaine, $semaineCle) =>
-                $this->serializeSemaine($semaineCle, $creneauxSemaine, $bannièresParSemaine)
+            fn($creneauxSemaine, $semaineCle) => $this->serializeSemaine($semaineCle, $creneauxSemaine, $bannièresParSemaine)
         )->values();
 
         return response()->json([
@@ -110,6 +109,7 @@ class PlanningApiController extends PlanningController
             if ($b['informatif'] || $b['evenement']->tachesBloquees->count() < $nbTachesActives) {
                 return false;
             }
+
             return $creneauxSemaine->every(
                 fn($c) => $c->evenements->contains('id', $b['evenement']->id)
             );

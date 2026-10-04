@@ -34,9 +34,9 @@ use Tests\TestCase;
 
 class PersonnesLifecycleFlowTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use ConnecteParRole;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private Personne $admin;
 

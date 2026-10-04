@@ -79,9 +79,7 @@ const filteredSlots = computed(() => {
 
 // computed : le bouton "Envoyer" n'est actif que si un slot est sélectionné
 // et qu'on n'est pas en train de soumettre.
-const canSubmit = computed(
-    () => selectedSlot.value !== null && !submitting.value,
-);
+const canSubmit = computed(() => selectedSlot.value !== null && !submitting.value);
 
 // ── Fermeture avec confirmation si une sélection est en attente ───────────
 // Pas de watch() nécessaire ici comme dans EditAbsenceModal : "dirty" se
@@ -92,8 +90,7 @@ const dirty = computed(() => selectedSlot.value !== null);
 async function requestClose(): Promise<void> {
     if (dirty.value) {
         const ok = await ask({
-            message:
-                "Vous avez sélectionné un créneau mais la demande n'a pas été envoyée. Fermer quand même ?",
+            message: "Vous avez sélectionné un créneau mais la demande n'a pas été envoyée. Fermer quand même ?",
         });
         if (!ok) return;
     }
@@ -114,10 +111,7 @@ watch(filteredSlots, (visible) => {
 // querySelector<HTMLMetaElement> : le générique dit à TS que le résultat
 // est un HTMLMetaElement (qui a .content), pas juste Element.
 function getCsrf(): string {
-    return (
-        document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-            ?.content ?? ""
-    );
+    return document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content ?? "";
 }
 
 // ── Ouverture ─────────────────────────────────────────────────────────────
@@ -228,27 +222,17 @@ window.openSwapModal = (btn: HTMLElement) => {
                                       sélectionné mais pas encore envoyé.
         max-w-md au lieu de max-w-sm (le modal swap est plus large — liste de slots).
     -->
-    <Modal :open="modal.isOpen.value" @close="requestClose" max-width="max-w-md">
+    <Modal :open="modal.isOpen.value" max-width="max-w-md" @close="requestClose">
         <!-- Slot header : icône + titre -->
         <template #header>
-            <div
-                class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
-            >
-                🔄
-            </div>
-            <span
-                class="font-heading text-[14px] font-semibold text-ink flex-1"
-            >
-                Demander un échange de créneau
-            </span>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔄</div>
+            <span class="font-heading text-[14px] font-semibold text-ink flex-1"> Demander un échange de créneau </span>
         </template>
 
         <!-- Slot default : corps du modal -->
         <div class="flex flex-col gap-4">
             <!-- Contexte : mon créneau -->
-            <div
-                class="flex items-center gap-3 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg"
-            >
+            <div class="flex items-center gap-3 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg">
                 <span class="text-xl flex-shrink-0">📅</span>
                 <div>
                     <div class="font-bold text-[13.5px] text-ink">
@@ -262,29 +246,22 @@ window.openSwapModal = (btn: HTMLElement) => {
 
             <!-- Sélection du slot cible -->
             <div>
-                <p
-                    class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2"
-                >
+                <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2">
                     Choisir le créneau avec lequel échanger
                 </p>
 
                 <!-- Filtre par plage de dates -->
-                <div
-                    v-if="loadState === 'loaded' && slots.length"
-                    class="flex items-center gap-2 mb-3"
-                >
+                <div v-if="loadState === 'loaded' && slots.length" class="flex items-center gap-2 mb-3">
                     <input
-                        type="date"
                         v-model="dateFrom"
+                        type="date"
                         aria-label="Du"
                         class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                     />
-                    <span class="text-[12px] text-ink-muted flex-shrink-0"
-                        >→</span
-                    >
+                    <span class="text-[12px] text-ink-muted flex-shrink-0">→</span>
                     <input
-                        type="date"
                         v-model="dateTo"
+                        type="date"
                         aria-label="Au"
                         :min="dateFrom"
                         class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
@@ -303,18 +280,12 @@ window.openSwapModal = (btn: HTMLElement) => {
                 </div>
 
                 <!-- Chargement -->
-                <div
-                    v-if="loadState === 'loading'"
-                    class="text-center py-8 text-[13.5px] text-ink-muted"
-                >
+                <div v-if="loadState === 'loading'" class="text-center py-8 text-[13.5px] text-ink-muted">
                     ⏳ Chargement des créneaux disponibles…
                 </div>
 
                 <!-- Erreur réseau -->
-                <div
-                    v-else-if="loadState === 'error'"
-                    class="text-center py-6 text-rose-600 text-[13px]"
-                >
+                <div v-else-if="loadState === 'error'" class="text-center py-6 text-rose-600 text-[13px]">
                     ❌ Erreur lors du chargement.
                 </div>
 
@@ -328,21 +299,14 @@ window.openSwapModal = (btn: HTMLElement) => {
 
                 <!-- Aucun créneau dans la plage de dates filtrée -->
                 <div
-                    v-else-if="
-                        loadState === 'loaded' &&
-                        slots.length &&
-                        !filteredSlots.length
-                    "
+                    v-else-if="loadState === 'loaded' && slots.length && !filteredSlots.length"
                     class="text-center py-8 px-4 text-[13.5px] text-ink-muted bg-surface-2 rounded-lg border border-surface-border"
                 >
                     😕 Aucun créneau dans cette plage de dates.
                 </div>
 
                 <!-- Liste des slots -->
-                <div
-                    v-else-if="filteredSlots.length"
-                    class="flex flex-col gap-2 max-h-[280px] overflow-y-auto"
-                >
+                <div v-else-if="filteredSlots.length" class="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
                     <!--
                         :class dynamique : on ajoute border-accent et bg-sky-50
                         quand ce slot est sélectionné, pour le mettre en évidence.

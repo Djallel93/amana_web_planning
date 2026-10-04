@@ -26,8 +26,8 @@ use Tests\TestCase;
 
 class WebhookPayloadBuilderTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private const VENDREDI = '2026-10-02';
 

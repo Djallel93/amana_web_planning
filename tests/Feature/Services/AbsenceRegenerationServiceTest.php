@@ -16,6 +16,7 @@ use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Absence;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
+use App\Models\Personne;
 use App\Services\AbsenceRegenerationService;
 use App\Services\DataLoader;
 use App\Services\RotationEngine;
@@ -30,8 +31,8 @@ use Tests\TestCase;
 
 class AbsenceRegenerationServiceTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     protected function setUp(): void
     {
@@ -51,7 +52,7 @@ class AbsenceRegenerationServiceTest extends TestCase
         return new SchedulerEspion($this->app->make(DataLoader::class), $this->app->make(RotationEngine::class));
     }
 
-    private function absence(\App\Models\Personne $p, string $debut, string $fin): Absence
+    private function absence(Personne $p, string $debut, string $fin): Absence
     {
         return Absence::factory()->pour($p)->du($debut, $fin)->create();
     }
@@ -181,7 +182,7 @@ class AbsenceRegenerationServiceTest extends TestCase
         $this->personnesValidees(6);
         $scheduler = $this->app->make(SchedulerMain::class);
         $scheduler->generateSchedule('2026-10-02', 3);
-        $titulaire = \App\Models\Personne::find($this->idPersonneDuCreneau('2026-10-02', 'entree'));
+        $titulaire = Personne::find($this->idPersonneDuCreneau('2026-10-02', 'entree'));
         $this->assertNotNull($titulaire);
 
         $resultat = (new AbsenceRegenerationService($scheduler))
@@ -210,7 +211,7 @@ class AbsenceRegenerationServiceTest extends TestCase
         $scheduler->generateSchedule('2026-10-02', 2);
         Carbon::setTestNow(Carbon::parse('2026-10-03 10:00:00')); // samedi ; le vendredi 02/10 est passé
         $idVendrediAvant = $this->creneauLe('2026-10-02')->id;
-        $titulaireSamedi = \App\Models\Personne::find($this->idPersonneDuCreneau('2026-10-03', 'entree'));
+        $titulaireSamedi = Personne::find($this->idPersonneDuCreneau('2026-10-03', 'entree'));
 
         (new AbsenceRegenerationService($scheduler))->regenererSiNecessaire($this->absence($titulaireSamedi, '2026-10-03', '2026-10-03'));
 

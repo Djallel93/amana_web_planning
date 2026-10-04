@@ -24,6 +24,7 @@ class Tache extends Model
     use HasFactory;
 
     protected $table = 'ref_taches';
+
     public $timestamps = false;
 
     // NOTE : 'description' manquait ici jusqu'ici — Tache::updateOrCreate()

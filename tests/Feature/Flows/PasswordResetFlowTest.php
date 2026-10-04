@@ -34,7 +34,7 @@ class PasswordResetFlowTest extends TestCase
         $this->post(route('password.email'), ['email' => $p->email])->assertSessionHas('success');
 
         $jeton = null;
-        Notification::assertSentTo($p, ResetPasswordNotification::class, function ($n) use ($p, &$jeton) {
+        Notification::assertSentTo($p, ResetPasswordNotification::class, function ($n) use (&$jeton) {
             // `url` est une propriété privée du message : pas d'accesseur public.
             $url = (new \ReflectionProperty($n, 'url'))->getValue($n);
             preg_match('#/nouveau-mot-de-passe/([A-Za-z0-9]+)#', $url, $m);

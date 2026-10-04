@@ -22,9 +22,7 @@ final class GoogleCalendarServiceEnregistre extends GoogleCalendarService
      * @param array<string, int>    $erreursAcces       id de calendrier => code HTTP renvoyé par getCalendar()
      *                                                  (un id absent de la liste est accessible)
      */
-    public function __construct(public array $calendriersRefuses = [], public array $erreursAcces = [])
-    {
-    }
+    public function __construct(public array $calendriersRefuses = [], public array $erreursAcces = []) {}
 
     public function getCalendar(string $calendarId): array
     {

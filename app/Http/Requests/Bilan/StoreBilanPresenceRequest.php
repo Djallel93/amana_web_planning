@@ -49,8 +49,8 @@ class StoreBilanPresenceRequest extends FormRequest
     {
         $validator->after(function (Validator $validator) {
             $champs       = ['nb_presents', 'nb_en_ligne'];
-            $valeurs      = array_map(fn (string $champ) => $this->input($champ), $champs);
-            $nbRenseignes = count(array_filter($valeurs, fn ($v) => $v !== null));
+            $valeurs      = array_map(fn(string $champ) => $this->input($champ), $champs);
+            $nbRenseignes = count(array_filter($valeurs, fn($v) => $v !== null));
 
             if ($nbRenseignes > 0 && $nbRenseignes < count($champs)) {
                 $validator->errors()->add(

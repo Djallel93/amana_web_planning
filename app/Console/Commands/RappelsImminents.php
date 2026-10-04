@@ -23,6 +23,7 @@ use Illuminate\Console\Command;
 class RappelsImminents extends Command
 {
     protected $signature = 'amana:rappels-imminents';
+
     protected $description = 'Envoie les rappels par email "3h avant" pour les créneaux assignés dont l\'heure de début approche.';
 
     public function __construct(

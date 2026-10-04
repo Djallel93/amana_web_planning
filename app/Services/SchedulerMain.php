@@ -5,11 +5,11 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\DateHelper;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
-use App\Models\Personne;
-use App\Models\Tache;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -27,8 +27,7 @@ class SchedulerMain
     public function __construct(
         private readonly DataLoader $loader,
         private readonly RotationEngine $engine,
-    ) {
-    }
+    ) {}
 
     /**
      * Génère le planning pour un nombre de semaines donné.
@@ -36,14 +35,13 @@ class SchedulerMain
      * @param  string $dateDebut  Date de début (YYYY-MM-DD)
      * @param  int    $semaines   Nombre de semaines à générer
      * @param  bool   $dryRun     Si true : prévisualisation sans persistance
-     *
      * @return array  En mode normal : ['jours_generes', 'non_assignes', 'duree_ms']
      *                En mode dry-run : ['creneaux' => [...], 'duree_ms' => ...]
      */
     public function generateSchedule(string $dateDebut, int $semaines, bool $dryRun = false): array
     {
         $debut = microtime(true);
-        Log::info("[Scheduler] Début " . ($dryRun ? "DRY-RUN" : "génération") . " — date: {$dateDebut}, semaines: {$semaines}");
+        Log::info('[Scheduler] Début ' . ($dryRun ? 'DRY-RUN' : 'génération') . " — date: {$dateDebut}, semaines: {$semaines}");
 
         $context = $this->loader->initializeContext($dateDebut);
 
@@ -99,7 +97,7 @@ class SchedulerMain
         }
 
         $duree = round((microtime(true) - $debut) * 1000, 0);
-        Log::info("[Scheduler] " . ($dryRun ? "DRY-RUN" : "Génération") . " terminée en {$duree}ms — {$joursGeneres} jours, {$nonAssignes} non assignés");
+        Log::info('[Scheduler] ' . ($dryRun ? 'DRY-RUN' : 'Génération') . " terminée en {$duree}ms — {$joursGeneres} jours, {$nonAssignes} non assignés");
 
         if ($dryRun) {
             return [
@@ -175,6 +173,7 @@ class SchedulerMain
                     ['id_personne' => null]
                 );
                 $nonAssignes++;
+
                 continue;
             }
 
@@ -217,8 +216,8 @@ class SchedulerMain
         Creneau $creneau,
         array $context,
         array $assignments,
-        \Illuminate\Support\Collection $tachesBloquees,
-        \Illuminate\Support\Collection $evenementsActifs
+        Collection $tachesBloquees,
+        Collection $evenementsActifs
     ): array {
         $tachesData = [];
 
@@ -232,6 +231,7 @@ class SchedulerMain
                     'personne' => null,
                     'nom_complet' => null,
                 ];
+
                 continue;
             }
 
@@ -273,7 +273,7 @@ class SchedulerMain
      */
     public function buildRollbackSnapshot(string $dateDebut, int $semaines): array
     {
-        $date = \App\Helpers\DateHelper::premierVendredi($dateDebut);
+        $date = DateHelper::premierVendredi($dateDebut);
         $dateFin = $date->clone()->addWeeks($semaines)->addDay();
 
         $creneaux = Creneau::whereBetween('date', [$date->toDateString(), $dateFin->toDateString()])

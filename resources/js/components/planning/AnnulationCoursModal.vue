@@ -16,8 +16,8 @@
 -->
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { Modal } from '@amana/shared-ui';
-import { useToast } from '@amana/shared-ui';
+import { Modal } from "@amana/shared-ui";
+import { useToast } from "@amana/shared-ui";
 
 const emit = defineEmits<{
     cancelled: []; // signal au parent : recharger les données du planning
@@ -41,15 +41,12 @@ const minDate = computed((): string => {
 
 const dateLabel = computed((): string => {
     if (!selectedDate.value) return "";
-    return new Date(selectedDate.value + "T00:00:00").toLocaleDateString(
-        "fr-FR",
-        {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-        },
-    );
+    return new Date(selectedDate.value + "T00:00:00").toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    });
 });
 
 // ── Ouverture / fermeture ──────────────────────────────────────────────────
@@ -110,14 +107,9 @@ async function confirmer(): Promise<void> {
             emit("cancelled");
         } else if (data.warning) {
             // Aucun créneau pour cette date : on informe sans fermer ni rien modifier.
-            serverWarning.value =
-                data.message ?? "Cette date ne peut pas être annulée.";
+            serverWarning.value = data.message ?? "Cette date ne peut pas être annulée.";
         } else {
-            toast.error(
-                data.errors?.date?.[0] ??
-                    data.message ??
-                    "Erreur lors de l'annulation.",
-            );
+            toast.error(data.errors?.date?.[0] ?? data.message ?? "Erreur lors de l'annulation.");
         }
     } catch {
         toast.error("Erreur réseau");
@@ -130,34 +122,25 @@ defineExpose({ open });
 </script>
 
 <template>
-    <Modal :open="isOpen" @close="close" max-width="max-w-md">
+    <Modal :open="isOpen" max-width="max-w-md" @close="close">
         <template #header>
-            <div
-                class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
-            >
-                🚫
-            </div>
-            <span class="font-heading text-[14px] font-semibold text-ink flex-1"
-                >Annulation cours</span
-            >
+            <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🚫</div>
+            <span class="font-heading text-[14px] font-semibold text-ink flex-1">Annulation cours</span>
         </template>
 
         <!-- Étape 1 : choix de la date -->
         <div v-if="step === 'choix'" class="flex flex-col gap-4">
             <p class="text-[13px] text-ink-muted leading-relaxed">
-                Choisissez la date du cours à annuler. Seules les dates futures
-                sont autorisées.
+                Choisissez la date du cours à annuler. Seules les dates futures sont autorisées.
             </p>
 
             <div>
-                <p
-                    class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2"
-                >
+                <p class="text-[10.5px] font-bold text-ink-muted uppercase tracking-[0.7px] mb-2">
                     📅 Date du cours à annuler
                 </p>
                 <input
-                    type="date"
                     v-model="selectedDate"
+                    type="date"
                     :min="minDate"
                     class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                 />
@@ -165,14 +148,14 @@ defineExpose({ open });
 
             <div class="flex gap-2">
                 <button
-                    @click="continuer"
                     class="btn-touch flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                    @click="continuer"
                 >
                     Continuer
                 </button>
                 <button
-                    @click="close"
                     class="btn-touch px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer"
+                    @click="close"
                 >
                     Annuler
                 </button>
@@ -188,9 +171,8 @@ defineExpose({ open });
                 <span>
                     Vous êtes sur le point d'annuler le cours du
                     <strong>{{ dateLabel }}</strong
-                    >. Cette action va bloquer la date, désassigner toutes les
-                    tâches en cours, et supprimer les événements calendrier
-                    associés. Cette action est irréversible.
+                    >. Cette action va bloquer la date, désassigner toutes les tâches en cours, et supprimer les
+                    événements calendrier associés. Cette action est irréversible.
                 </span>
             </div>
 
@@ -204,20 +186,16 @@ defineExpose({ open });
 
             <div class="flex gap-2">
                 <button
-                    @click="confirmer"
                     :disabled="submitting"
                     class="btn-touch flex-1 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[13px] font-bold rounded-lg shadow-[0_3px_12px_rgba(225,29,72,0.3)] transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    @click="confirmer"
                 >
-                    {{
-                        submitting
-                            ? "⏳ Annulation…"
-                            : "🚫 Confirmer l'annulation"
-                    }}
+                    {{ submitting ? "⏳ Annulation…" : "🚫 Confirmer l'annulation" }}
                 </button>
                 <button
-                    @click="retour"
                     :disabled="submitting"
                     class="btn-touch px-4 py-2.5 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-[13px] font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                    @click="retour"
                 >
                     ← Retour
                 </button>

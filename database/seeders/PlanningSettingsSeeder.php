@@ -31,6 +31,7 @@ class PlanningSettingsSeeder extends Seeder
 
         if (!$idApp) {
             $this->command?->error("Application 'planning' introuvable dans ref_applications — enregistrez-la d'abord.");
+
             return;
         }
 

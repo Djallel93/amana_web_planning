@@ -17,7 +17,8 @@
         mode sombre. Doit être un <script> inline synchrone placé avant le
         CSS Vite — un module différé arriverait trop tard, après la première
         peinture. La logique de bascule (bouton, persistance) vit dans
-        resources/js/lib/theme.ts, chargé plus tard via @vite.
+        @amana/shared-ui (registerThemeToggle, appelé dans app.ts), chargé
+        plus tard via @vite.
     --}}
     <script>
         (function () {

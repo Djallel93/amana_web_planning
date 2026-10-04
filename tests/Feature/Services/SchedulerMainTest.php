@@ -16,13 +16,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Services;
 
+use App\Models\Absence;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
 use App\Models\Echange;
 use App\Models\Evenement;
+use App\Models\Personne;
+use App\Models\Tache;
+use App\Services\DataLoader;
+use App\Services\RotationEngine;
 use App\Services\SchedulerMain;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\Concerns\CreeDonneesPlanning;
 use Tests\Concerns\RefreshesBothDatabases;
@@ -30,8 +36,8 @@ use Tests\TestCase;
 
 class SchedulerMainTest extends TestCase
 {
-    use RefreshesBothDatabases;
     use CreeDonneesPlanning;
+    use RefreshesBothDatabases;
 
     private const VENDREDI = '2026-10-02';
 
@@ -186,7 +192,7 @@ class SchedulerMainTest extends TestCase
     public function test_les_taches_inactives_ne_sont_pas_generees(): void
     {
         $this->tachesDeRotation();
-        \App\Models\Tache::factory()->inactive()->create(['code' => 'desactivee']);
+        Tache::factory()->inactive()->create(['code' => 'desactivee']);
         $this->personnesValidees(5);
 
         $this->scheduler()->generateSchedule(self::VENDREDI, 1);
@@ -198,8 +204,8 @@ class SchedulerMainTest extends TestCase
     {
         $this->tachesDeRotation();
         $valides = $this->personnesValidees(5);
-        $enAttente = \App\Models\Personne::factory()->enAttente()->create(['nom' => 'Aaa']);
-        $suspendue = \App\Models\Personne::factory()->suspendu()->create(['nom' => 'Bbb']);
+        $enAttente = Personne::factory()->enAttente()->create(['nom' => 'Aaa']);
+        $suspendue = Personne::factory()->suspendu()->create(['nom' => 'Bbb']);
 
         $this->scheduler()->generateSchedule(self::VENDREDI, 2);
 
@@ -211,7 +217,7 @@ class SchedulerMainTest extends TestCase
     {
         $this->tachesDeRotation();
         $this->creneauLe(self::VENDREDI); // existant : ne doit pas être supprimé
-        \App\Models\Personne::factory()->enAttente()->create();
+        Personne::factory()->enAttente()->create();
 
         foreach ([false, true] as $dryRun) {
             try {
@@ -360,7 +366,7 @@ class SchedulerMainTest extends TestCase
         // Le vendredi est vide ; le samedi démarre donc comme si c'était le premier jour :
         // amana_food revient à la première personne (ordre alphabétique).
         $this->assertNotNull($this->idPersonneDuCreneau('2026-10-03', 'amana_food'));
-        $premiere = \App\Models\Personne::orderBy('nom')->first();
+        $premiere = Personne::orderBy('nom')->first();
         $this->assertSame($premiere->id, $this->idPersonneDuCreneau('2026-10-03', 'amana_food'));
     }
 
@@ -371,7 +377,7 @@ class SchedulerMainTest extends TestCase
         $this->tachesDeRotation();
         $personnes = $this->personnesValidees(5);
         $absente = $personnes[0]; // celle qui serait servie en premier
-        \App\Models\Absence::factory()->pour($absente)->du(self::VENDREDI, '2026-10-03')->create();
+        Absence::factory()->pour($absente)->du(self::VENDREDI, '2026-10-03')->create();
 
         $this->scheduler()->generateSchedule(self::VENDREDI, 1);
 
@@ -384,7 +390,8 @@ class SchedulerMainTest extends TestCase
     /** Sous-classe qui remplace la génération (déjà testée ci-dessus) pour ne vérifier que les arguments calculés. */
     private function schedulerEspion(): SchedulerMain
     {
-        return new class($this->app->make(\App\Services\DataLoader::class), $this->app->make(\App\Services\RotationEngine::class)) extends SchedulerMain {
+        return new class($this->app->make(DataLoader::class), $this->app->make(RotationEngine::class)) extends SchedulerMain
+        {
             public array $appels = [];
 
             public function generateSchedule(string $dateDebut, int $semaines, bool $dryRun = false): array
@@ -415,7 +422,7 @@ class SchedulerMainTest extends TestCase
         ];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('casDeRegeneration')]
+    #[DataProvider('casDeRegeneration')]
     public function test_regenerer_calcule_le_debut_et_le_nombre_de_semaines(?string $dernierCreneau, string $impact, string $debutAttendu, int $semainesAttendues): void
     {
         if ($dernierCreneau !== null) {
