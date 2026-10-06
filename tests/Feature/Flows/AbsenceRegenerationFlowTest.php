@@ -127,6 +127,7 @@ class AbsenceRegenerationFlowTest extends TestCase
 
     public function test_une_absence_dans_le_passe_ne_regenere_pas_mais_retire_la_personne_de_ses_taches_passees(): void
     {
+        $this->avecCalendrierDesAbsences();
         $this->travelTo('2026-10-10 09:00:00');
         $idsAvant = Creneau::orderBy('id')->pluck('id')->all();
         $idsPasses = Creneau::whereIn('date', ['2026-10-02', '2026-10-03'])->pluck('id');
