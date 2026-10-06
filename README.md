@@ -84,7 +84,16 @@ graph TD
 
 **Configuration dynamique :**
 
-Tous les paramètres applicatifs (heure du cours, lieu, offsets horaires, noms de calendriers, ouverture des inscriptions) sont stockés dans la table `ref_settings` et gérés via la page **Paramètres** (`/parametres`). Il n'y a **pas** de variable d'environnement pour l'heure du cours — la clé `.env` `HEURE_COURS` présente dans les anciennes versions du projet est obsolète et ignorée.
+**⏱️ Durée de session (`session_lifetime`) :**
+
+- Paramètre `ref_settings` (app `planning`, type `integer`), réservé aux admins (`SettingsController::adminOnlyKeys()`), borné à **5–1440 minutes** (validé côté serveur et re-borné à la lecture ; absent ou illisible → **120**). À ajouter en base sur un environnement existant : `php artisan db:seed --class=PlanningSettingsSeeder` (n'insère que les clés absentes, sans écraser les autres valeurs) — tant qu'il n'existe pas, la page l'indique et le défaut de 120 min s'applique.
+- C'est un délai d'**inactivité** : une session sans aucune requête pendant ce délai est déconnectée (redirection vers `/login` avec « Votre session a expiré. Veuillez vous reconnecter. », ou `401` JSON pour une requête AJAX) et l'événement est journalisé (`audit` : `logout`, `motif = session_expiree`). Le changement s'applique à la requête suivante, y compris aux sessions déjà ouvertes.
+- **La sidebar interroge `/nav-badges` toutes les 45 s** : cette requête de fond **ne compte pas** comme une activité (sinon un onglet oublié ouvert ne ferait jamais expirer la session) — elle vérifie l'expiration mais ne la prolonge pas.
+- **« Rester connecté jusqu'à minuit »** (case de la page de connexion, ex-« Se souvenir de moi ») : pas de délai d'inactivité, mais coupure **absolue au prochain minuit, heure de Paris** — l'utilisateur doit se reconnecter le lendemain. Le cookie « se souvenir de moi » de Laravel (5 ans par défaut) est ramené au temps restant jusqu'à minuit, pour qu'il ne reconnecte pas l'utilisateur après l'expiration de la session.
+- **Après le déploiement** : les cookies « se souvenir de moi » émis avant ce mécanisme (5 ans) ne sont plus acceptés — chaque utilisateur concerné se reconnecte une fois. Les sessions ordinaires déjà ouvertes continuent (leur compte à rebours démarre à leur première requête).
+- Implémentation : `App\Http\Middleware\ApplySessionPolicy` (groupe `web`, après `StartSession`) + `App\Services\SessionPolicy`. `config('session.lifetime')` est relevé à **au moins 1440 min** au démarrage (`AppServiceProvider`) quelle que soit la valeur de `SESSION_LIFETIME` dans `.env`, pour que la ligne de session et son cookie ne disparaissent pas avant la règle configurée. La vue de connexion est surchargée dans `resources/views/vendor/amana-shared/auth/login.blade.php` (libellé de la case) — à resynchroniser avec `amana_shared` si la vue partagée évolue.
+
+Tous les paramètres applicatifs (heure du cours, lieu, offsets horaires, noms de calendriers, ouverture des inscriptions, durée de session) sont stockés dans la table `ref_settings` et gérés via la page **Paramètres** (`/parametres`). Il n'y a **pas** de variable d'environnement pour l'heure du cours — la clé `.env` `HEURE_COURS` présente dans les anciennes versions du projet est obsolète et ignorée.
 
 ---
 
@@ -327,6 +336,13 @@ Génère un fichier PDF du planning sur une plage de dates, au format A4 paysage
 
 Gestion des périodes d'absence. Une absence empêche l'assignation d'une personne pendant la période concernée lors de la génération du planning.
 
+**Effet sur un planning déjà généré :**
+
+- **Dates futures (aujourd'hui compris)** : si la personne y est assignée, le planning est régénéré à partir de la première date impactée (voir [Algorithme de génération](#algorithme-de-génération-du-planning)).
+- **Dates passées (strictement avant aujourd'hui, fuseau Europe/Paris)** : le planning n'est **jamais régénéré**. La personne est simplement **retirée** des tâches qu'elle avait ces jours-là (`id_personne` passé à `NULL`, `AbsenceRegenerationService::desassignerDatesPassees()`), avec une entrée d'audit (`declencheur = absence_passee`) et un message de confirmation. **Aucune synchronisation Google Calendar** n'est déclenchée pour ces dates : le passé ne génère pas de trafic vers les calendriers.
+- Une absence à cheval sur aujourd'hui produit les deux effets indépendamment.
+- **Garde-fou** : quand la date impactée est un samedi et que le vendredi qui le précède est déjà passé (cas du samedi courant), la régénération repart du samedi — le créneau d'hier, ses assignations et son historique restent strictement intacts (`SchedulerMain::regenerateFromImpactedDate()`, paramètre `aPartirDe`).
+
 **Règles d'accès :**
 
 - Tout le monde peut voir toutes les absences
@@ -369,9 +385,9 @@ Les tâches bloquées sont gérées via la table pivot `ref_evenements_taches`. 
 
 Créer ou modifier un événement dont la plage de dates chevauche des créneaux **déjà générés** met immédiatement à jour ces créneaux :
 
-- Le lien informatif (`plan_creneaux_evenements`) est recalculé pour tous les créneaux futurs concernés — l'événement apparaît donc tout de suite dans la bannière du planning, qu'il soit bloquant ou non.
+- Le lien informatif (`plan_creneaux_evenements`) est recalculé pour tous les créneaux futurs (aujourd'hui compris) concernés — l'événement apparaît donc tout de suite dans la bannière du planning, qu'il soit bloquant ou non.
 - Si l'événement est **bloquant**, toute tâche déjà assignée sur ces créneaux et désormais couverte est réellement **désassignée** (pas seulement masquée à l'affichage) — cela impacte les statistiques et la future équité de répartition, donc c'est fait pour de vrai, avec webhook `DELETE` et entrée d'audit pour chaque désassignation.
-- **Les créneaux déjà passés ne sont jamais modifiés**, quelle que soit la nature de l'événement — un planning déjà exécuté n'est pas réécrit rétroactivement. Si la plage de l'événement chevauche des dates passées, un message d'avertissement en français l'explique (impact sur l'équité de répartition et les statistiques déjà constatées) sans bloquer la création de l'événement lui-même.
+- **Dates passées (historique)** : un événement peut être créé (formulaire, import CSV ou saisie manuelle) sur des dates **strictement antérieures à aujourd'hui** (fuseau Europe/Paris). Les créneaux **déjà existants** dans cette période sont alors seulement **rattachés** à l'événement (`EvenementRegenerationService::lierCreneauxPasses()`, bannière/lien d'historique) — **sans régénération et sans modifier aucune assignation**, y compris sur une tâche que l'événement bloque (le planning exécuté n'est pas réécrit). Si la période de l'événement est modifiée, les créneaux passés qui n'en font plus partie sont détachés. L'opération est idempotente, journalisée (`declencheur = evenement_passe`) et résumée dans le message de confirmation. Aucun créneau passé n'est renvoyé vers Google Calendar ; en revanche l'**événement lui-même** est bien créé dans les calendriers sélectionnés, même avec des dates passées.
 
 **📆 Synchronisation Google Calendar (optionnelle, plusieurs calendriers possibles) :**
 
@@ -418,6 +434,7 @@ Configuration de l'application (admin/gestionnaire, avec restrictions selon le r
 | Section               | Modifiable par       | Description                                                                  |
 | --------------------- | -------------------- | ---------------------------------------------------------------------------- |
 | Inscriptions ouvertes | Admin uniquement     | Active ou désactive le formulaire public `/inscription`                      |
+| Durée de session      | Admin uniquement     | Minutes d'inactivité avant déconnexion automatique (5 à 1440, défaut 120) — voir ci-dessous |
 | Heure du cours & Lieu | Admin + Gestionnaire | Heure de référence pour les horaires webhook ; adresse physique              |
 | Calendriers Google    | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement (planning), y compris le calendrier des absences |
 | Couleurs Google Calendar | Admin + Gestionnaire | Couleur (colorId Google Calendar 1-11, avec pastille d'aperçu) par tâche/événement spécial — voir ci-dessous |
@@ -476,7 +493,7 @@ sequenceDiagram
 
 - **Valider** : choisir le rôle (admin / gestionnaire / membre), passe le statut à `Validé`, envoie l'email d'invitation
 - **Refuser** : passe le statut à `Archivé`
-- **Renvoyer l'invitation** : renvoie l'email avec un nouveau lien de création de mot de passe
+- **Renvoyer l'invitation** : depuis la fiche de la personne (**Annuaire → ✏️ → Accès au compte → 🔑 Renvoyer l'email d'accès**, comptes « Validé » uniquement), renvoie l'email avec un nouveau lien de création de mot de passe
 
 > **Note :** si la personne possède déjà un mot de passe (compte existant sur une autre app AMANA), l'email envoyé est différent — il lui indique de se connecter directement avec son mot de passe habituel, sans lien de reset.
 
@@ -530,7 +547,7 @@ En fonctionnement normal (emails SMTP opérationnels) :
 2. Il reçoit un lien de réinitialisation valable **60 minutes**.
 3. Il définit son nouveau mot de passe via le formulaire `/nouveau-mot-de-passe/{token}`.
 
-Pour renvoyer manuellement un lien à un utilisateur depuis l'interface admin, aller dans **Candidatures → Renvoyer l'invitation**.
+Pour renvoyer manuellement un lien à un utilisateur depuis l'interface admin, ouvrir sa fiche (**Annuaire → ✏️**) et utiliser la section **Accès au compte** (**🔑 Renvoyer l'email d'accès** ou **✉️ Envoyer un lien de réinitialisation**).
 
 ### Définir un mot de passe en urgence — Tinker en SSH
 
@@ -1253,20 +1270,10 @@ GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=...
 | 2     | Déployer via GitHub Actions (push sur `main`)          | Pipeline vert dans l'onglet **Actions** de GitHub                                                                          |
 | 3     | Vérifier que la migration s'est exécutée                   | Aller dans phpMyAdmin — les tables existent (`migrate:fresh --seed` au premier déploiement)                                |
 | 4     | Définir le mot de passe du premier admin                   | Voir [Définir un mot de passe en urgence — Tinker en SSH](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)              |
-| 5     | Se connecter et aller sur **Diagnostic SMTP**              | Sidebar → 🔧 Diagnostic SMTP                                                                                               |
-| 6     | Envoyer un email de test depuis le diagnostic              | Vérifier la réception + `laravel.log`                                                                                      |
+| 5     | Se connecter et tester l'envoi d'emails                    | Page « Mot de passe oublié » avec une adresse de test — vérifier la réception + `storage/logs/laravel.log`                  |
 | 7     | Configurer les paramètres (heure, lieu, calendriers)       | `/parametres` — enregistrer d'abord les calendriers dans le registre, avant de les sélectionner par tâche |
 | 7bis  | Vérifier le compte de service Google Calendar               | `php artisan amana:tester-google-calendar --create` (SSH) — voir [Intégration Google Calendar](#intégration-google-calendar-api-directe) |
 | 8     | Créer le cron du scheduler (une seule fois)                 | `crontab -e` en SSH — voir [Configuration du cron sur IONOS](#configuration-du-cron-sur-ionos-une-seule-fois) ; vérifier avec `php artisan schedule:list` |
-
-### Diagnostic SMTP — `/diagnostic-mail`
-
-Accessible depuis la sidebar (section **Administration**, lien réservé aux admins). Permet de :
-
-- Voir la configuration SMTP active lue depuis le cache de config (pas depuis `.env` directement).
-- Détecter des problèmes courants comme `MAIL_SCHEME=null`.
-- Envoyer un email de test vers n'importe quelle adresse et voir le résultat immédiatement.
-- Consulter `storage/logs/laravel.log` pour le détail de chaque tentative.
 
 ### Sélection des calendriers Google Calendar
 

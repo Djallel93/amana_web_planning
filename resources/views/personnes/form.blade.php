@@ -199,28 +199,55 @@
 
     </form>
 
-    {{-- Mot de passe : un administrateur n'en saisit ni n'en voit jamais — il envoie un lien. --}}
+    {{-- Accès au compte : un administrateur ne saisit ni ne voit jamais de mot de passe — il envoie un email. --}}
     @if($edit)
+        @php $compteValide = $personne->statut === 'Validé'; @endphp
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mt-6">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                 <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔑</div>
-                <span class="font-heading text-[14px] font-semibold text-ink">Mot de passe</span>
+                <span class="font-heading text-[14px] font-semibold text-ink">Accès au compte</span>
             </div>
             <div class="p-5">
                 <p class="text-[13px] text-ink-muted mb-4">
-                    Vous ne pouvez pas définir le mot de passe de cette personne : envoyez-lui un lien pour qu'elle le crée
-                    ou le réinitialise elle-même. L'email part à <strong class="text-ink">{{ $personne->email }}</strong>
+                    Vous ne pouvez pas définir le mot de passe de cette personne : envoyez-lui un email pour qu'elle
+                    accède à son compte ou le réinitialise elle-même. Les emails partent à
+                    <strong class="text-ink">{{ $personne->email }}</strong>
                     (adresse enregistrée — enregistrez d'abord vos modifications si vous venez de la changer).
-                    Seul le <strong class="text-ink">dernier email envoyé</strong> (par ce bouton ou par elle-même via
+                    Seul le <strong class="text-ink">dernier email envoyé</strong> (par l'un de ces boutons ou par elle-même via
                     « Mot de passe oublié ») reste valide : les précédents sont automatiquement invalidés.
                 </p>
-                <form action="{{ route('personnes.reset-link', $personne->id) }}" method="POST">
-                    @csrf
-                    <button type="submit"
-                            class="inline-flex items-center gap-2 px-5 py-2.5 border-[1.5px] border-accent text-accent hover:bg-accent hover:text-white font-bold text-[13.5px] rounded-lg transition-colors cursor-pointer min-h-[48px]">
-                        ✉️ Envoyer un lien de réinitialisation
-                    </button>
-                </form>
+                <div class="flex flex-col gap-5 sm:flex-row sm:gap-8">
+                    <div class="flex flex-col gap-2 sm:max-w-[320px]">
+                        <form action="{{ route('admin.candidatures.renvoyer-invitation', $personne->id) }}" method="POST"
+                              @if($compteValide) data-confirm="Renvoyer l'email d'accès à {{ $personne->prenom }} {{ $personne->nom }} ? Seul le dernier email envoyé restera valide." @endif>
+                            @csrf
+                            <button type="submit" @disabled(!$compteValide)
+                                    class="inline-flex items-center gap-2 px-5 py-2.5 border-[1.5px] border-sky-300 text-sky-700 bg-sky-50 hover:bg-sky-100 font-bold text-[13.5px] rounded-lg transition-colors cursor-pointer min-h-[48px]
+                                           disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-sky-50">
+                                🔑 Renvoyer l'email d'accès
+                            </button>
+                        </form>
+                        <span class="text-[11.5px] text-ink-muted leading-relaxed">
+                            @if($compteValide)
+                                Renvoie l'invitation initiale (création du mot de passe) ou, si le compte a déjà un mot de passe, le lien de connexion.
+                            @else
+                                Disponible uniquement pour un compte au statut « Validé » (statut actuel : {{ $personne->statut }}).
+                            @endif
+                        </span>
+                    </div>
+                    <div class="flex flex-col gap-2 sm:max-w-[320px]">
+                        <form action="{{ route('personnes.reset-link', $personne->id) }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-5 py-2.5 border-[1.5px] border-accent text-accent hover:bg-accent hover:text-white font-bold text-[13.5px] rounded-lg transition-colors cursor-pointer min-h-[48px]">
+                                ✉️ Envoyer un lien de réinitialisation
+                            </button>
+                        </form>
+                        <span class="text-[11.5px] text-ink-muted leading-relaxed">
+                            Envoie le lien standard « mot de passe oublié » pour créer ou réinitialiser le mot de passe.
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
     @endif

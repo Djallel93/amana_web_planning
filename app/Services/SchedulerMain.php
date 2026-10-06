@@ -35,15 +35,19 @@ class SchedulerMain
      * @param  string $dateDebut  Date de début (YYYY-MM-DD)
      * @param  int    $semaines   Nombre de semaines à générer
      * @param  bool   $dryRun     Si true : prévisualisation sans persistance
+     * @param  Carbon|null $aPartirDe Si fourni : ne supprime ni ne régénère aucun créneau
+     *                    antérieur à cette date (utilisé par regenerateFromImpactedDate()
+     *                    pour ne jamais réécrire un jour déjà passé) ; l'historique des
+     *                    compteurs inclut alors les créneaux conservés avant cette date.
      * @return array  En mode normal : ['jours_generes', 'non_assignes', 'duree_ms']
      *                En mode dry-run : ['creneaux' => [...], 'duree_ms' => ...]
      */
-    public function generateSchedule(string $dateDebut, int $semaines, bool $dryRun = false): array
+    public function generateSchedule(string $dateDebut, int $semaines, bool $dryRun = false, ?Carbon $aPartirDe = null): array
     {
         $debut = microtime(true);
         Log::info('[Scheduler] Début ' . ($dryRun ? 'DRY-RUN' : 'génération') . " — date: {$dateDebut}, semaines: {$semaines}");
 
-        $context = $this->loader->initializeContext($dateDebut);
+        $context = $this->loader->initializeContext($dateDebut, $aPartirDe);
 
         if ($context['personnes']->isEmpty()) {
             throw new \RuntimeException('Aucune personne active dans le planning.');
@@ -54,7 +58,7 @@ class SchedulerMain
 
         // ── Mode normal : supprime les créneaux existants ─────────────────
         if (!$dryRun) {
-            $this->cleanExistingCreneaux($premiereDate);
+            $this->cleanExistingCreneaux($aPartirDe ?? $premiereDate);
         }
 
         $joursGeneres = 0;
@@ -70,18 +74,23 @@ class SchedulerMain
                 $vendredi = $premiereDate->clone()->addWeeks($semaine);
                 $samedi = $vendredi->clone()->addDay();
 
-                [$nv, $naV, $propositionsV] = $this->generateDay($vendredi, 'Vendredi', $context, $dryRun);
-                $joursGeneres += $nv;
-                $nonAssignes += $naV;
-                if ($dryRun) {
-                    $creneauxDryRun[] = $propositionsV;
+                // Jours antérieurs à $aPartirDe : laissés strictement tels quels.
+                if (!$this->estAvant($vendredi, $aPartirDe)) {
+                    [$nv, $naV, $propositionsV] = $this->generateDay($vendredi, 'Vendredi', $context, $dryRun);
+                    $joursGeneres += $nv;
+                    $nonAssignes += $naV;
+                    if ($dryRun) {
+                        $creneauxDryRun[] = $propositionsV;
+                    }
                 }
 
-                [$ns, $naS, $propositionsS] = $this->generateDay($samedi, 'Samedi', $context, $dryRun);
-                $joursGeneres += $ns;
-                $nonAssignes += $naS;
-                if ($dryRun) {
-                    $creneauxDryRun[] = $propositionsS;
+                if (!$this->estAvant($samedi, $aPartirDe)) {
+                    [$ns, $naS, $propositionsS] = $this->generateDay($samedi, 'Samedi', $context, $dryRun);
+                    $joursGeneres += $ns;
+                    $nonAssignes += $naS;
+                    if ($dryRun) {
+                        $creneauxDryRun[] = $propositionsS;
+                    }
                 }
             }
 
@@ -271,12 +280,13 @@ class SchedulerMain
      * qui déclenche une génération (ex : régénération automatique suite à une
      * absence dans AbsencesController).
      */
-    public function buildRollbackSnapshot(string $dateDebut, int $semaines): array
+    public function buildRollbackSnapshot(string $dateDebut, int $semaines, ?Carbon $aPartirDe = null): array
     {
         $date = DateHelper::premierVendredi($dateDebut);
         $dateFin = $date->clone()->addWeeks($semaines)->addDay();
 
         $creneaux = Creneau::whereBetween('date', [$date->toDateString(), $dateFin->toDateString()])
+            ->when($aPartirDe !== null, fn($q) => $q->where('date', '>=', $aPartirDe->toDateString()))
             ->orderBy('date')
             ->get();
 
@@ -304,7 +314,7 @@ class SchedulerMain
      *      instance intacte) et construit l'instantané de rollback, alimenté
      *      en session comme après une génération manuelle.
      *
-     * @return array{resultat: array, dateDebutRegen: string, semaines: int, regenererDepuis: Carbon}
+     * @return array{resultat: array, dateDebutRegen: string, semaines: int, regenererDepuis: Carbon, aPartirDe: string|null}
      */
     public function regenerateFromImpactedDate(Carbon $premiereDateImpactee): array
     {
@@ -322,17 +332,37 @@ class SchedulerMain
         $semaines = max(1, (int) floor($regenererDepuis->diffInDays($dernierVendredi) / 7) + 1);
         $dateDebutRegen = $regenererDepuis->toDateString();
 
-        $resultat = $this->generateSchedule($dateDebutRegen, $semaines);
+        // Garde-fou « jamais le passé » : si le recul au vendredi tombe avant
+        // aujourd'hui (date impactée = le samedi d'aujourd'hui, vendredi déjà
+        // passé), on ne réécrit pas ce vendredi — la régénération repart du jour
+        // impacté, ni plus tôt. Le créneau d'hier, ses assignations et ses
+        // synchronisations Google Calendar restent exactement tels quels.
+        $aPartirDe = null;
+        if ($regenererDepuis->toDateString() < DateHelper::aujourdhui()->toDateString()) {
+            $aPartirDe = $premiereDateImpactee->copy()->startOfDay();
+            if ($aPartirDe->toDateString() < DateHelper::aujourdhui()->toDateString()) {
+                $aPartirDe = Carbon::parse(DateHelper::aujourdhui()->toDateString());
+            }
+        }
 
-        $lastGenerated = $this->buildRollbackSnapshot($dateDebutRegen, $semaines);
+        $resultat = $this->generateSchedule($dateDebutRegen, $semaines, false, $aPartirDe);
+
+        $lastGenerated = $this->buildRollbackSnapshot($dateDebutRegen, $semaines, $aPartirDe);
         session(['last_generated_creneaux' => $lastGenerated]);
 
         return [
             'resultat' => $resultat,
             'dateDebutRegen' => $dateDebutRegen,
             'semaines' => $semaines,
-            'regenererDepuis' => $regenererDepuis,
+            'regenererDepuis' => $aPartirDe ?? $regenererDepuis,
+            'aPartirDe' => $aPartirDe?->toDateString(),
         ];
+    }
+
+    /** Vrai si $jour est strictement avant $borne (comparaison de dates, sans l'heure). */
+    private function estAvant(Carbon $jour, ?Carbon $borne): bool
+    {
+        return $borne !== null && $jour->toDateString() < $borne->toDateString();
     }
 
     private function cleanExistingCreneaux(Carbon $depuis): void

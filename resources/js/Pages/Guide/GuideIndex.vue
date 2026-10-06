@@ -334,7 +334,10 @@ onMounted(() => {
                             <strong class="text-ink">🏖️ Absences</strong>. Vous voyez les absences de tout le monde
                             (pour savoir qui est disponible), mais vous ne pouvez ajouter ou supprimer que les vôtres.
                             Si l'absence chevauche une date où vous êtes déjà assigné(e) à une tâche future, le planning
-                            correspondant est automatiquement régénéré pour vous remplacer.
+                            correspondant est automatiquement régénéré pour vous remplacer. Si l'absence couvre des
+                            dates <strong class="text-ink">déjà passées</strong>, le planning n'est pas régénéré : vous
+                            êtes simplement retiré(e) des tâches que vous aviez ces jours-là, et l'historique reste tel
+                            quel.
                         </p>
                         <div class="guide-example">
                             <span class="guide-example-label">Exemple</span>
@@ -555,7 +558,9 @@ onMounted(() => {
                             La page <strong class="text-ink">🎉 Événements</strong> permet de déclarer un événement
                             organisationnel sur une période. Si l'événement est bloquant, les tâches concernées sur les
                             créneaux déjà planifiés sont automatiquement désassignées et une bannière d'information
-                            apparaît sur le planning.
+                            apparaît sur le planning. Vous pouvez aussi saisir ou importer un événement sur des
+                            <strong class="text-ink">dates passées</strong> (historique) : il est créé normalement,
+                            rattaché aux créneaux déjà existants, mais le planning passé n'est jamais modifié.
                         </p>
                         <div class="guide-example">
                             <span class="guide-example-label">Exemple</span>
@@ -656,6 +661,16 @@ onMounted(() => {
                         </p>
 
                         <p>
+                            <strong class="text-ink">⏱️ Durée de session</strong> — nombre de minutes d'inactivité au
+                            bout duquel un utilisateur est automatiquement déconnecté (de 5 minutes à 24 h, 120 minutes
+                            par défaut). Les personnes qui cochent
+                            <strong class="text-ink">« Rester connecté jusqu'à minuit »</strong> sur la page de
+                            connexion ne sont pas concernées : elles restent connectées jusqu'à minuit, puis doivent se
+                            reconnecter. Un onglet laissé ouvert sans rien faire ne prolonge pas la session. Les
+                            gestionnaires voient ce réglage mais seul un administrateur peut le modifier.
+                        </p>
+
+                        <p>
                             <strong class="text-ink">🕐 Horaires &amp; Lieu</strong> — l'heure du cours et l'adresse
                             physique des permanences. Tous les horaires des tâches et événements (voir
                             <strong class="text-ink">Décalages des tâches</strong> ci-dessus) sont calculés relativement
@@ -716,11 +731,13 @@ onMounted(() => {
                             désactivés (statut « Suspendu ») ou jamais validés, et efface définitivement la fiche.
                         </p>
                         <p class="mt-2">
-                            Deux boutons distincts envoient un email lié au mot de passe, à ne pas confondre : dans la
-                            liste,
-                            <strong class="text-ink">🔑 Renvoyer un email de réinitialisation de mot de passe</strong>
-                            renvoie l'invitation initiale (utile si la personne ne l'a jamais reçue ou ouverte) ; sur sa
-                            fiche, le bouton
+                            Deux boutons distincts envoient un email lié au mot de passe, à ne pas confondre. Ils se
+                            trouvent tous deux dans la section
+                            <strong class="text-ink">🔑 Accès au compte</strong> de la fiche de la personne (bouton ✏️
+                            de la liste) :
+                            <strong class="text-ink">🔑 Renvoyer l'email d'accès</strong>
+                            renvoie l'invitation initiale (utile si la personne ne l'a jamais reçue ou ouverte) — il est
+                            grisé tant que le compte n'est pas au statut « Validé » ;
                             <strong class="text-ink">✉️ Envoyer un lien de réinitialisation</strong> lui envoie le lien
                             standard pour créer ou réinitialiser son mot de passe elle-même — un administrateur ne
                             saisit ni ne voit jamais un mot de passe. <strong class="text-ink">Attention :</strong>
@@ -760,26 +777,6 @@ onMounted(() => {
                             <span class="guide-example-label">Exemple</span>
                             Trois nouvelles candidatures attendent validation : l'admin ouvre celle de l'utilisateur A,
                             la valide — son compte est activé et il reçoit aussitôt un e-mail de confirmation.
-                        </div>
-                    </div>
-                </details>
-
-                <details class="guide-item group">
-                    <summary class="guide-summary">
-                        <span class="guide-summary-icon bg-accent/10">🔧</span>
-                        <span class="flex-1">Diagnostic SMTP</span>
-                        <span class="guide-chevron">▾</span>
-                    </summary>
-                    <div class="guide-body">
-                        <p>
-                            La page <strong class="text-ink">🔧 Diagnostic SMTP</strong> permet de tester l'envoi
-                            d'e-mails depuis l'application, pour vérifier que la configuration de messagerie fonctionne
-                            correctement.
-                        </p>
-                        <div class="guide-example">
-                            <span class="guide-example-label">Exemple</span>
-                            Des membres signalent ne pas recevoir les e-mails de candidature validée : l'admin lance un
-                            envoi de test depuis le Diagnostic SMTP avant de creuser plus loin.
                         </div>
                     </div>
                 </details>

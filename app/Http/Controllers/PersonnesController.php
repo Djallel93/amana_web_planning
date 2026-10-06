@@ -141,7 +141,7 @@ class PersonnesController extends Controller
         return match ($this->notifier->sendResetLink($personne)) {
             Password::RESET_LINK_SENT => back()->with('success', "Lien de réinitialisation envoyé à {$personne->email} ({$nom})."),
             Password::RESET_THROTTLED => back()->with('warning', "Un lien vient déjà d'être envoyé à {$nom} : patientez une minute avant d'en renvoyer un."),
-            default => back()->with('error', "L'envoi du lien de réinitialisation à {$nom} a échoué. Vérifiez la configuration email (Diagnostic SMTP)."),
+            default => back()->with('error', "L'envoi du lien de réinitialisation à {$nom} a échoué. Vérifiez la configuration email et storage/logs/laravel.log."),
         };
     }
 

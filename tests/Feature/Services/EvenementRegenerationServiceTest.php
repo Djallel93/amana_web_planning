@@ -97,11 +97,92 @@ class EvenementRegenerationServiceTest extends TestCase
 
     public function test_un_evenement_entierement_passe_n_est_jamais_regenere_retroactivement(): void
     {
-        $this->creneauLe('2026-09-18');
+        $creneau = $this->creneauLe('2026-09-18');
+        $espion = $this->espion();
 
-        $resultat = (new EvenementRegenerationService($this->espion()))->regenererSiNecessaire($this->evenement('2026-09-15', '2026-09-20'));
+        $resultat = (new EvenementRegenerationService($espion))->regenererSiNecessaire($evenement = $this->evenement('2026-09-15', '2026-09-20'));
+
+        $this->assertSame([], $espion->dates, 'aucune régénération');
+        $this->assertSame('1 créneau passé rattaché (planning non régénéré : l\'historique est conservé).', $resultat['message']);
+        $this->assertSame([$creneau->id], $evenement->creneaux()->pluck('plan_creneaux.id')->all());
+        Bus::assertNothingDispatched();
+    }
+
+    // ── Historique : rattachement sans régénération ───────────────────────
+
+    public function test_un_evenement_passe_sans_creneau_existant_ne_fait_rien(): void
+    {
+        $espion = $this->espion();
+
+        $resultat = (new EvenementRegenerationService($espion))->regenererSiNecessaire($this->evenement('2026-09-15', '2026-09-20'));
 
         $this->assertNull($resultat);
+        $this->assertSame([], $espion->dates);
+    }
+
+    public function test_le_rattachement_du_passe_ne_modifie_aucune_assignation_meme_sur_une_tache_bloquee(): void
+    {
+        $taches = $this->tachesDeRotation();
+        [$p] = $this->personnesValidees(1);
+        $this->assigner($p, '2026-09-18', 'entree');
+        $evenement = Evenement::factory()->du('2026-09-18', '2026-09-19')->bloquant($taches['entree'])->create();
+
+        (new EvenementRegenerationService($this->espion()))->regenererSiNecessaire($evenement);
+
+        $this->assertSame($p->id, $this->idPersonneDuCreneau('2026-09-18', 'entree'), 'link only : l\'historique n\'est pas réécrit');
+        $this->assertSame(1, $evenement->creneaux()->count());
+    }
+
+    public function test_seuls_les_creneaux_passes_de_la_periode_sont_rattaches(): void
+    {
+        $passeDansPeriode = $this->creneauLe('2026-09-25');
+        $this->creneauLe('2026-09-18'); // passé mais hors période
+        $this->creneauLe('2026-10-02'); // futur : relève de la régénération
+        $evenement = $this->evenement('2026-09-24', '2026-10-10');
+        $espion = $this->espion();
+
+        $resultat = (new EvenementRegenerationService($espion))->regenererSiNecessaire($evenement);
+
+        $this->assertSame([$passeDansPeriode->id], $evenement->creneaux()->pluck('plan_creneaux.id')->all());
+        $this->assertSame(['2026-10-02'], $espion->dates);
+        $this->assertStringStartsWith('1 créneau passé rattaché', $resultat['message']);
+        $this->assertStringContainsString('Planning régénéré automatiquement', $resultat['message']);
+    }
+
+    public function test_un_second_passage_ne_rattache_rien_de_plus(): void
+    {
+        $this->creneauLe('2026-09-18');
+        $evenement = $this->evenement('2026-09-15', '2026-09-20');
+        $service = new EvenementRegenerationService($this->espion());
+
+        $this->assertNotNull($service->regenererSiNecessaire($evenement));
+        $this->assertNull($service->regenererSiNecessaire($evenement), 'idempotent : déjà rattaché');
+        $this->assertSame(1, $evenement->creneaux()->count());
+    }
+
+    public function test_une_periode_modifiee_detache_les_creneaux_passes_qui_en_sortent(): void
+    {
+        $sorti = $this->creneauLe('2026-09-18');
+        $reste = $this->creneauLe('2026-09-25');
+        $evenement = $this->evenement('2026-09-15', '2026-09-26');
+        $service = new EvenementRegenerationService($this->espion());
+        $service->regenererSiNecessaire($evenement);
+        $this->assertEqualsCanonicalizing([$sorti->id, $reste->id], $evenement->creneaux()->pluck('plan_creneaux.id')->all());
+
+        $evenement->update(['date_debut' => '2026-09-24']);
+        $service->regenererSiNecessaire($evenement->fresh());
+
+        $this->assertSame([$reste->id], $evenement->creneaux()->pluck('plan_creneaux.id')->all());
+    }
+
+    public function test_le_rattachement_du_passe_est_journalise(): void
+    {
+        $this->creneauLe('2026-09-18');
+        $evenement = $this->evenement('2026-09-15', '2026-09-20');
+
+        (new EvenementRegenerationService($this->espion()))->regenererSiNecessaire($evenement);
+
+        $this->assertSame(1, AuditLog::where('module', 'planning')->where('after->declencheur', 'evenement_passe')->where('after->nb_creneaux_lies', 1)->count());
     }
 
     public function test_un_evenement_qui_a_commence_ne_regenere_qu_a_partir_d_aujourd_hui(): void

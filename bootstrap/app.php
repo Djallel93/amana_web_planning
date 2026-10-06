@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 use Amana\Shared\Http\Middleware\EnsureAuthenticated;
 use Amana\Shared\Http\Middleware\EnsureRole;
+use App\Http\Middleware\ApplySessionPolicy;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Foundation\Application;
@@ -49,7 +50,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // aucune route Blade classique : ce middleware ne fait qu'ajouter
         // des en-têtes/props Inertia à la requête, il ne change rien pour
         // les réponses `view(...)` habituelles.
+        //
+        // ApplySessionPolicy : durée de session configurable (inactivité ou
+        // « jusqu'à minuit »). Après StartSession (qu'il utilise).
         $middleware->web(append: [
+            ApplySessionPolicy::class,
             HandleInertiaRequests::class,
         ]);
     })

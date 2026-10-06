@@ -359,4 +359,48 @@ class PersonnesLifecycleFlowTest extends TestCase
 
         Notification::assertSentToTimes($p, ResetPasswordNotification::class, 1);
     }
+
+    // ── Section « Accès au compte » (fiche) ───────────────────────────────
+
+    public function test_la_liste_ne_propose_plus_le_renvoi_d_email_d_acces(): void
+    {
+        $p = Personne::factory()->create();
+
+        $this->get(route('personnes.index'))
+            ->assertOk()
+            ->assertDontSee(route('admin.candidatures.renvoyer-invitation', $p->id), false)
+            ->assertDontSee("Renvoyer email d'accès", false);
+    }
+
+    public function test_la_fiche_regroupe_les_deux_envois_dans_la_section_acces_au_compte(): void
+    {
+        $p = Personne::factory()->create();
+
+        $this->get(route('personnes.edit', $p->id))
+            ->assertOk()
+            ->assertSee('Accès au compte')
+            ->assertSee(route('admin.candidatures.renvoyer-invitation', $p->id), false)
+            ->assertSee(route('personnes.reset-link', $p->id), false)
+            ->assertSee("Renvoyer l'email d'accès", false);
+    }
+
+    public function test_le_renvoi_d_email_d_acces_est_grise_pour_un_compte_non_valide(): void
+    {
+        $p = Personne::factory()->suspendu()->create();
+
+        $this->get(route('personnes.edit', $p->id))
+            ->assertOk()
+            ->assertSee('Disponible uniquement pour un compte au statut « Validé »')
+            ->assertSee('disabled', false);
+    }
+
+    public function test_le_renvoi_depuis_la_fiche_revient_sur_la_fiche(): void
+    {
+        Notification::fake();
+        $p = Personne::factory()->create();
+
+        $this->from(route('personnes.edit', $p->id))
+            ->post(route('admin.candidatures.renvoyer-invitation', $p->id))
+            ->assertRedirect(route('personnes.edit', $p->id));
+    }
 }

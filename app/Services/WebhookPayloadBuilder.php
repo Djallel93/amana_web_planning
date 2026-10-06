@@ -88,7 +88,11 @@ class WebhookPayloadBuilder
 
     // ── POST : génération complète ───────────────────────────────────────
 
-    public function build(string $dateDebut, int $semaines): array
+    /**
+     * @param string|null $aPartirDe Si fourni : exclut les créneaux antérieurs à cette date
+     *        (régénération qui repart d'un samedi sans réécrire le vendredi passé).
+     */
+    public function build(string $dateDebut, int $semaines, ?string $aPartirDe = null): array
     {
         $heureCours = Setting::get('heure_cours', 'planning') ?? '20:00';
         $premier = DateHelper::premierVendredi($dateDebut);
@@ -96,6 +100,7 @@ class WebhookPayloadBuilder
 
         $creneaux = Creneau::with(['taches.tache', 'taches.personne', 'evenements.tachesBloquees'])
             ->whereBetween('date', [$premier->toDateString(), $fin->toDateString()])
+            ->when($aPartirDe !== null, fn($q) => $q->where('date', '>=', $aPartirDe))
             ->orderBy('date')
             ->get();
 

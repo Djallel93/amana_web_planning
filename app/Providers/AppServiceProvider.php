@@ -6,6 +6,7 @@ use Amana\Shared\Contracts\ActivityStatisticsProvider;
 use Amana\Shared\Contracts\NavBadgeProvider;
 use App\Services\AuditStatistics;
 use App\Services\NavBadges;
+use App\Services\SessionPolicy;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\ServiceProvider;
 
@@ -42,5 +43,12 @@ class AppServiceProvider extends ServiceProvider
         // formes ; sans ce réglage, ::collection() envelopperait
         // silencieusement le JSON dans 'data'.
         JsonResource::withoutWrapping();
+
+        // La durée d'inactivité est appliquée par ApplySessionPolicy (paramètre admin
+        // `session_lifetime`, jusqu'à 24 h) et la case « Rester connecté » tient jusqu'à
+        // minuit. Le stockage de session (ligne en base) et le cookie de session doivent
+        // donc vivre au moins 24 h, quelle que soit la valeur de SESSION_LIFETIME dans
+        // .env — sinon ils expireraient avant la règle configurée. Aucun accès base ici.
+        config(['session.lifetime' => max((int) config('session.lifetime'), SessionPolicy::MAX_MINUTES)]);
     }
 }

@@ -9,6 +9,9 @@ use Amana\Shared\Http\Controllers\SettingsControllerBase;
 use Amana\Shared\Models\Setting;
 use App\Models\CalendrierGoogle;
 use App\Models\Personne;
+use App\Services\SessionPolicy;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -21,7 +24,7 @@ use Illuminate\View\View;
  * paramétrable via appCode()/adminOnlyKeys().
  *
  * Accès route : gestionnaire + admin (middleware 'role:gestionnaire').
- * `inscription_ouverte` reste réservé aux admins (adminOnlyKeys()).
+ * `inscription_ouverte` et `session_lifetime` restent réservés aux admins (adminOnlyKeys()).
  */
 class SettingsController extends SettingsControllerBase
 {
@@ -32,7 +35,32 @@ class SettingsController extends SettingsControllerBase
 
     protected function adminOnlyKeys(): array
     {
-        return ['inscription_ouverte'];
+        return ['inscription_ouverte', SessionPolicy::CLE_PARAMETRE];
+    }
+
+    /**
+     * La durée de session est bornée (SessionPolicy::MIN_MINUTES–MAX_MINUTES) : la
+     * validation générique de la base ne contrôle que « entier ». Validée ici avant
+     * de déléguer (seul un admin peut réellement l'enregistrer — adminOnlyKeys()).
+     */
+    public function update(Request $request): RedirectResponse
+    {
+        if ($request->has('settings.' . SessionPolicy::CLE_PARAMETRE)) {
+            $request->validate([
+                'settings.' . SessionPolicy::CLE_PARAMETRE => [
+                    'required', 'integer',
+                    'min:' . SessionPolicy::MIN_MINUTES,
+                    'max:' . SessionPolicy::MAX_MINUTES,
+                ],
+            ], [
+                'settings.' . SessionPolicy::CLE_PARAMETRE . '.required' => 'La durée de session est obligatoire.',
+                'settings.' . SessionPolicy::CLE_PARAMETRE . '.integer' => 'La durée de session doit être un nombre entier de minutes.',
+                'settings.' . SessionPolicy::CLE_PARAMETRE . '.min' => 'La durée de session doit être d\'au moins ' . SessionPolicy::MIN_MINUTES . ' minutes.',
+                'settings.' . SessionPolicy::CLE_PARAMETRE . '.max' => 'La durée de session ne peut pas dépasser ' . SessionPolicy::MAX_MINUTES . ' minutes (24 h).',
+            ]);
+        }
+
+        return parent::update($request);
     }
 
     public function index(): View
@@ -43,6 +71,7 @@ class SettingsController extends SettingsControllerBase
         $decalages = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'offset_'));
         $decalagesGroupes = $this->grouperDecalages($decalages);
         $inscription = $settings->only(['inscription_ouverte']);
+        $sessionParametre = $settings->get(SessionPolicy::CLE_PARAMETRE);
         $calendriers = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'calendar_'));
         $couleurs = $settings->filter(fn($_, $cle) => str_starts_with($cle, 'couleur_'));
         $calendriersGoogle = CalendrierGoogle::orderBy('nom')->get();
@@ -56,6 +85,7 @@ class SettingsController extends SettingsControllerBase
             'decalagesGroupes',
             'settings',
             'inscription',
+            'sessionParametre',
             'calendriers',
             'couleurs',
             'calendriersGoogle',

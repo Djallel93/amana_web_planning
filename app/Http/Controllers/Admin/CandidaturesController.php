@@ -141,7 +141,7 @@ class CandidaturesController extends Controller
         $personne = Personne::findOrFail($id);
 
         if ($personne->statut !== 'Validé') {
-            return redirect()->route('admin.candidatures.index')
+            return back()
                 ->with('error', 'Impossible de renvoyer une invitation à un compte non validé.');
         }
 
@@ -179,6 +179,6 @@ class CandidaturesController extends Controller
             'deja_mot_de_passe' => $dejaMotDePasse,
         ]);
 
-        return redirect()->route('admin.candidatures.index')->with('success', $messageFlash);
+        return back()->with('success', $messageFlash);
     }
 }

@@ -206,14 +206,6 @@
                             shadow-[0_3px_12px_rgba(3,105,161,0.3)] hover:-translate-y-px active:translate-y-0 transition-all cursor-pointer min-h-[44px]">
                     💾 Enregistrer toutes les restrictions
                 </button>
-                <button type="button" onclick="toggleAll(true)"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-xs font-semibold rounded-lg transition-colors cursor-pointer bg-transparent min-h-[44px]">
-                    Tout cocher
-                </button>
-                <button type="button" onclick="toggleAll(false)"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 border-[1.5px] border-ink-faint text-ink-muted hover:bg-surface-3 hover:text-ink text-xs font-semibold rounded-lg transition-colors cursor-pointer bg-transparent min-h-[44px]">
-                    Tout décocher
-                </button>
                 <div class="ml-auto flex items-center gap-4 text-[12px] text-ink-muted">
                     <div class="flex items-center gap-1.5">
                         <input type="checkbox" checked disabled class="w-3.5 h-3.5 accent-accent"> Disponible
@@ -253,11 +245,6 @@
 
 @push('scripts')
 <script>
-    function toggleAll(state) {
-        document.querySelectorAll('#restrictionsForm input[type="checkbox"]')
-            .forEach(cb => cb.checked = state);
-    }
-
     /**
      * La grille admin/gestionnaire rend DEUX jeux d'inputs pour chaque case
      * (table desktop "hidden md:block" + cartes mobile "md:hidden"), tous les

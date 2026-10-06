@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\DateHelper;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Creneau;
 use App\Models\Evenement;
@@ -32,6 +33,13 @@ use Illuminate\Support\Facades\Log;
  * toute la fenêtre affectée — aussi bien pour un seul événement créé/modifié
  * via le formulaire que pour un lot importé en masse (voir
  * EvenementCsvImporter), un seul appel couvrant tous les événements fournis.
+ *
+ * Dates PASSÉES (strictement avant aujourd'hui, fuseau Europe/Paris) : jamais de
+ * régénération. Les créneaux déjà existants dans ce passé sont seulement RATTACHÉS
+ * à l'événement (lierCreneauxPasses() : bannière/lien d'historique), sans toucher
+ * à leurs assignations — y compris sur une tâche bloquée par l'événement. Les
+ * événements eux-mêmes (calendriers Google) sont synchronisés comme d'habitude
+ * par le contrôleur ; aucun créneau passé n'est renvoyé vers Google Calendar.
  *
  * Ne régénère QUE si au moins un créneau déjà généré (date >= aujourd'hui)
  * chevauche la période d'au moins un des événements fournis — que
@@ -63,6 +71,78 @@ class EvenementRegenerationService
             return null;
         }
 
+        $nbLies = $this->lierCreneauxPasses($evenements);
+        $futur = $this->regenererDatesFutures($evenements);
+
+        if ($nbLies === 0) {
+            return $futur;
+        }
+
+        $messageLiens = $nbLies === 1
+            ? '1 créneau passé rattaché (planning non régénéré : l\'historique est conservé).'
+            : "{$nbLies} créneaux passés rattachés (planning non régénéré : l'historique est conservé).";
+
+        return ['message' => $futur === null ? $messageLiens : $messageLiens . ' ' . $futur['message']];
+    }
+
+    /**
+     * Rattache aux événements fournis les créneaux DÉJÀ EXISTANTS dont la date est
+     * strictement passée et comprise dans leur période — et détache ceux qui ne le
+     * sont plus (période raccourcie/déplacée à la modification), pour que l'historique
+     * reflète toujours la période réelle. Aucune assignation n'est modifiée.
+     *
+     * @param array<int, Evenement> $evenements
+     * @return int Nombre de rattachements créés
+     */
+    private function lierCreneauxPasses(array $evenements): int
+    {
+        $veille = DateHelper::aujourdhui()->subDay()->toDateString();
+        $nbLies = 0;
+
+        foreach ($evenements as $evenement) {
+            $debut = $evenement->date_debut->toDateString();
+            $fin = min($evenement->date_fin->toDateString(), $veille);
+
+            if ($fin >= $debut) {
+                $ids = Creneau::whereBetween('date', [$debut, $fin])->pluck('id')->all();
+                $nbLies += count($evenement->creneaux()->syncWithoutDetaching($ids)['attached']);
+            }
+
+            // Créneaux passés encore rattachés alors qu'ils sortent de la période.
+            $obsoletes = $evenement->creneaux()
+                ->where('plan_creneaux.date', '<=', $veille)
+                ->where(fn($q) => $q->where('plan_creneaux.date', '<', $debut)
+                    ->orWhere('plan_creneaux.date', '>', $evenement->date_fin->toDateString()))
+                ->pluck('plan_creneaux.id')
+                ->all();
+
+            if ($obsoletes !== []) {
+                $evenement->creneaux()->detach($obsoletes);
+            }
+        }
+
+        if ($nbLies > 0) {
+            Log::info('[EvenementRegenerationService] Créneaux passés rattachés à des événements', [
+                'ids_evenements' => array_map(fn(Evenement $e) => $e->id, $evenements),
+                'nb' => $nbLies,
+            ]);
+
+            audit('update', 'planning', null, null, [
+                'declencheur' => 'evenement_passe',
+                'ids_evenements' => array_map(fn(Evenement $e) => $e->id, $evenements),
+                'nb_creneaux_lies' => $nbLies,
+            ]);
+        }
+
+        return $nbLies;
+    }
+
+    /**
+     * @param array<int, Evenement> $evenements
+     * @return array{message: string}|null
+     */
+    private function regenererDatesFutures(array $evenements): ?array
+    {
         $premiereDateImpactee = $this->trouverPremiereDateImpactee($evenements);
 
         if ($premiereDateImpactee === null) {
@@ -97,7 +177,7 @@ class EvenementRegenerationService
             'ids_evenements' => array_map(fn(Evenement $e) => $e->id, $evenements),
         ]));
 
-        $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines']);
+        $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines'], $regen['aPartirDe'] ?? null);
         SynchroniserGoogleCalendar::dispatch($payload, 'post');
         Log::info('[EvenementRegenerationService] Synchronisation Google Calendar dispatchée en queue (POST) suite à régénération automatique.');
 
@@ -119,7 +199,7 @@ class EvenementRegenerationService
      */
     private function trouverPremiereDateImpactee(array $evenements): ?string
     {
-        $aujourdHui = now()->toDateString();
+        $aujourdHui = DateHelper::aujourdhui()->toDateString();
         $premiereDateImpactee = null;
 
         foreach ($evenements as $evenement) {

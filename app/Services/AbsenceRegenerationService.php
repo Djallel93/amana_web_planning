@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\DateHelper;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Absence;
 use App\Models\CreneauTache;
@@ -20,6 +21,11 @@ use Illuminate\Support\Facades\Log;
  *   - Alimenter le mécanisme de rollback (comme une génération manuelle)
  *   - Journaliser l'opération (audit)
  *   - Dispatcher la synchronisation Google Calendar si configurée
+ *
+ * Dates passées (strictement avant aujourd'hui, fuseau Europe/Paris) : jamais de
+ * régénération — la personne est seulement retirée des tâches qu'elle avait ces
+ * jours-là (desassignerDatesPassees()), sans synchronisation Google Calendar : le
+ * passé ne génère aucun trafic vers les calendriers.
  *
  * Extrait de AbsencesController pour séparer l'orchestration (contrôleur)
  * de la logique métier de régénération (service).
@@ -50,11 +56,11 @@ class AbsenceRegenerationService
      * effectivement assignée sur une date de l'absence, future) — une
      * absence qui ne chevauche aucune assignation existante n'a aucun effet.
      *
-     * @return array{message: string}|null null si aucune régénération n'a été nécessaire
+     * @return array{message: string, regenere: bool}|null null si aucune régénération n'a été nécessaire
      */
-    public function regenererSiNecessaire(Absence $absence): ?array
+    private function regenererDatesFutures(Absence $absence): ?array
     {
-        $aujourdHui = now()->toDateString();
+        $aujourdHui = DateHelper::aujourdhui()->toDateString();
         $dateDebutAbsence = $absence->date_debut->toDateString();
         $dateFinAbsence = $absence->date_fin->toDateString();
 
@@ -93,6 +99,7 @@ class AbsenceRegenerationService
             return [
                 'message' => "⚠️ La réassignation automatique du planning a échoué ({$e->getMessage()}) — "
                     . 'veuillez régénérer manuellement depuis Planning > Générer.',
+                'regenere' => false,
             ];
         }
 
@@ -102,7 +109,7 @@ class AbsenceRegenerationService
             'id_personne' => $absence->id_personne,
         ]));
 
-        $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines']);
+        $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines'], $regen['aPartirDe'] ?? null);
         SynchroniserGoogleCalendar::dispatch($payload, 'post');
         Log::info('[AbsenceRegenerationService] Synchronisation Google Calendar dispatchée en queue (POST) suite à régénération automatique.');
 
@@ -112,6 +119,93 @@ class AbsenceRegenerationService
             'message' => "Planning régénéré automatiquement à partir du {$dateLabel} "
                 . "({$regen['resultat']['jours_generes']} jours, {$regen['resultat']['non_assignes']} non assigné(s)) "
                 . 'pour tenir compte de cette absence.',
+            'regenere' => true,
         ];
+    }
+
+    /**
+     * Point d'entrée unique pour le contrôleur : retire d'abord la personne des
+     * tâches PASSÉES couvertes par l'absence, puis régénère si une assignation
+     * future est impactée. Les deux effets sont indépendants (une absence à cheval
+     * sur aujourd'hui produit les deux).
+     *
+     * @return array{message: string, regenere: bool}|null null si l'absence n'a eu aucun effet sur le planning
+     */
+    public function regenererSiNecessaire(Absence $absence): ?array
+    {
+        $nbPassees = $this->desassignerDatesPassees($absence);
+        $futur = $this->regenererDatesFutures($absence);
+
+        if ($nbPassees === 0) {
+            return $futur;
+        }
+
+        $messagePasse = $nbPassees === 1
+            ? '1 affectation passée retirée (planning non régénéré : l\'historique est conservé).'
+            : "{$nbPassees} affectations passées retirées (planning non régénéré : l'historique est conservé).";
+
+        return [
+            'message' => $futur === null ? $messagePasse : $messagePasse . ' ' . $futur['message'],
+            'regenere' => $futur['regenere'] ?? false,
+        ];
+    }
+
+    /**
+     * Retire la personne absente des tâches qu'elle avait sur des dates strictement
+     * antérieures à aujourd'hui (fuseau Europe/Paris) couvertes par l'absence. Ne
+     * régénère rien, ne touche à aucun autre créneau/tâche et ne synchronise pas
+     * Google Calendar. Journalisé (un enregistrement d'audit par appel).
+     *
+     * Mise à jour par clé composite (id_planning, id_tache) : jamais ->save() sur
+     * une instance de CreneauTache (clé primaire composite, $primaryKey = null).
+     *
+     * @return int Nombre d'assignations passées retirées
+     */
+    public function desassignerDatesPassees(Absence $absence): int
+    {
+        $veille = DateHelper::aujourdhui()->subDay()->toDateString();
+        $debut = $absence->date_debut->toDateString();
+        $fin = min($absence->date_fin->toDateString(), $veille);
+
+        if ($fin < $debut) {
+            return 0; // Aucune date de l'absence n'est passée.
+        }
+
+        $lignes = CreneauTache::where('id_personne', $absence->id_personne)
+            ->whereHas('creneau', fn($q) => $q->whereBetween('date', [$debut, $fin]))
+            ->with(['creneau', 'tache'])
+            ->get();
+
+        if ($lignes->isEmpty()) {
+            return 0;
+        }
+
+        $retirees = [];
+        foreach ($lignes as $ligne) {
+            CreneauTache::where('id_planning', $ligne->id_planning)
+                ->where('id_tache', $ligne->id_tache)
+                ->where('id_personne', $absence->id_personne)
+                ->update(['id_personne' => null]);
+
+            $retirees[] = [
+                'date' => $ligne->creneau->date->toDateString(),
+                'tache' => $ligne->tache?->code,
+            ];
+        }
+
+        Log::info('[AbsenceRegenerationService] Assignations passées retirées suite à absence', [
+            'id_absence' => $absence->id,
+            'id_personne' => $absence->id_personne,
+            'nb' => count($retirees),
+        ]);
+
+        audit('update', 'planning', null, ['assignations_retirees' => $retirees], [
+            'declencheur' => 'absence_passee',
+            'id_absence' => $absence->id,
+            'id_personne' => $absence->id_personne,
+            'nb_retirees' => count($retirees),
+        ]);
+
+        return count($retirees);
     }
 }

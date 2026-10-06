@@ -253,4 +253,48 @@ class EvenementCsvImportAttenduTest extends TestCase
         }
         $this->assertNotNull($this->idPersonneDuCreneau('2026-10-02', 'entree'), 'la semaine précédente est intacte');
     }
+
+    // ══ Dates d'historique ════════════════════════════════════════════════
+
+    public function test_un_import_csv_a_des_dates_passees_est_accepte_cree_les_evenements_calendrier_et_rattache_les_creneaux_sans_les_modifier(): void
+    {
+        [$p] = $this->personnesValidees(1);
+        $this->assigner($p, '2026-09-18', 'entree');
+        $creneau = $this->creneauLe('2026-09-18');
+
+        $this->importer(self::ENTETE . "Ancien;2026-09-15;2026-09-20;;;entree;Calendrier Général\n")
+            ->assertSessionHas('success', '1 événement(s) importé(s) avec succès. 1 créneau passé rattaché (planning non régénéré : l\'historique est conservé).');
+
+        $evenement = Evenement::where('nom', 'Ancien')->firstOrFail();
+        $this->assertSame([$creneau->id], $evenement->creneaux()->pluck('plan_creneaux.id')->all());
+        $this->assertSame($p->id, $this->idPersonneDuCreneau('2026-09-18', 'entree'), 'assignation d\'historique intacte');
+        Bus::assertDispatchedTimes(SynchroniserGoogleCalendar::class, 1, 'l\'événement passé est bien créé dans le calendrier');
+    }
+
+    public function test_une_saisie_manuelle_a_des_dates_passees_est_acceptee_et_rattache_les_creneaux(): void
+    {
+        $creneau = $this->creneauLe('2026-09-18');
+
+        $this->post(route('evenements.import.manuel'), ['rows' => [$this->ligneManuelle(['nom' => 'Ancien manuel', 'date_debut' => '2026-09-15', 'date_fin' => '2026-09-20'])]])
+            ->assertSessionHas('success', fn(string $m) => str_contains($m, '1 créneau passé rattaché'));
+
+        $this->assertSame([$creneau->id], Evenement::where('nom', 'Ancien manuel')->firstOrFail()->creneaux()->pluck('plan_creneaux.id')->all());
+        Bus::assertDispatchedTimes(SynchroniserGoogleCalendar::class, 1);
+    }
+
+    public function test_un_import_a_cheval_sur_aujourd_hui_rattache_le_passe_et_regenere_le_futur(): void
+    {
+        $this->personnesValidees(6);
+        $this->app->make(SchedulerMain::class)->generateSchedule('2026-09-18', 4); // 18/09 … 10/10
+        Bus::fake();
+        $passe = $this->creneauLe('2026-09-25');
+        $avant = $this->idPersonneDuCreneau('2026-09-25', 'entree');
+
+        $this->importer(self::ENTETE . "Long;2026-09-24;2026-10-03;;;entree|mektaba|salle|amana_food|cours;\n")
+            ->assertSessionHas('success', fn(string $m) => str_contains($m, 'créneaux passés rattachés') && str_contains($m, 'Planning régénéré automatiquement à partir du 2 octobre 2026'));
+
+        $this->assertSame($avant, $this->idPersonneDuCreneau('2026-09-25', 'entree'), 'le passé n\'est pas touché');
+        $this->assertNull($this->idPersonneDuCreneau('2026-10-02', 'entree'), 'le futur est régénéré avec l\'événement bloquant');
+        $this->assertTrue(Evenement::where('nom', 'Long')->firstOrFail()->creneaux()->where('plan_creneaux.id', $passe->id)->exists());
+    }
 }

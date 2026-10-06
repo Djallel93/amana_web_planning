@@ -447,7 +447,6 @@ Onglet **Actions** du dépôt GitHub → sélectionner l'exécution → chaque �
 | GET     | `/personnes`                                    | `personnes.index`              | Admin              | Liste des membres                                                                                                    |
 | GET     | `/admin/candidatures`                           | `admin.candidatures.index`     | Admin              | Tableau de bord des candidatures                                                                                     |
 | GET     | `/admin/echanges`                               | `admin.echanges.index`         | Gestionnaire+Admin | Gestion des échanges                                                                                                 |
-| GET     | `/diagnostic-mail`                              | `diagnostic.mail.index`        | Admin              | Diagnostic SMTP                                                                                                      |
 | GET     | `/echanges`                                     | `echanges.index`               | Connecté           | Mes échanges                                                                                                         |
 | GET     | `/api/calendriers`                              | `calendriers.index`            | Connecté           | JSON — calendriers Google Calendar **enregistrés** dans `ref_calendriers_google` (lecture DB, dropdown de recherche) |
 
@@ -482,7 +481,7 @@ php artisan migrate --force
 ```bash
 tail -f storage/logs/laravel.log
 # Vérifier que MAIL_SCHEME n'est pas "null" (chaîne littérale)
-# Tester via /diagnostic-mail dans l'interface
+# Tester l'envoi via la page « Mot de passe oublié » (/mot-de-passe-oublie)
 ```
 
 ### Le job `build` échoue avec « secrets are missing »
@@ -582,12 +581,14 @@ SESSION_DOMAIN=votredomaine.fr
 php artisan migrate --force   # Crée la table sessions si absente
 ```
 
+La **durée de session** n'est plus pilotée par `SESSION_LIFETIME` seul : le délai d'inactivité est le paramètre admin `session_lifetime` (Paramètres → Général, 5 à 1440 min, 120 par défaut) ; la case « Rester connecté jusqu'à minuit » prolonge la session jusqu'au minuit de Paris. Sur un environnement existant, créer la clé avec `php artisan db:seed --class=PlanningSettingsSeeder` (n'insère que les clés absentes). Une déconnexion « trop rapide » se règle donc dans **Paramètres**, pas dans `.env`.
+
 ### Les emails de rappel ne partent pas / arrivent à la mauvaise heure
 
 1. Le cron du scheduler existe-t-il ? `crontab -l` en SSH doit montrer la ligne `schedule:run` (voir [Configuration unique côté serveur — cron du scheduler](#configuration-unique-côté-serveur--cron-du-scheduler)). Le pipeline de déploiement ne la crée pas.
 2. `php artisan schedule:list` doit lister `amana:rappels-quotidiens` (08:00) et `amana:rappels-imminents` (toutes les 15 min). Ces deux tâches sont déclarées en fuseau `Europe/Paris` : l'heure affichée est l'heure de Paris, indépendamment de `APP_TIMEZONE=UTC`.
 3. Un rappel n'est envoyé que pour un créneau **assigné** dont la date est aujourd'hui, demain ou J+3 — un créneau vide ou passé n'en génère jamais.
-4. Consulter `storage/logs/laravel.log`, puis tester le SMTP depuis `/diagnostic-mail`.
+4. Consulter `storage/logs/laravel.log`, puis tester l'envoi via la page « Mot de passe oublié » (`/mot-de-passe-oublie`).
 
 ### Un événement bloquant créé après génération ne bloque pas un créneau passé
 

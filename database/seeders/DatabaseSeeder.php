@@ -268,6 +268,16 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Active ou désactive le formulaire public d\'inscription (/inscription). Seuls les administrateurs peuvent modifier ce paramètre.',
             ],
 
+            // Délai d'inactivité avant déconnexion automatique (App\Services\SessionPolicy).
+            // Modifiable uniquement par un administrateur via la page Paramètres.
+            [
+                'cle' => 'session_lifetime',
+                'valeur' => '120',
+                'type' => 'integer',
+                'libelle' => 'Durée de session (min)',
+                'description' => 'Minutes d\'inactivité après lesquelles un utilisateur est déconnecté (5 à 1440). Ne s\'applique pas à « Rester connecté jusqu\'à minuit ». Seuls les administrateurs peuvent modifier ce paramètre.',
+            ],
+
             // ── B. Horaires & Lieu ─────────────────────────────────────────
             ['cle' => 'heure_cours', 'valeur' => '20:00', 'type' => 'time', 'libelle' => 'Heure du cours', 'description' => null],
             ['cle' => 'lieu', 'valeur' => '319 Rte de Vannes, 44800 Saint-Herblain, France', 'type' => 'string', 'libelle' => 'Lieu des permanences', 'description' => null],

@@ -162,7 +162,7 @@ class AbsencesController extends Controller
         return response()->json([
             'success' => true,
             'message' => $message,
-            'planning_regenere' => $regeneration !== null,
+            'planning_regenere' => $regeneration['regenere'] ?? false,
             'absence' => [
                 'id'          => $absence->id,
                 'id_personne' => $absence->id_personne,

@@ -394,9 +394,13 @@ class SchedulerMainTest extends TestCase
         {
             public array $appels = [];
 
-            public function generateSchedule(string $dateDebut, int $semaines, bool $dryRun = false): array
+            /** @var list<string|null> borne `aPartirDe` reçue à chaque appel */
+            public array $bornes = [];
+
+            public function generateSchedule(string $dateDebut, int $semaines, bool $dryRun = false, ?Carbon $aPartirDe = null): array
             {
                 $this->appels[] = [$dateDebut, $semaines, $dryRun];
+                $this->bornes[] = $aPartirDe?->toDateString();
 
                 return ['jours_generes' => 0, 'non_assignes' => 0, 'duree_ms' => 0.0];
             }
@@ -488,5 +492,53 @@ class SchedulerMainTest extends TestCase
         $this->assertSame(6, Creneau::count(), 'les 3 semaines existent toujours');
         $this->assertSame($idsSemaine1, Creneau::whereIn('date', [self::VENDREDI, '2026-10-03'])->pluck('id')->all(), 'semaine 1 intacte');
         $this->assertSame(30, CreneauTache::count());
+    }
+
+    // ── Garde-fou « jamais le passé » ─────────────────────────────────────
+
+    public function test_regenerer_un_samedi_dont_le_vendredi_est_passe_repart_du_samedi(): void
+    {
+        $this->travelTo('2026-10-10 09:00:00'); // samedi ; le vendredi 09/10 est passé
+        $this->creneauLe('2026-10-31');
+        $scheduler = $this->schedulerEspion();
+
+        $regen = $scheduler->regenerateFromImpactedDate(Carbon::parse('2026-10-10'));
+
+        $this->assertSame(['2026-10-10'], $scheduler->bornes, 'borne = le jour impacté, jamais la veille');
+        $this->assertSame('2026-10-10', $regen['aPartirDe']);
+        $this->assertSame('2026-10-10', $regen['regenererDepuis']->toDateString());
+        $this->assertSame('2026-10-09', $regen['dateDebutRegen'], 'le calcul des semaines reste ancré sur le vendredi');
+    }
+
+    public function test_regenerer_un_samedi_dont_le_vendredi_n_est_pas_passe_ne_pose_aucune_borne(): void
+    {
+        $this->travelTo('2026-10-09 09:00:00'); // vendredi
+        $this->creneauLe('2026-10-31');
+        $scheduler = $this->schedulerEspion();
+
+        $regen = $scheduler->regenerateFromImpactedDate(Carbon::parse('2026-10-10'));
+
+        $this->assertSame([null], $scheduler->bornes);
+        $this->assertNull($regen['aPartirDe']);
+        $this->assertSame('2026-10-09', $regen['regenererDepuis']->toDateString());
+    }
+
+    public function test_regeneration_reelle_depuis_un_samedi_conserve_le_vendredi_passe_a_l_identique(): void
+    {
+        $this->tachesDeRotation();
+        $this->personnesValidees(6);
+        $this->scheduler()->generateSchedule(self::VENDREDI, 3);
+        $this->travelTo('2026-10-03 10:00:00'); // samedi ; le vendredi 02/10 est passé
+        $vendredi = Creneau::where('date', self::VENDREDI)->firstOrFail();
+        $avant = CreneauTache::where('id_planning', $vendredi->id)->orderBy('id_tache')->get(['id_planning', 'id_tache', 'id_personne'])->toArray();
+
+        $regen = $this->scheduler()->regenerateFromImpactedDate(Carbon::parse('2026-10-03'));
+
+        $this->assertSame($vendredi->id, Creneau::where('date', self::VENDREDI)->value('id'), 'créneau d\'hier non recréé');
+        $this->assertSame($avant, CreneauTache::where('id_planning', $vendredi->id)->orderBy('id_tache')->get(['id_planning', 'id_tache', 'id_personne'])->toArray(), 'assignations d\'hier intactes');
+        $this->assertSame(6, Creneau::count(), 'l\'horizon existant est préservé');
+        $this->assertSame(30, CreneauTache::count());
+        $this->assertSame('2026-10-03', $regen['aPartirDe']);
+        $this->assertNotContains(self::VENDREDI, array_column(session('last_generated_creneaux'), 'date'), 'le rollback ne peut pas supprimer le vendredi passé');
     }
 }

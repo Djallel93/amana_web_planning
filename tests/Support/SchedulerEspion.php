@@ -35,6 +35,7 @@ final class SchedulerEspion extends SchedulerMain
             'dateDebutRegen' => '2026-10-02',
             'semaines' => 2,
             'regenererDepuis' => Carbon::parse('2026-10-02'),
+            'aPartirDe' => null,
         ];
     }
 

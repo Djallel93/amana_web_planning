@@ -19,14 +19,20 @@ use Illuminate\Support\Collection;
  */
 class DataLoader
 {
-    public function initializeContext(string $dateDebut): array
+    /**
+     * @param Carbon|null $historiqueAvant Si fourni, l'historique des compteurs s'arrête
+     *        à cette date (exclue) au lieu du premier vendredi : sert à une régénération
+     *        qui repart d'un samedi sans toucher au vendredi déjà passé (celui-ci doit
+     *        alors compter dans l'historique, puisqu'il est conservé tel quel).
+     */
+    public function initializeContext(string $dateDebut, ?Carbon $historiqueAvant = null): array
     {
         $personnes = $this->loadActivePersonnes();
         $taches = $this->loadTachesActives();
         $absences = $this->loadAbsences();
         $evenements = $this->loadEvenements();
         $premierVendredi = $this->findPremierVendredi($dateDebut);
-        $counters = $this->initializeCountersFromHistory($personnes, $taches, $premierVendredi);
+        $counters = $this->initializeCountersFromHistory($personnes, $taches, $historiqueAvant ?? $premierVendredi);
         $personOptions = $this->calculatePersonOptions($personnes, $taches);
 
         return array_merge([

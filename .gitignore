@@ -39,6 +39,7 @@ ionos_deploy_key.pub
 # ── Logs ──────────────────────────────────────────────────────────────────
 npm-debug.log
 yarn-error.log
+*test*.log
 
 # ── Scratch / scripts locaux ─────────────────────────────────────────────
 todo*.md

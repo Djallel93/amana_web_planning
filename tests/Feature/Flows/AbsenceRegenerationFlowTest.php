@@ -125,15 +125,27 @@ class AbsenceRegenerationFlowTest extends TestCase
         $this->assertSame(1, $this->envoisGoogle(), 'seule l\'absence est synchronisée');
     }
 
-    public function test_une_absence_dans_le_passe_ne_touche_pas_au_planning(): void
+    public function test_une_absence_dans_le_passe_ne_regenere_pas_mais_retire_la_personne_de_ses_taches_passees(): void
     {
         $this->travelTo('2026-10-10 09:00:00');
         $idsAvant = Creneau::orderBy('id')->pluck('id')->all();
+        $idsPasses = Creneau::whereIn('date', ['2026-10-02', '2026-10-03'])->pluck('id');
+        $this->assertGreaterThan(0, CreneauTache::whereIn('id_planning', $idsPasses)->where('id_personne', $this->moi->id)->count(), 'moi : au moins une tâche passée à retirer');
+        $lignesPassees = fn() => CreneauTache::whereIn('id_planning', $idsPasses)->orderBy('id_planning')->orderBy('id_tache')
+            ->get(['id_planning', 'id_tache', 'id_personne'])->toArray();
+        // Lignes qui n'étaient PAS à « moi » avant l'absence : elles doivent rester strictement identiques après.
+        $autresAvant = array_values(array_filter($lignesPassees(), fn(array $l) => $l['id_personne'] !== $this->moi->id));
 
         $this->post(route('absences.store'), $this->donnees('2026-10-02', '2026-10-03'))
-            ->assertSessionHas('success', "Absence ajoutée pour {$this->moi->prenom} {$this->moi->nom}.");
+            ->assertSessionHas('success', fn(string $m) => str_starts_with($m, "Absence ajoutée pour {$this->moi->prenom} {$this->moi->nom}.")
+                && str_contains($m, 'affectation') && str_contains($m, 'planning non régénéré'));
 
-        $this->assertSame($idsAvant, Creneau::orderBy('id')->pluck('id')->all());
+        $this->assertSame($idsAvant, Creneau::orderBy('id')->pluck('id')->all(), 'aucun créneau recréé');
+        $this->assertSame(0, CreneauTache::whereIn('id_planning', $idsPasses)->where('id_personne', $this->moi->id)->count(), 'la personne n\'est plus assignée à ces dates');
+        $clesAutres = array_map(fn(array $l) => $l['id_planning'] . ':' . $l['id_tache'], $autresAvant);
+        $autresApres = array_values(array_filter($lignesPassees(), fn(array $l) => in_array($l['id_planning'] . ':' . $l['id_tache'], $clesAutres, true)));
+        $this->assertSame($autresAvant, $autresApres, 'les autres assignations sont intactes');
+        $this->assertSame(1, $this->envoisGoogle(), 'seule l\'absence est synchronisée : le passé reste silencieux');
     }
 
     public function test_les_semaines_anterieures_a_l_absence_ne_sont_pas_modifiees(): void

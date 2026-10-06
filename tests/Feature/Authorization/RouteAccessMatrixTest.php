@@ -63,8 +63,6 @@ class RouteAccessMatrixTest extends TestCase
             ['admin.candidatures.valider', 'POST', 'admin', ['id' => 999999]],
             ['admin.journal.data', 'GET', 'admin', []],
             ['admin.journal.index', 'GET', 'admin', []],
-            ['diagnostic.mail.index', 'GET', 'admin', []],
-            ['diagnostic.mail.tester', 'POST', 'admin', []],
             ['personnes.create', 'GET', 'admin', []],
             ['personnes.desactiver', 'POST', 'admin', ['id' => 999999]],
             ['personnes.destroy', 'DELETE', 'admin', ['id' => 999999]],

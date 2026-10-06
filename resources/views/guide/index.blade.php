@@ -204,7 +204,9 @@
                                     Absences</strong>. Vous voyez les absences de tout le monde (pour savoir qui est
                                 disponible), mais vous ne pouvez ajouter ou supprimer que les vôtres. Si l'absence
                                 chevauche une date où vous êtes déjà assigné(e) à une tâche future, le planning
-                                correspondant est automatiquement régénéré pour vous remplacer.</p>
+                                correspondant est automatiquement régénéré pour vous remplacer. Si l'absence couvre des dates
+                                    <strong class="text-ink">déjà passées</strong>, le planning n'est pas régénéré : vous êtes
+                                    simplement retiré(e) des tâches que vous aviez ces jours-là, et l'historique reste tel quel.</p>
                             <div class="guide-example">
                                 <span class="guide-example-label">Exemple</span>
                                 L'utilisateur A part en vacances du 1er au 15 août et était déjà assigné à
@@ -394,7 +396,9 @@
                                 <p>La page <strong class="text-ink">🎉 Événements</strong> permet de déclarer un événement
                                     organisationnel sur une période. Si l'événement est bloquant, les tâches concernées sur
                                     les créneaux déjà planifiés sont automatiquement désassignées et une bannière
-                                    d'information apparaît sur le planning.</p>
+                                    d'information apparaît sur le planning. Vous pouvez aussi saisir ou importer un événement sur des
+                                    <strong class="text-ink">dates passées</strong> (historique) : il est créé normalement, rattaché aux
+                                    créneaux déjà existants, mais le planning passé n'est jamais modifié.</p>
                                 <div class="guide-example">
                                     <span class="guide-example-label">Exemple</span>
                                     L'Aïd al-Adha tombe un week-end : le gestionnaire crée un événement bloquant du 8 au 9
@@ -441,6 +445,13 @@
                                         au formulaire d'inscription public. Fermer les inscriptions bloque
                                         l'affichage et la soumission du formulaire, sans supprimer les candidatures
                                         déjà en attente. Réservé aux administrateurs.</p>
+
+                                    <p><strong class="text-ink">⏱️ Durée de session</strong> — nombre de minutes
+                                        d'inactivité au bout duquel un utilisateur est automatiquement déconnecté (de 5
+                                        minutes à 24 h, 120 minutes par défaut). Les personnes qui cochent
+                                        <strong class="text-ink">« Rester connecté jusqu'à minuit »</strong> sur la page
+                                        de connexion restent connectées jusqu'à minuit, puis doivent se reconnecter.
+                                        Réservé aux administrateurs.</p>
 
                                     <p><strong class="text-ink">🕐 Horaires &amp; Lieu</strong> — l'heure du cours et
                                         l'adresse physique des permanences. Tous les horaires des tâches et
@@ -519,8 +530,11 @@
                                 <p>Dans le menu <strong class="text-ink">Communauté</strong>, la page <strong class="text-ink">👥 Annuaire</strong> liste l'ensemble des membres de
                                     l'association. Vous pouvez y créer une personne, modifier ses informations et son rôle
                                     (membre, gestionnaire, admin), ou la supprimer.</p>
-                            <p class="mt-2">Sur la fiche d'une personne, le bouton
-                                <strong class="text-ink">✉️ Envoyer un lien de réinitialisation</strong> lui envoie le lien
+                            <p class="mt-2">Sur la fiche d'une personne, la section
+                                <strong class="text-ink">🔑 Accès au compte</strong> regroupe deux boutons :
+                                <strong class="text-ink">🔑 Renvoyer l'email d'accès</strong> (invitation initiale, grisé tant
+                                que le compte n'est pas « Validé ») et
+                                <strong class="text-ink">✉️ Envoyer un lien de réinitialisation</strong>, qui lui envoie le lien
                                 standard pour créer ou réinitialiser son mot de passe elle-même : un administrateur ne saisit
                                 ni ne voit jamais un mot de passe. Quand vous modifiez l'adresse email d'une personne,
                                 l'ancienne et la nouvelle adresse reçoivent chacune un message d'information.</p>
@@ -548,24 +562,6 @@
                                     Trois nouvelles candidatures attendent validation : l'admin ouvre celle de
                                     l'utilisateur A, la valide — son compte est activé et il reçoit aussitôt un e-mail de
                                     confirmation.
-                                </div>
-                            </div>
-                        </details>
-
-                        <details class="guide-item group">
-                            <summary class="guide-summary">
-                                <span class="guide-summary-icon bg-accent/10">🔧</span>
-                                <span class="flex-1">Diagnostic SMTP</span>
-                                <span class="guide-chevron">▾</span>
-                            </summary>
-                            <div class="guide-body">
-                                <p>La page <strong class="text-ink">🔧 Diagnostic SMTP</strong> permet de tester l'envoi
-                                    d'e-mails depuis l'application, pour vérifier que la configuration de messagerie
-                                    fonctionne correctement.</p>
-                                <div class="guide-example">
-                                    <span class="guide-example-label">Exemple</span>
-                                    Des membres signalent ne pas recevoir les e-mails de candidature validée : l'admin
-                                    lance un envoi de test depuis le Diagnostic SMTP avant de creuser plus loin.
                                 </div>
                             </div>
                         </details>

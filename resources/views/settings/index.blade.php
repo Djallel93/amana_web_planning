@@ -501,6 +501,68 @@
     </div>
 
     {{-- ═══════════════════════════════════════
+        SECTION 1bis — Durée de session
+    ════════════════════════════════════════ --}}
+    <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
+        <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">⏱️</div>
+            <span class="font-heading text-[14px] font-semibold text-ink">Durée de session</span>
+            @if(!$user->isAdmin())
+                <span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                    🛡️ Admin uniquement
+                </span>
+            @endif
+        </div>
+        <div class="px-5 py-5">
+            <p class="text-[12.5px] text-ink-muted mb-4 leading-relaxed">
+                Délai d'<strong>inactivité</strong> au bout duquel un utilisateur est automatiquement déconnecté
+                (il doit alors se reconnecter). Les utilisateurs qui cochent
+                <strong>« Rester connecté jusqu'à minuit »</strong> à la connexion ne sont pas concernés : leur session
+                dure jusqu'à minuit (heure de Paris). Le changement s'applique dès la prochaine requête, y compris
+                aux sessions déjà ouvertes.
+                @if(!$user->isAdmin())
+                    <strong class="text-rose-600"> Seuls les administrateurs peuvent modifier ce paramètre.</strong>
+                @endif
+            </p>
+
+            @if($sessionParametre)
+                @php
+                    $dureeSession = (int) ($sessionParametre['valeur'] ?? \App\Services\SessionPolicy::DEFAUT_MINUTES);
+                @endphp
+                @if($user->isAdmin())
+                    <label for="sessionLifetime" class="block text-[12.5px] font-semibold text-ink-light mb-1.5">Inactivité maximale (minutes)</label>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <input type="number" id="sessionLifetime" name="settings[session_lifetime]"
+                            value="{{ old('settings.session_lifetime', $dureeSession) }}"
+                            min="{{ \App\Services\SessionPolicy::MIN_MINUTES }}" max="{{ \App\Services\SessionPolicy::MAX_MINUTES }}" step="1" required
+                            class="w-32 px-3 py-2.5 border-[1.5px] border-surface-border rounded-lg text-[14px] bg-surface focus:outline-none focus:border-accent min-h-[44px]">
+                        <span class="text-[12.5px] text-ink-muted">
+                            de {{ \App\Services\SessionPolicy::MIN_MINUTES }} à {{ \App\Services\SessionPolicy::MAX_MINUTES }} min (24 h) — défaut {{ \App\Services\SessionPolicy::DEFAUT_MINUTES }} min
+                        </span>
+                    </div>
+                    @error('settings.session_lifetime')
+                        <span class="block text-xs text-rose-600 mt-1.5">{{ $message }}</span>
+                    @enderror
+                @else
+                    <p class="text-[13.5px] text-ink-light font-medium">
+                        ⏱️ Déconnexion après {{ $dureeSession }} minutes d'inactivité
+                    </p>
+                    <p class="text-xs text-ink-muted mt-3">Connectez-vous en tant qu'administrateur pour modifier ce paramètre.</p>
+                @endif
+            @else
+                <div class="flex items-start gap-2 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900">
+                    <span class="flex-shrink-0">⚠️</span>
+                    <span>
+                        Le paramètre <code>session_lifetime</code> n'existe pas encore en base : la durée par défaut
+                        ({{ \App\Services\SessionPolicy::DEFAUT_MINUTES }} minutes) s'applique.
+                        Lancez <code>php artisan db:seed --class=PlanningSettingsSeeder</code> pour l'ajouter.
+                    </span>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    {{-- ═══════════════════════════════════════
         SECTION 2 — Horaires & Lieu
     ════════════════════════════════════════ --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">

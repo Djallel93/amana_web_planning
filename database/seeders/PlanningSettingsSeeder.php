@@ -82,6 +82,13 @@ class PlanningSettingsSeeder extends Seeder
                 'description' => "Active ou désactive le formulaire public d'inscription (/inscription). Seuls les administrateurs peuvent modifier ce paramètre.",
             ],
             [
+                'cle' => 'session_lifetime',
+                'valeur' => '120',
+                'type' => 'integer',
+                'libelle' => 'Durée de session (min)',
+                'description' => "Minutes d'inactivité après lesquelles un utilisateur est déconnecté (5 à 1440). Ne s'applique pas à « Rester connecté jusqu'à minuit ». Seuls les administrateurs peuvent modifier ce paramètre.",
+            ],
+            [
                 'cle' => 'offset_annulation_cours_debut',
                 'valeur' => '-360',
                 'type' => 'integer',
@@ -104,7 +111,7 @@ class PlanningSettingsSeeder extends Seeder
             ],
         ];
 
-        // Contrairement aux couleurs ci-dessus, ces quatre paramètres sont
+        // Contrairement aux couleurs ci-dessus, ces cinq paramètres sont
         // modifiables par un admin depuis la page Paramètres : on les insère
         // uniquement s'ils sont absents, pour ne jamais écraser une valeur
         // choisie (notamment inscription_ouverte, qu'un updateOrInsert

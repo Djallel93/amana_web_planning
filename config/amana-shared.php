@@ -112,7 +112,6 @@ return [
         // (le lien disparaît de la sidebar, la route reste accessible par URL).
         ['section' => 'Administration'],
         ['route' => 'settings.index', 'label' => 'Paramètres', 'icon' => '⚙️', 'role' => 'gestionnaire', 'route_pattern' => 'settings.*'],
-        ['route' => 'diagnostic.mail.index', 'label' => 'Diagnostic SMTP', 'icon' => '🔧', 'role' => 'admin', 'route_pattern' => 'diagnostic.mail.*'],
         ['route' => 'admin.activite.index', 'label' => "Statistiques d'activité", 'icon' => '📈', 'role' => 'admin', 'route_pattern' => 'admin.activite.*'],
         ['route' => 'admin.journal.index', 'label' => "Journal d'audit", 'icon' => '📜', 'role' => 'admin', 'route_pattern' => 'admin.journal.*'],
 

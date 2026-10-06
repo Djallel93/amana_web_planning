@@ -14,7 +14,6 @@ use App\Http\Controllers\BilanController;
 use App\Http\Controllers\CalendrierGoogleController;
 use App\Http\Controllers\CalendriersController;
 use App\Http\Controllers\CandidatureController;
-use App\Http\Controllers\DiagnosticController;
 use App\Http\Controllers\EchangeController;
 use App\Http\Controllers\EvenementsController;
 use App\Http\Controllers\GuideController;
@@ -130,12 +129,6 @@ Route::middleware('auth')->group(function () {
 
     // ── API interne — liste des calendriers Google Calendar (tous rôles) ──
     Route::get('/api/calendriers', [CalendriersController::class, 'index'])->name('calendriers.index');
-
-    // ── Diagnostic SMTP — admin uniquement ────────────────────────────────
-    Route::middleware('role:admin')->group(function () {
-        Route::get('/diagnostic-mail', [DiagnosticController::class, 'index'])->name('diagnostic.mail.index');
-        Route::post('/diagnostic-mail', [DiagnosticController::class, 'tester'])->name('diagnostic.mail.tester');
-    });
 
     // ── Échanges — tous les membres connectés ─────────────────────────────
     Route::prefix('echanges')->name('echanges.')->group(function () {

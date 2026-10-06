@@ -111,16 +111,6 @@
                                         </td>
                                         <td class="px-5 py-3 text-right">
                                             <div class="flex items-center justify-end gap-2">
-                                                @if($personne->statut === 'Validé')
-                                                    <form action="{{ route('admin.candidatures.renvoyer-invitation', $personne->id) }}"
-                                                        method="POST"
-                                                        data-confirm="Renvoyer un email de réinitialisation de mot de passe à {{ $personne->prenom }} {{ $personne->nom }} ? Seul le dernier email envoyé restera valide.">
-                                                        @csrf
-                                                        <button type="submit"
-                                                            class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
-                                                            title="Renvoyer email d'accès">🔑</button>
-                                                    </form>
-                                                @endif
                                                 <a href="{{ route('personnes.edit', $personne->id) }}"
                                                     class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
                                                     title="Modifier">✏️</a>
@@ -190,15 +180,6 @@
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-1.5 ml-2 flex-shrink-0">
-                                    @if($personne->statut === 'Validé')
-                                        <form action="{{ route('admin.candidatures.renvoyer-invitation', $personne->id) }}" method="POST"
-                                            data-confirm="Renvoyer un email de réinitialisation de mot de passe à {{ $personne->prenom }} {{ $personne->nom }} ? Seul le dernier email envoyé restera valide.">
-                                            @csrf
-                                            <button type="submit"
-                                                class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sm transition-colors cursor-pointer min-h-[44px] min-w-[44px]"
-                                                title="Renvoyer email d'accès">🔑</button>
-                                        </form>
-                                    @endif
                                     <a href="{{ route('personnes.edit', $personne->id) }}"
                                         class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
                                         title="Modifier">✏️</a>
