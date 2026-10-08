@@ -141,7 +141,7 @@ Formation bénévoles;2026-06-06;2026-06-06;Session obligatoire pour les nouveau
             <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📥</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Fichier à importer</span>
         </div>
-        <form action="{{ route('evenements.import.store') }}" method="POST" enctype="multipart/form-data" class="p-5 flex flex-col gap-4">
+        <form action="{{ route('evenements.import.store') }}" method="POST" enctype="multipart/form-data" class="p-5 flex flex-col gap-4" data-submit-lock>
             @csrf
 
             <div class="flex flex-col gap-1.5">
@@ -181,7 +181,7 @@ Formation bénévoles;2026-06-06;2026-06-06;Session obligatoire pour les nouveau
             <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">✍️</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Saisie manuelle</span>
         </div>
-        <form action="{{ route('evenements.import.manuel') }}" method="POST" class="p-5 flex flex-col gap-4">
+        <form action="{{ route('evenements.import.manuel') }}" method="POST" class="p-5 flex flex-col gap-4" data-submit-lock>
             @csrf
 
             <p class="text-[12.5px] text-ink-muted leading-relaxed -mt-1">

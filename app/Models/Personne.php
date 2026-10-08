@@ -49,6 +49,21 @@ class Personne extends SharedPersonne
         return $query->adminsDe('planning');
     }
 
+    /**
+     * Destinataires des notifications de fonctionnement du planning (génération…) :
+     * comptes validés ayant le rôle planning « admin » OU « gestionnaire ». Une seule
+     * requête (whereHas) : une personne n'apparaît jamais deux fois, même si elle
+     * cumulait les deux rôles. Mêmes jointures que Amana\Shared\Models\Personne::
+     * scopeAdminsDe().
+     */
+    public function scopeAdminsEtGestionnairesPlanning($query)
+    {
+        return $query->valide()->whereHas('roles', function ($q) {
+            $q->whereIn('ref_roles.code', ['admin', 'gestionnaire'])
+                ->whereHas('application', fn($q2) => $q2->where('code', 'planning'));
+        });
+    }
+
     // ── Métier propre au planning ────────────────────────────────────────
 
     public function estAbsentLe(string $date): bool

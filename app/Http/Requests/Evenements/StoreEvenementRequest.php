@@ -5,7 +5,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Evenements;
 
+use App\Models\Evenement;
+use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class StoreEvenementRequest extends FormRequest
 {
@@ -27,6 +30,33 @@ class StoreEvenementRequest extends FormRequest
             'taches'         => ['nullable', 'array'],
             'taches.*'       => ['integer', 'exists:ref_taches,id'],
         ];
+    }
+
+    /**
+     * Refuse un événement strictement identique à un existant (même nom, mêmes dates) — c'est ce que produit une double soumission du
+     * formulaire. Exécuté seulement si les règles ci-dessus passent (les dates sont
+     * alors exploitables). Le contrôleur re-vérifie sous verrou pour le cas de deux
+     * requêtes simultanées.
+     *
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $doublon = Evenement::identique(
+                trim((string) $this->input('nom')),
+                Carbon::parse((string) $this->input('date_debut'))->toDateString(),
+                Carbon::parse((string) $this->input('date_fin'))->toDateString(),
+            )->exists();
+
+            if ($doublon) {
+                $validator->errors()->add('nom', Evenement::MESSAGE_DOUBLON);
+            }
+        }];
     }
 
     public function messages(): array

@@ -21,7 +21,9 @@ use App\Notifications\Echanges\EchangeDemandeNotification;
 use App\Notifications\Echanges\EchangeExpireNotification;
 use App\Notifications\Echanges\EchangeRefuseNotification;
 use App\Notifications\NouveauMembreNotification;
+use App\Notifications\PlanningGenereNotification;
 use App\Notifications\RappelCreneauNotification;
+use Carbon\Carbon;
 use Database\Factories\TacheFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\CreeDonneesPlanning;
@@ -227,14 +229,100 @@ class NotificationsContenuTest extends TestCase
         $this->assertStringContainsString('votre assignation reste inchangée', $this->texte($mail));
     }
 
+    // ══ Planning généré ═══════════════════════════════════════════════════
+
+    /** Contexte type d'une génération manuelle (vendredi 2 → samedi 10 octobre 2026), sans tâche non assignée. */
+    private function contextePlanning(array $surcharge = []): array
+    {
+        return array_replace([
+            'declencheur' => PlanningGenereNotification::DECLENCHEUR_MANUEL,
+            'detail' => null,
+            'acteur' => 'Bilal Bravo',
+            'debut' => Carbon::parse('2026-10-02'),
+            'fin' => Carbon::parse('2026-10-10'),
+            'jours_generes' => 4,
+            'non_assignes' => 0,
+            'quand' => Carbon::parse('2026-09-30 09:00:00', 'Europe/Paris'),
+        ], $surcharge);
+    }
+
+    public function test_la_generation_manuelle_presente_la_periode_le_resultat_et_l_auteur(): void
+    {
+        $mail = $this->envoyer($this->alice, new PlanningGenereNotification($this->contextePlanning()));
+        $texte = $this->texte($mail);
+
+        $this->assertSame('alice@example.test', $mail['to']);
+        $this->assertStringContainsString('Planning généré', $mail['subject']);
+        $this->assertStringContainsString('2 oct.', $mail['subject']);
+        $this->assertStringContainsString('10 oct. 2026', $mail['subject']);
+        $this->assertStringContainsString('Cher(e) Alice', $texte);
+        $this->assertStringContainsString("vient d'être généré depuis la page Planning › Générer", $texte);
+        $this->assertStringContainsString('Vendredi 2 octobre → samedi 10 octobre 2026', $texte);
+        $this->assertStringContainsString('4 jours générés', $texte);
+        $this->assertStringContainsString('0 tâche non assignée', $texte);
+        $this->assertStringContainsString('Bilal Bravo', $texte);
+        $this->assertStringContainsString('30 septembre 2026 à 09:00', $texte);
+        $this->assertStringContainsString(route('planning.index'), $mail['html'], 'bouton vers le planning');
+    }
+
+    public function test_sans_tache_non_assignee_aucun_avertissement_n_est_affiche(): void
+    {
+        $texte = $this->texte($this->envoyer($this->alice, new PlanningGenereNotification($this->contextePlanning())));
+
+        $this->assertStringNotContainsString('sans personne assignée', $texte);
+    }
+
+    public function test_des_taches_non_assignees_declenchent_un_avertissement_au_pluriel(): void
+    {
+        $texte = $this->texte($this->envoyer($this->alice, new PlanningGenereNotification($this->contextePlanning(['non_assignes' => 3, 'jours_generes' => 1]))));
+
+        $this->assertStringContainsString('1 jour généré', $texte);
+        $this->assertStringContainsString('3 tâches non assignées', $texte);
+        $this->assertStringContainsString('3 tâches sans personne assignée', $texte);
+    }
+
+    public function test_une_regeneration_automatique_indique_ce_qui_l_a_declenchee(): void
+    {
+        $mail = $this->envoyer($this->alice, new PlanningGenereNotification($this->contextePlanning([
+            'declencheur' => PlanningGenereNotification::DECLENCHEUR_ABSENCE,
+            'detail' => "l'absence de Awa Diallo (du 2 oct. 2026 au 5 oct. 2026)",
+        ])));
+        $texte = $this->texte($mail);
+
+        $this->assertStringContainsString('Planning régénéré', $mail['subject']);
+        $this->assertStringContainsString("a été régénéré automatiquement suite à l'absence de Awa Diallo (du 2 oct. 2026 au 5 oct. 2026).", $texte);
+        $this->assertStringNotContainsString('depuis la page Planning', $texte);
+    }
+
+    public function test_sans_auteur_l_email_indique_une_action_automatique(): void
+    {
+        $texte = $this->texte($this->envoyer($this->alice, new PlanningGenereNotification($this->contextePlanning(['acteur' => null]))));
+
+        $this->assertStringContainsString('Action automatique', $texte);
+    }
+
+    public function test_les_noms_saisis_du_planning_genere_sont_echappes(): void
+    {
+        $piege = '<script>alert(1)</script>';
+
+        $mail = $this->envoyer($this->alice, new PlanningGenereNotification($this->contextePlanning([
+            'declencheur' => PlanningGenereNotification::DECLENCHEUR_EVENEMENT,
+            'detail' => "l'événement « Fête{$piege} »",
+            'acteur' => "Bilal{$piege}",
+        ])));
+
+        $this->assertStringNotContainsString($piege, $mail['html']);
+        $this->assertStringContainsString('&lt;script&gt;', $mail['html']);
+    }
+
     // ══ Communs à tous les messages ═══════════════════════════════════════
 
     /** @return array<string, array{string}> */
     public static function tousLesMessages(): array
     {
         return array_combine(
-            ['rappel', 'nouveau membre', 'invitation', 'connexion directe', 'demande', 'confirmation', 'refus', 'annulation', 'expiration'],
-            array_map(fn($c) => [$c], ['rappel', 'nouveau', 'invitation', 'directe', 'demande', 'confirmation', 'refus', 'annulation', 'expiration']),
+            ['rappel', 'nouveau membre', 'invitation', 'connexion directe', 'demande', 'confirmation', 'refus', 'annulation', 'expiration', 'planning généré'],
+            array_map(fn($c) => [$c], ['rappel', 'nouveau', 'invitation', 'directe', 'demande', 'confirmation', 'refus', 'annulation', 'expiration', 'planning']),
         );
     }
 
@@ -252,6 +340,7 @@ class NotificationsContenuTest extends TestCase
             'refus' => $this->envoyer($this->alice, new EchangeRefuseNotification($this->echange)),
             'annulation' => $this->envoyer($this->bilal, new EchangeAnnuleNotification($this->echange)),
             'expiration' => $this->envoyer($this->alice, new EchangeExpireNotification($this->echange)),
+            'planning' => $this->envoyer($this->alice, new PlanningGenereNotification($this->contextePlanning(['non_assignes' => 2]))),
         };
     }
 

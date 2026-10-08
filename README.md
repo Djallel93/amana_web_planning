@@ -10,10 +10,11 @@
 6. [Algorithme de génération du planning](#algorithme-de-génération-du-planning)
 7. [Export PDF](#export-pdf)
 8. [Système de notifications](#système-de-notifications)
-9. [Échanges de créneaux](#échanges-de-créneaux)
-10. [Bilan quotidien](#bilan-quotidien)
-11. [Intégration Google Calendar (API directe)](#intégration-google-calendar-api-directe)
-12. [Déploiement — pipeline GitHub Actions → IONOS](#déploiement--pipeline-github-actions--ionos)
+9. [Protection contre la double soumission](#protection-contre-la-double-soumission)
+10. [Échanges de créneaux](#échanges-de-créneaux)
+11. [Bilan quotidien](#bilan-quotidien)
+12. [Intégration Google Calendar (API directe)](#intégration-google-calendar-api-directe)
+13. [Déploiement — pipeline GitHub Actions → IONOS](#déploiement--pipeline-github-actions--ionos)
 
 ## Documentation complémentaire
 
@@ -282,6 +283,10 @@ Formulaire de génération automatique du planning.
 - **Confirmer et écraser** : relance la génération avec `confirmed=1`
 - **Annuler** : efface la session et revient au formulaire vierge
 
+**Double soumission** : le bouton « Générer » se verrouille avec un spinner (`GeneratePreview.vue`), et les boutons « Confirmer et générer » / « Confirmer et écraser » portent `data-submit-lock` (voir [Protection contre la double soumission](#protection-contre-la-double-soumission)). Côté serveur, la génération s'exécute sous un **verrou** (`VerrouAction::GENERATION_PLANNING`) : une seconde génération lancée pendant la première (double clic, deux onglets) est **refusée** avec le message « Une génération du planning est déjà en cours » au lieu de supprimer et recréer les créneaux en parallèle.
+
+**📧 Email aux admins et gestionnaires** : une fois le planning enregistré, un email « Planning généré » est envoyé à tous les comptes **validés** ayant le rôle **admin** ou **gestionnaire** (une seule fois par personne, même si elle cumule les deux) : période concernée, nombre de jours générés, nombre de tâches **non assignées** (avec un avertissement si > 0), qui a déclenché la génération et quand, plus un bouton vers le planning. Il part aussi quand le planning est **régénéré automatiquement** suite à une absence ou à un événement (le libellé indique alors ce qui l'a déclenché) — mais **jamais** pour un aperçu, une requête invalide, une génération refusée ou un rollback. Voir [Système de notifications](#système-de-notifications).
+
 **Prévisualisation (dry-run)** : le bouton **« 👁 Aperçu »** soumet les paramètres à une route dédiée (`/planning/generer/apercu`) qui exécute l'algorithme complet **sans rien persister** (transaction rollbackée). Le résultat s'affiche dans une vue preview marquée « Aperçu — non enregistré » avec un filigrane. Depuis cette vue, deux boutons « Confirmer et générer » (haut et bas) soumettent la génération réelle.
 
 **Rollback** : après chaque génération, un panneau de rollback apparaît permettant d'annuler tout ou partie des créneaux générés (par semaine). La session de rollback est conservée jusqu'à fermeture explicite.
@@ -303,6 +308,7 @@ flowchart TD
     D --> G[Planning enregistré]
     G --> H[Synchronisation Google Calendar dispatchée]
     G --> I[Session rollback disponible]
+    G --> J[Email aux admins\net gestionnaires]
 ```
 
 ---
@@ -342,6 +348,15 @@ Gestion des périodes d'absence. Une absence empêche l'assignation d'une person
 - **Dates passées (strictement avant aujourd'hui, fuseau Europe/Paris)** : le planning n'est **jamais régénéré**. La personne est simplement **retirée** des tâches qu'elle avait ces jours-là (`id_personne` passé à `NULL`, `AbsenceRegenerationService::desassignerDatesPassees()`), avec une entrée d'audit (`declencheur = absence_passee`) et un message de confirmation. **Aucune synchronisation Google Calendar** n'est déclenchée pour ces dates : le passé ne génère pas de trafic vers les calendriers.
 - Une absence à cheval sur aujourd'hui produit les deux effets indépendamment.
 - **Garde-fou** : quand la date impactée est un samedi et que le vendredi qui le précède est déjà passé (cas du samedi courant), la régénération repart du samedi — le créneau d'hier, ses assignations et son historique restent strictement intacts (`SchedulerMain::regenerateFromImpactedDate()`, paramètre `aPartirDe`).
+- **Email** : chaque régénération du planning suite à une absence prévient les admins et gestionnaires (« Planning régénéré … suite à l'absence de Prénom Nom (du … au …) »). La **raison** de l'absence n'y figure jamais (donnée potentiellement sensible).
+
+**Double soumission :** soumettre deux fois de suite la même absence ne crée **qu'une** absence et ne régénère le planning **qu'une** fois. Trois défenses (la dernière est la garantie, les deux premières l'évitent proprement) :
+
+1. le bouton du formulaire se verrouille à l'envoi (`data-submit-lock`) ;
+2. `StoreAbsenceRequest` / `UpdateAbsenceRequest` refusent une absence **strictement identique** (même personne, mêmes dates de début **et** de fin) à une autre déjà enregistrée — erreur « Une absence identique (même personne, mêmes dates) existe déjà. » sous le champ *Début* ; la modification d'une absence ne se compare jamais à elle-même ;
+3. `AbsencesController` enregistre/modifie **sous verrou** (`absence:{id_personne}` / `absence-maj:{id}`) et revérifie le doublon une fois le verrou pris : deux requêtes *simultanées* ne passent pas toutes les deux la validation avant que l'une n'ait écrit. La seconde reçoit un avertissement (`warning`), ou un `409` pour la modification AJAX.
+
+Une absence aux dates seulement *proches* (autre début ou autre fin, ou même période pour une autre personne) reste acceptée. Voir [Protection contre la double soumission](#protection-contre-la-double-soumission).
 
 **Règles d'accès :**
 
@@ -412,6 +427,14 @@ flowchart LR
 ```
 
 Voir [Intégration Google Calendar](#intégration-google-calendar-api-directe) pour le format exact du payload.
+
+**📧 Email :** quand la création, la modification ou un import d'événements **régénère** le planning (au moins un créneau déjà généré chevauche la période), les admins et gestionnaires reçoivent l'email « Planning régénéré … suite à l'événement « Nom » » (ou « suite à N événements importés »). Aucun email si le planning n'est pas touché.
+
+**Double soumission :** comme pour les absences, soumettre deux fois le même formulaire (ou le même import) ne crée **qu'un** jeu d'événements.
+
+- **Création / modification** : `StoreEvenementRequest` / `UpdateEvenementRequest` refusent un événement **strictement identique** (même nom, mêmes dates de début **et** de fin — la casse du nom suit la collation MySQL) à un autre ; `EvenementsController` s'exécute en plus sous verrou (`evenement:{hash nom+dates}` / `evenement-maj:{id}`) avec revérification une fois le verrou pris.
+- **Import CSV et saisie manuelle** : `EvenementCsvImporter::import()` refuse, **avant toute création**, un lot qui contient un événement déjà présent (« tout ou rien » : le message indique le doublon et rien n'est importé), et les deux imports s'exécutent sous un verrou commun (`evenements-import`).
+- Les formulaires de création/modification et d'import se verrouillent à l'envoi (`data-submit-lock`).
 
 ---
 
@@ -777,7 +800,7 @@ Le PDF est généré à la demande via le formulaire `/planning/export`. Il util
 
 ## Système de notifications
 
-Toutes les notifications sont envoyées de manière **asynchrone** (via la queue) pour ne pas bloquer la réponse HTTP.
+Les notifications de l'application sont envoyées en **synchrone**, directement dans la requête (aucune n'implémente `ShouldQueue` — hébergement mutualisé sans worker, `QUEUE_CONNECTION=sync`). Un échec d'envoi est rattrapé et journalisé : il ne fait jamais échouer l'action qui l'a déclenché.
 
 | Déclencheur                           | Destinataire                   | Email                                                    |
 | ------------------------------------- | ------------------------------ | -------------------------------------------------------- |
@@ -789,8 +812,33 @@ Toutes les notifications sont envoyées de manière **asynchrone** (via la queue
 | Échange refusé                        | Demandeur (A)                  | « Échange refusé »                                       |
 | Échange expiré (aucune réponse)       | Demandeur (A)                  | « Échange expiré »                                       |
 | Échange annulé par le demandeur       | Cible (B)                      | « Demande annulée »                                      |
+| Planning généré ou régénéré           | Admins **et** gestionnaires    | « Planning généré / régénéré — du … au … » (voir ci-dessous) |
 
-Toutes les notifications d'échange sont implémentées comme classes `App\Notifications\Echanges\*` (namespace dédié), chacune `ShouldQueue`.
+Toutes les notifications d'échange sont implémentées comme classes `App\Notifications\Echanges\*` (namespace dédié).
+
+### Email « Planning généré / régénéré »
+
+- **Déclencheurs** (un seul point d'appel, `App\Services\PlanningGenerationNotifier`) : génération manuelle (`PlanningController::generate`), régénération suite à une absence (`AbsenceRegenerationService`), régénération suite à un événement ou à un import (`EvenementRegenerationService`). Pas d'email pour un aperçu (dry-run), un rollback, une requête invalide ou une génération refusée par le verrou.
+- **Destinataires** : comptes au statut *Validé* ayant le rôle planning `admin` ou `gestionnaire` (`Personne::adminsEtGestionnairesPlanning()`), avec une adresse renseignée, dédoublonnés. Les membres et bénévoles ne reçoivent rien.
+- **Contenu** (`App\Notifications\PlanningGenereNotification`, gabarit `resources/views/emails/planning-genere.blade.php` habillé avec les partials partagés d'`amana_shared` : `_head`, `_header`, `_footer`, logo en CID) : période, jours générés, tâches non assignées (avertissement si > 0), déclencheur et auteur, lien vers le planning. Les noms saisis par des utilisateurs sont échappés ; la raison d'une absence n'est jamais incluse.
+- **Robustesse** : chaque destinataire est traité séparément (une adresse en échec n'empêche pas les autres) ; toute exception est journalisée (`[PlanningGenerationNotifier]`) et jamais propagée. L'email part **après** l'enregistrement du planning et avant la synchronisation Google Calendar.
+- Un email par génération : avec peu d'utilisateurs, aucun regroupement n'est prévu.
+
+---
+
+## Protection contre la double soumission
+
+Un double clic, une touche Entrée répétée ou un réseau lent peuvent envoyer deux fois le même formulaire. Sans protection, chaque requête crée sa propre ligne et déclenche sa propre régénération du planning. Trois niveaux, du plus confortable au plus fiable :
+
+| Niveau                    | Mécanisme                                                                                                                                                                                                                                                                      | Où                                                                                                                                                              |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Navigateur** (confort)  | Attribut `data-submit-lock` sur le `<form>` : boutons désactivés avec un libellé « Envoi en cours… » (`data-submit-lock-label` pour le changer), nouvelle soumission refusée, déverrouillage automatique après 30 s (`data-submit-lock-timeout`) et au retour via le bouton *Précédent*. Fourni par `registerSubmitLock()` de `@amana/shared-ui` (≥ 1.10.0), appelé dans `resources/js/app.ts`. Compatible avec `data-confirm` : une confirmation refusée ne verrouille pas le formulaire. | Absences, événements (création/modification), imports d'événements, « Confirmer et générer » / « Confirmer et écraser ». Les modales Vue gèrent leur propre état `submitting`. |
+| **Validation** (doublon)  | Refus d'une ligne **strictement identique** : absence (personne + début + fin), événement (nom + début + fin), import (lot refusé en entier).                                                                                                                                  | `Store/UpdateAbsenceRequest`, `Store/UpdateEvenementRequest`, `EvenementCsvImporter::import()`                                                                  |
+| **Verrou serveur** (garantie) | `Cache::lock` atomique via `App\Services\VerrouAction` : une requête simultanée est refusée (message clair, jamais une 500) et le doublon est revérifié une fois le verrou pris. Durée de vie max. `planning.verrou.ttl` (120 s, filet de sécurité si le process meurt).              | Absences, événements, imports, **toute** génération/régénération du planning (clé commune `planning-generation`)                                                |
+
+**Génération du planning :** la génération manuelle est **refusée** si une autre est en cours ; les régénérations **automatiques** (absence, événement), elles, **attendent** jusqu'à `planning.verrou.attente_regeneration_auto` secondes (10 par défaut) — la donnée de l'utilisateur est déjà enregistrée, on laisse donc la génération en cours finir plutôt que de la perdre. Au-delà, le message habituel « régénérez manuellement depuis Planning > Générer » s'affiche et aucun email n'est envoyé.
+
+> ⚠️ Les verrous reposent sur le store de cache (`CACHE_STORE=database` en production, table `cache_locks`) : ils fonctionnent sans Redis. Une régénération **séquentielle** identique (deuxième « Confirmer et écraser » après la fin de la première) n'est pas un doublon détectable côté serveur — c'est le verrouillage du bouton qui l'évite.
 
 ---
 
@@ -851,7 +899,7 @@ sequenceDiagram
 | `App\Services\EchangeService`            | Toute la logique métier : calcul des slots échangeables, création, acceptation/refus par token, approbation/refus admin, annulation, expiration |
 | `App\Http\Controllers\EchangeController` | Routes membres, routes tokenisées publiques, routes admin/gestionnaire                                                                          |
 | `App\Console\Commands\ExpirerEchanges`   | Commande `amana:expire-echanges`, planifiée quotidiennement                                                                                     |
-| `App\Notifications\Echanges\*`           | 5 notifications queued (demande, accepté, refusé, expiré, annulé)                                                                               |
+| `App\Notifications\Echanges\*`           | 5 notifications (demande, accepté, refusé, expiré, annulé)                                                                                      |
 
 ### Routes Echanges
 

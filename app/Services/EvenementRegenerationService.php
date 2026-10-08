@@ -9,6 +9,7 @@ use App\Helpers\DateHelper;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Creneau;
 use App\Models\Evenement;
+use App\Notifications\PlanningGenereNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -159,7 +160,14 @@ class EvenementRegenerationService
             // Voir SchedulerMain::regenerateFromImpactedDate() pour le détail
             // du recul au vendredi et du calcul du nombre de semaines
             // nécessaires pour ne pas raccourcir l'horizon déjà généré.
-            $regen = $this->scheduler->regenerateFromImpactedDate(Carbon::parse($premiereDateImpactee));
+            //
+            // Sous verrou AVEC attente (VerrouAction) : voir AbsenceRegenerationService.
+            $regen = app(VerrouAction::class)->executer(
+                VerrouAction::GENERATION_PLANNING,
+                fn() => $this->scheduler->regenerateFromImpactedDate(Carbon::parse($premiereDateImpactee)),
+                (int) config('planning.verrou.attente_regeneration_auto', 10),
+                'une autre génération du planning est en cours',
+            );
         } catch (\Throwable $e) {
             Log::error('[EvenementRegenerationService] Échec de la régénération automatique', [
                 'error' => $e->getMessage(),
@@ -176,6 +184,15 @@ class EvenementRegenerationService
             'nb_evenements' => count($evenements),
             'ids_evenements' => array_map(fn(Evenement $e) => $e->id, $evenements),
         ]));
+
+        // Dès la régénération validée et auditée, avant la synchronisation Google : un
+        // problème de synchronisation ne doit pas empêcher de prévenir les admins.
+        // Ne lève jamais (voir PlanningGenerationNotifier).
+        app(PlanningGenerationNotifier::class)->notifierRegeneration(
+            PlanningGenereNotification::DECLENCHEUR_EVENEMENT,
+            $this->libelleEvenements($evenements),
+            $regen,
+        );
 
         $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines'], $regen['aPartirDe'] ?? null);
         SynchroniserGoogleCalendar::dispatch($payload, 'post');

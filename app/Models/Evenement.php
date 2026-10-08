@@ -38,6 +38,8 @@ class Evenement extends Model
 
     protected $table = 'ref_evenements';
 
+    public const MESSAGE_DOUBLON = 'Un événement identique (même nom, mêmes dates) existe déjà.';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -96,6 +98,21 @@ class Evenement extends Model
     public function calendriers(): HasMany
     {
         return $this->hasMany(EvenementCalendrier::class, 'id_evenement');
+    }
+
+    // ── Scopes ─────────────────────────────────────────────────────────────
+
+    /**
+     * Scope : événements strictement identiques (même nom, mêmes dates de début et
+     * de fin) — sert à refuser un doublon (double soumission du formulaire ou de
+     * l'import). La casse du nom suit la collation de la colonne (insensible à la
+     * casse en MySQL par défaut).
+     */
+    public function scopeIdentique($query, string $nom, string $dateDebut, string $dateFin)
+    {
+        return $query->where('nom', $nom)
+            ->where('date_debut', $dateDebut)
+            ->where('date_fin', $dateFin);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

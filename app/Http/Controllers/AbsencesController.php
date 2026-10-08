@@ -5,13 +5,16 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ActionEnCoursException;
 use App\Http\Requests\Absences\StoreAbsenceRequest;
 use App\Http\Requests\Absences\UpdateAbsenceRequest;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Absence;
 use App\Models\Personne;
 use App\Services\AbsenceRegenerationService;
+use App\Services\VerrouAction;
 use App\Services\WebhookAbsencePayloadBuilder;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -34,12 +37,19 @@ use Illuminate\View\View;
  *   La suppression d'une absence n'a volontairement aucun effet de ce type :
  *   elle rend seulement la personne de nouveau disponible pour de futures
  *   générations, sans nécessiter de correction immédiate.
+ *
+ * Double soumission : une absence strictement identique (même personne, mêmes
+ * dates) est refusée par StoreAbsenceRequest/UpdateAbsenceRequest ; l'enregistrement
+ * et la modification s'exécutent en plus sous verrou (VerrouAction) pour que deux
+ * requêtes SIMULTANÉES ne passent pas toutes les deux cette validation avant que
+ * l'une n'ait écrit — sans quoi on obtiendrait deux absences et deux régénérations.
  */
 class AbsencesController extends Controller
 {
     public function __construct(
         private readonly AbsenceRegenerationService $regenerationService,
         private readonly WebhookAbsencePayloadBuilder $webhookBuilder,
+        private readonly VerrouAction $verrou,
     ) {}
 
     /**
@@ -90,6 +100,35 @@ class AbsencesController extends Controller
                 return redirect()->route('absences.index')
                     ->with('error', 'Vous ne pouvez enregistrer une absence que pour vous-même.');
             }
+        }
+
+        try {
+            return $this->verrou->executer(
+                'absence:' . (int) $request->validated('id_personne'),
+                fn() => $this->enregistrer($request),
+            );
+        } catch (ActionEnCoursException) {
+            return redirect()->route('absences.index')
+                ->with('warning', 'Cette absence est déjà en cours d\'enregistrement — actualisez la page pour la voir.');
+        }
+    }
+
+    /**
+     * Corps de store(), exécuté sous verrou (voir docblock de classe).
+     */
+    private function enregistrer(StoreAbsenceRequest $request): RedirectResponse
+    {
+        // Revérifié SOUS verrou : la validation du FormRequest a eu lieu avant que
+        // le verrou soit pris, une requête jumelle a pu écrire entre-temps.
+        $existe = Absence::identique(
+            (int) $request->validated('id_personne'),
+            Carbon::parse((string) $request->validated('date_debut'))->toDateString(),
+            Carbon::parse((string) $request->validated('date_fin'))->toDateString(),
+        )->exists();
+
+        if ($existe) {
+            return redirect()->route('absences.index')
+                ->with('warning', Absence::MESSAGE_DOUBLON . ' Rien n\'a été ajouté.');
         }
 
         $absence  = Absence::create($request->validated());
@@ -144,6 +183,24 @@ class AbsencesController extends Controller
             }
         }
 
+        try {
+            return $this->verrou->executer(
+                'absence-maj:' . $absence->id,
+                fn() => $this->appliquerModification($request, $absence),
+            );
+        } catch (ActionEnCoursException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cette absence est déjà en cours de modification — patientez quelques secondes, puis actualisez la page.',
+            ], 409);
+        }
+    }
+
+    /**
+     * Corps de update(), exécuté sous verrou (voir docblock de classe).
+     */
+    private function appliquerModification(UpdateAbsenceRequest $request, Absence $absence): JsonResponse
+    {
         $avant = $absence->toArray();
         $absence->update($request->validated());
         $absence->refresh()->load('personne');

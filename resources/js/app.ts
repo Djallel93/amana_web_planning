@@ -10,6 +10,7 @@ import {
     MobileSidebar,
     registerThemeToggle,
     registerConfirmForms,
+    registerSubmitLock,
 } from "@amana/shared-ui";
 import SwapRequestModal from "@/components/mon-planning/SwapRequestModal.vue";
 import SearchableSelectIsland from "@/components/shared/SearchableSelectIsland.vue";
@@ -28,6 +29,9 @@ import { registerUnsavedChangesGuard } from "@/lib/unsavedChanges";
 registerThemeToggle();
 registerUnsavedChangesGuard();
 registerConfirmForms();
+// Double soumission : n'agit que sur les <form data-submit-lock> (voir @amana/shared-ui,
+// lib/submitLock.ts). Compatible avec data-confirm quel que soit l'ordre d'appel.
+registerSubmitLock();
 
 function mountIfPresent(selector: string, component: Parameters<typeof createApp>[0]): void {
     const el = document.getElementById(selector);
@@ -52,7 +56,7 @@ mountIfPresent("vue-activite-statistiques", ActiviteStatistiques);
 
 // ── Application Inertia (spike route-par-route) ───────────────────────────
 // S'ajoute aux montages d'îlots ci-dessus, ne les remplace pas : toutes les
-// pages sauf resources/views/app.blade.php (voir guide/index) continuent de
+// pages sauf resources/views/app.blade.php (voir GuideController) continuent de
 // fonctionner exactement comme avant, îlots compris. Se monte sur
 // #inertia-app, le <div> que génère la directive @inertia du nouveau root
 // Blade — jamais sur #app ni un autre id déjà pris par un îlot ci-dessus.

@@ -113,7 +113,7 @@
             </p>
         </div>
         <div class="flex flex-wrap gap-2 flex-shrink-0">
-            <form action="{{ route('planning.generate') }}" method="POST">
+            <form action="{{ route('planning.generate') }}" method="POST" data-submit-lock data-submit-lock-label="Génération…">
                 @csrf
                 <input type="hidden" name="date_debut" value="{{ $dateDebut }}">
                 <input type="hidden" name="semaines" value="{{ $semaines }}">

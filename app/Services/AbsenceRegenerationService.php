@@ -9,6 +9,7 @@ use App\Helpers\DateHelper;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Absence;
 use App\Models\CreneauTache;
+use App\Notifications\PlanningGenereNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -89,7 +90,17 @@ class AbsenceRegenerationService
             // Voir SchedulerMain::regenerateFromImpactedDate() pour le détail
             // du recul au vendredi et du calcul du nombre de semaines
             // nécessaires pour ne pas raccourcir l'horizon déjà généré.
-            $regen = $this->scheduler->regenerateFromImpactedDate(Carbon::parse($premiereDateImpactee));
+            //
+            // Sous verrou AVEC attente (VerrouAction) : l'absence est déjà enregistrée,
+            // on laisse donc une génération en cours se terminer plutôt que de
+            // renoncer ou de régénérer en parallèle. Au-delà du délai, l'échec est
+            // rattrapé ci-dessous (message « régénérez manuellement »).
+            $regen = app(VerrouAction::class)->executer(
+                VerrouAction::GENERATION_PLANNING,
+                fn() => $this->scheduler->regenerateFromImpactedDate(Carbon::parse($premiereDateImpactee)),
+                (int) config('planning.verrou.attente_regeneration_auto', 10),
+                'une autre génération du planning est en cours',
+            );
         } catch (\Throwable $e) {
             Log::error('[AbsenceRegenerationService] Échec de la régénération automatique', [
                 'id_absence' => $absence->id,
@@ -109,6 +120,15 @@ class AbsenceRegenerationService
             'id_personne' => $absence->id_personne,
         ]));
 
+        // Dès la régénération validée et auditée, avant la synchronisation Google : un
+        // problème de synchronisation ne doit pas empêcher de prévenir les admins.
+        // Ne lève jamais (voir PlanningGenerationNotifier).
+        app(PlanningGenerationNotifier::class)->notifierRegeneration(
+            PlanningGenereNotification::DECLENCHEUR_ABSENCE,
+            $this->libelleAbsence($absence),
+            $regen,
+        );
+
         $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines'], $regen['aPartirDe'] ?? null);
         SynchroniserGoogleCalendar::dispatch($payload, 'post');
         Log::info('[AbsenceRegenerationService] Synchronisation Google Calendar dispatchée en queue (POST) suite à régénération automatique.');
@@ -121,6 +141,18 @@ class AbsenceRegenerationService
                 . 'pour tenir compte de cette absence.',
             'regenere' => true,
         ];
+    }
+
+    /** Complète « suite à … » dans l'email de génération. N'y met jamais la raison de l'absence (donnée sensible). */
+    private function libelleAbsence(Absence $absence): string
+    {
+        $personne = $absence->personne;
+        $periode = 'du ' . $absence->date_debut->copy()->locale('fr')->isoFormat('D MMM YYYY')
+            . ' au ' . $absence->date_fin->copy()->locale('fr')->isoFormat('D MMM YYYY');
+
+        return $personne
+            ? "l'absence de {$personne->prenom} {$personne->nom} ({$periode})"
+            : "une absence ({$periode})";
     }
 
     /**

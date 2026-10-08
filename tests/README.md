@@ -63,7 +63,22 @@ fichier présent teste donc le code non publié de `amana_shared`.
   est observable, mais un `commit()` interne ne persiste rien au-delà du test.
 - Google Calendar et le webhook Make.com ne sont jamais appelés : `Http::fake()`,
   double de test lié à `GoogleCalendarService`, `Bus::fake()`/`Queue::fake()`.
-- Interface front (Vue/TS) : hors périmètre pour l'instant, pas de Vitest.
+- Interface front (Vue/TS) : hors périmètre pour l'instant, pas de Vitest. Le verrouillage des
+  boutons (`data-submit-lock`, `@amana/shared-ui`) n'est donc couvert que par `type-check`/`lint`/
+  `format:check` ; la garantie contre les doublons est testée côté serveur (voir ci-dessous).
+- **Verrous (`VerrouAction`)** : le store de cache de test est `array`, un `Cache::lock('verrou:…', 60)->get()`
+  posé dans le test est vu par le code testé — c'est ainsi qu'on simule « une autre requête est en
+  cours » (voir `Absence/EvenementDoubleSoumissionFlowTest`). `block()` attend en temps réel (pas
+  d'horloge simulée) : pour une régénération automatique, mettre
+  `config(['planning.verrou.attente_regeneration_auto' => 0])` afin de ne pas dormir en test.
+- **Requête jumelle** : pour simuler une requête qui écrit entre la validation et la prise du verrou,
+  lier au conteneur une sous-classe anonyme de `VerrouAction` qui exécute un callback avant
+  `parent::executer()` (voir `simulerRequeteJumelle()` dans ces mêmes tests).
+- **E-mail en panne** : `Tests\Support\TransportMailCasse::activer()` rend le mailer par défaut
+  inutilisable (aucun réseau) pour vérifier qu'un envoi raté ne fait pas échouer l'action.
+- **Messages flashés** : une donnée flashée par une requête reste lisible après la requête
+  suivante ; ne pas utiliser `assertSessionMissing('success')` après une seconde requête, compter
+  les lignes créées/e-mails envoyés à la place.
 
 ## Factories (`database/factories`)
 

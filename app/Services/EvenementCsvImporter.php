@@ -9,6 +9,7 @@ use App\Helpers\GoogleCalendarColors;
 use App\Models\CalendrierGoogle;
 use App\Models\Evenement;
 use App\Models\Tache;
+use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
@@ -140,6 +141,9 @@ class EvenementCsvImporter
      * des effets de bord externes déclenchés par l'appelant une fois la
      * transaction validée (voir EvenementsController::storeImport()).
      *
+     * Lève une RuntimeException (et ne crée RIEN) si une ligne correspond à un
+     * événement déjà présent — même nom, mêmes dates.
+     *
      * @param array<int, array> $rows Lignes validées retournées par validate()
      * @return array<int, Evenement> Événements créés, relations
      *         tachesBloquees/calendriers déjà chargées
@@ -147,6 +151,22 @@ class EvenementCsvImporter
     public function import(array $rows): array
     {
         return DB::transaction(function () use ($rows) {
+            // Refus « tout ou rien » d'un lot qui contient un événement déjà présent
+            // (nom + dates identiques) : c'est le signe d'une double soumission du
+            // formulaire d'import. Contrôlé AVANT toute création — rien n'est écrit.
+            foreach ($rows as $row) {
+                if (Evenement::identique(
+                    trim((string) $row['nom']),
+                    Carbon::parse((string) $row['date_debut'])->toDateString(),
+                    Carbon::parse((string) $row['date_fin'])->toDateString(),
+                )->exists()) {
+                    throw new \RuntimeException(
+                        "un événement identique existe déjà (« {$row['nom']} », du {$row['date_debut']} au {$row['date_fin']}) "
+                        . "— aucun événement n'a été créé."
+                    );
+                }
+            }
+
             $evenements = [];
 
             foreach ($rows as $row) {

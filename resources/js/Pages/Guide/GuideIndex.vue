@@ -1,12 +1,13 @@
 <!-- resources/js/Pages/Guide/GuideIndex.vue -->
 <!--
-    Port Inertia de resources/views/guide/index.blade.php (spike — voir
+    Page « Guide d'utilisation », servie par Inertia (spike — voir
     GuideController::index() et bootstrap/app.php/HandleInertiaRequests).
-    Contenu, texte et classes Tailwind repris à l'identique : page de
-    contenu statique, ce n'est pas un redesign.
+    Elle remplace l'ancienne vue Blade resources/views/guide/index.blade.php,
+    supprimée (historique git) : page de contenu statique, ce n'est pas un
+    redesign.
 
     ── Gating par rôle ──────────────────────────────────────────────────────
-    Le Blade d'origine testait $user->isAdmin()/isGestionnaire() (passé en
+    L'ancien Blade testait $user->isAdmin()/isGestionnaire() (passé en
     prop 'user' par le contrôleur). Cette page lit désormais l'utilisateur
     depuis la prop partagée globalement par HandleInertiaRequests::share()
     (usePage().props.auth.user) plutôt que de le recevoir en double.
@@ -339,6 +340,13 @@ onMounted(() => {
                             êtes simplement retiré(e) des tâches que vous aviez ces jours-là, et l'historique reste tel
                             quel.
                         </p>
+                        <p>
+                            Pas d'inquiétude en cas de double clic : le bouton se grise dès l'envoi, et une absence
+                            <strong class="text-ink">identique</strong> (même personne, mêmes dates de début et de fin)
+                            à une absence déjà enregistrée est refusée avec le message « Une absence identique existe
+                            déjà » — elle n'est donc jamais créée deux fois et le planning n'est régénéré qu'une seule
+                            fois.
+                        </p>
                         <div class="guide-example">
                             <span class="guide-example-label">Exemple</span>
                             L'utilisateur A part en vacances du 1er au 15 août et était déjà assigné à
@@ -517,6 +525,17 @@ onMounted(() => {
                             l'équilibrage des charges. En cas d'erreur après validation, un
                             <strong class="text-ink">rollback</strong> permet d'annuler la dernière génération.
                         </p>
+                        <p>
+                            Une fois le planning enregistré, un
+                            <strong class="text-ink">email « Planning généré »</strong>
+                            est envoyé à tous les administrateurs et gestionnaires : période concernée, nombre de jours
+                            générés, tâches restées sans personne (à compléter manuellement), et qui a lancé la
+                            génération. Le même email, intitulé « Planning régénéré », part quand le planning est mis à
+                            jour automatiquement suite à une absence ou à un événement. Il n'y en a pas pour un simple
+                            aperçu ni pour un rollback. Si une génération est déjà en cours (double clic, deux onglets),
+                            la seconde est refusée avec un message : patientez quelques secondes puis actualisez la
+                            page.
+                        </p>
                         <div class="guide-example">
                             <span class="guide-example-label">Exemple</span>
                             Un gestionnaire génère le planning de septembre et remarque dans l'aperçu que l'utilisateur
@@ -561,6 +580,13 @@ onMounted(() => {
                             apparaît sur le planning. Vous pouvez aussi saisir ou importer un événement sur des
                             <strong class="text-ink">dates passées</strong> (historique) : il est créé normalement,
                             rattaché aux créneaux déjà existants, mais le planning passé n'est jamais modifié.
+                        </p>
+                        <p>
+                            Un événement <strong class="text-ink">identique</strong> (même nom, mêmes dates de début et
+                            de fin) à un événement existant est refusé, que vous le créiez, le modifiiez ou l'importiez
+                            (un import contenant un doublon est refusé en entier). Quand un événement ou un import met à
+                            jour le planning, les administrateurs et gestionnaires reçoivent l'email « Planning régénéré
+                            ».
                         </p>
                         <div class="guide-example">
                             <span class="guide-example-label">Exemple</span>

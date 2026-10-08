@@ -61,7 +61,7 @@
                 </div>
 
                 <div class="flex flex-wrap gap-2">
-                    <form action="{{ route('planning.generate') }}" method="POST">
+                    <form action="{{ route('planning.generate') }}" method="POST" data-submit-lock data-submit-lock-label="Génération…">
                         @csrf
                         <input type="hidden" name="date_debut" value="{{ $pending['date_debut'] }}">
                         <input type="hidden" name="semaines"   value="{{ $pending['semaines'] }}">

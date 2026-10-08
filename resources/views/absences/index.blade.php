@@ -204,7 +204,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('absences.store') }}" method="POST" class="flex flex-col gap-4">
+            <form action="{{ route('absences.store') }}" method="POST" class="flex flex-col gap-4" data-submit-lock>
                 @csrf
 
                 {{-- Personne --}}

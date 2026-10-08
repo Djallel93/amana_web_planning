@@ -679,7 +679,7 @@ Tables standard Laravel pour la gestion des queues.
 
 > Avec `QUEUE_CONNECTION=sync`, ces tables ne sont **pas utilisées** mais restent présentes dans le schéma (créées par la migration Laravel par défaut). Elles peuvent être ignorées.
 >
-> En production (`QUEUE_CONNECTION=database`), ces tables portent désormais aussi les jobs `SynchroniserGoogleCalendar` de type `evenement`/`planning` (synchronisation calendrier — les `DELETE` sont dispatchés en synchrone, hors queue, voir `plan_calendrier_evenements` ci-dessus) et les notifications `App\Notifications\Echanges\*` (toutes `ShouldQueue`).
+> En production (`QUEUE_CONNECTION=database`), ces tables portent désormais aussi les jobs `SynchroniserGoogleCalendar` de type `evenement`/`planning` (synchronisation calendrier — les `DELETE` sont dispatchés en synchrone, hors queue, voir `plan_calendrier_evenements` ci-dessus).
 
 ---
 

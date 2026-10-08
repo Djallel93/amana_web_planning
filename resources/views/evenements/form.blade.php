@@ -21,7 +21,7 @@
 
 <div class="max-w-[680px]">
     <form action="{{ $edit ? route('evenements.update', $evenement->id) : route('evenements.store') }}"
-          method="POST">
+          method="POST" data-submit-lock>
         @csrf
         @if($edit) @method('PUT') @endif
 

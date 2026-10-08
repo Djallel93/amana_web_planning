@@ -18,6 +18,8 @@ class Absence extends Model
 
     protected $table = 'plan_absences';
 
+    public const MESSAGE_DOUBLON = 'Une absence identique (même personne, mêmes dates) existe déjà.';
+
     public $timestamps = false;
 
     /**
@@ -61,6 +63,17 @@ class Absence extends Model
     {
         return $query->where('date_debut', '<=', $date)
             ->where('date_fin', '>=', $date);
+    }
+
+    /**
+     * Scope : absences strictement identiques (même personne, mêmes dates de début
+     * et de fin) — sert à refuser un doublon (double soumission du formulaire).
+     */
+    public function scopeIdentique($query, int $idPersonne, string $dateDebut, string $dateFin)
+    {
+        return $query->where('id_personne', $idPersonne)
+            ->where('date_debut', $dateDebut)
+            ->where('date_fin', $dateFin);
     }
 
     /** Scope : absences futures */

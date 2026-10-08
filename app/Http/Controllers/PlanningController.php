@@ -5,13 +5,16 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ActionEnCoursException;
 use App\Helpers\DateHelper;
 use App\Http\Requests\Planning\PlanningExportRequest;
 use App\Http\Requests\Planning\PlanningGenerateRequest;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\Creneau;
+use App\Services\PlanningGenerationNotifier;
 use App\Services\SchedulerMain;
 use App\Services\Statistics;
+use App\Services\VerrouAction;
 use App\Services\WebhookPayloadBuilder;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -48,6 +51,8 @@ class PlanningController extends Controller
         private readonly SchedulerMain $scheduler,
         private readonly Statistics $stats,
         private readonly WebhookPayloadBuilder $webhookBuilder,
+        private readonly VerrouAction $verrou,
+        private readonly PlanningGenerationNotifier $notifier,
     ) {}
 
     /**
@@ -161,12 +166,25 @@ class PlanningController extends Controller
 
         // ── Génération effective ──────────────────────────────────────────
         try {
-            $resultat = $this->scheduler->generateSchedule($dateDebut, $semaines);
+            // Sous verrou, SANS attente : une seconde génération lancée pendant la
+            // première (double clic sur « Confirmer et générer », deux onglets) est
+            // refusée au lieu de supprimer/recréer les créneaux en parallèle.
+            $resultat = $this->verrou->executer(
+                VerrouAction::GENERATION_PLANNING,
+                fn() => $this->scheduler->generateSchedule($dateDebut, $semaines),
+                0,
+                'Une génération du planning est déjà en cours — patientez quelques secondes, puis actualisez la page.',
+            );
 
             $lastGenerated = $this->scheduler->buildRollbackSnapshot($dateDebut, $semaines);
             session(['last_generated_creneaux' => $lastGenerated]);
 
             audit('generate', 'planning', null, null, $resultat);
+
+            // Avant la synchronisation Google : la génération est déjà validée en base,
+            // les admins/gestionnaires doivent en être prévenus même si la
+            // synchronisation échoue ensuite. Ne lève jamais (voir la classe).
+            $this->notifier->notifierGenerationManuelle($premierVendredi, $semaines, $resultat);
 
             $payload = app(WebhookPayloadBuilder::class)
                 ->build($dateDebut, $semaines);
@@ -201,6 +219,9 @@ class PlanningController extends Controller
             return redirect()->route('planning.generate.form')
                 ->with('success', $message);
 
+        } catch (ActionEnCoursException $e) {
+            return redirect()->route('planning.generate.form')
+                ->with('warning', $e->getMessage());
         } catch (\Exception $e) {
             return redirect()->back()
                 ->withInput()

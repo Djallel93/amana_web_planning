@@ -9,8 +9,8 @@
     @vite(['resources/css/app.css'])
     {{--
     Styles de la section "Mes disponibilités par tâche" ci-dessous.
-    Inlinés ici (plutôt que poussés via @push('scripts') comme dans
-    resources/views/guide/index.blade.php) car cette vue est une page
+    Inlinés ici (plutôt que poussés via @push('scripts') comme dans les
+    vues qui étendent layouts.app) car cette vue est une page
     HTML autonome : elle n'étend pas layouts.app et n'a donc pas de
     @stack('scripts') pour les recevoir. Les variables CSS (--color-*)
     utilisées restent bien définies : elles viennent de la feuille
@@ -248,10 +248,10 @@
             transform: rotate(180deg);
         }
 
-        /* Rectangle de description — même esprit visuel que .guide-example
-           dans resources/views/guide/index.blade.php (fond teinté, bordure
-           gauche colorée), ici avec la couleur propre à la tâche plutôt
-           qu'une couleur fixe. */
+        /* Rectangle de description — même esprit visuel que les encadrés
+           d'exemple de la page Guide (resources/js/Pages/Guide/GuideIndex.vue :
+           fond teinté, bordure gauche colorée), ici avec la couleur propre à
+           la tâche plutôt qu'une couleur fixe. */
         .tache-desc-box {
             margin: 0 16px 14px 16px;
             padding: 11px 14px;

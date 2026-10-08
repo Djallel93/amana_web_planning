@@ -32,4 +32,24 @@ return [
         'benevole' => ['entree', 'salle', 'amana_food'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Verrous d'actions (double soumission / concurrence)
+    |--------------------------------------------------------------------------
+    |
+    | Voir App\Services\VerrouAction.
+    |
+    |   ttl                       Durée de vie maximale d'un verrou, en secondes
+    |                             (filet de sécurité si le process meurt en cours).
+    |   attente_regeneration_auto Temps maximal, en secondes, qu'une régénération
+    |                             AUTOMATIQUE (absence, événement) patiente quand une
+    |                             autre génération est en cours, avant d'abandonner
+    |                             avec le message « régénérez manuellement ».
+    |
+    */
+    'verrou' => [
+        'ttl' => 120,
+        'attente_regeneration_auto' => 10,
+    ],
+
 ];

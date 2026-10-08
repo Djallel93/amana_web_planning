@@ -5,7 +5,10 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Absences;
 
+use App\Models\Absence;
+use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /** Validation pour l'ajout d'une absence. */
 class StoreAbsenceRequest extends FormRequest
@@ -28,6 +31,33 @@ class StoreAbsenceRequest extends FormRequest
             'date_fin'    => ['required', 'date', 'after_or_equal:date_debut'],
             'raison'      => ['nullable', 'string', 'max:255'],
         ];
+    }
+
+    /**
+     * Refuse une absence strictement identique à une existante (même personne, mêmes
+     * dates) : c'est ce que produit une double soumission du formulaire. Exécuté
+     * seulement si les règles ci-dessus passent (les dates sont alors exploitables).
+     * Le contrôleur re-vérifie sous verrou pour le cas de deux requêtes simultanées.
+     *
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $doublon = Absence::identique(
+                (int) $this->input('id_personne'),
+                Carbon::parse((string) $this->input('date_debut'))->toDateString(),
+                Carbon::parse((string) $this->input('date_fin'))->toDateString(),
+            )->exists();
+
+            if ($doublon) {
+                $validator->errors()->add('date_debut', Absence::MESSAGE_DOUBLON);
+            }
+        }];
     }
 
     public function messages(): array

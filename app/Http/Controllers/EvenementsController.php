@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\ActionEnCoursException;
 use App\Helpers\GoogleCalendarColors;
 use App\Http\Requests\Evenements\ImportEvenementsManuelRequest;
 use App\Http\Requests\Evenements\ImportEvenementsRequest;
@@ -16,7 +17,9 @@ use App\Models\Evenement;
 use App\Models\Tache;
 use App\Services\EvenementCsvImporter;
 use App\Services\EvenementRegenerationService;
+use App\Services\VerrouAction;
 use App\Services\WebhookEvenementPayloadBuilder;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
@@ -37,12 +40,19 @@ use Symfony\Component\HttpFoundation\Response;
  * depuis la première date impactée — voir son docblock pour le détail de
  * pourquoi une régénération complète a remplacé l'ancien patch ciblé
  * créneau par créneau (syncCreneauLinks, retiré).
+ *
+ * Double soumission : un événement strictement identique (même nom, mêmes dates)
+ * est refusé par les FormRequest et par EvenementCsvImporter::import() ; la
+ * création, la modification et les imports s'exécutent en plus sous verrou
+ * (VerrouAction) pour que deux requêtes SIMULTANÉES ne passent pas toutes les deux
+ * ce contrôle avant que l'une n'ait écrit.
  */
 class EvenementsController extends Controller
 {
     public function __construct(
         private readonly WebhookEvenementPayloadBuilder $webhookBuilder,
         private readonly EvenementRegenerationService $regenerationService,
+        private readonly VerrouAction $verrou,
     ) {}
 
     public function index(): View
@@ -63,6 +73,36 @@ class EvenementsController extends Controller
 
     public function store(StoreEvenementRequest $request): RedirectResponse
     {
+        $cle = 'evenement:' . md5(mb_strtolower(trim((string) $request->validated('nom')))
+            . '|' . Carbon::parse((string) $request->validated('date_debut'))->toDateString()
+            . '|' . Carbon::parse((string) $request->validated('date_fin'))->toDateString());
+
+        try {
+            return $this->verrou->executer($cle, fn() => $this->creer($request));
+        } catch (ActionEnCoursException) {
+            return redirect()->route('evenements.index')
+                ->with('warning', 'Cet événement est déjà en cours de création — actualisez la page pour le voir.');
+        }
+    }
+
+    /**
+     * Corps de store(), exécuté sous verrou (voir docblock de classe).
+     */
+    private function creer(StoreEvenementRequest $request): RedirectResponse
+    {
+        // Revérifié SOUS verrou : la validation du FormRequest a eu lieu avant que
+        // le verrou soit pris, une requête jumelle a pu écrire entre-temps.
+        $existe = Evenement::identique(
+            trim((string) $request->validated('nom')),
+            Carbon::parse((string) $request->validated('date_debut'))->toDateString(),
+            Carbon::parse((string) $request->validated('date_fin'))->toDateString(),
+        )->exists();
+
+        if ($existe) {
+            return redirect()->route('evenements.index')
+                ->with('warning', Evenement::MESSAGE_DOUBLON . ' Rien n\'a été ajouté.');
+        }
+
         $data = $request->validated();
         $tacheIds = $data['taches'] ?? [];
         $calendarIds = $data['calendar_ids'] ?? [];
@@ -131,15 +171,21 @@ class EvenementsController extends Controller
         }
 
         try {
-            $evenements = $importer->import($parsed['rows']);
-        } catch (\Throwable $e) {
-            Log::error('[EvenementsController] Échec de l\'import CSV', ['error' => $e->getMessage()]);
+            return $this->verrou->executer('evenements-import', function () use ($importer, $parsed) {
+                try {
+                    $evenements = $importer->import($parsed['rows']);
+                } catch (\Throwable $e) {
+                    Log::error('[EvenementsController] Échec de l\'import CSV', ['error' => $e->getMessage()]);
 
-            return redirect()->route('evenements.import')
-                ->with('error', "Échec de l'import : " . $e->getMessage());
+                    return redirect()->route('evenements.import')
+                        ->with('error', "Échec de l'import : " . $e->getMessage());
+                }
+
+                return $this->finalizeImport($evenements);
+            });
+        } catch (ActionEnCoursException) {
+            return $this->importDejaEnCours();
         }
-
-        return $this->finalizeImport($evenements);
     }
 
     /**
@@ -179,16 +225,22 @@ class EvenementsController extends Controller
             ->all();
 
         try {
-            $evenements = $importer->import($rows);
-        } catch (\Throwable $e) {
-            Log::error('[EvenementsController] Échec de la saisie manuelle en masse', ['error' => $e->getMessage()]);
+            return $this->verrou->executer('evenements-import', function () use ($importer, $rows) {
+                try {
+                    $evenements = $importer->import($rows);
+                } catch (\Throwable $e) {
+                    Log::error('[EvenementsController] Échec de la saisie manuelle en masse', ['error' => $e->getMessage()]);
 
-            return redirect()->route('evenements.import')
-                ->withInput()
-                ->with('error', "Échec de l'import : " . $e->getMessage());
+                    return redirect()->route('evenements.import')
+                        ->withInput()
+                        ->with('error', "Échec de l'import : " . $e->getMessage());
+                }
+
+                return $this->finalizeImport($evenements);
+            });
+        } catch (ActionEnCoursException) {
+            return $this->importDejaEnCours()->withInput();
         }
-
-        return $this->finalizeImport($evenements);
     }
 
     /**
@@ -204,6 +256,13 @@ class EvenementsController extends Controller
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="modele-import-evenements.csv"',
         ]);
+    }
+
+    /** Réponse commune aux deux imports quand un autre import est déjà en cours. */
+    private function importDejaEnCours(): RedirectResponse
+    {
+        return redirect()->route('evenements.import')
+            ->with('warning', 'Un import est déjà en cours — patientez quelques secondes, puis consultez la liste des événements avant de recommencer.');
     }
 
     /**
@@ -239,6 +298,19 @@ class EvenementsController extends Controller
     }
 
     public function update(UpdateEvenementRequest $request, int $id): RedirectResponse
+    {
+        try {
+            return $this->verrou->executer('evenement-maj:' . $id, fn() => $this->modifier($request, $id));
+        } catch (ActionEnCoursException) {
+            return redirect()->route('evenements.index')
+                ->with('warning', 'Cet événement est déjà en cours de modification — actualisez la page pour voir son état.');
+        }
+    }
+
+    /**
+     * Corps de update(), exécuté sous verrou (voir docblock de classe).
+     */
+    private function modifier(UpdateEvenementRequest $request, int $id): RedirectResponse
     {
         $evenement = Evenement::findOrFail($id);
         $avant = $evenement->toArray();
