@@ -19,6 +19,7 @@ use App\Notifications\Echanges\EchangeAccepteNotification;
 use App\Notifications\Echanges\EchangeAnnuleNotification;
 use App\Notifications\Echanges\EchangeDemandeNotification;
 use App\Notifications\Echanges\EchangeExpireNotification;
+use App\Notifications\Echanges\EchangeInvalideNotification;
 use App\Notifications\Echanges\EchangeRefuseNotification;
 use App\Notifications\NouveauMembreNotification;
 use App\Notifications\PlanningGenereNotification;
@@ -229,6 +230,46 @@ class NotificationsContenuTest extends TestCase
         $this->assertStringContainsString('votre assignation reste inchangée', $this->texte($mail));
     }
 
+    public function test_l_invalidation_par_regeneration_previent_les_deux_parties_que_rien_n_a_ete_echange(): void
+    {
+        foreach ([$this->alice, $this->bilal] as $destinataire) {
+            $mail = $this->envoyer($destinataire, new EchangeInvalideNotification($this->echange, EchangeInvalideNotification::MOTIF_PLANNING_REGENERE));
+            $texte = $this->texte($mail);
+
+            $this->assertSame('Demande d\'échange annulée — AMANA Planning', $mail['subject']);
+            $this->assertStringContainsString('Alice ALPHA', $texte);
+            $this->assertStringContainsString('Bilal BRAVO', $texte);
+            $this->assertStringContainsString('2 octobre 2026', $texte);
+            $this->assertStringContainsString('9 octobre 2026', $texte);
+            $this->assertStringContainsString('Le planning a été régénéré entre-temps', $texte);
+            $this->assertStringContainsString('Aucun créneau n\'a été échangé', $texte);
+        }
+    }
+
+    public function test_l_invalidation_par_affectation_modifiee_donne_le_bon_motif(): void
+    {
+        $mail = $this->envoyer($this->alice, new EchangeInvalideNotification($this->echange, EchangeInvalideNotification::MOTIF_AFFECTATION_MODIFIEE));
+
+        $this->assertStringContainsString('l\'affectation de l\'un des deux créneaux a changé', $this->texte($mail));
+        $this->assertStringNotContainsString('régénéré', $this->texte($mail));
+    }
+
+    public function test_l_invalidation_reste_lisible_quand_les_creneaux_ont_ete_supprimes(): void
+    {
+        // Après une régénération, les clés étrangères sont NULL : les dates mémorisées servent.
+        $this->echange->update([
+            'date_creneau_demandeur' => '2026-10-02', 'date_creneau_cible' => '2026-10-09',
+        ]);
+        $this->echange->creneauDemandeur->delete();
+        $this->echange->creneauCible->delete();
+        $echange = $this->echange->fresh(['demandeur', 'cible', 'tacheDemandeur', 'tacheCible']);
+
+        $texte = $this->texte($this->envoyer($this->alice, new EchangeInvalideNotification($echange, EchangeInvalideNotification::MOTIF_PLANNING_REGENERE)));
+
+        $this->assertStringContainsString('2 octobre 2026', $texte);
+        $this->assertStringContainsString('9 octobre 2026', $texte);
+    }
+
     // ══ Planning généré ═══════════════════════════════════════════════════
 
     /** Contexte type d'une génération manuelle (vendredi 2 → samedi 10 octobre 2026), sans tâche non assignée. */
@@ -321,8 +362,8 @@ class NotificationsContenuTest extends TestCase
     public static function tousLesMessages(): array
     {
         return array_combine(
-            ['rappel', 'nouveau membre', 'invitation', 'connexion directe', 'demande', 'confirmation', 'refus', 'annulation', 'expiration', 'planning généré'],
-            array_map(fn($c) => [$c], ['rappel', 'nouveau', 'invitation', 'directe', 'demande', 'confirmation', 'refus', 'annulation', 'expiration', 'planning']),
+            ['rappel', 'nouveau membre', 'invitation', 'connexion directe', 'demande', 'confirmation', 'refus', 'annulation', 'expiration', 'invalidation', 'planning généré'],
+            array_map(fn($c) => [$c], ['rappel', 'nouveau', 'invitation', 'directe', 'demande', 'confirmation', 'refus', 'annulation', 'expiration', 'invalidation', 'planning']),
         );
     }
 
@@ -340,6 +381,7 @@ class NotificationsContenuTest extends TestCase
             'refus' => $this->envoyer($this->alice, new EchangeRefuseNotification($this->echange)),
             'annulation' => $this->envoyer($this->bilal, new EchangeAnnuleNotification($this->echange)),
             'expiration' => $this->envoyer($this->alice, new EchangeExpireNotification($this->echange)),
+            'invalidation' => $this->envoyer($this->alice, new EchangeInvalideNotification($this->echange, EchangeInvalideNotification::MOTIF_PLANNING_REGENERE)),
             'planning' => $this->envoyer($this->alice, new PlanningGenereNotification($this->contextePlanning(['non_assignes' => 2]))),
         };
     }

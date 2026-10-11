@@ -279,22 +279,22 @@ class CandidatureFlowTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION : si le rôle choisi n'existe pas dans ref_roles pour l'application
-     * « planning » (référentiel non initialisé par PlanningApplicationSeeder, ou rôle supprimé),
-     * RoleService::syncRolePlanning() n'attribue rien et ne signale rien. La validation répond
-     * pourtant « validée (rôle : gestionnaire) » : le compte est actif mais sans aucun droit.
+     * Si le rôle choisi n'existe pas dans ref_roles pour l'application « planning »
+     * (référentiel non initialisé par PlanningApplicationSeeder, ou rôle supprimé), la
+     * validation est refusée avec un message d'erreur et la candidature reste « En attente » :
+     * jamais de compte validé sans aucun droit.
      */
-    public function test_valider_avec_un_role_absent_du_referentiel_annonce_un_role_qui_n_est_pas_attribue(): void
+    public function test_valider_avec_un_role_absent_du_referentiel_est_refuse_et_laisse_la_candidature_en_attente(): void
     {
         $p = Personne::factory()->enAttente()->create();
         $this->connecterEn('admin');
         DB::connection('commun')->table('ref_roles')->where('code', 'gestionnaire')->delete();
 
         $this->post(route('admin.candidatures.valider', $p->id), ['role' => 'gestionnaire'])
-            ->assertSessionHas('success', fn(string $m) => str_contains($m, 'rôle : gestionnaire'));
+            ->assertSessionHas('error', fn(string $m) => str_contains($m, 'gestionnaire'));
 
-        $this->assertSame('Validé', $p->fresh()->statut);
-        $this->assertNull((new RoleService())->currentRoleCode($p), 'aucun rôle réellement attribué');
+        $this->assertSame('En attente', $p->fresh()->statut);
+        $this->assertNull((new RoleService())->currentRoleCode($p));
     }
 
     public function test_valider_est_journalise_avec_le_role_et_l_etat_precedent(): void

@@ -11,6 +11,7 @@ use App\Http\Requests\Personnes\UpdatePersonneRequest;
 use App\Models\Personne;
 use App\Services\RoleService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\View\View;
 
@@ -62,8 +63,18 @@ class PersonnesController extends Controller
         $roleCode = $data['role'];
         unset($data['role']);
 
-        $personne = Personne::create($data);
-        $this->roleService->syncRolePlanning($personne, $roleCode);
+        // Création et rôle dans UNE transaction : un rôle absent du référentiel
+        // (RoleService lève une exception) ne laisse pas une personne créée sans rôle.
+        try {
+            $personne = DB::connection(config('amana-shared.connection', 'commun'))->transaction(function () use ($data, $roleCode): Personne {
+                $personne = Personne::create($data);
+                $this->roleService->syncRolePlanning($personne, $roleCode);
+
+                return $personne;
+            });
+        } catch (\InvalidArgumentException $e) {
+            return back()->withInput()->with('error', "Personne non créée : {$e->getMessage()}");
+        }
 
         audit('create', 'personnes', $personne->id, null, array_merge(
             $personne->toArray(),
@@ -98,8 +109,16 @@ class PersonnesController extends Controller
         $roleCode = $data['role'];
         unset($data['role']);
 
-        $personne->update($data);
-        $this->roleService->syncRolePlanning($personne, $roleCode);
+        // Mise à jour et rôle dans UNE transaction (voir store()) : un rôle inconnu
+        // n'enregistre rien et ne retire pas les rôles actuels de la personne.
+        try {
+            DB::connection(config('amana-shared.connection', 'commun'))->transaction(function () use ($personne, $data, $roleCode): void {
+                $personne->update($data);
+                $this->roleService->syncRolePlanning($personne, $roleCode);
+            });
+        } catch (\InvalidArgumentException $e) {
+            return back()->withInput()->with('error', "Modification non enregistrée : {$e->getMessage()}");
+        }
 
         audit('update', 'personnes', $personne->id, $avant, array_merge(
             $personne->fresh()->toArray(),

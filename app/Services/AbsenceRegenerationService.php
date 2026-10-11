@@ -129,16 +129,28 @@ class AbsenceRegenerationService
             $regen,
         );
 
-        $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines'], $regen['aPartirDe'] ?? null);
-        SynchroniserGoogleCalendar::dispatch($payload, 'post');
-        Log::info('[AbsenceRegenerationService] Synchronisation Google Calendar dispatchée en queue (POST) suite à régénération automatique.');
+        // Le planning est déjà régénéré et audité : un échec de construction du
+        // payload ou de mise en file ne doit pas transformer ce succès en erreur
+        // pour l'appelant. Il est journalisé et signalé par un avertissement.
+        $avertissementSync = '';
+        try {
+            $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines'], $regen['aPartirDe'] ?? null);
+            SynchroniserGoogleCalendar::dispatch($payload, 'post');
+            Log::info('[AbsenceRegenerationService] Synchronisation Google Calendar dispatchée en queue (POST) suite à régénération automatique.');
+        } catch (\Throwable $e) {
+            Log::error('[AbsenceRegenerationService] Échec de la préparation de la synchronisation Google Calendar', [
+                'id_absence' => $absence->id,
+                'error' => $e->getMessage(),
+            ]);
+            $avertissementSync = ' ⚠️ La synchronisation Google Calendar n\'a pas pu être lancée : les calendriers ne reflètent pas ce changement.';
+        }
 
         $dateLabel = $regen['regenererDepuis']->locale('fr')->isoFormat('D MMMM YYYY');
 
         return [
             'message' => "Planning régénéré automatiquement à partir du {$dateLabel} "
                 . "({$regen['resultat']['jours_generes']} jours, {$regen['resultat']['non_assignes']} non assigné(s)) "
-                . 'pour tenir compte de cette absence.',
+                . 'pour tenir compte de cette absence.' . $avertissementSync,
             'regenere' => true,
         ];
     }

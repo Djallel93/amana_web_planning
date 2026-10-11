@@ -21,6 +21,7 @@ use App\Services\AbsenceRegenerationService;
 use App\Services\DataLoader;
 use App\Services\RotationEngine;
 use App\Services\SchedulerMain;
+use App\Services\WebhookPayloadBuilder;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Bus;
 use RuntimeException;
@@ -160,6 +161,26 @@ class AbsenceRegenerationServiceTest extends TestCase
         $this->assertSame($p->id, $audit->after['id_personne']);
         $this->assertSame(4, $audit->after['jours_generes']);
         Bus::assertDispatchedTimes(SynchroniserGoogleCalendar::class, 1);
+    }
+
+    /**
+     * Le planning est déjà régénéré et audité quand le payload Google est construit : une
+     * panne à ce stade ne doit pas transformer le succès en erreur pour l'appelant. Elle est
+     * signalée par un avertissement dans le message, et rien n'est mis en file.
+     */
+    public function test_un_echec_de_la_synchronisation_google_n_invalide_pas_la_regeneration(): void
+    {
+        [$p] = $this->personnesValidees(1);
+        $this->assigner($p, '2026-10-02', 'entree');
+        $this->app->bind(WebhookPayloadBuilder::class, fn() => throw new RuntimeException('panne payload'));
+
+        $resultat = (new AbsenceRegenerationService($this->espion()))->regenererSiNecessaire($this->absence($p, '2026-10-02', '2026-10-03'));
+
+        $this->assertTrue($resultat['regenere'], 'le planning a bien été régénéré');
+        $this->assertStringStartsWith('Planning régénéré automatiquement', $resultat['message']);
+        $this->assertStringContainsString('La synchronisation Google Calendar n\'a pas pu être lancée', $resultat['message']);
+        $this->assertSame(1, AuditLog::where('module', 'planning')->where('action', 'generate')->count());
+        Bus::assertNothingDispatched();
     }
 
     // ── Échec du générateur ───────────────────────────────────────────────

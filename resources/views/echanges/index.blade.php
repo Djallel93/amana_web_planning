@@ -37,9 +37,11 @@
             @php
                 $isDemandeur   = $echange->id_personne_demandeur === $user->id;
                 $autrePersonne = $isDemandeur ? $echange->cible      : $echange->demandeur;
-                $monSlotCreneau  = $isDemandeur ? $echange->creneauDemandeur : $echange->creneauCible;
+                // Dates via l'accesseur : un échange terminé survit à la suppression de son
+                // créneau (régénération du planning) — la relation est alors nulle.
+                $monSlotDate     = $isDemandeur ? $echange->date_demandeur   : $echange->date_cible;
                 $monSlotTache    = $isDemandeur ? $echange->tacheDemandeur   : $echange->tacheCible;
-                $sonSlotCreneau  = $isDemandeur ? $echange->creneauCible     : $echange->creneauDemandeur;
+                $sonSlotDate     = $isDemandeur ? $echange->date_cible       : $echange->date_demandeur;
                 $sonSlotTache    = $isDemandeur ? $echange->tacheCible       : $echange->tacheDemandeur;
 
                 $statutConfig = [
@@ -82,19 +84,19 @@
                     <div class="flex items-center gap-3 flex-wrap p-3 bg-surface-2 border border-surface-border rounded-lg">
                         <div class="flex flex-col gap-0.5 px-3 py-2 bg-surface border border-surface-border rounded-lg flex-1 min-w-[130px]">
                             <span class="font-bold text-[12.5px] text-ink">
-                                {{ $monSlotCreneau->date->locale('fr')->isoFormat('ddd D MMM YYYY') }}
+                                {{ $monSlotDate?->locale('fr')->isoFormat('ddd D MMM YYYY') ?? '—' }}
                             </span>
                             <span class="text-ink-muted text-[11.5px]">
-                                {{ $monSlotTache->libelle }} · {{ $monSlotCreneau->jour }}
+                                {{ $monSlotTache->libelle }}@if($monSlotDate) · {{ ucfirst($monSlotDate->locale('fr')->dayName) }}@endif
                             </span>
                         </div>
                         <span class="text-accent text-lg flex-shrink-0 font-bold">⇄</span>
                         <div class="flex flex-col gap-0.5 px-3 py-2 bg-surface border border-surface-border rounded-lg flex-1 min-w-[130px]">
                             <span class="font-bold text-[12.5px] text-ink">
-                                {{ $sonSlotCreneau->date->locale('fr')->isoFormat('ddd D MMM YYYY') }}
+                                {{ $sonSlotDate?->locale('fr')->isoFormat('ddd D MMM YYYY') ?? '—' }}
                             </span>
                             <span class="text-ink-muted text-[11.5px]">
-                                {{ $sonSlotTache->libelle }} · {{ $sonSlotCreneau->jour }}
+                                {{ $sonSlotTache->libelle }}@if($sonSlotDate) · {{ ucfirst($sonSlotDate->locale('fr')->dayName) }}@endif
                             </span>
                         </div>
                         @if($echange->approuve_par && $echange->approbateur)

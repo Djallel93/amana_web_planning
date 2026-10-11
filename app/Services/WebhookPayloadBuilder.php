@@ -96,7 +96,9 @@ class WebhookPayloadBuilder
     {
         $heureCours = Setting::get('heure_cours', 'planning') ?? '20:00';
         $premier = DateHelper::premierVendredi($dateDebut);
-        $fin = $premier->clone()->addWeeks($semaines)->addDay();
+        // Dernier samedi de la fenêtre régénérée (et non « +1 semaine ») : sinon le
+        // vendredi/samedi qui SUIT la fenêtre serait envoyé à Google quand il existe.
+        $fin = $premier->clone()->addWeeks(max(1, $semaines) - 1)->addDay();
 
         $creneaux = Creneau::with(['taches.tache', 'taches.personne', 'evenements.tachesBloquees'])
             ->whereBetween('date', [$premier->toDateString(), $fin->toDateString()])

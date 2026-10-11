@@ -8,6 +8,8 @@ namespace App\Services;
 use App\Helpers\DateHelper;
 use App\Models\Creneau;
 use App\Models\CreneauTache;
+use App\Models\Echange;
+use App\Notifications\Echanges\EchangeInvalideNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -56,20 +58,24 @@ class SchedulerMain
         $premiereDate = $context['premierVendredi'];
         Log::info("[Scheduler] Premier vendredi : {$premiereDate->toDateString()}");
 
-        // ── Mode normal : supprime les créneaux existants ─────────────────
-        if (!$dryRun) {
-            $this->cleanExistingCreneaux($aPartirDe ?? $premiereDate);
-        }
-
         $joursGeneres = 0;
         $nonAssignes = 0;
         $creneauxDryRun = [];
+        $echangesAnnules = collect();
 
         // ── Exécution dans une transaction ────────────────────────────────
         // En dry-run, on rollback après pour ne rien persister.
+        // La suppression des créneaux existants est DANS la transaction : si la
+        // génération échoue en cours de route, l'ancien planning est restauré
+        // (et non perdu avec un planning vide à partir de la date de début).
         DB::beginTransaction();
 
         try {
+            // ── Mode normal : supprime les créneaux existants ─────────────
+            if (!$dryRun) {
+                $echangesAnnules = $this->cleanExistingCreneaux($aPartirDe ?? $premiereDate);
+            }
+
             for ($semaine = 0; $semaine < $semaines; $semaine++) {
                 $vendredi = $premiereDate->clone()->addWeeks($semaine);
                 $samedi = $vendredi->clone()->addDay();
@@ -103,6 +109,12 @@ class SchedulerMain
         } catch (\Throwable $e) {
             DB::rollBack();
             throw $e;
+        }
+
+        // Après le commit seulement : jamais d'e-mail pour une annulation qui aurait
+        // été défaite par un rollback.
+        if (!$dryRun) {
+            $this->notifierEchangesAnnules($echangesAnnules);
         }
 
         $duree = round((microtime(true) - $debut) * 1000, 0);
@@ -283,7 +295,8 @@ class SchedulerMain
     public function buildRollbackSnapshot(string $dateDebut, int $semaines, ?Carbon $aPartirDe = null): array
     {
         $date = DateHelper::premierVendredi($dateDebut);
-        $dateFin = $date->clone()->addWeeks($semaines)->addDay();
+        // Dernier samedi de la fenêtre régénérée (et non « +1 semaine »).
+        $dateFin = $date->clone()->addWeeks(max(1, $semaines) - 1)->addDay();
 
         $creneaux = Creneau::whereBetween('date', [$date->toDateString(), $dateFin->toDateString()])
             ->when($aPartirDe !== null, fn($q) => $q->where('date', '>=', $aPartirDe->toDateString()))
@@ -320,7 +333,9 @@ class SchedulerMain
     {
         $regenererDepuis = $premiereDateImpactee->copy();
         if (!$regenererDepuis->isFriday()) {
-            $regenererDepuis = $regenererDepuis->subDay();
+            // Vendredi PRÉCÉDENT (samedi → la veille, dimanche → 2 jours, etc.) :
+            // les créneaux n'existent que le vendredi et le samedi.
+            $regenererDepuis = $regenererDepuis->previous(Carbon::FRIDAY);
         }
 
         $derniereDateGeneree = Creneau::max('date');
@@ -365,13 +380,83 @@ class SchedulerMain
         return $borne !== null && $jour->toDateString() < $borne->toDateString();
     }
 
-    private function cleanExistingCreneaux(Carbon $depuis): void
+    /**
+     * Supprime les créneaux existants depuis $depuis. À appeler DANS la transaction
+     * de generateSchedule().
+     *
+     * Comportement VOLONTAIRE (confirmé) : la suppression va de $depuis jusqu'à la
+     * FIN de la table, pas seulement jusqu'à la fin de la fenêtre régénérée.
+     * generateSchedule($date, $n) signifie « (re)génère $n semaines à partir de $date
+     * et remplace tout ce qui suit » : générer moins de semaines que l'existant supprime
+     * donc aussi les semaines suivantes, sans les recréer. Les appelants qui doivent
+     * conserver l'horizon déjà généré (absence, événement) passent par
+     * regenerateFromImpactedDate(), qui calcule le nombre de semaines nécessaire.
+     * Ne pas « corriger » ceci en limitant la suppression à la fenêtre.
+     *
+     * Les échanges EN ATTENTE portant sur ces créneaux sont annulés explicitement
+     * (statut « annule », audité) : leurs créneaux vont disparaître, la demande n'a
+     * plus d'objet. Les échanges terminés (accepté, refusé, expiré, annulé) sont
+     * conservés : la clé étrangère passe à NULL (voir la migration
+     * 2026_10_08_000001) et les dates restent lisibles via date_creneau_*.
+     *
+     * @return Collection<int, Echange> Échanges annulés, relations chargées — à notifier
+     *         APRÈS le commit (voir notifierEchangesAnnules()).
+     */
+    private function cleanExistingCreneaux(Carbon $depuis): Collection
     {
-        $nb = Creneau::where('date', '>=', $depuis->toDateString())->count();
+        $date = $depuis->toDateString();
+        $ids = Creneau::where('date', '>=', $date)->pluck('id');
 
-        if ($nb > 0) {
-            Log::info("[Scheduler] Suppression de {$nb} créneaux existants depuis {$depuis->toDateString()}");
-            Creneau::where('date', '>=', $depuis->toDateString())->delete();
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        Log::info("[Scheduler] Suppression de {$ids->count()} créneaux existants depuis {$date}");
+
+        $annules = Echange::enAttente()
+            ->where(fn($q) => $q->whereIn('id_creneau_demandeur', $ids)->orWhereIn('id_creneau_cible', $ids))
+            ->with(['demandeur', 'cible', 'creneauDemandeur', 'creneauCible', 'tacheDemandeur', 'tacheCible'])
+            ->get();
+
+        foreach ($annules as $echange) {
+            $avant = $echange->toArray();
+            $echange->update(['statut' => Echange::STATUT_ANNULE]);
+
+            audit('update', 'echanges', $echange->id, $avant, [
+                'statut' => Echange::STATUT_ANNULE,
+                'action' => 'annule_regeneration_planning',
+            ]);
+        }
+
+        Creneau::where('date', '>=', $date)->delete();
+
+        return $annules;
+    }
+
+    /**
+     * Prévient les deux parties des échanges annulés par une régénération. Un échec
+     * d'envoi est journalisé et n'interrompt ni la régénération ni les autres envois.
+     *
+     * @param Collection<int, Echange> $echanges
+     */
+    private function notifierEchangesAnnules(Collection $echanges): void
+    {
+        foreach ($echanges as $echange) {
+            foreach ([$echange->demandeur, $echange->cible] as $personne) {
+                if ($personne === null) {
+                    continue;
+                }
+
+                try {
+                    $personne->notify(new EchangeInvalideNotification($echange, EchangeInvalideNotification::MOTIF_PLANNING_REGENERE));
+                } catch (\Throwable $e) {
+                    Log::error('[Scheduler] Échec de la notification d\'annulation d\'échange', [
+                        'echange_id' => $echange->id,
+                        'personne_id' => $personne->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         }
     }
 }

@@ -23,6 +23,7 @@ use App\Notifications\Echanges\EchangeAccepteNotification;
 use App\Notifications\Echanges\EchangeAnnuleNotification;
 use App\Notifications\Echanges\EchangeDemandeNotification;
 use App\Notifications\Echanges\EchangeExpireNotification;
+use App\Notifications\Echanges\EchangeInvalideNotification;
 use App\Notifications\Echanges\EchangeRefuseNotification;
 use App\Services\EchangeService;
 use Carbon\Carbon;
@@ -122,7 +123,9 @@ class EchangeServiceTest extends TestCase
 
         $echange = $this->demander($cA, $cB);
 
-        $this->assertSame('2026-10-02 23:59:59', $echange->expires_at->format('Y-m-d H:i:s'));
+        // 23:59:59 à PARIS (CEST, UTC+2 le 2 octobre) = 21:59:59 UTC, fuseau de l'application.
+        $this->assertSame('2026-10-02 21:59:59', $echange->expires_at->format('Y-m-d H:i:s'));
+        $this->assertSame('2026-10-02 23:59:59', $echange->expires_at->copy()->setTimezone('Europe/Paris')->format('Y-m-d H:i:s'));
     }
 
     public function test_creer_demande_notifie_la_cible_et_journalise(): void
@@ -178,14 +181,40 @@ class EchangeServiceTest extends TestCase
         Notification::assertNothingSent();
     }
 
-    public function test_creer_demande_refuse_le_creneau_du_jour_meme(): void
+    public function test_creer_demande_accepte_le_creneau_du_jour_meme(): void
     {
-        // « Passé » se juge sur la date à minuit : le créneau d'aujourd'hui l'est déjà.
+        // « Passé » se juge par DATE (Europe/Paris) : le créneau d'aujourd'hui reste
+        // échangeable jusqu'à la fin de la journée.
+        $this->assigner($this->a, '2026-09-14', 'entree');
+        $this->assigner($this->b, '2026-10-09', 'entree');
+
+        $echange = $this->demander($this->creneauLe('2026-09-14'), $this->creneauLe('2026-10-09'));
+
+        $this->assertTrue($echange->exists);
+        $this->assertSame('2026-09-14 21:59:59', $echange->expires_at->format('Y-m-d H:i:s'), 'fin de journée à Paris');
+    }
+
+    public function test_creer_demande_juge_le_passe_en_heure_de_paris(): void
+    {
+        // 22:30 UTC le 14/09 = 00:30 le 15/09 à Paris : le créneau du 14/09 est passé.
+        // (Avec la date UTC, il aurait encore paru « du jour ».)
+        Carbon::setTestNow(Carbon::parse('2026-09-14 22:30:00'));
         $this->assigner($this->a, '2026-09-14', 'entree');
         $this->assigner($this->b, '2026-10-09', 'entree');
 
         $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('déjà passé');
         $this->demander($this->creneauLe('2026-09-14'), $this->creneauLe('2026-10-09'));
+    }
+
+    public function test_la_demande_memorise_les_dates_des_deux_creneaux(): void
+    {
+        [$cA, $cB] = $this->deuxSlots();
+
+        $echange = $this->demander($cA, $cB);
+
+        $this->assertSame('2026-10-02', $echange->date_creneau_demandeur->toDateString());
+        $this->assertSame('2026-10-09', $echange->date_creneau_cible->toDateString());
     }
 
     public function test_le_creneau_de_la_cible_peut_etre_passe(): void
@@ -225,23 +254,36 @@ class EchangeServiceTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION d'un trou : le contrôle « déjà en cours » compare le slot du demandeur
-     * à ceux des demandeurs existants, et le slot de la cible à ceux des cibles existantes.
-     * Il ne croise jamais les deux. Le slot de B, déjà engagé comme CIBLE dans A↔B, peut
-     * donc être proposé de nouveau par B comme slot de DEMANDEUR : deux échanges en attente
-     * portent alors sur le même créneau. Si c'est corrigé, ce test doit passer à « refusé ».
+     * Le contrôle « déjà en cours » croise les rôles : le slot de B, déjà engagé comme CIBLE
+     * dans A↔B, ne peut pas être reproposé par B comme slot de DEMANDEUR (deux échanges en
+     * attente sur le même créneau ne pourraient pas être acceptés tous les deux).
      */
-    public function test_un_slot_deja_cible_peut_etre_repropose_comme_slot_de_demandeur(): void
+    public function test_un_slot_deja_cible_ne_peut_pas_etre_repropose_comme_slot_de_demandeur(): void
     {
         [$cA, $cB] = $this->deuxSlots();
         $troisieme = Personne::factory()->create();
         $this->assigner($troisieme, '2026-10-16', 'entree');
         $this->demander($cA, $cB);
 
-        $second = $this->service()->creerDemande($this->b->id, $cB->id, $this->entree->id, $troisieme->id, $this->creneauLe('2026-10-16')->id, $this->entree->id);
+        try {
+            $this->service()->creerDemande($this->b->id, $cB->id, $this->entree->id, $troisieme->id, $this->creneauLe('2026-10-16')->id, $this->entree->id);
+            $this->fail('RuntimeException attendue');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('déjà en cours', $e->getMessage());
+        }
+        $this->assertSame(1, Echange::enAttente()->count());
+    }
 
-        $this->assertTrue($second->exists);
-        $this->assertSame(2, Echange::enAttente()->count());
+    /** Symétrique : le slot de A, déjà engagé comme DEMANDEUR, ne peut pas devenir la CIBLE d'un autre échange. */
+    public function test_un_slot_deja_demandeur_ne_peut_pas_etre_propose_comme_cible(): void
+    {
+        [$cA, $cB] = $this->deuxSlots();
+        $troisieme = Personne::factory()->create();
+        $this->assigner($troisieme, '2026-10-16', 'entree');
+        $this->demander($cA, $cB);
+
+        $this->expectException(RuntimeException::class);
+        $this->service()->creerDemande($troisieme->id, $this->creneauLe('2026-10-16')->id, $this->entree->id, $this->a->id, $cA->id, $this->entree->id);
     }
 
     public function test_les_echanges_termines_ne_bloquent_pas_une_nouvelle_demande(): void
@@ -384,11 +426,22 @@ class EchangeServiceTest extends TestCase
     {
         [$cA, $cB] = $this->deuxSlots();
         $echange = $this->demander($cA, $cB);
-        Carbon::setTestNow(Carbon::parse('2026-10-02 23:59:00'));
+        Carbon::setTestNow(Carbon::parse('2026-10-02 21:59:00')); // 23:59 à Paris
 
         $resultat = $this->service()->accepterParToken($echange->token_accept);
 
         $this->assertSame(Echange::STATUT_ACCEPTE, $resultat->statut);
+    }
+
+    public function test_le_lien_expire_des_minuit_a_paris(): void
+    {
+        [$cA, $cB] = $this->deuxSlots();
+        $echange = $this->demander($cA, $cB);
+        Carbon::setTestNow(Carbon::parse('2026-10-02 22:00:00')); // 00:00 le 03/10 à Paris
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('Ce lien a expiré.');
+        $this->service()->accepterParToken($echange->token_accept);
     }
 
     // ══ executerEchange : atomicité ═══════════════════════════════════════
@@ -419,21 +472,65 @@ class EchangeServiceTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION : à l'exécution, le service ne revérifie PAS que chaque créneau
-     * appartient toujours à la personne prévue. Si le planning a été régénéré / réassigné
-     * entre la demande et l'acceptation, l'échange écrase l'affectation actuelle.
+     * À l'exécution, chaque créneau est revérifié : si le planning a été réassigné entre la
+     * demande et l'acceptation, l'échange est ANNULÉ (aucune affectation écrasée), les deux
+     * parties sont prévenues et l'appelant reçoit une erreur explicite.
      */
-    public function test_l_execution_ne_reverifie_pas_les_titulaires_actuels(): void
+    public function test_l_execution_annule_l_echange_si_le_creneau_du_demandeur_a_change_de_titulaire(): void
     {
         [$cA, $cB] = $this->deuxSlots();
         $echange = $this->demander($cA, $cB);
         $c = Personne::factory()->create();
         CreneauTache::where('id_planning', $cA->id)->where('id_tache', $this->entree->id)->update(['id_personne' => $c->id]); // réassigné à C
 
-        $this->service()->accepterParToken($echange->token_accept);
+        try {
+            $this->service()->accepterParToken($echange->token_accept);
+            $this->fail('RuntimeException attendue');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('n\'est plus valable', $e->getMessage());
+        }
 
-        $this->assertSame($this->b->id, $this->titulaire($cA), 'l\'affectation de C a été écrasée');
-        $this->assertSame($this->a->id, $this->titulaire($cB), 'et A, qui n\'avait plus ce créneau, récupère celui de B');
+        $this->assertSame($c->id, $this->titulaire($cA), 'l\'affectation de C est intacte');
+        $this->assertSame($this->b->id, $this->titulaire($cB), 'B garde son créneau');
+        $this->assertSame(Echange::STATUT_ANNULE, Echange::find($echange->id)->statut, 'annulation enregistrée (pas défaite par l\'exception)');
+        Notification::assertSentTo($this->a, EchangeInvalideNotification::class);
+        Notification::assertSentTo($this->b, EchangeInvalideNotification::class);
+        Notification::assertNotSentTo($this->a, EchangeAccepteNotification::class);
+        Bus::assertNotDispatched(SynchroniserGoogleCalendar::class);
+    }
+
+    public function test_l_approbation_admin_annule_aussi_l_echange_si_le_creneau_de_la_cible_a_change_de_titulaire(): void
+    {
+        [$cA, $cB] = $this->deuxSlots();
+        $echange = $this->demander($cA, $cB);
+        $c = Personne::factory()->create();
+        CreneauTache::where('id_planning', $cB->id)->where('id_tache', $this->entree->id)->update(['id_personne' => $c->id]); // réassigné à C
+
+        try {
+            $this->service()->approuverParAdmin($echange->id, Personne::factory()->create()->id);
+            $this->fail('RuntimeException attendue');
+        } catch (RuntimeException) {
+            // attendu
+        }
+
+        $this->assertSame($this->a->id, $this->titulaire($cA));
+        $this->assertSame($c->id, $this->titulaire($cB));
+        $this->assertSame(Echange::STATUT_ANNULE, Echange::find($echange->id)->statut);
+        Notification::assertSentTo($this->b, EchangeInvalideNotification::class);
+    }
+
+    public function test_l_execution_annule_l_echange_si_un_creneau_a_ete_supprime(): void
+    {
+        [$cA, $cB] = $this->deuxSlots();
+        $echange = $this->demander($cA, $cB);
+        CreneauTache::where('id_planning', $cB->id)->where('id_tache', $this->entree->id)->delete();
+
+        $this->expectException(RuntimeException::class);
+        try {
+            $this->service()->accepterParToken($echange->token_accept);
+        } finally {
+            $this->assertSame(Echange::STATUT_ANNULE, Echange::find($echange->id)->statut);
+        }
     }
 
     // ══ refuserParToken ═══════════════════════════════════════════════════
@@ -453,16 +550,25 @@ class EchangeServiceTest extends TestCase
         Bus::assertNotDispatched(SynchroniserGoogleCalendar::class);
     }
 
-    /** CARACTÉRISATION : contrairement à l'acceptation, le refus ne contrôle pas expires_at. */
-    public function test_un_lien_de_refus_perime_fonctionne_encore_tant_que_l_echange_est_en_attente(): void
+    /**
+     * Comme l'acceptation, le refus contrôle expires_at : un lien périmé ne fonctionne plus.
+     * Le statut reste « en_attente » : amana:expire-echanges l'expire et prévient le demandeur.
+     */
+    public function test_un_lien_de_refus_perime_est_refuse(): void
     {
         [$cA, $cB] = $this->deuxSlots();
         $echange = $this->demander($cA, $cB);
         Carbon::setTestNow(Carbon::parse('2026-10-05 08:00:00')); // bien après l'échéance
 
-        $resultat = $this->service()->refuserParToken($echange->token_refuse);
+        try {
+            $this->service()->refuserParToken($echange->token_refuse);
+            $this->fail('RuntimeException attendue');
+        } catch (RuntimeException $e) {
+            $this->assertSame('Ce lien a expiré.', $e->getMessage());
+        }
 
-        $this->assertSame(Echange::STATUT_REFUSE, $resultat->statut);
+        $this->assertSame(Echange::STATUT_EN_ATTENTE, Echange::find($echange->id)->statut);
+        Notification::assertNotSentTo($this->a, EchangeRefuseNotification::class);
     }
 
     public function test_le_token_d_acceptation_ne_refuse_pas_l_echange(): void
@@ -736,8 +842,8 @@ class EchangeServiceTest extends TestCase
         $this->assertCount(1, $slots);
     }
 
-    /** CARACTÉRISATION : le masquage se fait par CRÉNEAU (toute la journée), pas par couple créneau + tâche. */
-    public function test_slots_echangeables_un_echange_en_attente_masque_toute_la_journee_pas_seulement_la_tache(): void
+    /** Le masquage se fait par COUPLE (créneau, tâche) : les autres tâches du même jour restent proposées. */
+    public function test_slots_echangeables_un_echange_en_attente_ne_masque_que_le_couple_creneau_tache(): void
     {
         [$cA, $cB] = $this->deuxSlots();
         $this->assigner(Personne::factory()->create(), '2026-10-09', 'salle'); // même jour que le slot de B, autre tâche
@@ -746,7 +852,11 @@ class EchangeServiceTest extends TestCase
         $salle = TacheFactory::pourCode('salle');
         $slots = $this->service()->slotsEchangeables($cA->id, $salle->id, $this->a->id);
 
-        $this->assertCount(0, $slots, 'la salle du 09/10 est masquée parce que l\'entrée du 09/10 est engagée');
+        $this->assertSame(
+            ['2026-10-09'],
+            $slots->map(fn($s) => $s->creneau->date->toDateString())->all(),
+            'la salle du 09/10 reste échangeable : seule l\'entrée du 09/10 est engagée',
+        );
     }
 
     public function test_slots_echangeables_avec_une_tache_inconnue_leve_une_exception_de_modele(): void

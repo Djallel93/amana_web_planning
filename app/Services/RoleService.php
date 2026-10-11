@@ -88,10 +88,14 @@ class RoleService
     /**
      * Attribue un rôle planning à une personne.
      *
-     * Supprime d'abord tous les rôles planning existants de la personne,
-     * puis insère le nouveau rôle demandé.
+     * Le code de rôle est VÉRIFIÉ AVANT toute suppression : s'il n'existe pas pour
+     * l'application 'planning', rien n'est modifié et une exception est levée (la
+     * personne ne perd pas ses rôles actuels et ne se retrouve pas sans accès).
+     * Suppression + insertion s'exécutent dans une transaction.
      *
      * Silencieux si l'application 'planning' n'existe pas en base.
+     *
+     * @throws \InvalidArgumentException si $roleCode n'est pas un rôle de l'application planning
      */
     public function syncRolePlanning(Personne $personne, string $roleCode): void
     {
@@ -101,27 +105,33 @@ class RoleService
             return;
         }
 
-        // Supprimer tous les rôles planning existants
-        $planningRoleIds = Role::where('id_application', $app->id)->pluck('id')->toArray();
-
-        if (!empty($planningRoleIds)) {
-            DB::connection(config('amana-shared.connection', 'commun'))->table('ref_personnes_roles')
-                ->where('id_personne', $personne->id)
-                ->whereIn('id_role', $planningRoleIds)
-                ->delete();
-        }
-
-        // Insérer le nouveau rôle
         $role = Role::where('code', $roleCode)
             ->where('id_application', $app->id)
             ->first();
 
-        if ($role) {
-            DB::connection(config('amana-shared.connection', 'commun'))->table('ref_personnes_roles')->insert([
+        if (!$role) {
+            throw new \InvalidArgumentException("Le rôle « {$roleCode} » n'existe pas dans le référentiel de l'application planning.");
+        }
+
+        $connexion = DB::connection(config('amana-shared.connection', 'commun'));
+
+        $connexion->transaction(function () use ($connexion, $app, $personne, $role): void {
+            // Supprimer tous les rôles planning existants
+            $planningRoleIds = Role::where('id_application', $app->id)->pluck('id')->toArray();
+
+            if (!empty($planningRoleIds)) {
+                $connexion->table('ref_personnes_roles')
+                    ->where('id_personne', $personne->id)
+                    ->whereIn('id_role', $planningRoleIds)
+                    ->delete();
+            }
+
+            // Insérer le nouveau rôle
+            $connexion->table('ref_personnes_roles')->insert([
                 'id_personne' => $personne->id,
                 'id_role' => $role->id,
                 'date_attribution' => now()->toDateString(),
             ]);
-        }
+        });
     }
 }

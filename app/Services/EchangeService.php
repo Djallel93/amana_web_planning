@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Helpers\DateHelper;
 use App\Jobs\SynchroniserGoogleCalendar;
 use App\Models\CreneauTache;
 use App\Models\Echange;
@@ -14,6 +15,7 @@ use App\Notifications\Echanges\EchangeAccepteNotification;
 use App\Notifications\Echanges\EchangeAnnuleNotification;
 use App\Notifications\Echanges\EchangeDemandeNotification;
 use App\Notifications\Echanges\EchangeExpireNotification;
+use App\Notifications\Echanges\EchangeInvalideNotification;
 use App\Notifications\Echanges\EchangeRefuseNotification;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -48,7 +50,9 @@ class EchangeService
      *   - Il concerne la même tâche (même code) — on peut aussi permettre
      *     n'importe quelle tâche, mais par défaut on restreint au même code
      *     pour garder la cohérence des compétences
-     *   - Il n'est pas déjà impliqué dans un échange en_attente
+     *   - Il n'est pas déjà impliqué dans un échange en_attente : seul le COUPLE
+     *     (créneau, tâche) engagé est masqué — les autres tâches du même jour, et
+     *     les autres jours, restent proposés
      *
      * @param  int    $creneauId  ID du créneau du demandeur
      * @param  int    $tacheId    ID de la tâche du demandeur
@@ -60,12 +64,16 @@ class EchangeService
         // Charger la tâche pour avoir son code
         $tache = Tache::findOrFail($tacheId);
 
-        // IDs de créneaux déjà impliqués dans un échange en attente (en tant que cible)
-        $creneauxBloqués = Echange::enAttente()
-            ->pluck('id_creneau_cible')
-            ->merge(Echange::enAttente()->pluck('id_creneau_demandeur'))
+        // Couples (créneau, tâche) déjà engagés dans un échange en attente, que ce soit
+        // comme slot du demandeur ou comme slot cible.
+        $enAttente = Echange::enAttente()->get([
+            'id_creneau_demandeur', 'id_tache_demandeur', 'id_creneau_cible', 'id_tache_cible',
+        ]);
+        $slotsBloques = $enAttente
+            ->map(fn(Echange $e) => $e->id_creneau_demandeur . ':' . $e->id_tache_demandeur)
+            ->merge($enAttente->map(fn(Echange $e) => $e->id_creneau_cible . ':' . $e->id_tache_cible))
             ->unique()
-            ->toArray();
+            ->all();
 
         return CreneauTache::with(['creneau', 'tache', 'personne'])
             ->join('plan_creneaux', 'plan_creneaux.id', '=', 'plan_creneaux_taches.id_planning')
@@ -73,8 +81,13 @@ class EchangeService
             ->whereNotNull('plan_creneaux_taches.id_personne')
             ->where('plan_creneaux_taches.id_personne', '!=', $personneId)
             ->where('ref_taches.code', $tache->code)
-            ->where('plan_creneaux.date', '>', now()->toDateString())
-            ->whereNotIn('plan_creneaux.id', $creneauxBloqués)
+            // « Aujourd'hui » dans le fuseau métier (Europe/Paris), pas en UTC.
+            ->where('plan_creneaux.date', '>', DateHelper::aujourdhui()->toDateString())
+            ->when($slotsBloques !== [], fn($q) => $q->whereRaw(
+                "CONCAT(plan_creneaux_taches.id_planning, ':', plan_creneaux_taches.id_tache) NOT IN ("
+                . implode(',', array_fill(0, count($slotsBloques), '?')) . ')',
+                $slotsBloques,
+            ))
             ->select('plan_creneaux_taches.*')
             ->orderBy('plan_creneaux.date')
             ->get();
@@ -105,21 +118,26 @@ class EchangeService
             ->where('id_personne', $personneBId)
             ->firstOrFail();
 
-        // Le créneau de A doit être dans le futur
-        if ($slotA->creneau->date->isPast()) {
+        // Le créneau de A ne doit pas être passé. Comparaison par DATE dans le fuseau
+        // métier (Europe/Paris, via DateHelper) — comme le reste de la logique — et
+        // non par instant UTC : le créneau du jour reste échangeable jusqu'à la fin
+        // de la journée (voir aussi expires_at ci-dessous).
+        if (DateHelper::estPasse($slotA->creneau->date->toDateString())) {
             throw new \RuntimeException('Votre créneau est déjà passé, impossible d\'initier un échange.');
         }
 
-        // Pas déjà un échange en_attente sur ces slots
+        // Pas déjà un échange en_attente sur l'un de ces deux slots, QUEL QUE SOIT le
+        // rôle qu'il y joue : un slot déjà engagé comme CIBLE ne peut pas être
+        // reproposé comme slot de DEMANDEUR (et inversement) — deux échanges en
+        // attente sur le même créneau n'ont pas pu être acceptés tous les deux.
         $dejaEnCours = Echange::enAttente()
             ->where(function ($q) use ($creneauAId, $tacheAId, $creneauBId, $tacheBId) {
-                $q->where(function ($q2) use ($creneauAId, $tacheAId) {
-                    $q2->where('id_creneau_demandeur', $creneauAId)
-                        ->where('id_tache_demandeur', $tacheAId);
-                })->orWhere(function ($q2) use ($creneauBId, $tacheBId) {
-                    $q2->where('id_creneau_cible', $creneauBId)
-                        ->where('id_tache_cible', $tacheBId);
-                });
+                foreach ([[$creneauAId, $tacheAId], [$creneauBId, $tacheBId]] as [$creneauId, $tacheId]) {
+                    $q->orWhere(fn($q2) => $q2->where('id_creneau_demandeur', $creneauId)
+                        ->where('id_tache_demandeur', $tacheId))
+                        ->orWhere(fn($q2) => $q2->where('id_creneau_cible', $creneauId)
+                            ->where('id_tache_cible', $tacheId));
+                }
             })->exists();
 
         if ($dejaEnCours) {
@@ -129,15 +147,21 @@ class EchangeService
         $echange = Echange::create([
             'id_personne_demandeur' => $personneAId,
             'id_creneau_demandeur' => $creneauAId,
+            'date_creneau_demandeur' => $slotA->creneau->date->toDateString(),
             'id_tache_demandeur' => $tacheAId,
             'id_personne_cible' => $personneBId,
             'id_creneau_cible' => $creneauBId,
+            'date_creneau_cible' => $slotB->creneau->date->toDateString(),
             'id_tache_cible' => $tacheBId,
             'statut' => Echange::STATUT_EN_ATTENTE,
             'token_accept' => Str::random(64),
             'token_refuse' => Str::random(64),
-            // Expire à la date du créneau du demandeur (à minuit)
-            'expires_at' => Carbon::parse($slotA->creneau->date)->endOfDay(),
+            // Expire à la FIN de la journée du créneau du demandeur, heure de Paris
+            // (23:59:59 Europe/Paris), exprimée dans le fuseau de l'application (UTC)
+            // pour que la colonne stocke bien l'instant voulu.
+            'expires_at' => Carbon::parse($slotA->creneau->date->toDateString(), DateHelper::FUSEAU_METIER)
+                ->endOfDay()
+                ->setTimezone(config('app.timezone')),
         ]);
 
         audit('create', 'echanges', $echange->id, null, $echange->toArray());
@@ -184,6 +208,14 @@ class EchangeService
 
         if (!$echange->isEnAttente()) {
             throw new \RuntimeException('Cet échange n\'est plus en attente.');
+        }
+
+        // Même règle que l'acceptation : un lien de refus périmé ne fonctionne plus.
+        // Le statut n'est volontairement pas modifié ici : la commande planifiée
+        // amana:expire-echanges (expirerEchanges()) passe l'échange à « expire » ET
+        // prévient le demandeur.
+        if ($echange->expires_at->isPast()) {
+            throw new \RuntimeException('Ce lien a expiré.');
         }
 
         $avant = $echange->toArray();
@@ -295,11 +327,48 @@ class EchangeService
     /**
      * Exécute le swap en base de données dans une transaction.
      * Modifie plan_creneaux_taches : A prend le slot de B et vice-versa.
+     *
+     * @throws \RuntimeException si l'un des deux slots n'est plus attribué à la personne
+     *         prévue (planning régénéré ou réaffecté depuis la demande) : l'échange est
+     *         alors annulé, les deux parties sont prévenues et rien n'est échangé.
      */
     private function executerEchange(Echange $echange, ?int $approuvePar): Echange
     {
-        DB::transaction(function () use ($echange, $approuvePar) {
+        $perime = false;
+
+        DB::transaction(function () use ($echange, $approuvePar, &$perime) {
             $avant = $echange->toArray();
+
+            // Les deux slots sont relus VERROUILLÉS et revérifiés : entre la demande et
+            // l'acceptation, le planning a pu être régénéré ou réaffecté. Sans ce
+            // contrôle, le swap écraserait le titulaire actuel d'un slot et donnerait
+            // au demandeur un slot qu'il n'a plus.
+            $slotDemandeur = CreneauTache::where('id_planning', $echange->id_creneau_demandeur)
+                ->where('id_tache', $echange->id_tache_demandeur)
+                ->lockForUpdate()
+                ->first();
+            $slotCible = CreneauTache::where('id_planning', $echange->id_creneau_cible)
+                ->where('id_tache', $echange->id_tache_cible)
+                ->lockForUpdate()
+                ->first();
+
+            if (
+                $slotDemandeur === null || $slotCible === null
+                || (int) $slotDemandeur->id_personne !== $echange->id_personne_demandeur
+                || (int) $slotCible->id_personne !== $echange->id_personne_cible
+            ) {
+                // L'annulation est validée (pas de rollback) : l'exception est levée
+                // APRÈS la transaction, une fois les deux parties prévenues.
+                $perime = true;
+                $echange->update(['statut' => Echange::STATUT_ANNULE]);
+
+                audit('update', 'echanges', $echange->id, $avant, [
+                    'statut' => Echange::STATUT_ANNULE,
+                    'action' => 'annule_affectation_modifiee',
+                ]);
+
+                return;
+            }
 
             // A prend le slot de B
             CreneauTache::where('id_planning', $echange->id_creneau_cible)
@@ -325,6 +394,16 @@ class EchangeService
 
         // Recharger après transaction
         $echange->refresh()->load(['demandeur', 'cible', 'creneauDemandeur', 'creneauCible', 'tacheDemandeur', 'tacheCible']);
+
+        if ($perime) {
+            $echange->demandeur->notify(new EchangeInvalideNotification($echange, EchangeInvalideNotification::MOTIF_AFFECTATION_MODIFIEE));
+            $echange->cible->notify(new EchangeInvalideNotification($echange, EchangeInvalideNotification::MOTIF_AFFECTATION_MODIFIEE));
+
+            throw new \RuntimeException(
+                'Cet échange n\'est plus valable : le planning a changé depuis la demande. '
+                . 'La demande a été annulée et aucun créneau n\'a été échangé.'
+            );
+        }
 
         // Notifier les deux parties
         $echange->demandeur->notify(new EchangeAccepteNotification($echange, 'demandeur'));

@@ -66,7 +66,11 @@ class EvenementRegenerationService
      */
     public function regenererSiNecessaire(Evenement|iterable $evenements): ?array
     {
-        $evenements = $evenements instanceof Evenement ? [$evenements] : (is_array($evenements) ? $evenements : iterator_to_array($evenements));
+        // array_values : une Collection filtrée garde ses clés d'origine (ex. [3 => $e]) ;
+        // le reste du service lit $evenements[0] (libelleEvenements()).
+        $evenements = $evenements instanceof Evenement
+            ? [$evenements]
+            : array_values(is_array($evenements) ? $evenements : iterator_to_array($evenements));
 
         if (empty($evenements)) {
             return null;
@@ -194,16 +198,27 @@ class EvenementRegenerationService
             $regen,
         );
 
-        $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines'], $regen['aPartirDe'] ?? null);
-        SynchroniserGoogleCalendar::dispatch($payload, 'post');
-        Log::info('[EvenementRegenerationService] Synchronisation Google Calendar dispatchée en queue (POST) suite à régénération automatique.');
+        // Le planning est déjà régénéré et audité : un échec de construction du
+        // payload ou de mise en file ne doit pas transformer ce succès en erreur
+        // pour l'appelant. Il est journalisé et signalé par un avertissement.
+        $avertissementSync = '';
+        try {
+            $payload = app(WebhookPayloadBuilder::class)->build($regen['dateDebutRegen'], $regen['semaines'], $regen['aPartirDe'] ?? null);
+            SynchroniserGoogleCalendar::dispatch($payload, 'post');
+            Log::info('[EvenementRegenerationService] Synchronisation Google Calendar dispatchée en queue (POST) suite à régénération automatique.');
+        } catch (\Throwable $e) {
+            Log::error('[EvenementRegenerationService] Échec de la préparation de la synchronisation Google Calendar', [
+                'error' => $e->getMessage(),
+            ]);
+            $avertissementSync = ' ⚠️ La synchronisation Google Calendar n\'a pas pu être lancée : les calendriers ne reflètent pas ce changement.';
+        }
 
         $dateLabel = $regen['regenererDepuis']->locale('fr')->isoFormat('D MMMM YYYY');
 
         return [
             'message' => "Planning régénéré automatiquement à partir du {$dateLabel} "
                 . "({$regen['resultat']['jours_generes']} jours, {$regen['resultat']['non_assignes']} non assigné(s)) "
-                . "pour tenir compte de {$this->libelleEvenements($evenements)}.",
+                . "pour tenir compte de {$this->libelleEvenements($evenements)}." . $avertissementSync,
         ];
     }
 

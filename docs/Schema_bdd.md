@@ -164,9 +164,11 @@ erDiagram
         int id PK
         int id_personne_demandeur FK
         int id_creneau_demandeur FK
+        date date_creneau_demandeur
         tinyint id_tache_demandeur FK
         int id_personne_cible FK
         int id_creneau_cible FK
+        date date_creneau_cible
         tinyint id_tache_cible FK
         enum statut
         varchar token_accept
@@ -437,7 +439,7 @@ Un créneau = une date de permanence (vendredi ou samedi). Une seule ligne par d
 >
 > **Vue Mon planning :** `MonPlanningController` interroge cette table via un `JOIN` sur `plan_creneaux_taches` filtré par `id_personne = auth()->id()`, sans aucune colonne supplémentaire.
 >
-> **Échanges de créneaux :** `id_creneau_demandeur` et `id_creneau_cible` dans `plan_echanges` référencent cette table. La suppression d'un créneau (`onDelete('cascade')`) supprime également tout échange en cours qui le concerne.
+> **Échanges de créneaux :** `id_creneau_demandeur` et `id_creneau_cible` dans `plan_echanges` référencent cette table (`ON DELETE SET NULL`). Avant de supprimer des créneaux, `SchedulerMain` annule explicitement (et notifie) les échanges `en_attente` concernés ; les échanges terminés sont conservés, leurs clés passant à `NULL` (dates mémorisées dans `date_creneau_*`).
 >
 > **Annulation d'un cours :** le bouton **« 🚫 Annulation cours »** ne supprime **pas** la ligne `plan_creneaux` correspondante — il désassigne toutes ses tâches (`plan_creneaux_taches.id_personne = NULL`) et la relie à un nouvel événement bloquant (voir `ref_evenements`). La ligne reste donc visible dans le planning, marquée bloquée.
 
@@ -540,15 +542,17 @@ Demandes d'échange de créneau entre deux membres. Un échange permet à un mem
 | -------------------------- | ------------------ | ------------------------------------------------------------------------------------------------- |
 | `id`                      | INT PK             | Identifiant                                                                                       |
 | `id_personne_demandeur`   | INT FK             | Personne qui demande l'échange (A)                                                                |
-| `id_creneau_demandeur`    | INT FK             | `id_planning` du créneau de A                                                                     |
+| `id_creneau_demandeur`    | INT FK NULLABLE    | `id_planning` du créneau de A — `NULL` si le créneau a été supprimé (régénération), `ON DELETE SET NULL` |
+| `date_creneau_demandeur`  | DATE NULLABLE      | Date du créneau de A, mémorisée à la création — garde l'historique lisible si la clé passe à `NULL` |
 | `id_tache_demandeur`      | TINYINT FK         | `id_tache` du slot de A                                                                           |
 | `id_personne_cible`       | INT FK             | Personne avec qui échanger (B)                                                                    |
-| `id_creneau_cible`        | INT FK             | `id_planning` du créneau de B                                                                     |
+| `id_creneau_cible`        | INT FK NULLABLE    | `id_planning` du créneau de B — `NULL` si le créneau a été supprimé (régénération), `ON DELETE SET NULL` |
+| `date_creneau_cible`      | DATE NULLABLE      | Date du créneau de B, mémorisée à la création                                                     |
 | `id_tache_cible`          | TINYINT FK         | `id_tache` du slot de B                                                                           |
 | `statut`                  | ENUM               | `en_attente` / `accepte` / `refuse` / `expire` / `annule`                                         |
 | `token_accept`            | VARCHAR(64) UNIQUE | Token à usage unique pour le lien email « Accepter »                                              |
 | `token_refuse`            | VARCHAR(64) UNIQUE | Token à usage unique pour le lien email « Refuser »                                               |
-| `expires_at`              | TIMESTAMP          | Date d'expiration = date du créneau de A (fin de journée) — passé ce délai, la demande expire     |
+| `expires_at`              | TIMESTAMP          | Expiration = fin de la journée du créneau de A, **heure de Paris** (23:59:59 Europe/Paris, stocké en UTC) — vaut pour les liens Accepter et Refuser |
 | `approuve_par`            | INT FK NULLABLE    | ID de l'admin/gestionnaire si l'échange a été approuvé manuellement (override de la réponse de B) |
 | `created_at`/`updated_at` | TIMESTAMP          | Horodatage standard                                                                               |
 
@@ -560,16 +564,16 @@ Demandes d'échange de créneau entre deux membres. Un échange permet à un mem
 > en_attente ──► accepte   (B accepte via token, OU admin/gestionnaire approuve)
 >            ──► refuse    (B refuse via token, OU admin/gestionnaire refuse)
 >            ──► expire    (date du créneau de A dépassée sans réponse — commande planifiée)
->            ──► annule    (le demandeur A annule lui-même sa demande)
+>            ──► annule    (le demandeur A annule sa demande, OU le système l'annule : planning régénéré / créneau réaffecté)
 > ```
 >
-> **Exécution de l'échange (statut → `accepte`) :** dans une transaction DB, `EchangeService::executerEchange()` met à jour deux lignes de `plan_creneaux_taches` — le slot de A reçoit `id_personne = id_personne_cible` et le slot de B reçoit `id_personne = id_personne_demandeur`. Les deux parties reçoivent un email de confirmation. Si l'échange est approuvé par un admin/gestionnaire avant la réponse de B, cette approbation **prend le pas** sur l'attente.
+> **Exécution de l'échange (statut → `accepte`) :** dans une transaction DB, `EchangeService::executerEchange()` met à jour deux lignes de `plan_creneaux_taches` — le slot de A reçoit `id_personne = id_personne_cible` et le slot de B reçoit `id_personne = id_personne_demandeur`. Les deux parties reçoivent un email de confirmation. Si l'échange est approuvé par un admin/gestionnaire avant la réponse de B, cette approbation **prend le pas** sur l'attente. Les deux slots sont d'abord relus (verrouillés) : si l'un n'appartient plus à la personne prévue, l'échange passe à `annule`, les deux parties sont prévenues et rien n'est échangé.
 >
 > **Tokens à usage unique :** une fois l'échange dans un statut terminal (`accepte`, `refuse`, `expire`, `annule`), les tokens ne permettent plus aucune action — `EchangeController::accepter()`/`refuser()` vérifient `isEnAttente()` avant d'exécuter quoi que ce soit. Pour échanger à nouveau (y compris un swap retour), une **nouvelle demande** doit être créée — aucun token n'est jamais réutilisé.
 >
 > **Expiration automatique :** la commande planifiée `php artisan amana:expire-echanges` (enregistrée dans `routes/console.php`, exécutée quotidiennement) marque `expire` tout échange `en_attente` dont `expires_at` est dépassé, puis notifie le demandeur.
 >
-> **Restriction de cohérence :** `EchangeService::slotsEchangeables()` ne propose que des slots futurs, assignés, sur la **même tâche** (`ref_taches.code` identique), appartenant à une personne différente du demandeur, et non déjà impliqués dans un autre échange `en_attente`.
+> **Restriction de cohérence :** `EchangeService::slotsEchangeables()` ne propose que des slots futurs, assignés, sur la **même tâche** (`ref_taches.code` identique), appartenant à une personne différente du demandeur, et dont le couple (créneau, tâche) n'est pas déjà impliqué dans un autre échange `en_attente`.
 >
 > **Hors scope (non couvert par cette table) :** le cas où la personne cible B n'a **aucun créneau futur généré** sur la même tâche. Il n'y a alors aucun slot à échanger — une éventuelle fonctionnalité de « priorité de réassignation à la prochaine génération » serait portée par une table/feature distincte.
 >

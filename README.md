@@ -291,7 +291,9 @@ Formulaire de génération automatique du planning.
 
 **Rollback** : après chaque génération, un panneau de rollback apparaît permettant d'annuler tout ou partie des créneaux générés (par semaine). La session de rollback est conservée jusqu'à fermeture explicite.
 
-> ⚠️ Une génération qui supprime des créneaux existants supprime **en cascade** (`onDelete('cascade')`) tout échange de créneau en cours impliquant ces créneaux. Vérifiez les échanges en attente (`/admin/echanges`) avant de régénérer une période contenant des demandes non résolues.
+> ℹ️ Une génération qui supprime des créneaux existants **annule** les échanges de créneau `en_attente` qui les concernent (statut `annule`, audité) et **prévient les deux personnes** par e-mail (« Demande d'échange annulée »). Les échanges déjà terminés (accepté, refusé, expiré, annulé) sont **conservés** : leurs clés vers les créneaux passent à `NULL` (`ON DELETE SET NULL`) et les dates restent lisibles grâce à `date_creneau_demandeur` / `date_creneau_cible`.
+
+> La suppression des anciens créneaux se fait **dans la même transaction** que la génération : si celle-ci échoue en cours de route, l'ancien planning est restauré tel quel. La suppression va de la date de début jusqu'à la **fin** du planning existant, volontairement : générer moins de semaines que l'existant remplace donc aussi les semaines suivantes (les régénérations automatiques, elles, conservent tout l'horizon).
 
 ```mermaid
 flowchart TD
@@ -650,7 +652,7 @@ flowchart TD
     I --> J[Fin]
 ```
 
-> ⚠️ L'étape **D** (suppression des créneaux existants) supprime en cascade tout échange `plan_echanges` lié à ces créneaux, quel que soit son statut. Vérifier `/admin/echanges` avant une régénération qui couvre une période avec des échanges `en_attente`.
+> ℹ️ L'étape **D** (suppression des créneaux existants) s'exécute **dans la transaction** de génération (un échec restaure l'ancien planning), **annule et notifie** les échanges `en_attente` liés à ces créneaux et **conserve** les échanges terminés (clés étrangères à `NULL`, dates mémorisées). Voir [Algorithme de génération](#algorithme-de-génération-du-planning).
 
 ### Mode dry-run (prévisualisation)
 
@@ -812,6 +814,7 @@ Les notifications de l'application sont envoyées en **synchrone**, directement 
 | Échange refusé                        | Demandeur (A)                  | « Échange refusé »                                       |
 | Échange expiré (aucune réponse)       | Demandeur (A)                  | « Échange expiré »                                       |
 | Échange annulé par le demandeur       | Cible (B)                      | « Demande annulée »                                      |
+| Échange annulé par le système (planning régénéré ou créneau réaffecté) | Demandeur (A) **et** cible (B) | « Demande d'échange annulée » — aucun créneau échangé |
 | Planning généré ou régénéré           | Admins **et** gestionnaires    | « Planning généré / régénéré — du … au … » (voir ci-dessous) |
 
 Toutes les notifications d'échange sont implémentées comme classes `App\Notifications\Echanges\*` (namespace dédié).
@@ -881,8 +884,11 @@ sequenceDiagram
 
 ### Règles métier
 
-- **Slots échangeables** : seuls les créneaux **futurs**, déjà assignés, sur la **même tâche** (même `code` dans `ref_taches`), appartenant à une personne différente du demandeur, et non déjà impliqués dans un autre échange `en_attente`, sont proposés.
-- **Expiration** : la date limite de réponse correspond à la **date du créneau du demandeur** (fin de journée). Passé ce délai sans réponse, la demande expire automatiquement (commande planifiée `amana:expire-echanges`, exécutée quotidiennement).
+- **Slots échangeables** : seuls les créneaux **futurs** (« aujourd'hui » = date Europe/Paris), déjà assignés, sur la **même tâche** (même `code` dans `ref_taches`), appartenant à une personne différente du demandeur, et dont le **couple (créneau, tâche)** n'est pas déjà impliqué dans un autre échange `en_attente`, sont proposés. Un échange en attente ne masque que ce couple : les autres tâches du même jour restent proposées.
+- **Créneau du demandeur** : le jour même reste échangeable (« passé » = date strictement antérieure à aujourd'hui, heure de Paris). Un slot déjà engagé dans un échange en attente — comme demandeur **ou** comme cible — ne peut pas être engagé dans un second.
+- **Expiration** : la date limite de réponse est la **fin de la journée du créneau du demandeur, heure de Paris** (23:59:59 Europe/Paris, stockée en UTC). Elle s'applique aux liens **Accepter et Refuser** : passé ce délai, un lien affiche « Ce lien a expiré » et la demande expire (commande planifiée `amana:expire-echanges`, exécutée quotidiennement, qui prévient le demandeur).
+- **Revérification à l'exécution** : à l'acceptation (lien ou approbation admin), les deux créneaux sont relus et verrouillés. Si l'un n'est plus attribué à la personne prévue (planning réassigné ou régénéré depuis la demande), **rien n'est échangé** : l'échange passe à `annule`, **les deux personnes sont prévenues** (« Demande d'échange annulée ») et l'appelant voit « Cet échange n'est plus valable… ».
+- **Régénération du planning** : les échanges `en_attente` dont les créneaux sont supprimés sont annulés et notifiés de la même façon ; les échanges terminés sont conservés avec leurs dates.
 - **Override admin/gestionnaire** : à tout moment pendant qu'une demande est `en_attente`, un admin ou gestionnaire peut l'approuver ou la refuser directement depuis `/admin/echanges`, sans attendre la réponse de la personne cible. L'approbation admin **prend le pas** sur l'attente de B.
 - **Tokens à usage unique** : une fois l'échange dans un statut terminal (`accepte`, `refuse`, `expire`, `annule`), les liens email ne déclenchent plus aucune action — ils affichent une page indiquant que la demande n'est plus valide.
 - **Pas de réutilisation de lien pour un nouvel échange** : si B souhaite à son tour échanger (y compris un swap retour vers A), il doit initier une **nouvelle demande** depuis son propre « Mon planning » — exactement le même processus que A a suivi.
@@ -899,7 +905,7 @@ sequenceDiagram
 | `App\Services\EchangeService`            | Toute la logique métier : calcul des slots échangeables, création, acceptation/refus par token, approbation/refus admin, annulation, expiration |
 | `App\Http\Controllers\EchangeController` | Routes membres, routes tokenisées publiques, routes admin/gestionnaire                                                                          |
 | `App\Console\Commands\ExpirerEchanges`   | Commande `amana:expire-echanges`, planifiée quotidiennement                                                                                     |
-| `App\Notifications\Echanges\*`           | 5 notifications (demande, accepté, refusé, expiré, annulé)                                                                                      |
+| `App\Notifications\Echanges\*`           | 6 notifications (demande, accepté, refusé, expiré, annulé par le demandeur, annulé par le système : planning changé)                            |
 
 ### Routes Echanges
 

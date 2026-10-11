@@ -98,6 +98,12 @@ class RotationEngine
         $cycles = &$context['amanaFoodCycles'];
         $personnes = $context['personnes'];
 
+        // Comportement VOLONTAIRE (confirmé) : seules les personnes AU cycle minimum
+        // sont candidates. Si toutes sont indisponibles (absence, restriction, planning
+        // pas encore commencé), la tâche reste NON ASSIGNÉE plutôt que de passer au
+        // cycle suivant : la rotation stricte amana_food reste équitable, personne ne
+        // « double » son tour. Ne pas « corriger » en retombant sur le cycle supérieur.
+
         // Personnes éligibles au cycle amana_food
         $eligibles = $personnes->filter(fn($p) => isset($cycles[$this->nomCle($p)]));
 
@@ -144,15 +150,18 @@ class RotationEngine
             $lastWork = $context['lastWorkDate'][$nom] ?? null;
             $daysRest = $lastWork ? (int) Carbon::parse($lastWork)->diffInDays($date) : 999;
 
-            $candidats[] = ['nom' => $nom, 'cycle' => $cycle, 'repos' => $daysRest];
+            // 'jamais' : priorité EXPLICITE à qui n'a jamais travaillé. Le 999 ne sert
+            // plus que de valeur de départage entre deux personnes dans ce cas — avant,
+            // quelqu'un d'inactif depuis plus de 999 jours passait DERRIÈRE un nouveau.
+            $candidats[] = ['nom' => $nom, 'cycle' => $cycle, 'repos' => $daysRest, 'jamais' => $lastWork === null];
         }
 
         if (empty($candidats)) {
             return null; // Aucun candidat → tâche non assignée
         }
 
-        // Trier par repos décroissant (plus de repos = priorité)
-        usort($candidats, fn($a, $b) => $b['repos'] <=> $a['repos']);
+        // Jamais travaillé d'abord, puis repos décroissant (plus de repos = priorité)
+        usort($candidats, fn($a, $b) => ($b['jamais'] <=> $a['jamais']) ?: ($b['repos'] <=> $a['repos']));
 
         $choisi = $candidats[0]['nom'];
 
@@ -233,6 +242,8 @@ class RotationEngine
                 ? $this->calculerJoursRepos(Carbon::parse($lastWork), $date, $nom, $context['absences'])
                 : 999;
 
+            $jamais = $lastWork === null;
+
             $taskCount = $context['taskHistory'][$codeTask][$nom] ?? 0;
             $numOptions = $context['personOptions'][$nom] ?? 8;
 
@@ -251,6 +262,7 @@ class RotationEngine
                 'score' => $score,
                 'totalTasks' => $totalTasks,
                 'daysRest' => $daysRest,
+                'jamais' => $jamais,
                 'taskCount' => $taskCount,
                 'numOptions' => $numOptions,
                 'penaltyMultiplier' => $penaltyMultiplier,
@@ -261,8 +273,10 @@ class RotationEngine
             return null;
         }
 
-        // Trier par score croissant (plus bas = prioritaire)
-        usort($candidats, fn($a, $b) => $a['score'] <=> $b['score']);
+        // Qui n'a jamais travaillé passe devant tout le monde (priorité explicite, plus
+        // un « -999 jours » que l'inactivité d'un ancien pouvait dépasser) ; ensuite
+        // score croissant (plus bas = prioritaire).
+        usort($candidats, fn($a, $b) => ($b['jamais'] <=> $a['jamais']) ?: ($a['score'] <=> $b['score']));
 
         $choisi = $candidats[0]['nom'];
 

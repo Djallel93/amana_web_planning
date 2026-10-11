@@ -255,6 +255,18 @@ onMounted(() => {
                             nombre d'échanges en attente vous concernant. Vous pouvez annuler une demande que vous avez
                             initiée tant qu'elle n'a pas été traitée.
                         </p>
+                        <p>
+                            Une demande reste valable
+                            <strong class="text-ink"
+                                >jusqu'à la fin de la journée de votre créneau (heure de Paris)</strong
+                            >
+                            : le jour même, vous pouvez donc encore demander un échange. Passé ce délai, les liens
+                            <em>Accepter</em> et <em>Refuser</em> affichent « Ce lien a expiré ». Si le planning change
+                            entre la demande et la réponse — il est régénéré, ou l'un des deux créneaux est réaffecté —,
+                            la demande est <strong class="text-ink">annulée automatiquement</strong>, vous et l'autre
+                            personne en êtes prévenus par e-mail, et aucun créneau n'est échangé : il suffit de refaire
+                            une demande.
+                        </p>
                         <div class="guide-example">
                             <span class="guide-example-label">Exemple</span>
                             L'utilisateur A est assigné à <strong>Entrée, vendredi 17 juillet</strong> mais part en

@@ -62,7 +62,7 @@
                         <td class="px-4 py-3">
                             <div class="flex flex-col gap-0.5">
                                 <span class="font-semibold text-[12.5px] text-ink">
-                                    {{ $echange->creneauDemandeur?->date?->locale('fr')->isoFormat('ddd D MMM YYYY') ?? '—' }}
+                                    {{ $echange->date_demandeur?->locale('fr')->isoFormat('ddd D MMM YYYY') ?? '—' }}
                                 </span>
                                 <span class="text-ink-muted text-[11.5px]">{{ $echange->tacheDemandeur?->libelle ?? '—' }}</span>
                             </div>
@@ -74,7 +74,7 @@
                         <td class="px-4 py-3">
                             <div class="flex flex-col gap-0.5">
                                 <span class="font-semibold text-[12.5px] text-ink">
-                                    {{ $echange->creneauCible?->date?->locale('fr')->isoFormat('ddd D MMM YYYY') ?? '—' }}
+                                    {{ $echange->date_cible?->locale('fr')->isoFormat('ddd D MMM YYYY') ?? '—' }}
                                 </span>
                                 <span class="text-ink-muted text-[11.5px]">{{ $echange->tacheCible?->libelle ?? '—' }}</span>
                             </div>
@@ -167,12 +167,12 @@
 
                 <div class="flex items-center gap-2 flex-wrap p-2.5 bg-surface border border-surface-border rounded-lg mb-2.5 text-[12px]">
                     <div class="flex flex-col gap-0.5 flex-1 min-w-[110px]">
-                        <span class="font-semibold text-ink">{{ $echange->creneauDemandeur?->date?->locale('fr')->isoFormat('D MMM YYYY') ?? '—' }}</span>
+                        <span class="font-semibold text-ink">{{ $echange->date_demandeur?->locale('fr')->isoFormat('D MMM YYYY') ?? '—' }}</span>
                         <span class="text-ink-muted text-[11px]">{{ $echange->tacheDemandeur?->libelle ?? '—' }}</span>
                     </div>
                     <span class="text-accent font-bold">⇄</span>
                     <div class="flex flex-col gap-0.5 flex-1 min-w-[110px]">
-                        <span class="font-semibold text-ink">{{ $echange->creneauCible?->date?->locale('fr')->isoFormat('D MMM YYYY') ?? '—' }}</span>
+                        <span class="font-semibold text-ink">{{ $echange->date_cible?->locale('fr')->isoFormat('D MMM YYYY') ?? '—' }}</span>
                         <span class="text-ink-muted text-[11px]">{{ $echange->tacheCible?->libelle ?? '—' }}</span>
                     </div>
                 </div>

@@ -237,6 +237,8 @@ class GoogleCalendarPayloadMapper
      * lettre du dernier mot, majuscules) d'un nom complet "Prénom Nom".
      * Gère les noms/prénoms composés en ne prenant que le premier et le
      * dernier mot de la chaîne (ex. "Jean-Pierre Da Silva" → "JD").
+     * Un nom d'UN SEUL mot donne ses deux premières lettres (ex. "Madonna" →
+     * "MA", et non "MM" : la même lettre prise deux fois).
      * Retourne null si $assigne est vide/null ou ne contient aucune lettre
      * exploitable (garde-fou, ne devrait pas arriver en pratique).
      */
@@ -252,10 +254,14 @@ class GoogleCalendarPayloadMapper
             return null;
         }
 
-        $premiere = mb_strtoupper(mb_substr($mots[0], 0, 1));
-        $derniere = mb_strtoupper(mb_substr($mots[count($mots) - 1], 0, 1));
+        if (count($mots) === 1) {
+            $initiales = mb_strtoupper(mb_substr($mots[0], 0, 2));
+        } else {
+            $premiere = mb_strtoupper(mb_substr($mots[0], 0, 1));
+            $derniere = mb_strtoupper(mb_substr($mots[count($mots) - 1], 0, 1));
 
-        $initiales = $premiere . $derniere;
+            $initiales = $premiere . $derniere;
+        }
 
         return $initiales !== '' ? $initiales : null;
     }

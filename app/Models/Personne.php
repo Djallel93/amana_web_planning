@@ -119,8 +119,12 @@ class Personne extends SharedPersonne
             return true;
         }
 
+        // orderByRaw : même ordre que RoleService::currentRoleCode() — si une
+        // personne a (anormalement) plusieurs rôles planning, on retient
+        // toujours le plus élevé plutôt qu'une ligne arbitraire.
         $roleCode = $this->planningRoleCodeCache ??= (string) ($this->roles()
             ->whereHas('application', fn($q) => $q->where('code', 'planning'))
+            ->orderByRaw("FIELD(ref_roles.code, 'admin', 'gestionnaire', 'membre', 'benevole')")
             ->value('ref_roles.code') ?? '');
 
         if (!isset($restrictionsParRole[$roleCode])) {

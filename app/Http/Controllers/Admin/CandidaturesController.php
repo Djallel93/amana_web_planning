@@ -14,6 +14,7 @@ use App\Services\InvitationLinkService;
 use App\Services\RoleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
@@ -57,11 +58,21 @@ class CandidaturesController extends Controller
         $avant = $personne->toArray();
         $roleCode = $request->input('role', 'membre');
 
-        $personne->statut = 'Validé';
-        $personne->date_debut_planning = now()->toDateString();
-        $personne->save();
+        // Statut et rôle dans UNE transaction : si le rôle choisi n'existe pas dans le
+        // référentiel (RoleService lève une exception), la candidature reste « En
+        // attente » au lieu d'être validée pour un compte sans aucun droit.
+        try {
+            DB::connection(config('amana-shared.connection', 'commun'))->transaction(function () use ($personne, $roleCode): void {
+                $personne->statut = 'Validé';
+                $personne->date_debut_planning = now()->toDateString();
+                $personne->save();
 
-        $this->roleService->syncRolePlanning($personne, $roleCode);
+                $this->roleService->syncRolePlanning($personne, $roleCode);
+            });
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->route('admin.candidatures.index')
+                ->with('error', "Candidature non validée : {$e->getMessage()}");
+        }
 
         $echecsPartage = $this->calendarSharing->partagerPourNouveauMembre($personne->email, $roleCode);
 

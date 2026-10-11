@@ -127,12 +127,11 @@ class WebhookPayloadBuilderTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION : la fenêtre va de début à début + semaines×7 + 1 jour, bornes
-     * incluses — une semaine de plus que demandé (même décalage que
-     * SchedulerMain::buildRollbackSnapshot). Sans effet quand la régénération va jusqu'au
-     * dernier créneau existant ; sinon la semaine suivante est aussi envoyée à Google.
+     * La fenêtre va du premier vendredi au dernier samedi des `semaines` semaines demandées
+     * (même fenêtre que SchedulerMain::buildRollbackSnapshot) : la semaine qui suit n'est
+     * jamais envoyée à Google, même si ses créneaux existent.
      */
-    public function test_build_inclut_la_semaine_qui_suit_la_fenetre_demandee(): void
+    public function test_build_n_inclut_pas_la_semaine_qui_suit_la_fenetre_demandee(): void
     {
         foreach (['2026-10-02', '2026-10-03', '2026-10-09', '2026-10-10', '2026-10-16', '2026-10-17', '2026-10-23'] as $d) {
             $this->creneauLe($d);
@@ -140,7 +139,7 @@ class WebhookPayloadBuilderTest extends TestCase
 
         $dates = array_column($this->builder()->build(self::VENDREDI, 1)['creneaux'], 'date');
 
-        $this->assertSame(['2026-10-02', '2026-10-03', '2026-10-09', '2026-10-10'], $dates);
+        $this->assertSame(['2026-10-02', '2026-10-03'], $dates, 'une seule semaine demandée : la suivante n\'est pas envoyée');
     }
 
     public function test_build_sans_creneau_renvoie_une_liste_vide(): void

@@ -23,11 +23,13 @@ use App\Models\Echange;
 use App\Models\Evenement;
 use App\Models\Personne;
 use App\Models\Tache;
+use App\Notifications\Echanges\EchangeInvalideNotification;
 use App\Services\DataLoader;
 use App\Services\RotationEngine;
 use App\Services\SchedulerMain;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 use Tests\Concerns\CreeDonneesPlanning;
@@ -251,11 +253,13 @@ class SchedulerMainTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION : la suppression va de la date de début jusqu'à la FIN de la table,
-     * pas seulement sur la fenêtre régénérée. Générer 1 semaine alors que 3 existent
-     * supprime silencieusement les 2 dernières sans les recréer.
-     * regenerateFromImpactedDate() évite le piège en calculant le nombre de semaines ;
-     * un appel direct à generateSchedule() (PlanningController) ne le fait pas.
+     * COMPORTEMENT VOLONTAIRE (confirmé, ne pas « corriger ») : generateSchedule($date, $n)
+     * signifie « (re)génère $n semaines à partir de $date et remplace tout ce qui suit ».
+     * La suppression va donc de la date de début jusqu'à la FIN de la table : générer
+     * 1 semaine alors que 3 existent supprime aussi les 2 suivantes sans les recréer.
+     * regenerateFromImpactedDate() conserve l'horizon en calculant le nombre de semaines ;
+     * un appel direct à generateSchedule() (PlanningController) veut précisément ce
+     * remplacement complet. Voir le commentaire de SchedulerMain::cleanExistingCreneaux().
      */
     public function test_generer_moins_de_semaines_que_l_existant_supprime_aussi_les_semaines_suivantes(): void
     {
@@ -270,32 +274,69 @@ class SchedulerMainTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION : plan_echanges a ON DELETE CASCADE vers les créneaux. Régénérer
-     * supprime donc aussi les échanges (en attente ET historiques) qui les référencent.
+     * Régénérer supprime les créneaux : un échange EN ATTENTE qui les référence n'a plus
+     * d'objet. Il est annulé explicitement (statut « annule », audité) et les DEUX parties
+     * sont prévenues — au lieu de disparaître en silence par cascade.
      */
-    public function test_regenerer_supprime_en_cascade_les_echanges_lies_aux_creneaux(): void
+    public function test_regenerer_annule_les_echanges_en_attente_et_previent_les_deux_parties(): void
     {
+        Notification::fake();
         $this->tachesDeRotation();
         $this->personnesValidees(5);
         $this->scheduler()->generateSchedule(self::VENDREDI, 1);
         $echange = Echange::factory()->create([
             'id_creneau_demandeur' => Creneau::where('date', self::VENDREDI)->value('id'),
+            'date_creneau_demandeur' => self::VENDREDI,
             'id_creneau_cible' => Creneau::where('date', '2026-10-03')->value('id'),
+            'date_creneau_cible' => '2026-10-03',
         ]);
 
         $this->scheduler()->generateSchedule(self::VENDREDI, 1);
 
-        $this->assertNull(Echange::find($echange->id));
+        $echange->refresh();
+        $this->assertSame(Echange::STATUT_ANNULE, $echange->statut);
+        $this->assertNull($echange->id_creneau_demandeur, 'les créneaux ont été recréés : l\'ancienne clé est remise à NULL');
+        $this->assertNull($echange->id_creneau_cible);
+        Notification::assertSentTo($echange->demandeur, EchangeInvalideNotification::class);
+        Notification::assertSentTo($echange->cible, EchangeInvalideNotification::class);
+        Notification::assertCount(2);
     }
 
     /**
-     * CARACTÉRISATION : cleanExistingCreneaux() s'exécute AVANT DB::beginTransaction().
-     * Si la génération échoue en cours de route, la transaction annule ce qui a été créé,
-     * mais l'ancien planning est déjà supprimé — et pas restauré. Un échec laisse donc un
-     * planning VIDE à partir de la date de début. (Envelopper aussi la suppression dans la
-     * transaction règlerait cela ; ce test devrait alors passer à « ancien planning conservé ».)
+     * Les échanges TERMINÉS (accepté, refusé, expiré, annulé) survivent à la régénération :
+     * la clé étrangère passe à NULL (ON DELETE SET NULL) et la date mémorisée à la
+     * création garde l'historique lisible. Personne n'est prévenu.
      */
-    public function test_un_echec_en_cours_de_generation_a_deja_supprime_l_ancien_planning(): void
+    public function test_regenerer_conserve_les_echanges_termines_avec_leurs_dates(): void
+    {
+        Notification::fake();
+        $this->tachesDeRotation();
+        $this->personnesValidees(5);
+        $this->scheduler()->generateSchedule(self::VENDREDI, 1);
+        $echange = Echange::factory()->accepte()->create([
+            'id_creneau_demandeur' => Creneau::where('date', self::VENDREDI)->value('id'),
+            'date_creneau_demandeur' => self::VENDREDI,
+            'id_creneau_cible' => Creneau::where('date', '2026-10-03')->value('id'),
+            'date_creneau_cible' => '2026-10-03',
+        ]);
+
+        $this->scheduler()->generateSchedule(self::VENDREDI, 1);
+
+        $echange->refresh();
+        $this->assertSame(Echange::STATUT_ACCEPTE, $echange->statut, 'conservé, statut inchangé');
+        $this->assertNull($echange->id_creneau_demandeur);
+        $this->assertNull($echange->id_creneau_cible);
+        $this->assertSame('2026-10-02', $echange->date_demandeur->toDateString());
+        $this->assertSame('2026-10-03', $echange->date_cible->toDateString());
+        Notification::assertNothingSent();
+    }
+
+    /**
+     * La suppression de l'ancien planning est DANS la transaction de génération : si la
+     * génération échoue en cours de route, tout est annulé et l'ancien planning est
+     * conservé tel quel (et non remplacé par un planning vide).
+     */
+    public function test_un_echec_en_cours_de_generation_conserve_l_ancien_planning(): void
     {
         $this->tachesDeRotation();
         $this->personnesValidees(5);
@@ -317,9 +358,46 @@ class SchedulerMainTest extends TestCase
             Creneau::flushEventListeners();
         }
 
-        $this->assertNull(Creneau::find($idAncien), 'l\'ancien créneau du 02/10 a été supprimé avant l\'échec');
-        $this->assertSame(0, Creneau::count(), 'et rien de nouveau n\'a survécu : planning vide');
+        $this->assertNotNull(Creneau::find($idAncien), 'l\'ancien créneau du 02/10 est restauré (même id)');
+        $this->assertSame(1, Creneau::count(), 'et rien de nouveau n\'a survécu');
+        $this->assertSame(1, CreneauTache::where('id_planning', $idAncien)->count(), 'ses assignations aussi');
         $this->assertSame($niveauAvant, $this->niveauTransaction(), 'la transaction du service est bien refermée');
+    }
+
+    /**
+     * Même échec : l'annulation des échanges en attente est défaite par le rollback (statut
+     * et clés inchangés) et personne n'est prévenu d'une annulation qui n'a pas eu lieu.
+     */
+    public function test_un_echec_de_generation_n_annule_ni_ne_notifie_les_echanges_en_attente(): void
+    {
+        Notification::fake();
+        $this->tachesDeRotation();
+        $this->personnesValidees(5);
+        $this->scheduler()->generateSchedule(self::VENDREDI, 1);
+        $idVendredi = Creneau::where('date', self::VENDREDI)->value('id');
+        $echange = Echange::factory()->create([
+            'id_creneau_demandeur' => $idVendredi,
+            'id_creneau_cible' => Creneau::where('date', '2026-10-03')->value('id'),
+        ]);
+        Creneau::creating(function (Creneau $c) {
+            if ($c->date->toDateString() === '2026-10-03') {
+                throw new RuntimeException('panne simulée au 2e jour');
+            }
+        });
+
+        try {
+            $this->scheduler()->generateSchedule(self::VENDREDI, 1);
+            $this->fail('RuntimeException attendue');
+        } catch (RuntimeException) {
+            // attendu
+        } finally {
+            Creneau::flushEventListeners();
+        }
+
+        $echange->refresh();
+        $this->assertSame(Echange::STATUT_EN_ATTENTE, $echange->statut);
+        $this->assertSame($idVendredi, $echange->id_creneau_demandeur);
+        Notification::assertNothingSent();
     }
 
     // ── Événements bloquants ──────────────────────────────────────────────
@@ -420,9 +498,9 @@ class SchedulerMainTest extends TestCase
             'après le dernier créneau : au moins 1 semaine' => ['2026-10-31', '2026-11-13', '2026-11-13', 1],
             'aucun créneau existant : 1 semaine' => [null, '2026-10-09', '2026-10-09', 1],
             // Hors domaine normal (les créneaux sont des vendredis/samedis) : une date impactée
-            // ni vendredi ni samedi recule d'UN jour, pas jusqu'au vendredi. Sans conséquence,
-            // generateSchedule() repartant du premier vendredi ≥ cette date.
-            'date impactée un dimanche : veille (samedi)' => ['2026-10-31', '2026-10-04', '2026-10-03', 4],
+            // ni vendredi ni samedi recule jusqu'au vendredi PRÉCÉDENT (ici 2 jours), comme le
+            // prévoit la règle « les créneaux n'existent que le vendredi et le samedi ».
+            'date impactée un dimanche : vendredi précédent' => ['2026-10-31', '2026-10-04', '2026-10-02', 5],
         ];
     }
 
@@ -463,12 +541,11 @@ class SchedulerMainTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION : l'instantané couvre `semaines` semaines PLUS une semaine (dateFin =
-     * début + semaines×7 + 1 jour, bornes incluses) : le vendredi et le samedi qui suivent
-     * la fenêtre régénérée y figurent s'ils existent. Probablement un décalage d'une semaine ;
-     * sans effet quand la régénération va jusqu'au dernier créneau (cas de regenerateFromImpactedDate).
+     * L'instantané couvre EXACTEMENT les `semaines` semaines régénérées (du premier vendredi
+     * au dernier samedi inclus) : le vendredi et le samedi qui suivent la fenêtre n'y figurent
+     * pas, même s'ils existent.
      */
-    public function test_l_instantane_depasse_d_une_semaine_la_fenetre_regeneree(): void
+    public function test_l_instantane_couvre_exactement_la_fenetre_regeneree(): void
     {
         foreach (['2026-10-02', '2026-10-03', '2026-10-09', '2026-10-10', '2026-10-16', '2026-10-17', '2026-10-23'] as $date) {
             $this->creneauLe($date);
@@ -476,7 +553,7 @@ class SchedulerMainTest extends TestCase
 
         $dates = array_column($this->scheduler()->buildRollbackSnapshot('2026-10-02', 2), 'date');
 
-        $this->assertSame(['2026-10-02', '2026-10-03', '2026-10-09', '2026-10-10', '2026-10-16', '2026-10-17'], $dates);
+        $this->assertSame(['2026-10-02', '2026-10-03', '2026-10-09', '2026-10-10'], $dates);
     }
 
     public function test_regeneration_reelle_de_bout_en_bout(): void

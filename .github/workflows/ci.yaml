@@ -3,13 +3,26 @@ name: CI
 # Tests sur chaque push hors main / develop (ces deux branches déclenchent leur
 # propre workflow de déploiement, qui exécute la même porte de qualité avant
 # tout build). Pas de build ici.
+#
+# Déclenchement manuel (workflow_dispatch) : permet de tester l'application contre une
+# branche (ou un tag) de amana_shared au lieu de la version épinglée par composer.lock,
+# avant de publier un nouveau tag de amana_shared.
 on:
   push:
     branches-ignore:
       - main
       - develop
+  workflow_dispatch:
+    inputs:
+      shared_ref:
+        description: "Branche de amana_shared à tester (vide = version épinglée par composer.lock). Ne modifie pas composer.lock dans le dépôt."
+        required: false
+        default: ""
+        type: string
 
 jobs:
   test:
     uses: ./.github/workflows/tests.yaml
+    with:
+      shared_ref: ${{ inputs.shared_ref || '' }}
     secrets: inherit

@@ -22,12 +22,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Garde-fou : la production ne se déploie QUE depuis `main`. Un déclenchement
+  # manuel (workflow_dispatch) sur une autre branche échoue ici, avant tout test,
+  # build ou déploiement — il déployait auparavant cette branche en production.
+  # (Le déploiement preprod, lui, accepte volontairement toute branche.)
+  garde-branche:
+    name: Production = main uniquement
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier la branche
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::Déploiement production refusé depuis '${GITHUB_REF_NAME}' : seule la branche main peut être déployée. Utilisez le workflow preprod pour tester une autre branche."
+            exit 1
+          fi
+
   # Porte de qualité : tout ce qui suit (build, deploy) en dépend. Un test,
   # un lint, un type-check, une analyse PHPStan ou un contrôle de style (Pint,
   # Prettier) en échec bloque le déploiement.
   # Définie dans tests.yaml (partagée avec ci.yaml et le déploiement preprod).
   # Voir tests/README.md pour la stratégie base de données.
   test:
+    needs: garde-branche
     uses: ./.github/workflows/tests.yaml
     secrets: inherit
 

@@ -52,7 +52,7 @@ abstract class TestCase extends BaseTestCase
      *  - Setting::$cache               (amana_shared) — paramètres lus dans ref_settings ;
      *  - Amana\Shared\Helpers\AuditHelper — id d'application ; c'est CELUI de la fonction globale
      *    audit() (contrôleurs, services), il a un clearCache() ;
-     *  - App\Helpers\AuditHelper::$applicationId — id de l'application 'planning', pas de clearCache() ;
+     *  - App\Helpers\AuditHelper::$applicationId — id de l'application 'planning' (clearCache()) ;
      *  - Personne::$tacheCodesById     — Tache::pluck('code', 'id') de peutFaireTache().
      * Sans remise à zéro, un test lirait l'id/valeur du test précédent.
      */
@@ -61,9 +61,9 @@ abstract class TestCase extends BaseTestCase
         Setting::clearCache();
         AuditHelperPartage::clearCache(); // celui que la fonction globale audit() utilise réellement
 
-        foreach ([[AuditHelper::class, 'applicationId'], [Personne::class, 'tacheCodesById']] as [$classe, $propriete]) {
-            (new ReflectionProperty($classe, $propriete))->setValue(null);
-        }
+        AuditHelper::clearCache();
+
+        (new ReflectionProperty(Personne::class, 'tacheCodesById'))->setValue(null);
     }
 
     /**

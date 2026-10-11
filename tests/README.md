@@ -47,7 +47,10 @@ connexions.
 
 ## Consommation de `amana/shared` en CI
 
-Version **épinglée** par `composer.lock` (dépôt VCS, comme le job `build`).
+Version **épinglée** par `composer.lock` (dépôt VCS, comme le job `build`). Pour tester une
+**branche** de `amana_shared` avant de publier un tag : lancer le workflow `CI` à la main
+(`workflow_dispatch`) en renseignant `shared_ref` ; `composer.lock` n'est modifié que dans le
+runner.
 `composer.local.json` (chemin `../amana_shared`, git-ignoré) n'existe pas en CI
 et n'est utile qu'en co-développement local : en local, lancer la suite avec ce
 fichier présent teste donc le code non publié de `amana_shared`.
@@ -119,8 +122,8 @@ Une valeur `Y-m-d H:i:s` sur un attribut `'date'` a le même effet — utiliser 
 ## Caches statiques
 
 Trois caches statiques survivent d'un test à l'autre : `Setting::$cache` (amana_shared),
-`AuditHelper::$applicationId` (pas de `clearCache()` côté planning) et
-`Personne::$tacheCodesById`. `Tests\TestCase::setUp()` les remet à zéro ; un test
+`AuditHelper::$applicationId` (remis à zéro par `AuditHelper::clearCache()`) et
+`Personne::$tacheCodesById` (seul remis à zéro par réflexion). `Tests\TestCase::setUp()` les remet à zéro ; un test
 qui n'étend pas `Tests\TestCase` et lit ces caches doit le faire lui-même.
 
 ## Tests avec base de données : ce qu'il faut savoir avant d'en écrire

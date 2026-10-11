@@ -31,10 +31,12 @@ class AuditHelper
     /**
      * ID de l'application courante dans amana_commun.ref_applications,
      * mis en cache pour la durée du processus (même motif que
-     * RoleService::planningApp()). false = résolution déjà tentée et
-     * échouée, pour ne pas refaire la requête à chaque appel.
+     * RoleService::planningApp()). Seul un id RÉSOLU est mémorisé : un échec
+     * (ligne absente) n'est jamais conservé, sinon un worker de file longue
+     * durée dont le premier audit précède l'enregistrement de l'application
+     * écrirait `id_application = null` jusqu'à son redémarrage.
      */
-    private static int|false|null $applicationId = null;
+    private static ?int $applicationId = null;
 
     /**
      * Retourne l'id_application à écrire dans audit_logs (base partagée).
@@ -47,10 +49,26 @@ class AuditHelper
     {
         if (self::$applicationId === null) {
             $code = config('amana-shared.app_code', 'planning');
-            self::$applicationId = Application::where('code', $code)->value('id') ?? false;
+            $id = Application::where('code', $code)->value('id');
+
+            // Échec non mémorisé : la prochaine entrée d'audit réessaiera.
+            if ($id === null) {
+                return null;
+            }
+
+            self::$applicationId = (int) $id;
         }
 
-        return self::$applicationId === false ? null : self::$applicationId;
+        return self::$applicationId;
+    }
+
+    /**
+     * Vide le cache de l'id d'application (tests ; workers de file longue
+     * durée entre deux jobs si ref_applications a changé).
+     */
+    public static function clearCache(): void
+    {
+        self::$applicationId = null;
     }
 
     /**

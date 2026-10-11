@@ -57,18 +57,28 @@ class AuditHelperTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION : un ÉCHEC est mémorisé lui aussi. Si le premier appel du processus a lieu
-     * avant l'enregistrement de l'application dans ref_applications, toutes les entrées d'audit
-     * suivantes restent sans id_application jusqu'au redémarrage du processus (worker de queue
-     * compris), même après avoir passé PlanningApplicationSeeder.
+     * Un ÉCHEC n'est jamais mémorisé : si le premier appel du processus a lieu avant
+     * l'enregistrement de l'application dans ref_applications (worker de queue longue durée),
+     * les entrées suivantes retrouvent l'id dès que la ligne existe, sans redémarrage.
      */
-    public function test_un_echec_est_memorise_lui_aussi(): void
+    public function test_un_echec_n_est_pas_memorise(): void
     {
         $this->assertNull(AuditHelper::applicationId());
 
-        $this->enregistrerApplication();
+        $app = $this->enregistrerApplication();
 
-        $this->assertNull(AuditHelper::applicationId(), 'reste null : « application introuvable » est en cache');
+        $this->assertSame($app->id, AuditHelper::applicationId(), 'résolu dès que l\'application existe');
+    }
+
+    public function test_clear_cache_force_une_nouvelle_resolution(): void
+    {
+        $app = $this->enregistrerApplication();
+        $this->assertSame($app->id, AuditHelper::applicationId());
+        Application::where('id', $app->id)->update(['code' => 'renommee']);
+
+        AuditHelper::clearCache();
+
+        $this->assertNull(AuditHelper::applicationId());
     }
 
     public function test_le_cache_est_remis_a_zero_entre_deux_tests_grace_a_la_base_de_test(): void

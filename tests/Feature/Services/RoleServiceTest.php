@@ -184,16 +184,20 @@ class RoleServiceTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION : un code de rôle inconnu supprime d'abord tous les rôles planning
-     * de la personne, puis n'insère rien. Elle se retrouve sans aucun rôle planning
-     * (donc sans accès). Si c'est indésirable, valider le code AVANT la suppression.
+     * Un code de rôle inconnu est refusé AVANT toute suppression : une exception est levée
+     * et la personne conserve ses rôles actuels (elle ne se retrouve pas sans accès).
      */
-    public function test_sync_avec_un_code_inconnu_retire_le_role_sans_en_donner_de_nouveau(): void
+    public function test_sync_avec_un_code_inconnu_leve_une_exception_et_ne_modifie_rien(): void
     {
         $personne = Personne::factory()->admin()->create();
 
-        $this->service()->syncRolePlanning($personne, 'inexistant');
+        try {
+            $this->service()->syncRolePlanning($personne, 'inexistant');
+            $this->fail('InvalidArgumentException attendue');
+        } catch (\InvalidArgumentException $e) {
+            $this->assertStringContainsString('inexistant', $e->getMessage());
+        }
 
-        $this->assertSame([], $this->codesRolesPlanning($personne));
+        $this->assertSame(['admin'], $this->codesRolesPlanning($personne));
     }
 }

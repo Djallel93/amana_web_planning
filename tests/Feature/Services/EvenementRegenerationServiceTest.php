@@ -18,6 +18,7 @@ use App\Services\DataLoader;
 use App\Services\EvenementRegenerationService;
 use App\Services\RotationEngine;
 use App\Services\SchedulerMain;
+use App\Services\WebhookPayloadBuilder;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Bus;
 use RuntimeException;
@@ -248,6 +249,36 @@ class EvenementRegenerationServiceTest extends TestCase
             'Planning régénéré automatiquement à partir du 2 octobre 2026 (4 jours, 1 non assigné(s)) pour tenir compte de l\'événement « Ramadan ».',
             $resultat['message'],
         );
+    }
+
+    public function test_une_collection_filtree_dont_les_cles_ne_commencent_pas_a_zero_est_acceptee(): void
+    {
+        $this->creneauLe('2026-10-02');
+        $premier = $this->evenement('2026-10-02', '2026-10-03', ['nom' => 'Premier']);
+        $second = $this->evenement('2026-10-02', '2026-10-03', ['nom' => 'Second']);
+        $filtree = collect([$premier, $second])->filter(fn(Evenement $e) => $e->id === $second->id); // [1 => $second]
+
+        $resultat = (new EvenementRegenerationService($this->espion()))->regenererSiNecessaire($filtree);
+
+        $this->assertStringEndsWith('pour tenir compte de l\'événement « Second ».', $resultat['message']);
+    }
+
+    /**
+     * Le planning est déjà régénéré et audité quand le payload Google est construit : une
+     * panne à ce stade ne doit pas transformer le succès en erreur pour l'appelant. Elle est
+     * signalée par un avertissement dans le message, et rien n'est mis en file.
+     */
+    public function test_un_echec_de_la_synchronisation_google_n_invalide_pas_la_regeneration(): void
+    {
+        $this->creneauLe('2026-10-02');
+        $this->app->bind(WebhookPayloadBuilder::class, fn() => throw new RuntimeException('panne payload'));
+
+        $resultat = (new EvenementRegenerationService($this->espion()))->regenererSiNecessaire($this->evenement('2026-10-02', '2026-10-03', ['nom' => 'Ramadan']));
+
+        $this->assertStringStartsWith('Planning régénéré automatiquement', $resultat['message']);
+        $this->assertStringContainsString('La synchronisation Google Calendar n\'a pas pu être lancée', $resultat['message']);
+        $this->assertSame(1, AuditLog::where('module', 'planning')->where('action', 'generate')->count());
+        Bus::assertNothingDispatched();
     }
 
     public function test_succes_avec_plusieurs_evenements_le_message_les_compte(): void

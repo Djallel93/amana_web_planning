@@ -157,7 +157,7 @@ class RotationEngineTest extends TestCase
         [$a, $b] = [new PersonneDeTest('A'), new PersonneDeTest('B')];
         $contexte = $this->contexte([$a, $b], ['amana_food'], [
             'amanaFoodCycles' => [$a->cle() => 0, $b->cle() => 0],
-            // 260 jours de repos pour A ; « jamais travaillé » compte pour 999 jours.
+            // 260 jours de repos pour A ; « jamais travaillé » est prioritaire.
             'lastWorkDate' => [$a->cle() => '2026-01-01', $b->cle() => null],
         ]);
 
@@ -216,11 +216,11 @@ class RotationEngineTest extends TestCase
     }
 
     /**
-     * CARACTÉRISATION du comportement actuel, pas nécessairement du comportement voulu :
-     * seules les personnes AU cycle minimum sont candidates. Si tout le monde au cycle
-     * minimum est indisponible, la tâche reste non assignée — même quand des personnes
-     * au cycle supérieur sont disponibles. À confirmer avec le métier ; si c'est un bug,
-     * ce test est celui à corriger en premier.
+     * COMPORTEMENT VOLONTAIRE (confirmé, ne pas « corriger ») : seules les personnes AU
+     * cycle minimum sont candidates. Si tout le monde au cycle minimum est indisponible, la
+     * tâche reste non assignée — même quand des personnes au cycle supérieur sont
+     * disponibles : la rotation stricte amana_food reste équitable, personne ne « double »
+     * son tour. Voir le commentaire de RotationEngine::assignAmanaFood().
      */
     public function test_amana_food_si_tous_les_cycles_minimum_sont_indisponibles_la_tache_reste_vide(): void
     {
@@ -304,7 +304,29 @@ class RotationEngineTest extends TestCase
             'lastWorkDate' => [$ancien->cle() => '2026-01-01', $nouveau->cle() => null],
         ]);
 
-        $this->assertSame($nouveau->cle(), $this->jour($contexte)['entree'], '999 jours de repos : −999 écrase 50×10');
+        $this->assertSame($nouveau->cle(), $this->jour($contexte)['entree'], 'priorité explicite, quel que soit le score');
+    }
+
+    public function test_quelqu_un_inactif_depuis_plus_de_999_jours_ne_passe_pas_devant_qui_n_a_jamais_travaille(): void
+    {
+        [$ancien, $nouveau] = [new PersonneDeTest('Ancien'), new PersonneDeTest('Nouveau')];
+        $contexte = $this->contexte([$ancien, $nouveau], ['entree'], [
+            'totalTasks' => [$ancien->cle() => 0, $nouveau->cle() => 0],
+            'lastWorkDate' => [$ancien->cle() => '2020-01-01', $nouveau->cle() => null], // > 999 jours
+        ]);
+
+        $this->assertSame($nouveau->cle(), $this->jour($contexte)['entree']);
+    }
+
+    public function test_amana_food_inactif_depuis_plus_de_999_jours_ne_passe_pas_devant_qui_n_a_jamais_travaille(): void
+    {
+        [$a, $b] = [new PersonneDeTest('A'), new PersonneDeTest('B')];
+        $contexte = $this->contexte([$a, $b], ['amana_food'], [
+            'amanaFoodCycles' => [$a->cle() => 0, $b->cle() => 0],
+            'lastWorkDate' => [$a->cle() => '2020-01-01', $b->cle() => null],
+        ]);
+
+        $this->assertSame($b->cle(), $this->jour($contexte)['amana_food']);
     }
 
     // ── assignOtherTask : paliers du multiplicateur de pénalité ───────────

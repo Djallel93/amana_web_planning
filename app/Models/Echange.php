@@ -17,10 +17,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int         $id
  * @property int         $id_personne_demandeur
- * @property int         $id_creneau_demandeur
+ * @property int|null    $id_creneau_demandeur  NULL si le créneau a été supprimé (régénération)
+ * @property Carbon|null $date_creneau_demandeur Date mémorisée du créneau du demandeur
  * @property int         $id_tache_demandeur
  * @property int         $id_personne_cible
- * @property int         $id_creneau_cible
+ * @property int|null    $id_creneau_cible  NULL si le créneau a été supprimé (régénération)
+ * @property Carbon|null $date_creneau_cible Date mémorisée du créneau cible
  * @property int         $id_tache_cible
  * @property string      $statut  en_attente|accepte|refuse|expire|annule
  * @property string      $token_accept
@@ -39,9 +41,11 @@ class Echange extends Model
     protected $fillable = [
         'id_personne_demandeur',
         'id_creneau_demandeur',
+        'date_creneau_demandeur',
         'id_tache_demandeur',
         'id_personne_cible',
         'id_creneau_cible',
+        'date_creneau_cible',
         'id_tache_cible',
         'statut',
         'token_accept',
@@ -52,6 +56,8 @@ class Echange extends Model
 
     protected $casts = [
         'expires_at' => 'datetime',
+        'date_creneau_demandeur' => 'date',
+        'date_creneau_cible' => 'date',
     ];
 
     // ── Statuts ────────────────────────────────────────────────────────────
@@ -108,6 +114,24 @@ class Echange extends Model
     public function approbateur(): BelongsTo
     {
         return $this->belongsTo(Personne::class, 'approuve_par');
+    }
+
+    // ── Dates des créneaux ─────────────────────────────────────────────────
+
+    /**
+     * Date du créneau du demandeur : celle du créneau s'il existe encore, sinon la
+     * date mémorisée à la création. Un échange terminé survit à la suppression de
+     * son créneau par une régénération du planning (clé étrangère à NULL).
+     */
+    public function getDateDemandeurAttribute(): ?Carbon
+    {
+        return $this->creneauDemandeur?->date ?? $this->date_creneau_demandeur;
+    }
+
+    /** Date du créneau cible (même principe que getDateDemandeurAttribute()). */
+    public function getDateCibleAttribute(): ?Carbon
+    {
+        return $this->creneauCible?->date ?? $this->date_creneau_cible;
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────

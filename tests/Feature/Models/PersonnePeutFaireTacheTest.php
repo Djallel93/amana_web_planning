@@ -19,6 +19,7 @@ use Amana\Shared\Models\Role;
 use App\Models\Personne;
 use App\Models\Restriction;
 use Database\Factories\PersonneFactory;
+use Illuminate\Support\Facades\DB;
 use Tests\Concerns\CreeDonneesPlanning;
 use Tests\Concerns\RefreshesBothDatabases;
 use Tests\TestCase;
@@ -118,6 +119,23 @@ class PersonnePeutFaireTacheTest extends TestCase
             $this->assertTrue($personne->peutFaireTache($this->id('cours'), 'Vendredi'), $role);
             $this->assertTrue($personne->peutFaireTache($this->id('mektaba'), 'Samedi'), $role);
         }
+    }
+
+    /**
+     * Une personne qui a (anormalement) deux rôles planning reçoit le PLUS ÉLEVÉ, comme dans
+     * RoleService::currentRoleCode() — pas la première ligne trouvée. Ici « benevole » est
+     * inséré avant « admin » : sans tri, le filtre bénévole s'appliquerait à un admin.
+     */
+    public function test_avec_deux_roles_planning_le_plus_eleve_l_emporte(): void
+    {
+        $personne = Personne::factory()->benevole()->create();
+        DB::connection(config('amana-shared.connection', 'commun'))->table('ref_personnes_roles')->insert([
+            'id_personne' => $personne->id,
+            'id_role' => PersonneFactory::role('admin')->id,
+            'date_attribution' => '2026-09-14',
+        ]);
+
+        $this->assertTrue($personne->peutFaireTache($this->id('cours'), 'Vendredi'), 'admin : aucune restriction de rôle');
     }
 
     public function test_un_benevole_ne_peut_faire_aucune_tache_inconnue_du_referentiel(): void
