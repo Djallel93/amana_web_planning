@@ -375,7 +375,7 @@ async function resetPresence(): Promise<void> {
                 id="bilan_date"
                 v-model="date"
                 type="date"
-                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
             />
 
             <span v-if="loadState === 'loaded' && !existe" class="text-[12.5px] text-ink-muted">
@@ -396,9 +396,7 @@ async function resetPresence(): Promise<void> {
             <!-- Amana food -->
             <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
                 <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                    <div
-                        class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0"
-                    >
+                    <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm shrink-0">
                         🍽️
                     </div>
                     <span class="font-heading text-[14px] font-semibold text-ink">Amana food</span>
@@ -415,7 +413,7 @@ async function resetPresence(): Promise<void> {
                             min="0"
                             step="0.01"
                             placeholder="Pas de cours"
-                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                         />
                     </div>
                     <div class="flex flex-col gap-1.5">
@@ -429,7 +427,7 @@ async function resetPresence(): Promise<void> {
                             min="0"
                             step="0.01"
                             placeholder="Pas de cours"
-                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                         />
                     </div>
 
@@ -444,7 +442,7 @@ async function resetPresence(): Promise<void> {
                             min="0"
                             step="0.01"
                             placeholder="Pas de cours"
-                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                         />
                         <span class="text-[11px] text-ink-muted"
                             >Coût de la nourriture — laisser à 0 si elle a été offerte.</span
@@ -490,9 +488,7 @@ async function resetPresence(): Promise<void> {
             <!-- Présences -->
             <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
                 <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                    <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">
-                        👥
-                    </div>
+                    <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">👥</div>
                     <span class="font-heading text-[14px] font-semibold text-ink">Présences</span>
                 </div>
                 <div class="px-5 py-5 flex flex-col gap-4">
@@ -506,7 +502,7 @@ async function resetPresence(): Promise<void> {
                                 min="0"
                                 step="1"
                                 placeholder="Pas de cours"
-                                class="w-full pl-3.5 pr-11 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                                class="w-full pl-3.5 pr-11 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                             />
                             <button
                                 type="button"
@@ -528,7 +524,7 @@ async function resetPresence(): Promise<void> {
                                 min="0"
                                 step="1"
                                 placeholder="Pas de cours"
-                                class="w-full pl-3.5 pr-11 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                                class="w-full pl-3.5 pr-11 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                             />
                             <button
                                 type="button"

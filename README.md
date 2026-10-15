@@ -18,14 +18,17 @@
 
 ## Documentation complémentaire
 
-| Document                                     | Description                                                                                       |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [docs/installation.md](docs/installation.md) | Prérequis, installation locale, déploiement IONOS, référence des routes, résolution des problèmes |
-| [docs/Schema_bdd.md](docs/Schema_bdd.md)     | Schéma complet de la base de données, diagramme des relations, description de chaque table        |
+| Document                                                     | Description                                                                                                   |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| [docs/installation.md](docs/installation.md)                 | Prérequis, installation locale, déploiement IONOS, référence des routes, résolution des problèmes             |
+| [docs/Schema_bdd.md](docs/Schema_bdd.md)                     | Schéma complet de la base de données, diagramme des relations, description de chaque table                    |
 | [docs/frontend-conventions.md](docs/frontend-conventions.md) | Conventions Vue / TypeScript / Inertia : emplacement des composants, montage d'îlots, nommage des pages, lint |
-| [docs/backend-conventions.md](docs/backend-conventions.md) | Conventions PHP / Laravel : porte de qualité, style Pint (style maison), commits de reformatage, PHPStan |
-| [docs/security.md](docs/security.md) | Surveillance des failles dans les dépendances : Dependabot, audit hebdomadaire, réglages GitHub à activer |
-| [docs/docker.md](docs/docker.md) | Pile Docker locale (PHP 8.4, Node 22, MySQL, Mailpit), ports, comptes de test par rôle |
+| [docs/backend-conventions.md](docs/backend-conventions.md)   | Conventions PHP / Laravel : porte de qualité, style Pint (style maison), commits de reformatage, PHPStan      |
+| [docs/security.md](docs/security.md)                         | Surveillance des failles dans les dépendances : Dependabot, audit hebdomadaire, réglages GitHub à activer     |
+| [docs/docker.md](docs/docker.md)                             | Pile Docker locale (PHP 8.4, Node 22, MySQL, Mailpit), ports, comptes de test par rôle                        |
+| [docs/e2e-playwright.md](docs/e2e-playwright.md)             | Tests visuels Playwright (local) : références avant migration, comparaison après, dépannage                   |
+
+> **Navigateurs pris en charge (Tailwind 4) :** Safari 16.4+, Chrome 111+, Firefox 128+.
 
 ---
 
@@ -241,7 +244,6 @@ Action **corrective exceptionnelle** : créer un créneau pour une date déjà �
 - Le jour de la semaine n'est pas contraint (comme pour « + Créneau ») : la modale affiche la date en toutes lettres pour vérifier qu'on vise bien un vendredi ou un samedi.
 
 > ⚠️ **Ne pas contourner ce bouton en assouplissant la règle `after_or_equal:today` du formulaire « Générer ».** La génération supprime **tous** les créneaux à partir de la date de début (`SchedulerMain::cleanExistingCreneaux()`) puis les régénère : une date de début passée effacerait et réassignerait aussi tout ce qui est déjà planifié après elle.
-
 > ℹ️ **Saisir le Bilan d'un jour passé ne nécessite pas de créneau** — le Bilan est indexé par date, voir [Bilan quotidien](#bilan-quotidien). Le créneau passé sert uniquement à ce que le week-end apparaisse dans le planning et compte dans le taux de remplissage des statistiques.
 
 ---
@@ -293,7 +295,6 @@ Formulaire de génération automatique du planning.
 **Rollback** : après chaque génération, un panneau de rollback apparaît permettant d'annuler tout ou partie des créneaux générés (par semaine). La session de rollback est conservée jusqu'à fermeture explicite.
 
 > ℹ️ Une génération qui supprime des créneaux existants **annule** les échanges de créneau `en_attente` qui les concernent (statut `annule`, audité) et **prévient les deux personnes** par e-mail (« Demande d'échange annulée »). Les échanges déjà terminés (accepté, refusé, expiré, annulé) sont **conservés** : leurs clés vers les créneaux passent à `NULL` (`ON DELETE SET NULL`) et les dates restent lisibles grâce à `date_creneau_demandeur` / `date_creneau_cible`.
-
 > La suppression des anciens créneaux se fait **dans la même transaction** que la génération : si celle-ci échoue en cours de route, l'ancien planning est restauré tel quel. La suppression va de la date de début jusqu'à la **fin** du planning existant, volontairement : générer moins de semaines que l'existant remplace donc aussi les semaines suivantes (les régénérations automatiques, elles, conservent tout l'horizon).
 
 ```mermaid
@@ -330,7 +331,6 @@ Tableau de bord de l'équité de la répartition.
 - Détail par personne : total, vendredis, samedis, chaque tâche, absences
 
 > Les statistiques sont calculées à partir de l'état **actuel** de `plan_creneaux_taches` — un échange de créneau accepté est donc immédiatement reflété dans les compteurs par personne, sans recalcul manuel.
-
 > **Exception `cours` :** par convention une seule personne assure le cours chaque semaine (voir [Algorithme `cours`](#algorithme-cours-exception--assignation-directe-sans-score)). Ce créneau fixe et récurrent n'est **pas** un signal de déséquilibre de rotation ni de fatigue : il est donc exclu du score d'équité, du coefficient de variation, du déséquilibre vendredi/samedi et du calcul des jours consécutifs. Il reste en revanche visible dans la colonne **Cours** du détail par personne, pour garder une trace de combien de fois il a eu lieu.
 
 ---
@@ -457,14 +457,14 @@ Configuration de l'application (admin/gestionnaire, avec restrictions selon le r
 
 **Sections :**
 
-| Section               | Modifiable par       | Description                                                                  |
-| --------------------- | -------------------- | ---------------------------------------------------------------------------- |
-| Inscriptions ouvertes | Admin uniquement     | Active ou désactive le formulaire public `/inscription`                      |
-| Durée de session      | Admin uniquement     | Minutes d'inactivité avant déconnexion automatique (5 à 1440, défaut 120) — voir ci-dessous |
-| Heure du cours & Lieu | Admin + Gestionnaire | Heure de référence pour les horaires webhook ; adresse physique              |
-| Calendriers Google    | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement (planning), y compris le calendrier des absences |
-| Couleurs Google Calendar | Admin + Gestionnaire | Couleur (colorId Google Calendar 1-11, avec pastille d'aperçu) par tâche/événement spécial — voir ci-dessous |
-| Décalages des tâches  | Admin + Gestionnaire | Offsets en minutes (positif = après le cours, négatif = avant)               |
+| Section                  | Modifiable par       | Description                                                                                                        |
+| ------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Inscriptions ouvertes    | Admin uniquement     | Active ou désactive le formulaire public `/inscription`                                                            |
+| Durée de session         | Admin uniquement     | Minutes d'inactivité avant déconnexion automatique (5 à 1440, défaut 120) — voir ci-dessous                        |
+| Heure du cours & Lieu    | Admin + Gestionnaire | Heure de référence pour les horaires webhook ; adresse physique                                                    |
+| Calendriers Google       | Admin + Gestionnaire | Nom exact du calendrier Google Calendar cible par tâche/événement (planning), y compris le calendrier des absences |
+| Couleurs Google Calendar | Admin + Gestionnaire | Couleur (colorId Google Calendar 1-11, avec pastille d'aperçu) par tâche/événement spécial — voir ci-dessous       |
+| Décalages des tâches     | Admin + Gestionnaire | Offsets en minutes (positif = après le cours, négatif = avant)                                                     |
 
 > Tous ces paramètres sont stockés dans `ref_settings` et lus dynamiquement — il n'y a pas de valeur en `.env` pour ces réglages.
 >
@@ -583,15 +583,19 @@ Le pipeline de déploiement (`.github/workflows/deploy.yaml`) se connecte à ION
 
 1. Se connecter en SSH au serveur (`IONOS_SSH_USER@IONOS_SSH_HOST`, voir secrets GitHub Actions).
 2. Depuis `IONOS_REMOTE_PATH` :
+
    ```bash
    {chemin du binaire PHP CLI IONOS, ex. php8.4-cli} artisan tinker
    ```
+
 3. Dans Tinker :
+
    ```php
    $p = \App\Models\Personne::where('email', 'votre@email.com')->first();
    $p->password = bcrypt('nouveau-mot-de-passe');
    $p->save();
    ```
+
 4. `exit`, puis se connecter normalement sur `/login`.
 
 Aucune clé secrète supplémentaire à provisionner/retirer, aucune route publique — l'accès est protégé par la clé SSH elle-même (`IONOS_SSH_PRIVATE_KEY`).
@@ -600,11 +604,11 @@ Aucune clé secrète supplémentaire à provisionner/retirer, aucune route publi
 
 Trois commandes sont déclarées dans `routes/console.php` :
 
-| Commande                   | Fréquence                          | Rôle                                                                                                                                      |
-| -------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `amana:expire-echanges`    | Tous les jours à 01:00 (UTC)       | Marque `expire` les demandes d'échange `en_attente` dont `expires_at` est dépassé et notifie le demandeur par email.                      |
-| `amana:rappels-quotidiens` | Tous les jours à 08:00 (Paris)     | Rappels par email « 3 jours avant » (créneaux de J+3) et « jour J ».                                                                       |
-| `amana:rappels-imminents`  | Toutes les 15 minutes (Paris)      | Rappel « 3h avant » pour les tâches dont l'heure de début approche. Les événements Google Calendar n'invitent plus personne (restriction des comptes de service) : ces emails sont **l'unique canal de rappel personnel**. |
+| Commande                   | Fréquence                      | Rôle                                                                                                                                                                                                                       |
+| -------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `amana:expire-echanges`    | Tous les jours à 01:00 (UTC)   | Marque `expire` les demandes d'échange `en_attente` dont `expires_at` est dépassé et notifie le demandeur par email.                                                                                                       |
+| `amana:rappels-quotidiens` | Tous les jours à 08:00 (Paris) | Rappels par email « 3 jours avant » (créneaux de J+3) et « jour J ».                                                                                                                                                       |
+| `amana:rappels-imminents`  | Toutes les 15 minutes (Paris)  | Rappel « 3h avant » pour les tâches dont l'heure de début approche. Les événements Google Calendar n'invitent plus personne (restriction des comptes de service) : ces emails sont **l'unique canal de rappel personnel**. |
 
 **Fuseau horaire.** L'application tourne en UTC (`APP_TIMEZONE=UTC`). Les deux commandes de rappel sont donc déclarées avec `->timezone(DateHelper::FUSEAU_METIER)` (`Europe/Paris`) : sans cela, « 08:00 » serait 08:00 UTC, soit 09:00 ou 10:00 à Paris selon la saison. `amana:expire-echanges` reste volontairement en UTC (il compare des instants absolus, l'heure de passage n'a pas d'incidence).
 
@@ -805,18 +809,18 @@ Le PDF est généré à la demande via le formulaire `/planning/export`. Il util
 
 Les notifications de l'application sont envoyées en **synchrone**, directement dans la requête (aucune n'implémente `ShouldQueue` — hébergement mutualisé sans worker, `QUEUE_CONNECTION=sync`). Un échec d'envoi est rattrapé et journalisé : il ne fait jamais échouer l'action qui l'a déclenché.
 
-| Déclencheur                           | Destinataire                   | Email                                                    |
-| ------------------------------------- | ------------------------------ | -------------------------------------------------------- |
-| Nouvelle inscription                  | Tous les admins                | « Nouvelle candidature » avec fiche complète du candidat |
-| Candidature validée (nouveau membre)  | Le candidat                    | « Bienvenue » + lien création mot de passe               |
-| Candidature validée (compte existant) | Le candidat                    | « Votre accès est activé » + lien de connexion directe   |
-| Demande d'échange créée               | La personne cible (B)          | « Demande d'échange » + liens Accepter/Refuser tokenisés |
-| Échange accepté / exécuté             | Demandeur (A) **et** cible (B) | « Échange confirmé » avec récapitulatif avant/après      |
-| Échange refusé                        | Demandeur (A)                  | « Échange refusé »                                       |
-| Échange expiré (aucune réponse)       | Demandeur (A)                  | « Échange expiré »                                       |
-| Échange annulé par le demandeur       | Cible (B)                      | « Demande annulée »                                      |
-| Échange annulé par le système (planning régénéré ou créneau réaffecté) | Demandeur (A) **et** cible (B) | « Demande d'échange annulée » — aucun créneau échangé |
-| Planning généré ou régénéré           | Admins **et** gestionnaires    | « Planning généré / régénéré — du … au … » (voir ci-dessous) |
+| Déclencheur                                                            | Destinataire                   | Email                                                        |
+| ---------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------ |
+| Nouvelle inscription                                                   | Tous les admins                | « Nouvelle candidature » avec fiche complète du candidat     |
+| Candidature validée (nouveau membre)                                   | Le candidat                    | « Bienvenue » + lien création mot de passe                   |
+| Candidature validée (compte existant)                                  | Le candidat                    | « Votre accès est activé » + lien de connexion directe       |
+| Demande d'échange créée                                                | La personne cible (B)          | « Demande d'échange » + liens Accepter/Refuser tokenisés     |
+| Échange accepté / exécuté                                              | Demandeur (A) **et** cible (B) | « Échange confirmé » avec récapitulatif avant/après          |
+| Échange refusé                                                         | Demandeur (A)                  | « Échange refusé »                                           |
+| Échange expiré (aucune réponse)                                        | Demandeur (A)                  | « Échange expiré »                                           |
+| Échange annulé par le demandeur                                        | Cible (B)                      | « Demande annulée »                                          |
+| Échange annulé par le système (planning régénéré ou créneau réaffecté) | Demandeur (A) **et** cible (B) | « Demande d'échange annulée » — aucun créneau échangé        |
+| Planning généré ou régénéré                                            | Admins **et** gestionnaires    | « Planning généré / régénéré — du … au … » (voir ci-dessous) |
 
 Toutes les notifications d'échange sont implémentées comme classes `App\Notifications\Echanges\*` (namespace dédié).
 
@@ -834,11 +838,11 @@ Toutes les notifications d'échange sont implémentées comme classes `App\Notif
 
 Un double clic, une touche Entrée répétée ou un réseau lent peuvent envoyer deux fois le même formulaire. Sans protection, chaque requête crée sa propre ligne et déclenche sa propre régénération du planning. Trois niveaux, du plus confortable au plus fiable :
 
-| Niveau                    | Mécanisme                                                                                                                                                                                                                                                                      | Où                                                                                                                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Navigateur** (confort)  | Attribut `data-submit-lock` sur le `<form>` : boutons désactivés avec un libellé « Envoi en cours… » (`data-submit-lock-label` pour le changer), nouvelle soumission refusée, déverrouillage automatique après 30 s (`data-submit-lock-timeout`) et au retour via le bouton *Précédent*. Fourni par `registerSubmitLock()` de `@amana/shared-ui` (≥ 1.10.0), appelé dans `resources/js/app.ts`. Compatible avec `data-confirm` : une confirmation refusée ne verrouille pas le formulaire. | Absences, événements (création/modification), imports d'événements, « Confirmer et générer » / « Confirmer et écraser ». Les modales Vue gèrent leur propre état `submitting`. |
-| **Validation** (doublon)  | Refus d'une ligne **strictement identique** : absence (personne + début + fin), événement (nom + début + fin), import (lot refusé en entier).                                                                                                                                  | `Store/UpdateAbsenceRequest`, `Store/UpdateEvenementRequest`, `EvenementCsvImporter::import()`                                                                  |
-| **Verrou serveur** (garantie) | `Cache::lock` atomique via `App\Services\VerrouAction` : une requête simultanée est refusée (message clair, jamais une 500) et le doublon est revérifié une fois le verrou pris. Durée de vie max. `planning.verrou.ttl` (120 s, filet de sécurité si le process meurt).              | Absences, événements, imports, **toute** génération/régénération du planning (clé commune `planning-generation`)                                                |
+| Niveau                        | Mécanisme                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Où                                                                                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Navigateur** (confort)      | Attribut `data-submit-lock` sur le `<form>` : boutons désactivés avec un libellé « Envoi en cours… » (`data-submit-lock-label` pour le changer), nouvelle soumission refusée, déverrouillage automatique après 30 s (`data-submit-lock-timeout`) et au retour via le bouton *Précédent*. Fourni par `registerSubmitLock()` de `@amana/shared-ui` (≥ 1.10.0), appelé dans `resources/js/app.ts`. Compatible avec `data-confirm` : une confirmation refusée ne verrouille pas le formulaire. | Absences, événements (création/modification), imports d'événements, « Confirmer et générer » / « Confirmer et écraser ». Les modales Vue gèrent leur propre état `submitting`. |
+| **Validation** (doublon)      | Refus d'une ligne **strictement identique** : absence (personne + début + fin), événement (nom + début + fin), import (lot refusé en entier).                                                                                                                                                                                                                                                                                                                                              | `Store/UpdateAbsenceRequest`, `Store/UpdateEvenementRequest`, `EvenementCsvImporter::import()`                                                                                 |
+| **Verrou serveur** (garantie) | `Cache::lock` atomique via `App\Services\VerrouAction` : une requête simultanée est refusée (message clair, jamais une 500) et le doublon est revérifié une fois le verrou pris. Durée de vie max. `planning.verrou.ttl` (120 s, filet de sécurité si le process meurt).                                                                                                                                                                                                                   | Absences, événements, imports, **toute** génération/régénération du planning (clé commune `planning-generation`)                                                               |
 
 **Génération du planning :** la génération manuelle est **refusée** si une autre est en cours ; les régénérations **automatiques** (absence, événement), elles, **attendent** jusqu'à `planning.verrou.attente_regeneration_auto` secondes (10 par défaut) — la donnée de l'utilisateur est déjà enregistrée, on laisse donc la génération en cours finir plutôt que de la perdre. Au-delà, le message habituel « régénérez manuellement depuis Planning > Générer » s'affiche et aucun email n'est envoyé.
 
@@ -996,7 +1000,6 @@ php artisan amana:tester-google-calendar --create                               
 ```
 
 > Cette commande ne peut **pas** lister automatiquement tous les calendriers partagés avec le compte de service — voir l'encadré plus bas sur l'absence de découverte automatique. Elle vérifie l'accès aux calendriers déjà enregistrés dans `ref_calendriers_google`, et/ou à un ID précis passé en option.
-
 > L'heure du cours n'est **plus** lue depuis `.env`. Elle est stockée dans `ref_settings` (clé `heure_cours`) et modifiable via la page Paramètres.
 
 ### Dispatch synchrone vs en queue
@@ -1008,7 +1011,7 @@ php artisan amana:tester-google-calendar --create                               
 **Verbes/mode par action :**
 
 | Action                                                                              | Verbe    | Dispatch  | Cible       | Builder                                                                           |
-| ----------------------------------------------------------------------------------- | -------- | --------- | ----------- | ----------------------------------------------------------------------------------- |
+| ----------------------------------------------------------------------------------- | -------- | --------- | ----------- | --------------------------------------------------------------------------------- |
 | Génération complète du planning                                                     | `POST`   | Queue     | `planning`  | `WebhookPayloadBuilder::build()`                                                  |
 | Création manuelle d'un créneau (vide ; assigné pour un créneau passé, admin)        | `POST`   | Queue     | `planning`  | `WebhookPayloadBuilder::buildForCreation()`                                       |
 | Réassignation d'une tâche                                                           | `PATCH`  | Queue     | `planning`  | `WebhookPayloadBuilder::buildForReassignation()`                                  |
@@ -1319,16 +1322,16 @@ GOOGLE_SERVICE_ACCOUNT_JSON_BASE64=...
 
 ### Checklist premier déploiement
 
-| Étape | Action                                                     | Vérification                                                                                                               |
-| ----- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Définir tous les secrets/variables GitHub requis           | Voir [docs/installation.md § Configuration requise](docs/installation.md#configuration-requise--secrets--variables-github) |
-| 2     | Déployer via GitHub Actions (push sur `main`)          | Pipeline vert dans l'onglet **Actions** de GitHub                                                                          |
-| 3     | Vérifier que la migration s'est exécutée                   | Aller dans phpMyAdmin — les tables existent (`migrate:fresh --seed` au premier déploiement)                                |
-| 4     | Définir le mot de passe du premier admin                   | Voir [Définir un mot de passe en urgence — Tinker en SSH](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)              |
-| 5     | Se connecter et tester l'envoi d'emails                    | Page « Mot de passe oublié » avec une adresse de test — vérifier la réception + `storage/logs/laravel.log`                  |
-| 7     | Configurer les paramètres (heure, lieu, calendriers)       | `/parametres` — enregistrer d'abord les calendriers dans le registre, avant de les sélectionner par tâche |
-| 7bis  | Vérifier le compte de service Google Calendar               | `php artisan amana:tester-google-calendar --create` (SSH) — voir [Intégration Google Calendar](#intégration-google-calendar-api-directe) |
-| 8     | Créer le cron du scheduler (une seule fois)                 | `crontab -e` en SSH — voir [Configuration du cron sur IONOS](#configuration-du-cron-sur-ionos-une-seule-fois) ; vérifier avec `php artisan schedule:list` |
+| Étape | Action                                               | Vérification                                                                                                                                              |
+| ----- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Définir tous les secrets/variables GitHub requis     | Voir [docs/installation.md § Configuration requise](docs/installation.md#configuration-requise--secrets--variables-github)                                |
+| 2     | Déployer via GitHub Actions (push sur `main`)        | Pipeline vert dans l'onglet **Actions** de GitHub                                                                                                         |
+| 3     | Vérifier que la migration s'est exécutée             | Aller dans phpMyAdmin — les tables existent (`migrate:fresh --seed` au premier déploiement)                                                               |
+| 4     | Définir le mot de passe du premier admin             | Voir [Définir un mot de passe en urgence — Tinker en SSH](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)                                             |
+| 5     | Se connecter et tester l'envoi d'emails              | Page « Mot de passe oublié » avec une adresse de test — vérifier la réception + `storage/logs/laravel.log`                                                |
+| 7     | Configurer les paramètres (heure, lieu, calendriers) | `/parametres` — enregistrer d'abord les calendriers dans le registre, avant de les sélectionner par tâche                                                 |
+| 7bis  | Vérifier le compte de service Google Calendar        | `php artisan amana:tester-google-calendar --create` (SSH) — voir [Intégration Google Calendar](#intégration-google-calendar-api-directe)                  |
+| 8     | Créer le cron du scheduler (une seule fois)          | `crontab -e` en SSH — voir [Configuration du cron sur IONOS](#configuration-du-cron-sur-ionos-une-seule-fois) ; vérifier avec `php artisan schedule:list` |
 
 ### Sélection des calendriers Google Calendar
 
@@ -1338,10 +1341,10 @@ Un calendrier doit d'abord être **ajouté au registre** (section "Registre des 
 
 ### Contraintes de l'hébergement partagé IONOS
 
-| Contrainte                                | Impact                                                      | Contournement                                                                                                         |
-| ----------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| SSH réservé au déploiement automatisé     | Pas de session interactive pratique pour du débogage ad hoc | `php artisan tinker` reste possible en SSH — c'est le flux recommandé pour un reset de mot de passe en urgence (voir [Définir un mot de passe en urgence](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)) |
-| Pas de worker de queue persistant         | Les jobs `ShouldQueue` doivent s'exécuter immédiatement     | `QUEUE_CONNECTION=sync` dans `.env`                                                                                   |
-| Le gestionnaire Cronjobs IONOS n'appelle que des URLs (GET, ≥ quotidien, 60 s max) | Inutilisable pour `schedule:run` | Crontab côté serveur via SSH — voir [Configuration du cron sur IONOS](#configuration-du-cron-sur-ionos-une-seule-fois) |
-| Logs serveur séparés de Laravel           | `access.log.*` ≠ `laravel.log`                              | Lire `storage/logs/laravel.log` via SFTP ou phpMyAdmin                                                                |
-| `storage/` exclu du déploiement récurrent | Le dossier est préservé entre déploiements                  | `rsync` exclut explicitement `storage/` dans le job `deploy` du pipeline                                              |
+| Contrainte                                                                         | Impact                                                      | Contournement                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SSH réservé au déploiement automatisé                                              | Pas de session interactive pratique pour du débogage ad hoc | `php artisan tinker` reste possible en SSH — c'est le flux recommandé pour un reset de mot de passe en urgence (voir [Définir un mot de passe en urgence](#définir-un-mot-de-passe-en-urgence--tinker-en-ssh)) |
+| Pas de worker de queue persistant                                                  | Les jobs `ShouldQueue` doivent s'exécuter immédiatement     | `QUEUE_CONNECTION=sync` dans `.env`                                                                                                                                                                            |
+| Le gestionnaire Cronjobs IONOS n'appelle que des URLs (GET, ≥ quotidien, 60 s max) | Inutilisable pour `schedule:run`                            | Crontab côté serveur via SSH — voir [Configuration du cron sur IONOS](#configuration-du-cron-sur-ionos-une-seule-fois)                                                                                         |
+| Logs serveur séparés de Laravel                                                    | `access.log.*` ≠ `laravel.log`                              | Lire `storage/logs/laravel.log` via SFTP ou phpMyAdmin                                                                                                                                                         |
+| `storage/` exclu du déploiement récurrent                                          | Le dossier est préservé entre déploiements                  | `rsync` exclut explicitement `storage/` dans le job `deploy` du pipeline                                                                                                                                       |

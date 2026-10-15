@@ -113,7 +113,7 @@
     {{-- Table détail --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">📋</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Détail par personne</span>
         </div>
         {{-- Tableau desktop (≥ md) — voir carte mobile juste après. 04/09/2026 :
@@ -179,7 +179,7 @@
                 <div class="px-4 py-3.5">
                     <div class="flex items-center justify-between gap-2 mb-2.5">
                         <div class="font-semibold text-[13.5px] text-ink">{{ $nom }}</div>
-                        <div class="flex items-baseline gap-1 flex-shrink-0">
+                        <div class="flex items-baseline gap-1 shrink-0">
                             <span class="font-heading text-[18px] font-bold text-ink leading-none">{{ $total }}</span>
                             <span class="text-[10.5px] text-ink-muted uppercase tracking-wide">total</span>
                         </div>
@@ -205,7 +205,7 @@
     {{-- Explications --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📖</div>
+            <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm shrink-0">📖</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Comment lire ces statistiques</span>
         </div>
         <div class="p-5">

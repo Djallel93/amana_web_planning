@@ -29,7 +29,7 @@
                     'Évitez les informations personnelles',
                 ] as $rule)
                 <div class="flex items-center gap-3 text-white/55 text-[13px]">
-                    <div class="w-[26px] h-[26px] bg-white/[0.07] rounded-md flex items-center justify-center text-xs flex-shrink-0">✅</div>
+                    <div class="w-[26px] h-[26px] bg-white/[0.07] rounded-md flex items-center justify-center text-xs shrink-0">✅</div>
                     <span>{{ $rule }}</span>
                 </div>
                 @endforeach
@@ -38,7 +38,7 @@
     </div>
 
     {{-- Panneau droit --}}
-    <div class="w-full sm:w-[480px] bg-surface flex items-center justify-center px-6 py-10 sm:px-14 flex-shrink-0">
+    <div class="w-full sm:w-[480px] bg-surface flex items-center justify-center px-6 py-10 sm:px-14 shrink-0">
         <div class="w-full max-w-sm">
 
             <div class="flex sm:hidden items-center gap-3 mb-8">
@@ -68,7 +68,7 @@
                     <label for="email" class="block text-xs font-bold text-ink mb-1.5 tracking-[0.2px]">Adresse email</label>
                     <input type="email" id="email" name="email" value="{{ old('email', $email) }}"
                            autocomplete="email" required
-                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                   focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                                   hover:border-ink-muted">
                     @error('email')<span class="block text-xs text-rose-600 mt-1">{{ $message }}</span>@enderror
@@ -80,7 +80,7 @@
                         <input type="password" id="password" name="password"
                                autocomplete="new-password" placeholder="Au moins 8 caractères"
                                oninput="checkStrength(this.value)" required
-                               class="w-full px-3.5 py-2.5 pr-11 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 pr-11 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                                       hover:border-ink-muted">
                         <button type="button" onclick="toggleVisibility('password', this)"
@@ -103,7 +103,7 @@
                     <div class="relative">
                         <input type="password" id="password_confirmation" name="password_confirmation"
                                autocomplete="new-password" placeholder="Répétez le mot de passe" required
-                               class="w-full px-3.5 py-2.5 pr-11 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 pr-11 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                                       hover:border-ink-muted">
                         <button type="button" onclick="toggleVisibility('password_confirmation', this)"

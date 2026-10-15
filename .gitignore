@@ -47,3 +47,11 @@ fix-perms.sh
 test_webhook.sh
 /debug/**
 database/seeders/LocalCalendarsSeeder.php
+# ── Playwright (local uniquement — décision D17) ─────────────────────────
+# Références de captures et de styles calculés : générées sur le commit v3,
+# jamais commitées. Les specs et la config, elles, le sont.
+/e2e/.auth
+/e2e/__screenshots__
+/e2e/__computed__
+/e2e/report
+/e2e/test-results

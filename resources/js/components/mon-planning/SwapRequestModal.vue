@@ -225,7 +225,7 @@ window.openSwapModal = (btn: HTMLElement) => {
     <Modal :open="modal.isOpen.value" max-width="max-w-md" @close="requestClose">
         <!-- Slot header : icône + titre -->
         <template #header>
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔄</div>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">🔄</div>
             <span class="font-heading text-[14px] font-semibold text-ink flex-1"> Demander un échange de créneau </span>
         </template>
 
@@ -233,7 +233,7 @@ window.openSwapModal = (btn: HTMLElement) => {
         <div class="flex flex-col gap-4">
             <!-- Contexte : mon créneau -->
             <div class="flex items-center gap-3 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg">
-                <span class="text-xl flex-shrink-0">📅</span>
+                <span class="text-xl shrink-0">📅</span>
                 <div>
                     <div class="font-bold text-[13.5px] text-ink">
                         {{ modal.data.value?.dateLabel ?? "—" }}
@@ -256,20 +256,20 @@ window.openSwapModal = (btn: HTMLElement) => {
                         v-model="dateFrom"
                         type="date"
                         aria-label="Du"
-                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                     />
-                    <span class="text-[12px] text-ink-muted flex-shrink-0">→</span>
+                    <span class="text-[12px] text-ink-muted shrink-0">→</span>
                     <input
                         v-model="dateTo"
                         type="date"
                         aria-label="Au"
                         :min="dateFrom"
-                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        class="flex-1 min-w-0 px-2.5 py-2 border-[1.5px] border-ink-faint rounded-lg text-[12.5px] font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                     />
                     <button
                         v-if="dateFrom || dateTo"
                         type="button"
-                        class="text-[11.5px] text-ink-muted hover:text-ink underline flex-shrink-0 cursor-pointer bg-transparent"
+                        class="text-[11.5px] text-ink-muted hover:text-ink underline shrink-0 cursor-pointer bg-transparent"
                         @click="
                             dateFrom = '';
                             dateTo = '';
@@ -326,7 +326,7 @@ window.openSwapModal = (btn: HTMLElement) => {
                         <input
                             type="radio"
                             name="slot_choice"
-                            class="w-4 h-4 accent-accent flex-shrink-0"
+                            class="w-4 h-4 accent-accent shrink-0"
                             :checked="selectedSlot === slot"
                             @change="selectedSlot = slot"
                         />

@@ -38,7 +38,7 @@
                     value="{{ $groupe['debut']['valeur_raw'] }}"
                     step="1" min="-999" max="999"
                     {{ $isSandwich ? 'disabled' : '' }}
-                    class="w-[90px] px-2.5 py-1.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
+                    class="w-[90px] px-2.5 py-1.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-hidden transition
                         focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                         disabled:opacity-50 disabled:cursor-not-allowed">
                 @if(!$isSandwich)
@@ -59,7 +59,7 @@
                     value="{{ $groupe['fin']['valeur_raw'] }}"
                     step="1" min="-999" max="999"
                     {{ $isSandwich ? 'disabled' : '' }}
-                    class="w-[90px] px-2.5 py-1.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
+                    class="w-[90px] px-2.5 py-1.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-hidden transition
                         focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                         disabled:opacity-50 disabled:cursor-not-allowed">
                 @if(!$isSandwich)

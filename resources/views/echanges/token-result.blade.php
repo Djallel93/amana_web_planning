@@ -37,14 +37,14 @@
             @if(isset($echange))
                 <div class="bg-surface-2 border border-surface-border rounded-xl p-4 mb-7 text-left">
                     <div class="flex items-start gap-3 py-2.5 border-b border-surface-3">
-                        <span class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted w-20 flex-shrink-0 pt-0.5">Créneau A</span>
+                        <span class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted w-20 shrink-0 pt-0.5">Créneau A</span>
                         <span class="text-[13.5px] text-ink-light">
                             {{ $echange->creneauDemandeur->date->locale('fr')->isoFormat('ddd D MMM YYYY') }}
                             · {{ $echange->tacheDemandeur->libelle }}
                         </span>
                     </div>
                     <div class="flex items-start gap-3 py-2.5">
-                        <span class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted w-20 flex-shrink-0 pt-0.5">Créneau B</span>
+                        <span class="text-[10.5px] font-bold uppercase tracking-[0.6px] text-ink-muted w-20 shrink-0 pt-0.5">Créneau B</span>
                         <span class="text-[13.5px] text-ink-light">
                             {{ $echange->creneauCible->date->locale('fr')->isoFormat('ddd D MMM YYYY') }}
                             · {{ $echange->tacheCible->libelle }}

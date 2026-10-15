@@ -188,7 +188,7 @@ defineExpose({ open });
 <template>
     <Modal :open="isOpen" max-width="max-w-sm" @close="close">
         <template #header>
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">
                 {{ tacheMeta?.label.split(" ")[0] ?? "✏️" }}
             </div>
             <span class="font-heading text-[14px] font-semibold text-ink flex-1">
@@ -209,7 +209,7 @@ defineExpose({ open });
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                     <select
                         v-model="selectedPersonneId"
-                        class="w-full flex-1 px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition cursor-pointer focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        class="w-full flex-1 px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition cursor-pointer focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                     >
                         <option value="">— Aucune personne (désassigner) —</option>
                         <option v-for="p in personnes" :key="p.id" :value="String(p.id)">

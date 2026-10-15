@@ -39,7 +39,7 @@ withDefaults(
                 :key="c"
                 class="px-4 py-3.5 border-b border-surface-3 last:border-0 flex items-center gap-3"
             >
-                <div class="h-3 w-24 rounded bg-surface-3 animate-pulse flex-shrink-0"></div>
+                <div class="h-3 w-24 rounded bg-surface-3 animate-pulse shrink-0"></div>
                 <div class="flex gap-2 flex-1">
                     <div class="h-6 w-20 rounded-full bg-surface-3 animate-pulse"></div>
                     <div class="h-6 w-20 rounded-full bg-surface-3 animate-pulse"></div>

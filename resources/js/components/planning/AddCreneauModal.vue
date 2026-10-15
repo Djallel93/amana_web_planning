@@ -302,7 +302,7 @@ defineExpose({ open });
     <Modal :open="isOpen" :max-width="isPasse ? 'max-w-md' : 'max-w-sm'" @close="close">
         <template #header>
             <div
-                class="w-7 h-7 rounded-md flex items-center justify-center text-sm flex-shrink-0"
+                class="w-7 h-7 rounded-md flex items-center justify-center text-sm shrink-0"
                 :class="isPasse ? 'bg-amber-50' : 'bg-emerald-50'"
             >
                 {{ isPasse ? "🕓" : "➕" }}
@@ -338,7 +338,7 @@ defineExpose({ open });
                     type="date"
                     :min="isPasse ? undefined : context?.weekMin"
                     :max="isPasse ? maxPasse : context?.weekMax"
-                    class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                 />
                 <p class="text-[11.5px] text-ink-muted mt-1.5 min-h-[18px]">
                     {{ hintText }}
@@ -380,7 +380,7 @@ defineExpose({ open });
                         <select
                             v-else
                             v-model="choix[code]"
-                            class="w-full px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[14px] font-body text-ink bg-surface-2 outline-none transition cursor-pointer focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            class="w-full px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[14px] font-body text-ink bg-surface-2 outline-hidden transition cursor-pointer focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                         >
                             <option value="">— Non assignée —</option>
                             <option v-for="p in personnes" :key="p.id" :value="String(p.id)">

@@ -265,7 +265,7 @@ onUnmounted(() => chart?.destroy());
                 v-model="dateFrom"
                 type="date"
                 :max="dateTo"
-                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
             />
             <label for="stats_to" class="text-xs font-bold text-ink tracking-[0.2px]">Au</label>
             <input
@@ -273,7 +273,7 @@ onUnmounted(() => chart?.destroy());
                 v-model="dateTo"
                 type="date"
                 :min="dateFrom"
-                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                class="px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
             />
             <span v-if="loadState === 'loaded'" class="text-[12.5px] text-ink-muted ml-auto">
                 {{ cartes?.nbBilans ?? 0 }} bilan(s) sur la période

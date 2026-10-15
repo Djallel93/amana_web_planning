@@ -62,7 +62,7 @@
                                         name="checkboxes[{{ $user->id }}][{{ $tache->id }}][{{ $jour }}]"
                                         value="1"
                                         {{ $autorise ? 'checked' : '' }}
-                                        class="w-4 h-4 accent-accent cursor-pointer flex-shrink-0">
+                                        class="w-4 h-4 accent-accent cursor-pointer shrink-0">
                                     <span>{{ $jour }}</span>
                                 </label>
                             @endforeach
@@ -81,7 +81,7 @@
     {{-- Grille lecture seule : vue équipe --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">👀</div>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">👀</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Disponibilités de l'équipe</span>
         </div>
 
@@ -108,7 +108,7 @@
                 @php $isMe = $personne->id === $user->id; @endphp
                 <div class="px-4 py-3 {{ $isMe ? 'bg-sky-50' : '' }}">
                     <div class="flex items-center gap-2.5 mb-2.5">
-                        <div class="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                        <div class="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                             {{ strtoupper(substr($personne->prenom, 0, 1)) }}
                         </div>
                         <span class="font-semibold text-[13px] text-ink">
@@ -165,7 +165,7 @@
                     @php $isMe = $personne->id === $user->id; @endphp
                     <div class="px-4 py-3 {{ $isMe ? 'bg-sky-50' : '' }}">
                         <div class="flex items-center gap-2.5 mb-3">
-                            <div class="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                            <div class="w-7 h-7 bg-accent rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                                 {{ strtoupper(substr($personne->prenom, 0, 1)) }}
                             </div>
                             <span class="font-semibold text-[13px] text-ink">
@@ -185,7 +185,7 @@
                                                     name="checkboxes[{{ $personne->id }}][{{ $tache->id }}][{{ $jour }}]"
                                                     value="1"
                                                     {{ $autorise ? 'checked' : '' }}
-                                                    class="w-4 h-4 accent-accent cursor-pointer flex-shrink-0">
+                                                    class="w-4 h-4 accent-accent cursor-pointer shrink-0">
                                                 <span class="chip-{{ $tache->code }} inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold">
                                                     {{ $tache->libelle }}
                                                 </span>

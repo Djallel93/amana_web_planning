@@ -139,7 +139,7 @@ function toggleTache(row: Row, tacheId: number): void {
                         maxlength="150"
                         required
                         placeholder="Ex : Vacances Noël, Ramadan…"
-                        class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                         :class="errorFor(index, 'nom') ? 'border-rose-400' : 'border-ink-faint'"
                     />
                     <span v-if="errorFor(index, 'nom')" class="text-xs text-rose-600">{{
@@ -158,7 +158,7 @@ function toggleTache(row: Row, tacheId: number): void {
                             type="date"
                             :name="`rows[${index}][date_debut]`"
                             required
-                            class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                             :class="errorFor(index, 'date_debut') ? 'border-rose-400' : 'border-ink-faint'"
                         />
                         <span v-if="errorFor(index, 'date_debut')" class="text-xs text-rose-600">{{
@@ -175,7 +175,7 @@ function toggleTache(row: Row, tacheId: number): void {
                             :name="`rows[${index}][date_fin]`"
                             :min="row.date_debut || undefined"
                             required
-                            class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                            class="w-full px-3.5 py-2.5 border-[1.5px] rounded-lg text-[13.5px] font-body text-ink bg-surface outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                             :class="errorFor(index, 'date_fin') ? 'border-rose-400' : 'border-ink-faint'"
                         />
                         <span v-if="errorFor(index, 'date_fin')" class="text-xs text-rose-600">{{
@@ -195,7 +195,7 @@ function toggleTache(row: Row, tacheId: number): void {
                         :name="`rows[${index}][description]`"
                         rows="2"
                         placeholder="Notes complémentaires…"
-                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition resize-y focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13.5px] font-body text-ink bg-surface outline-hidden transition resize-y focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                     ></textarea>
                 </div>
 
@@ -208,7 +208,7 @@ function toggleTache(row: Row, tacheId: number): void {
                     <select
                         v-model="row.couleur"
                         :name="`rows[${index}][couleur]`"
-                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13.5px] font-body text-ink bg-surface outline-none transition cursor-pointer focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                        class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13.5px] font-body text-ink bg-surface outline-hidden transition cursor-pointer focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                     >
                         <option value="">Couleur par défaut du calendrier</option>
                         <option v-for="c in couleurs" :key="c.id" :value="c.id">

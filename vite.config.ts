@@ -5,12 +5,16 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import vue from '@vitejs/plugin-vue';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
     plugins: [
         // Plugin Vue — transforme les fichiers .vue en JS compréhensible par le navigateur.
         // Il doit être déclaré AVANT le plugin Laravel.
         vue(),
+
+        // Tailwind 4 (14/10/2026) : plugin Vite, remplace PostCSS + autoprefixer.
+        tailwindcss(),
 
         laravel({
             // On ajoute resources/js/app.ts à côté du CSS existant.

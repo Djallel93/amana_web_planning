@@ -326,7 +326,7 @@
             {{-- Informations personnelles --}}
             <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
                 <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                    <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">
+                    <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm shrink-0">
                         👤</div>
                     <span class="font-heading text-[14px] font-semibold text-ink">Informations personnelles</span>
                 </div>
@@ -339,7 +339,7 @@
                             </label>
                             <input type="text" id="prenom" name="prenom" value="{{ old('prenom') }}" required
                                 maxlength="100" placeholder="Votre prénom"
-                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                         focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                             @error('prenom')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                         </div>
@@ -350,7 +350,7 @@
                             </label>
                             <input type="text" id="nom" name="nom" value="{{ old('nom') }}" required maxlength="100"
                                 placeholder="Votre nom de famille"
-                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                         focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                             @error('nom')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                         </div>
@@ -361,7 +361,7 @@
                             </label>
                             <input type="email" id="email" name="email" value="{{ old('email') }}" required
                                 maxlength="255" placeholder="votre@email.fr"
-                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                         focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                             <span class="text-xs text-ink-muted">Ce sera votre identifiant de connexion</span>
                             @error('email')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
@@ -371,7 +371,7 @@
                             <label for="telephone" class="text-xs font-bold text-ink tracking-[0.2px]">Téléphone</label>
                             <input type="tel" id="telephone" name="telephone" value="{{ old('telephone') }}"
                                 maxlength="20" placeholder="+33 6 00 00 00 00"
-                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                         focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                             @error('telephone')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                         </div>
@@ -384,14 +384,14 @@
             <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
                 <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
                     <div
-                        class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">
+                        class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm shrink-0">
                         📋</div>
                     <span class="font-heading text-[14px] font-semibold text-ink">Mes disponibilités par tâche</span>
                 </div>
                 <div class="p-5">
                     <div
                         class="flex items-start gap-2.5 bg-surface-2 border border-surface-border rounded-lg px-4 py-3 mb-5 text-[13px] text-ink-muted leading-relaxed">
-                        <span class="text-base flex-shrink-0 mt-0.5">ℹ️</span>
+                        <span class="text-base shrink-0 mt-0.5">ℹ️</span>
                         <span>Cochez les tâches que vous <strong class="text-ink-light">pouvez effectuer</strong> chaque
                             jour. Vous pourrez modifier ces disponibilités à tout moment depuis votre espace.</span>
                     </div>

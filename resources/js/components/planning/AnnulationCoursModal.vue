@@ -124,7 +124,7 @@ defineExpose({ open });
 <template>
     <Modal :open="isOpen" max-width="max-w-md" @close="close">
         <template #header>
-            <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🚫</div>
+            <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm shrink-0">🚫</div>
             <span class="font-heading text-[14px] font-semibold text-ink flex-1">Annulation cours</span>
         </template>
 
@@ -142,7 +142,7 @@ defineExpose({ open });
                     v-model="selectedDate"
                     type="date"
                     :min="minDate"
-                    class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                 />
             </div>
 
@@ -167,7 +167,7 @@ defineExpose({ open });
             <div
                 class="flex items-start gap-2.5 px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-[13px] text-rose-800 leading-relaxed"
             >
-                <span class="flex-shrink-0">⚠️</span>
+                <span class="shrink-0">⚠️</span>
                 <span>
                     Vous êtes sur le point d'annuler le cours du
                     <strong>{{ dateLabel }}</strong
@@ -180,7 +180,7 @@ defineExpose({ open });
                 v-if="serverWarning"
                 class="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg text-[13px] text-amber-800 leading-relaxed"
             >
-                <span class="flex-shrink-0">ℹ️</span>
+                <span class="shrink-0">ℹ️</span>
                 <span>{{ serverWarning }}</span>
             </div>
 

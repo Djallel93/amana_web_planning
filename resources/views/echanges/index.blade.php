@@ -75,7 +75,7 @@
                                 {{ $echange->created_at->locale('fr')->isoFormat('D MMM YYYY à HH:mm') }}
                             </p>
                         </div>
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-bold border flex-shrink-0 {{ $sc['badge'] }}">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11.5px] font-bold border shrink-0 {{ $sc['badge'] }}">
                             {{ $sc['icon'] }} {{ $sc['label'] }}
                         </span>
                     </div>
@@ -90,7 +90,7 @@
                                 {{ $monSlotTache->libelle }}@if($monSlotDate) · {{ ucfirst($monSlotDate->locale('fr')->dayName) }}@endif
                             </span>
                         </div>
-                        <span class="text-accent text-lg flex-shrink-0 font-bold">⇄</span>
+                        <span class="text-accent text-lg shrink-0 font-bold">⇄</span>
                         <div class="flex flex-col gap-0.5 px-3 py-2 bg-surface border border-surface-border rounded-lg flex-1 min-w-[130px]">
                             <span class="font-bold text-[12.5px] text-ink">
                                 {{ $sonSlotDate?->locale('fr')->isoFormat('ddd D MMM YYYY') ?? '—' }}

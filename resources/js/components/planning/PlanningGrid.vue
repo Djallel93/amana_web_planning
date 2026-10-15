@@ -507,7 +507,7 @@ async function toggleHistorique(): Promise<void> {
                     </div>
                 </div>
 
-                <div class="w-px h-5 bg-surface-border flex-shrink-0"></div>
+                <div class="w-px h-5 bg-surface-border shrink-0"></div>
 
                 <div class="flex items-center gap-1.5 flex-wrap">
                     <span class="text-[9.5px] font-bold text-ink-faint uppercase tracking-[0.8px]">Mois</span>
@@ -527,7 +527,7 @@ async function toggleHistorique(): Promise<void> {
                     </div>
                 </div>
 
-                <div class="w-px h-5 bg-surface-border flex-shrink-0"></div>
+                <div class="w-px h-5 bg-surface-border shrink-0"></div>
 
                 <button
                     class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md hover:border-rose-300 hover:text-rose-500 transition-colors bg-transparent cursor-pointer min-h-[44px]"
@@ -742,7 +742,7 @@ async function toggleHistorique(): Promise<void> {
                                         <span v-else class="text-ink-faint italic text-xs">—</span>
                                         <span
                                             v-if="peutEditer"
-                                            class="opacity-0 group-hover/cell:opacity-100 transition-opacity text-[11px] text-ink-faint flex-shrink-0"
+                                            class="opacity-0 group-hover/cell:opacity-100 transition-opacity text-[11px] text-ink-faint shrink-0"
                                             >✏️</span
                                         >
                                     </div>

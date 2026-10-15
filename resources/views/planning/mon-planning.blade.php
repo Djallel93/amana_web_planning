@@ -99,7 +99,7 @@
                 </div>
             </div>
 
-            <div class="w-px h-5 bg-surface-border flex-shrink-0"></div>
+            <div class="w-px h-5 bg-surface-border shrink-0"></div>
 
             <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[9.5px] font-bold text-ink-faint uppercase tracking-[0.8px]">Mois</span>
@@ -111,7 +111,7 @@
                 </div>
             </div>
 
-            <div class="w-px h-5 bg-surface-border flex-shrink-0"></div>
+            <div class="w-px h-5 bg-surface-border shrink-0"></div>
 
             <button type="button" id="mpClearFilters"
                 class="px-2.5 py-1 text-[12px] font-semibold text-ink-muted border border-surface-border rounded-md
@@ -191,7 +191,7 @@
                                 @endif
 
                                 {{-- Date --}}
-                                <div class="flex-shrink-0 w-14 text-center">
+                                <div class="shrink-0 w-14 text-center">
                                     <div class="font-heading text-[26px] font-bold text-ink leading-none">{{ $date->format('d') }}</div>
                                     <div class="text-[10.5px] font-bold uppercase tracking-[0.7px] text-ink-muted">
                                         {{ $date->locale('fr')->isoFormat('MMM') }}
@@ -199,7 +199,7 @@
                                     <div class="text-[10px] text-ink-faint font-semibold mt-0.5">{{ $creneau->jour }}</div>
                                 </div>
 
-                                <div class="w-px h-11 bg-surface-3 flex-shrink-0 hidden sm:block"></div>
+                                <div class="w-px h-11 bg-surface-3 shrink-0 hidden sm:block"></div>
 
                                 {{-- Infos --}}
                                 <div class="flex-1 min-w-0">
@@ -224,7 +224,7 @@
                                 </div>
 
                                 {{-- Statut + action --}}
-                                <div class="flex-shrink-0 flex flex-col items-end gap-2">
+                                <div class="shrink-0 flex flex-col items-end gap-2">
                                     @if($isToday) <span
                                         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">●
                                     Aujourd'hui</span> @elseif($isFuture) <span

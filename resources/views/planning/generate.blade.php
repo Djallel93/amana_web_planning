@@ -33,7 +33,7 @@
             @php $pending = session('pending_generation'); @endphp
             <div class="bg-orange-50 border-[1.5px] border-orange-200 rounded-xl p-5 shadow-sm">
                 <div class="flex items-start gap-3 mb-4">
-                    <div class="w-10 h-10 bg-orange-100 border border-orange-200 rounded-lg flex items-center justify-center text-xl flex-shrink-0">⚠️</div>
+                    <div class="w-10 h-10 bg-orange-100 border border-orange-200 rounded-lg flex items-center justify-center text-xl shrink-0">⚠️</div>
                     <div>
                         <h3 class="font-heading text-[15px] font-bold text-orange-900 mb-1">Des créneaux existants vont être supprimés</h3>
                         <p class="text-[12.5px] text-orange-700 leading-relaxed">
@@ -85,12 +85,12 @@
         {{-- ── Formulaire de génération --}}
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">⚙️</div>
+                <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">⚙️</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Paramètres de génération</span>
             </div>
             <div class="p-5">
                 <div class="flex items-start gap-2.5 bg-sky-50 border border-sky-200 rounded-lg px-4 py-3.5 mb-5 text-[12.5px] text-sky-900 leading-relaxed">
-                    <span class="text-base flex-shrink-0 mt-px">ℹ️</span>
+                    <span class="text-base shrink-0 mt-px">ℹ️</span>
                     <ul class="space-y-1 list-none">
                         <li>Le premier <strong>vendredi</strong> après la date choisie sera utilisé</li>
                         <li><strong>amana_food</strong> : rotation stricte par cycle global</li>
@@ -109,7 +109,7 @@
                             <input type="date" id="date_debut" name="date_debut"
                                    value="{{ old('date_debut', now()->toDateString()) }}"
                                    min="{{ now()->toDateString() }}" required
-                                   class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                   class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                           focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                             <span class="text-[11.5px] text-ink-muted">Le prochain vendredi sera automatiquement trouvé</span>
                             @error('date_debut')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
@@ -120,7 +120,7 @@
                             </label>
                             <input type="number" id="semaines" name="semaines"
                                    value="{{ old('semaines', 4) }}" min="1" max="52" required
-                                   class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                   class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                           focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                             <span class="text-[11.5px] text-ink-muted">Chaque semaine = vendredi + samedi</span>
                             @error('semaines')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
@@ -165,7 +165,7 @@
             @endphp
             <div class="bg-surface rounded-xl border-[1.5px] border-amber-300 shadow overflow-hidden">
                 <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                    <div class="w-8 h-8 bg-amber-50 rounded-md flex items-center justify-center text-lg flex-shrink-0">↩️</div>
+                    <div class="w-8 h-8 bg-amber-50 rounded-md flex items-center justify-center text-lg shrink-0">↩️</div>
                     <div>
                         <div class="font-heading text-[14px] font-semibold text-ink">Annuler la génération</div>
                         <div class="text-[12px] text-ink-muted">{{ count($generated) }} créneaux générés</div>
@@ -211,7 +211,7 @@
                                 <label class="flex items-center gap-2.5 py-2 border-b border-surface-3 last:border-0 text-[13px] text-ink-light cursor-pointer min-h-[44px]">
                                     <input type="checkbox" name="selected_weeks[]" value="{{ $weekLabel }}"
                                            id="week_{{ $loop->index }}"
-                                           class="w-4 h-4 accent-rose-500 cursor-pointer flex-shrink-0">
+                                           class="w-4 h-4 accent-rose-500 cursor-pointer shrink-0">
                                     <span class="flex-1">
                                         {{ $weekLabel }}
                                         <span class="text-ink-muted text-[11.5px] ml-1">({{ count($items) }} créneaux)</span>

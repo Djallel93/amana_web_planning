@@ -8,13 +8,13 @@ l'installation de Docker Desktop / Docker Engine).
 
 ## 1. Services et ports
 
-| Service   | Rôle                                              | Port hôte                         |
-| --------- | ------------------------------------------------- | --------------------------------- |
-| `app`     | `composer install`, migrations, `php artisan serve` | http://localhost:**8001**        |
-| `vite`    | `npm install`, serveur Vite (HMR)                 | **5174**                          |
-| `mysql`   | bases `amana_planning` + `amana_commun` (+ `_test`) | **3307**                         |
-| `mailpit` | capture les e-mails sortants                      | UI http://localhost:**8026**, SMTP 1026 |
-| `queue`   | `queue:work`, optionnel (`make worker`)           | —                                 |
+| Service   | Rôle                                                | Port hôte                                 |
+| --------- | --------------------------------------------------- | ----------------------------------------- |
+| `app`     | `composer install`, migrations, `php artisan serve` | <http://localhost:**8001>**               |
+| `vite`    | `npm install`, serveur Vite (HMR)                   | **5174**                                  |
+| `mysql`   | bases `amana_planning` + `amana_commun` (+ `_test`) | **3307**                                  |
+| `mailpit` | capture les e-mails sortants                        | UI <http://localhost:**8026>**, SMTP 1026 |
+| `queue`   | `queue:work`, optionnel (`make worker`)             | —                                         |
 
 Les ports sont **décalés** par rapport à ceux de familles (8000 / 5173 / 3306 /
 8025) pour pouvoir lancer les deux piles en même temps. Pour les changer :
@@ -23,7 +23,7 @@ dans `.env` (et `APP_URL` en cohérence).
 
 ## 2. Disposition attendue des dépôts
 
-```
+```txt
 amana/
 ├── amana_web_planning/   ← ce dépôt (docker-compose.yml)
 ├── amana_shared/
@@ -45,33 +45,33 @@ make logs        # attendre « ==> Ready » puis « starting Vite dev server »
 make fresh       # base vierge + données de référence + comptes de test
 ```
 
-Application : http://localhost:8001 — e-mails : http://localhost:8026.
+Application : <http://localhost:8001> — e-mails : <http://localhost:8026>.
 
 ## 4. Comptes de test (seedés par `make fresh`)
 
-| E-mail                          | Rôle planning  | Mot de passe     |
-| ------------------------------- | -------------- | ---------------- |
-| `admin@amana.fr`                | admin          | `changeme123!`   |
-| `test1@amana.fr … test10@amana.fr` | membre      | `password`       |
-| `e2e-admin@amana.test`          | admin          | `e2e-password`   |
-| `e2e-gestionnaire@amana.test`   | gestionnaire   | `e2e-password`   |
-| `e2e-membre@amana.test`         | membre         | `e2e-password`   |
-| `e2e-benevole@amana.test`       | bénévole       | `e2e-password`   |
-| `e2e-attente@amana.test`        | aucun (statut « En attente ») | `e2e-password` |
+| E-mail                             | Rôle planning                 | Mot de passe   |
+| ---------------------------------- | ----------------------------- | -------------- |
+| `admin@amana.fr`                   | admin                         | `changeme123!` |
+| `test1@amana.fr … test10@amana.fr` | membre                        | `password`     |
+| `e2e-admin@amana.test`             | admin                         | `e2e-password` |
+| `e2e-gestionnaire@amana.test`      | gestionnaire                  | `e2e-password` |
+| `e2e-membre@amana.test`            | membre                        | `e2e-password` |
+| `e2e-benevole@amana.test`          | bénévole                      | `e2e-password` |
+| `e2e-attente@amana.test`           | aucun (statut « En attente ») | `e2e-password` |
 
 Les comptes `e2e-*` (seeder `database/seeders/Docker/E2eRolesSeeder.php`) servent
 aux tests Playwright. Le seeder **refuse de s'exécuter hors `APP_ENV=local|testing`**.
 
 ## 5. Commandes utiles
 
-| Commande          | Effet                                              |
-| ----------------- | -------------------------------------------------- |
-| `make up` / `down`| démarrer / arrêter la pile                         |
-| `make shell`      | shell dans le conteneur `app`                      |
-| `make artisan migrate` | `php artisan …`                               |
-| `make test`       | PHPUnit (bases `*_test`, voir `make test-db-init` si le volume MySQL existait déjà) |
-| `make fresh`      | `migrate:fresh --seed` + comptes de test           |
-| `make worker`     | démarre `queue:work` (régler `QUEUE_CONNECTION=database`) |
+| Commande               | Effet                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `make up` / `down`     | démarrer / arrêter la pile                                                          |
+| `make shell`           | shell dans le conteneur `app`                                                       |
+| `make artisan migrate` | `php artisan …`                                                                     |
+| `make test`            | PHPUnit (bases `*_test`, voir `make test-db-init` si le volume MySQL existait déjà) |
+| `make fresh`           | `migrate:fresh --seed` + comptes de test                                            |
+| `make worker`          | démarre `queue:work` (régler `QUEUE_CONNECTION=database`)                           |
 
 ## 6. Dépannage
 

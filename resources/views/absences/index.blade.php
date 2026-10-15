@@ -24,7 +24,7 @@
     {{-- ── Liste --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
+            <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm shrink-0">📋</div>
             <span class="font-heading text-[14px] font-semibold text-ink">
                 {{ $absences->count() }} absence{{ $absences->count() !== 1 ? 's' : '' }}
             </span>
@@ -52,7 +52,7 @@
                         <tr class="border-b border-surface-3 last:border-0 hover:bg-surface-2 transition-colors {{ $isMine ? 'bg-sky-50 hover:bg-sky-50/80' : '' }}">
                             <td class="px-5 py-3">
                                 <div class="flex items-center gap-2.5">
-                                    <div class="w-[30px] h-[30px] rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0
+                                    <div class="w-[30px] h-[30px] rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0
                                                 {{ $isMine ? 'bg-accent' : 'bg-ink-faint' }}">
                                         {{ strtoupper(substr($absence->personne->prenom ?? '?', 0, 1)) }}
                                     </div>
@@ -129,7 +129,7 @@
                 <div class="px-4 py-3.5 {{ $isMine ? 'bg-sky-50' : '' }}">
                     <div class="flex items-center justify-between mb-1.5">
                         <div class="flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0
                                         {{ $isMine ? 'bg-accent' : 'bg-ink-faint' }}">
                                 {{ strtoupper(substr($absence->personne->prenom ?? '?', 0, 1)) }}
                             </div>
@@ -190,7 +190,7 @@
     {{-- ── Formulaire --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">➕</div>
+            <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm shrink-0">➕</div>
             <span class="font-heading text-[14px] font-semibold text-ink">
                 {{ (auth()->user()->isAdmin() || auth()->user()->isGestionnaire()) ? 'Ajouter une absence' : 'Déclarer mon absence' }}
             </span>
@@ -199,7 +199,7 @@
 
             @if(!auth()->user()->isAdmin() && !auth()->user()->isGestionnaire())
                 <div class="flex items-start gap-2 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 mb-4">
-                    <span class="flex-shrink-0">ℹ️</span>
+                    <span class="shrink-0">ℹ️</span>
                     <span>Vous pouvez uniquement déclarer vos propres absences.</span>
                 </div>
             @endif
@@ -218,7 +218,7 @@
                     </label>
                     @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
                         <select id="id_personne" name="id_personne" required
-                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                        focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] cursor-pointer">
                             <option value="">— Choisir —</option>
                             @foreach($personnes as $p)
@@ -240,7 +240,7 @@
                 <div class="flex flex-col gap-1.5">
                     <label for="date_debut" class="text-xs font-bold text-ink tracking-[0.2px]">Début <span class="text-rose-500">*</span></label>
                     <input type="date" id="date_debut" name="date_debut" value="{{ old('date_debut') }}" required
-                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                   focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                     @error('date_debut')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>
@@ -249,7 +249,7 @@
                 <div class="flex flex-col gap-1.5">
                     <label for="date_fin" class="text-xs font-bold text-ink tracking-[0.2px]">Fin <span class="text-rose-500">*</span></label>
                     <input type="date" id="date_fin" name="date_fin" value="{{ old('date_fin') }}" required
-                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                   focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                     @error('date_fin')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>
@@ -261,7 +261,7 @@
                     </label>
                     <input type="text" id="raison" name="raison" value="{{ old('raison') }}" maxlength="255"
                            placeholder="Vacances, maladie, congé…"
-                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                   focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                     @error('raison')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>

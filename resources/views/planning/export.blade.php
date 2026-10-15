@@ -19,7 +19,7 @@
 <div class="max-w-lg">
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📄</div>
+            <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm shrink-0">📄</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Paramètres d'export</span>
         </div>
         <div class="p-5">
@@ -33,7 +33,7 @@
                         </label>
                         <input type="date" id="date_debut" name="date_debut"
                                value="{{ old('date_debut', now()->startOfMonth()->toDateString()) }}" required
-                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                         @error('date_debut')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                     </div>
@@ -43,14 +43,14 @@
                         </label>
                         <input type="date" id="date_fin" name="date_fin"
                                value="{{ old('date_fin', now()->endOfMonth()->toDateString()) }}" required
-                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                         @error('date_fin')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                     </div>
                 </div>
 
                 <div class="flex items-start gap-2.5 bg-surface-2 border border-surface-border rounded-lg px-4 py-3.5 mb-5 text-[12.5px] text-ink-muted">
-                    <span class="text-base flex-shrink-0 mt-px">📋</span>
+                    <span class="text-base shrink-0 mt-px">📋</span>
                     <span>Le PDF généré contiendra les créneaux du planning dans la plage sélectionnée, avec les assignations de tâches par jour (format A4 paysage).</span>
                 </div>
 

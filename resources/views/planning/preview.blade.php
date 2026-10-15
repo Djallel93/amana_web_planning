@@ -101,7 +101,7 @@
     celle-ci). --}}
     <div
         class="flex flex-wrap items-center gap-4 px-5 py-4 bg-amber-50 border-[1.5px] border-amber-300 rounded-xl shadow-sm relative z-10">
-        <span class="text-3xl flex-shrink-0">👁️</span>
+        <span class="text-3xl shrink-0">👁️</span>
         <div class="flex-1 min-w-0">
             <h2 class="font-heading text-[15px] font-bold text-amber-900 mb-0.5">Aperçu — aucune donnée enregistrée</h2>
             <p class="text-[12.5px] text-amber-700 leading-relaxed">
@@ -112,7 +112,7 @@
                 · {{ $propositions['non_assignes'] }} non assigné(s)
             </p>
         </div>
-        <div class="flex flex-wrap gap-2 flex-shrink-0">
+        <div class="flex flex-wrap gap-2 shrink-0">
             <form action="{{ route('planning.generate') }}" method="POST" data-submit-lock data-submit-lock-label="Génération…">
                 @csrf
                 <input type="hidden" name="date_debut" value="{{ $dateDebut }}">

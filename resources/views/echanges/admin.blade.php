@@ -21,7 +21,7 @@
 
 <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
     <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-        <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔄</div>
+        <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm shrink-0">🔄</div>
         <span class="font-heading text-[14px] font-semibold text-ink">Toutes les demandes d'échange</span>
     </div>
 
@@ -160,7 +160,7 @@
                         </p>
                         <p class="text-[11.5px] text-ink-muted mt-0.5">{{ $echange->created_at->locale('fr')->isoFormat('D MMM HH:mm') }}</p>
                     </div>
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border flex-shrink-0 {{ $sc['badge'] }}">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border shrink-0 {{ $sc['badge'] }}">
                         {{ $sc['icon'] }} {{ $sc['label'] }}
                     </span>
                 </div>

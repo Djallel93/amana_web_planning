@@ -28,7 +28,7 @@
         {{-- ── Informations générales --}}
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🎉</div>
+                <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm shrink-0">🎉</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Informations de l'événement</span>
             </div>
             <div class="p-5 flex flex-col gap-4">
@@ -40,7 +40,7 @@
                     </label>
                     <input type="text" id="nom" name="nom" value="{{ old('nom', $evenement->nom ?? '') }}"
                            required maxlength="150" placeholder="Ex : Vacances Noël, Ramadan, Conférence…"
-                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                   focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                     <span class="text-[11.5px] text-ink-muted">Le nom doit être unique et précis</span>
                     @error('nom')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
@@ -53,7 +53,7 @@
                         <input type="date" id="date_debut" name="date_debut"
                                value="{{ old('date_debut', isset($evenement) ? $evenement->date_debut?->toDateString() : '') }}"
                                required
-                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                         @error('date_debut')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                     </div>
@@ -62,7 +62,7 @@
                         <input type="date" id="date_fin" name="date_fin"
                                value="{{ old('date_fin', isset($evenement) ? $evenement->date_fin?->toDateString() : '') }}"
                                required
-                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                         @error('date_fin')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                     </div>
@@ -74,7 +74,7 @@
                         Description <span class="text-ink-muted font-normal">(optionnel)</span>
                     </label>
                     <textarea id="description" name="description" rows="3" placeholder="Notes complémentaires…"
-                              class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition resize-y
+                              class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition resize-y
                                      focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">{{ old('description', $evenement->description ?? '') }}</textarea>
                     @error('description')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
                 </div>
@@ -107,7 +107,7 @@
         @endphp
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
+                <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">📆</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Synchronisation Google Calendar</span>
                 <span class="ml-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-surface-3 text-ink-muted">optionnel</span>
             </div>
@@ -145,7 +145,7 @@
 
                 @if($edit && $evenement->hasCalendarSync())
                     <div class="flex items-start gap-2.5 mt-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-lg text-[12.5px] text-emerald-800">
-                        <span class="flex-shrink-0">📅</span>
+                        <span class="shrink-0">📅</span>
                         <span>
                             Cet événement est synchronisé avec {{ count($evenement->calendarNames()) > 1 ? 'les calendriers' : 'le calendrier' }}
                             <strong>« {{ implode(' », « ', $evenement->calendarNames()) }} »</strong>.
@@ -166,7 +166,7 @@
         {{-- ── Tâches bloquées --}}
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🚫</div>
+                <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm shrink-0">🚫</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Tâches bloquées pendant cet événement</span>
             </div>
             <div class="p-5">
@@ -199,7 +199,7 @@
                                class="tache-block-item flex items-center gap-4 px-5 py-3.5 border-b border-surface-3 last:border-0 cursor-pointer transition-colors min-h-[52px]
                                       {{ $checked ? 'bg-rose-50' : 'hover:bg-rose-50/50' }}">
                             <input type="checkbox" name="taches[]" value="{{ $tache->id }}"
-                                   id="tache_{{ $tache->id }}" class="tache-checkbox w-4 h-4 accent-rose-500 cursor-pointer flex-shrink-0"
+                                   id="tache_{{ $tache->id }}" class="tache-checkbox w-4 h-4 accent-rose-500 cursor-pointer shrink-0"
                                    {{ $checked ? 'checked' : '' }}>
                             <span class="chip-{{ $tache->code }} inline-flex items-center px-2.5 py-0.5 rounded-full text-[12.5px] font-semibold flex-1">
                                 {{ $tache->libelle }}

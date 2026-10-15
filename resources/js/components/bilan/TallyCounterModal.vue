@@ -118,7 +118,7 @@ function enregistrer(): void {
 <template>
     <Modal :open="open" max-width="max-w-xs" @close="annuler">
         <template #header>
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔢</div>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">🔢</div>
             <span class="font-heading text-[14px] font-semibold text-ink">{{ label }}</span>
         </template>
 

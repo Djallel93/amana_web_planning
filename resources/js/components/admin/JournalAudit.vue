@@ -177,7 +177,7 @@ function allerPage(n: number): void {
                 <select
                     id="f_module"
                     v-model="filtreModule"
-                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                 >
                     <option value="">Tous</option>
                     <option v-for="m in config.modules" :key="m" :value="m">{{ m }}</option>
@@ -191,7 +191,7 @@ function allerPage(n: number): void {
                 <select
                     id="f_action"
                     v-model="filtreAction"
-                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                 >
                     <option value="">Toutes</option>
                     <option v-for="a in config.actions" :key="a" :value="a">{{ libelleAction(a) }}</option>
@@ -205,7 +205,7 @@ function allerPage(n: number): void {
                 <select
                     id="f_user"
                     v-model="filtreUtilisateur"
-                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                 >
                     <option value="">Tous</option>
                     <option v-for="p in config.personnes" :key="p.id" :value="p.id">{{ p.nom }}</option>
@@ -219,7 +219,7 @@ function allerPage(n: number): void {
                     v-model="filtreDe"
                     type="date"
                     :max="filtreA || undefined"
-                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                 />
             </div>
 
@@ -230,7 +230,7 @@ function allerPage(n: number): void {
                     v-model="filtreA"
                     type="date"
                     :min="filtreDe || undefined"
-                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-none transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
+                    class="px-3 py-2 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-hidden transition focus:border-accent focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]"
                 />
             </div>
 

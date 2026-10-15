@@ -41,7 +41,7 @@
             <tr class="{{ $isMe ? 'my-row' : 'hover:bg-surface-2' }} transition-colors">
                 <td class="text-left pl-5 pr-3 py-2.5 font-semibold text-ink whitespace-nowrap border-b border-surface-3">
                     <div class="flex items-center gap-2.5">
-                        <div class="w-[26px] h-[26px] bg-accent rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                        <div class="w-[26px] h-[26px] bg-accent rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                             {{ strtoupper(substr($personne->prenom, 0, 1)) }}
                         </div>
                         {{ $personne->prenom }} {{ $personne->nom }}

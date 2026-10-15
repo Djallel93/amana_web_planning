@@ -55,19 +55,19 @@
 ════════════════════════════════════════ --}}
 <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
     <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-        <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📋</div>
+        <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm shrink-0">📋</div>
         <span class="font-heading text-[14px] font-semibold text-ink">Registre des calendriers Google Calendar</span>
     </div>
     <div class="px-5 py-5">
         <div class="flex items-start gap-2 mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
-            <span class="flex-shrink-0 mt-px">ℹ️</span>
+            <span class="shrink-0 mt-px">ℹ️</span>
             <span class="min-w-0 break-words">
                 Un compte de service Google ne peut pas "découvrir" automatiquement les calendriers qui lui sont partagés — chaque calendrier doit être enregistré ici <strong>une fois</strong>, avec son ID Google Calendar (copié depuis Google Calendar → ⚙️ Paramètres du calendrier concerné → <strong>Intégrer l'agenda</strong> → « ID de l'agenda »). L'accès est vérifié automatiquement à l'ajout. Voir <code class="break-all">docs/google_service_account.md</code> pour le détail.
             </span>
         </div>
 
         <div class="flex items-start gap-2 mb-5 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
-            <span class="flex-shrink-0 mt-px">👥</span>
+            <span class="shrink-0 mt-px">👥</span>
             <span class="min-w-0 break-words">
                 La colonne <strong>Nouveaux bénévoles</strong> contrôle si ce calendrier est partagé automatiquement, via l'API Google Calendar, avec l'adresse email d'une personne dès que sa candidature est validée. Le niveau d'accès accordé dépend du rôle attribué : lecture seule pour bénévole/membre, modification pour gestionnaire, gestion complète (droits + partage) pour admin.
             </span>
@@ -160,12 +160,12 @@
                 <div class="flex flex-col gap-1">
                     <label class="text-[11px] font-semibold text-ink-muted">Nom d'affichage</label>
                     <input type="text" name="nom" value="{{ old('nom') }}" placeholder="ex. AMANA - Planning" required maxlength="200"
-                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] text-ink bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent/30">
+                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] text-ink bg-surface-2 focus:outline-hidden focus:ring-2 focus:ring-accent/30">
                 </div>
                 <div class="flex flex-col gap-1">
                     <label class="text-[11px] font-semibold text-ink-muted">Calendar ID</label>
                     <input type="text" name="calendar_id" value="{{ old('calendar_id') }}" placeholder="xxxx@group.calendar.google.com" required maxlength="200"
-                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] font-mono text-ink bg-surface-2 focus:outline-none focus:ring-2 focus:ring-accent/30">
+                           class="rounded-lg border border-surface-border px-3 py-2 text-[13px] font-mono text-ink bg-surface-2 focus:outline-hidden focus:ring-2 focus:ring-accent/30">
                 </div>
                 <button type="submit" class="self-end px-4 py-2 rounded-lg bg-accent text-white text-[13px] font-semibold hover:opacity-90 whitespace-nowrap">
                     Ajouter et vérifier
@@ -188,7 +188,7 @@
         @csrf
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📆</div>
+            <div class="w-7 h-7 bg-violet-50 rounded-md flex items-center justify-center text-sm shrink-0">📆</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Calendriers &amp; Couleurs Google Calendar</span>
         </div>
         <div class="px-5 py-5">
@@ -292,12 +292,12 @@
     ════════════════════════════════════════ --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">⏱️</div>
+            <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm shrink-0">⏱️</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Décalages des tâches</span>
         </div>
 
         <div class="flex items-start gap-2 mx-5 mt-4 mb-0 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900 leading-relaxed">
-            <span class="flex-shrink-0 mt-px">ℹ️</span>
+            <span class="shrink-0 mt-px">ℹ️</span>
             <span>
                 Les décalages sont en <strong>minutes par rapport à l'heure du cours</strong>.
                 Une valeur négative signifie avant le cours (ex : −30 = 30 min avant), positive = après.
@@ -367,7 +367,7 @@
                                     value="{{ $groupe['debut']['valeur_raw'] }}"
                                     step="1" min="-999" max="999"
                                     {{ $isSandwich ? 'disabled' : '' }}
-                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
+                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-hidden transition
                                             focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                                             disabled:opacity-50 disabled:cursor-not-allowed">
                                 @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
@@ -383,7 +383,7 @@
                                     value="{{ $groupe['fin']['valeur_raw'] }}"
                                     step="1" min="-999" max="999"
                                     {{ $isSandwich ? 'disabled' : '' }}
-                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-none transition
+                                    class="w-full px-3 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base text-center font-body text-ink bg-surface-2 outline-hidden transition
                                             focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]
                                             disabled:opacity-50 disabled:cursor-not-allowed">
                                 @if(!$isSandwich)<span class="text-[11px] text-ink-muted">min</span>@endif
@@ -424,7 +424,7 @@
     ════════════════════════════════════════ --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔓</div>
+            <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm shrink-0">🔓</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Inscription publique</span>
             @if(!$user->isAdmin())
                 <span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
@@ -470,7 +470,7 @@
 
                     @if(!$io['valeur'])
                         <div class="flex items-start gap-2 mt-4 px-4 py-3 bg-rose-50 border border-rose-200 rounded-lg text-[12.5px] text-rose-800">
-                            <span class="flex-shrink-0">⚠️</span>
+                            <span class="shrink-0">⚠️</span>
                             <span>Les inscriptions sont actuellement <strong>fermées</strong>. Le formulaire public est inaccessible.</span>
                         </div>
                     @endif
@@ -490,7 +490,7 @@
 
             @else
                 <div class="flex items-start gap-2 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900">
-                    <span class="flex-shrink-0">⚠️</span>
+                    <span class="shrink-0">⚠️</span>
                     <span>
                         Le paramètre <code>inscription_ouverte</code> n'existe pas encore en base.
                         Lancez <code>php artisan migrate</code> ou <code>php artisan db:seed</code> pour l'ajouter.
@@ -505,7 +505,7 @@
     ════════════════════════════════════════ --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">⏱️</div>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">⏱️</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Durée de session</span>
             @if(!$user->isAdmin())
                 <span class="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
@@ -535,7 +535,7 @@
                         <input type="number" id="sessionLifetime" name="settings[session_lifetime]"
                             value="{{ old('settings.session_lifetime', $dureeSession) }}"
                             min="{{ \App\Services\SessionPolicy::MIN_MINUTES }}" max="{{ \App\Services\SessionPolicy::MAX_MINUTES }}" step="1" required
-                            class="w-32 px-3 py-2.5 border-[1.5px] border-surface-border rounded-lg text-[14px] bg-surface focus:outline-none focus:border-accent min-h-[44px]">
+                            class="w-32 px-3 py-2.5 border-[1.5px] border-surface-border rounded-lg text-[14px] bg-surface focus:outline-hidden focus:border-accent min-h-[44px]">
                         <span class="text-[12.5px] text-ink-muted">
                             de {{ \App\Services\SessionPolicy::MIN_MINUTES }} à {{ \App\Services\SessionPolicy::MAX_MINUTES }} min (24 h) — défaut {{ \App\Services\SessionPolicy::DEFAUT_MINUTES }} min
                         </span>
@@ -551,7 +551,7 @@
                 @endif
             @else
                 <div class="flex items-start gap-2 px-4 py-3 bg-sky-50 border border-sky-200 rounded-lg text-[12.5px] text-sky-900">
-                    <span class="flex-shrink-0">⚠️</span>
+                    <span class="shrink-0">⚠️</span>
                     <span>
                         Le paramètre <code>session_lifetime</code> n'existe pas encore en base : la durée par défaut
                         ({{ \App\Services\SessionPolicy::DEFAUT_MINUTES }} minutes) s'applique.
@@ -567,7 +567,7 @@
     ════════════════════════════════════════ --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-5">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🕐</div>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">🕐</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Horaires &amp; Lieu</span>
         </div>
         <div class="px-5 py-5">
@@ -588,7 +588,7 @@
                             name="settings[heure_cours]"
                             value="{{ $hc['valeur_raw'] }}"
                             required
-                            class="w-full max-w-[160px] px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                            class="w-full max-w-[160px] px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                     focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         <span class="text-[11.5px] text-ink-muted">Format 24h — ex : 20:00</span>
                     </div>
@@ -606,7 +606,7 @@
                             value="{{ $lieu['valeur_raw'] }}"
                             maxlength="500"
                             placeholder="Adresse complète"
-                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                            class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                     focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         <span class="text-[11.5px] text-ink-muted">Adresse envoyée dans les événements Google Calendar</span>
                     </div>

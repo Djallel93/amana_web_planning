@@ -23,7 +23,7 @@
 
         {{-- Header card --}}
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">👥</div>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">👥</div>
             <span class="font-heading text-[14px] font-semibold text-ink">
                 {{ $personnes->count() }} personne{{ $personnes->count() !== 1 ? 's' : '' }}
             </span>
@@ -78,7 +78,7 @@
                                         <td class="px-5 py-3">
                                             <div class="flex items-center gap-2.5">
                                                 <div
-                                                    class="w-[30px] h-[30px] bg-accent rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">
+                                                    class="w-[30px] h-[30px] bg-accent rounded-full flex items-center justify-center text-white text-[11px] font-bold shrink-0">
                                                     {{ strtoupper(substr($personne->prenom, 0, 1)) }}
                                                 </div>
                                                 <span class="font-semibold text-ink">{{ $personne->prenom }} {{ $personne->nom }}</span>
@@ -100,7 +100,7 @@
                                         <td class="px-5 py-3">
                                             <span
                                                 class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold {{ $si['bg'] }} {{ $si['text'] }}">
-                                                <span class="w-1.5 h-1.5 rounded-full {{ $si['dot'] }} flex-shrink-0"></span>
+                                                <span class="w-1.5 h-1.5 rounded-full {{ $si['dot'] }} shrink-0"></span>
                                                 {{ $personne->statut }}
                                             </span>
                                         </td>
@@ -170,7 +170,7 @@
                             <div class="flex items-center justify-between mb-2.5">
                                 <div class="flex items-center gap-2.5">
                                     <div
-                                        class="w-9 h-9 bg-accent rounded-full flex items-center justify-center text-white text-[12px] font-bold flex-shrink-0">
+                                        class="w-9 h-9 bg-accent rounded-full flex items-center justify-center text-white text-[12px] font-bold shrink-0">
                                         {{ strtoupper(substr($personne->prenom, 0, 1)) }}
                                     </div>
                                     <div>
@@ -179,7 +179,7 @@
                                         <div class="text-[12px] text-ink-muted mt-px"> {{ $personne->email }} </div>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-1.5 ml-2 flex-shrink-0">
+                                <div class="flex items-center gap-1.5 ml-2 shrink-0">
                                     <a href="{{ route('personnes.edit', $personne->id) }}"
                                         class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm transition-colors no-underline min-h-[44px] min-w-[44px]"
                                         title="Modifier">✏️</a>
@@ -217,7 +217,7 @@
                                 @endif
                                 <span
                                     class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold {{ $si['bg'] }} {{ $si['text'] }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ $si['dot'] }} flex-shrink-0"></span>
+                                    <span class="w-1.5 h-1.5 rounded-full {{ $si['dot'] }} shrink-0"></span>
                                     {{ $personne->statut }}
                                 </span>
                                 @if($personne->date_debut_planning)

@@ -177,7 +177,7 @@ onMounted(() => {
             class="scroll-mt-20 bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden animate-fade-in-up motion-reduce:animate-none"
             style="animation-delay: 60ms"
         >
-            <div class="px-5 py-4 border-b border-surface-3 bg-gradient-to-r from-accent/10 to-transparent">
+            <div class="px-5 py-4 border-b border-surface-3 bg-linear-to-r/srgb from-accent/10 to-transparent">
                 <h2 class="font-heading text-[15px] font-semibold text-ink flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center text-[13px]"
                         >📅</span
@@ -326,7 +326,7 @@ onMounted(() => {
             class="scroll-mt-20 bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden animate-fade-in-up motion-reduce:animate-none"
             style="animation-delay: 120ms"
         >
-            <div class="px-5 py-4 border-b border-surface-3 bg-gradient-to-r from-accent/10 to-transparent">
+            <div class="px-5 py-4 border-b border-surface-3 bg-linear-to-r/srgb from-accent/10 to-transparent">
                 <h2 class="font-heading text-[15px] font-semibold text-ink flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center text-[13px]"
                         >🏖️</span
@@ -430,7 +430,7 @@ onMounted(() => {
             class="scroll-mt-20 bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden animate-fade-in-up motion-reduce:animate-none"
             style="animation-delay: 180ms"
         >
-            <div class="px-5 py-4 border-b border-surface-3 bg-gradient-to-r from-accent/10 to-transparent">
+            <div class="px-5 py-4 border-b border-surface-3 bg-linear-to-r/srgb from-accent/10 to-transparent">
                 <h2 class="font-heading text-[15px] font-semibold text-ink flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center text-[13px]"
                         >🧾</span
@@ -511,7 +511,7 @@ onMounted(() => {
             class="scroll-mt-20 bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden animate-fade-in-up motion-reduce:animate-none"
             style="animation-delay: 240ms"
         >
-            <div class="px-5 py-4 border-b border-surface-3 bg-gradient-to-r from-accent/10 to-transparent">
+            <div class="px-5 py-4 border-b border-surface-3 bg-linear-to-r/srgb from-accent/10 to-transparent">
                 <h2 class="font-heading text-[15px] font-semibold text-ink flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center text-[13px]"
                         >⚙️</span
@@ -737,7 +737,7 @@ onMounted(() => {
             class="scroll-mt-20 bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden animate-fade-in-up motion-reduce:animate-none"
             style="animation-delay: 300ms"
         >
-            <div class="px-5 py-4 border-b border-surface-3 bg-gradient-to-r from-accent/10 to-transparent">
+            <div class="px-5 py-4 border-b border-surface-3 bg-linear-to-r/srgb from-accent/10 to-transparent">
                 <h2 class="font-heading text-[15px] font-semibold text-ink flex items-center gap-2">
                     <span class="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center text-[13px]"
                         >🛡️</span

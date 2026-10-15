@@ -21,7 +21,7 @@
     {{-- ── Format attendu --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📄</div>
+            <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">📄</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Format du fichier CSV</span>
         </div>
         <div class="p-5 flex flex-col gap-3">
@@ -138,7 +138,7 @@ Formation bénévoles;2026-06-06;2026-06-06;Session obligatoire pour les nouveau
     {{-- ── Formulaire d'upload --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📥</div>
+            <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm shrink-0">📥</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Fichier à importer</span>
         </div>
         <form action="{{ route('evenements.import.store') }}" method="POST" enctype="multipart/form-data" class="p-5 flex flex-col gap-4" data-submit-lock>
@@ -149,7 +149,7 @@ Formation bénévoles;2026-06-06;2026-06-06;Session obligatoire pour les nouveau
                     Fichier CSV <span class="text-rose-500">*</span>
                 </label>
                 <input type="file" id="csv" name="csv" accept=".csv,text/csv" required
-                       class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-none transition
+                       class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-[13px] font-body text-ink bg-surface-2 outline-hidden transition
                               focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)]">
                 @error('csv')<span class="text-xs text-rose-600">{{ $message }}</span>@enderror
             </div>
@@ -178,7 +178,7 @@ Formation bénévoles;2026-06-06;2026-06-06;Session obligatoire pour les nouveau
     {{-- ── Saisie manuelle multi-lignes --}}
     <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
         <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-            <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">✍️</div>
+            <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm shrink-0">✍️</div>
             <span class="font-heading text-[14px] font-semibold text-ink">Saisie manuelle</span>
         </div>
         <form action="{{ route('evenements.import.manuel') }}" method="POST" class="p-5 flex flex-col gap-4" data-submit-lock>

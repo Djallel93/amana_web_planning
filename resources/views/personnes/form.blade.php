@@ -31,7 +31,7 @@
         {{-- Identité --}}
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">👤</div>
+                <div class="w-7 h-7 bg-sky-50 rounded-md flex items-center justify-center text-sm shrink-0">👤</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Identité</span>
             </div>
             <div class="p-5">
@@ -44,7 +44,7 @@
                         <input type="text" id="prenom" name="prenom"
                                value="{{ old('prenom', $personne->prenom ?? '') }}"
                                required maxlength="100" placeholder="Prénom"
-                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         @error('prenom')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                     </div>
@@ -56,7 +56,7 @@
                         <input type="text" id="nom" name="nom"
                                value="{{ old('nom', $personne->nom ?? '') }}"
                                required maxlength="100" placeholder="Nom de famille"
-                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         @error('nom')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                     </div>
@@ -68,7 +68,7 @@
                         <input type="email" id="email" name="email"
                                value="{{ old('email', $personne->email ?? '') }}"
                                required maxlength="255" placeholder="email@exemple.fr" autocomplete="off"
-                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         @error('email')<span class="text-xs text-rose-600 mt-0.5">{{ $message }}</span>@enderror
                     </div>
@@ -80,7 +80,7 @@
                         <input type="tel" id="telephone" name="telephone"
                                value="{{ old('telephone', $personne->telephone ?? '') }}"
                                maxlength="20" placeholder="06 12 34 56 78"
-                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                               class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                       focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                         <span class="text-[11.5px] text-ink-muted">
                             Formats : <code class="bg-surface-3 px-1 rounded">06 12 34 56 78</code>
@@ -96,7 +96,7 @@
         {{-- Rôle & Statut --}}
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-4">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🛡️</div>
+                <div class="w-7 h-7 bg-rose-50 rounded-md flex items-center justify-center text-sm shrink-0">🛡️</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Rôle &amp; Statut</span>
             </div>
             <div class="p-5">
@@ -107,7 +107,7 @@
                             Rôle planning <span class="text-rose-500">*</span>
                         </label>
                         <select id="role" name="role" required
-                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                        focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted cursor-pointer">
                             @foreach($roles as $r)
                                 @php
@@ -137,7 +137,7 @@
                             Statut <span class="text-rose-500">*</span>
                         </label>
                         <select id="statut" name="statut" required
-                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                                class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                        focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted cursor-pointer">
                             @foreach($statuts as $s)
                                 @php
@@ -163,7 +163,7 @@
         {{-- Planning --}}
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mb-6">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">📅</div>
+                <div class="w-7 h-7 bg-emerald-50 rounded-md flex items-center justify-center text-sm shrink-0">📅</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Planning</span>
             </div>
             <div class="p-5">
@@ -173,7 +173,7 @@
                     </label>
                     <input type="date" id="date_debut_planning" name="date_debut_planning"
                            value="{{ old('date_debut_planning', isset($personne) ? $personne->date_debut_planning?->toDateString() : '') }}"
-                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-none transition
+                           class="w-full px-3.5 py-2.5 border-[1.5px] border-ink-faint rounded-lg text-base font-body text-ink bg-surface-2 outline-hidden transition
                                   focus:border-accent focus:bg-surface focus:shadow-[0_0_0_3px_rgba(3,105,161,0.2)] hover:border-ink-muted">
                     <span class="text-[11.5px] text-ink-muted leading-relaxed">
                         Laisser vide pour inclure ce membre immédiatement lors de la génération.
@@ -204,7 +204,7 @@
         @php $compteValide = $personne->statut === 'Validé'; @endphp
         <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden mt-6">
             <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-                <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🔑</div>
+                <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm shrink-0">🔑</div>
                 <span class="font-heading text-[14px] font-semibold text-ink">Accès au compte</span>
             </div>
             <div class="p-5">

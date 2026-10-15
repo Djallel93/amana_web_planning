@@ -28,7 +28,7 @@
 
 <div class="bg-surface rounded-xl border border-surface-border shadow-sm overflow-hidden">
     <div class="flex items-center gap-2.5 px-5 py-4 border-b border-surface-3">
-        <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm flex-shrink-0">🎉</div>
+        <div class="w-7 h-7 bg-amber-50 rounded-md flex items-center justify-center text-sm shrink-0">🎉</div>
         <span class="font-heading text-[14px] font-semibold text-ink">
             {{ $evenements->count() }} événement{{ $evenements->count() !== 1 ? 's' : '' }}
         </span>
@@ -58,7 +58,7 @@
                     <tr class="border-b border-surface-3 last:border-0 hover:bg-surface-2 transition-colors">
                         <td class="px-5 py-3">
                             <div class="flex items-center gap-2.5">
-                                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0
+                                <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0
                                             {{ $nbBloquees > 0 ? 'bg-rose-50' : 'bg-amber-50' }}">
                                     {{ $nbBloquees > 0 ? '🚫' : '📢' }}
                                 </div>
@@ -150,7 +150,7 @@
             <div class="px-4 py-3.5">
                 <div class="flex items-start justify-between gap-3 mb-2">
                     <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base flex-shrink-0 {{ $nbBloquees > 0 ? 'bg-rose-50' : 'bg-amber-50' }}">
+                        <div class="w-9 h-9 rounded-lg flex items-center justify-center text-base shrink-0 {{ $nbBloquees > 0 ? 'bg-rose-50' : 'bg-amber-50' }}">
                             {{ $nbBloquees > 0 ? '🚫' : '📢' }}
                         </div>
                         <div>
@@ -161,7 +161,7 @@
                         </div>
                     </div>
                     @if(auth()->user()->isAdmin() || auth()->user()->isGestionnaire())
-                        <div class="flex gap-1.5 flex-shrink-0">
+                        <div class="flex gap-1.5 shrink-0">
                             <a href="{{ route('evenements.edit', $evt->id) }}"
                                class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-surface-border bg-surface hover:bg-surface-2 text-sm no-underline min-h-[44px] min-w-[44px]">✏️</a>
                             <form action="{{ route('evenements.destroy', $evt->id) }}" method="POST"
