@@ -25,6 +25,7 @@
 | [docs/frontend-conventions.md](docs/frontend-conventions.md) | Conventions Vue / TypeScript / Inertia : emplacement des composants, montage d'îlots, nommage des pages, lint |
 | [docs/backend-conventions.md](docs/backend-conventions.md) | Conventions PHP / Laravel : porte de qualité, style Pint (style maison), commits de reformatage, PHPStan |
 | [docs/security.md](docs/security.md) | Surveillance des failles dans les dépendances : Dependabot, audit hebdomadaire, réglages GitHub à activer |
+| [docs/docker.md](docs/docker.md) | Pile Docker locale (PHP 8.4, Node 22, MySQL, Mailpit), ports, comptes de test par rôle |
 
 ---
 

@@ -25,6 +25,16 @@ export default defineConfig({
         }),
     ],
 
+    // Serveur de dev (Docker, 14/10/2026) : écoute sur toutes les interfaces
+    // pour être joignable depuis l'hôte ; le port vient de VITE_PORT (5174 par
+    // défaut dans docker-compose.yml, 5173 hors Docker).
+    server: {
+        host: '0.0.0.0',
+        port: Number(process.env.VITE_PORT ?? 5173),
+        strictPort: true,
+        hmr: { host: 'localhost', clientPort: Number(process.env.VITE_PORT ?? 5173) },
+    },
+
     resolve: {
         alias: {
             // Permet d'importer depuis "@/components/..." au lieu de
